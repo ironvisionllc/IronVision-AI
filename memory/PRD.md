@@ -7,9 +7,9 @@ Import and deploy IronVision Framework AI Tool - an enterprise GRC (Governance, 
 ```
 Frontend: React 18 + Shadcn/UI + Tailwind CSS (Port 3000)
 Backend: FastAPI + Python (Port 8001)
-Database: MongoDB (Local) + IronVision MongoDB Atlas (Optional)
+Database: MongoDB (Local) + IronVision MongoDB Atlas (Production)
 AI: OpenAI GPT-5.2 via Emergent LLM Key
-AWS: S3 + Lambda (Document processing) + SES (Email)
+AWS: S3 (kevin-policy-bucket) + Lambda (IronVision-Analyze, ironvision-preprocess-lambda, IronVision-Generate-Policy) + SES
 ```
 
 ## What's Been Implemented (Apr 3, 2026)
@@ -32,7 +32,14 @@ AWS: S3 + Lambda (Document processing) + SES (Email)
 - [x] 20 NIST 800-53 control families
 - [x] 982 questionnaire questions
 - [x] Draft save/resume functionality
-- [x] Lambda integration for policy generation (configured)
+- [x] Lambda integration for policy generation
+
+### Document Analysis (AWS S3 + Lambda)
+- [x] S3 upload to kevin-policy-bucket
+- [x] Preprocessing Lambda: ironvision-preprocess-lambda
+- [x] Analysis Lambda: IronVision-Analyze
+- [x] Policy Generation Lambda: IronVision-Generate-Policy
+- [x] PDF and DOCX file support
 
 ### Risk & Compliance
 - [x] 7 pre-seeded demo risks
@@ -53,12 +60,14 @@ AWS: S3 + Lambda (Document processing) + SES (Email)
 - [x] Cross-framework AI mapping suggestions
 - [x] Emergent LLM Key integrated
 
-### Integrations Configured
+### Integrations Configured ✓
 - [x] MongoDB (local) - primary database
+- [x] IronVision MongoDB Atlas - production Policy Builder data
+- [x] AWS S3 - kevin-policy-bucket for document storage
+- [x] AWS Lambda - preprocessing, analysis, policy generation
+- [x] AWS SES - email notifications (sender verification pending)
 - [x] Emergent LLM Key - AI features
-- [ ] IronVision MongoDB Atlas - optional (needs URI)
-- [ ] AWS S3 + Lambda - optional (needs credentials)
-- [ ] AWS SES - optional (needs credentials)
+- [x] OpenAI API Key - backup AI access
 
 ## User Personas
 1. **GRC Admin**: Full access, manages policies, risks, compliance
@@ -68,13 +77,9 @@ AWS: S3 + Lambda (Document processing) + SES (Email)
 
 ## Backlog (Prioritized)
 
-### P0 (Critical)
-- All core features implemented ✓
-
 ### P1 (High)
-- AWS S3/Lambda integration for document analysis (needs credentials)
-- IronVision Atlas connection (needs URI)
-- Email notifications via SES (needs credentials)
+- Verify SES sender domain (noreply@ironvision.ai)
+- Test end-to-end document analysis flow
 
 ### P2 (Medium)
 - Advanced workflow rules for tasks
@@ -87,7 +92,6 @@ AWS: S3 + Lambda (Document processing) + SES (Email)
 - Custom framework builder
 
 ## Next Tasks
-1. Provide AWS credentials for S3/Lambda/SES
-2. Provide IronVision MongoDB Atlas URI
-3. Test document upload and analysis flow
-4. Configure email notifications
+1. Verify AWS SES domain in AWS console
+2. Test document upload → S3 → Lambda → Analysis flow
+3. Test policy generation from questionnaire
