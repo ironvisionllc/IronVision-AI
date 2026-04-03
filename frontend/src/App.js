@@ -9,6 +9,7 @@ import RegisterPage from "@/pages/RegisterPage";
 import Dashboard from "@/pages/Dashboard";
 import FrameworksPage from "@/pages/FrameworksPage";
 import PoliciesPage from "@/pages/PoliciesPage";
+import PolicyLibraryPage from "@/pages/PolicyLibraryPage";
 import MappingsPage from "@/pages/MappingsPage";
 import RisksPage from "@/pages/RisksPage";
 import VendorsPage from "@/pages/VendorsPage";
@@ -89,7 +90,7 @@ function App() {
           <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/login" />} />
           <Route path="/frameworks" element={user ? <FrameworksPage /> : <Navigate to="/login" />} />
           <Route path="/policies" element={user ? <PolicyBuilderPage /> : <Navigate to="/login" />} />
-          <Route path="/policy-library" element={user ? <PoliciesPage /> : <Navigate to="/login" />} />
+          <Route path="/policy-library" element={user ? <PolicyLibraryPage /> : <Navigate to="/login" />} />
           <Route path="/documents" element={user ? <DocumentsPage /> : <Navigate to="/login" />} />
           <Route path="/mappings" element={user ? <MappingsPage /> : <Navigate to="/login" />} />
           <Route path="/risks" element={user ? <RisksPage /> : <Navigate to="/login" />} />

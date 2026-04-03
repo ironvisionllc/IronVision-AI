@@ -1,52 +1,55 @@
 # IronVision AI - GRC Platform - Product Requirements Document
 
 ## Problem Statement
-Import and deploy IronVision Framework AI Tool with full AWS Lambda integration for policy generation.
+Import and deploy IronVision Framework AI Tool with full AWS Lambda integration for policy generation and comprehensive Policy Library with export options.
 
-## What's Working (Apr 3, 2026)
+## What's Implemented (Apr 3, 2026)
 
-### Policy Generation Lambda - FULLY INTEGRATED ✅
-Successfully tested end-to-end policy generation:
-- **Job ID**: `policy_gen_1775241081325_f28c7a55`
-- **Policy ID**: `69d0083c8616a151d0fa02ce`
-- **Policy Name**: Incident Response Policy - FinCorp
-- **Framework**: NIST 800-53
-- **Control Family**: IR (Incident Response)
-- **Sections Generated**: 9 (overview, roles, policy, procedures, enforcement, definitions, revisionHistory, approvals, distribution)
-- **Generation Time**: ~3 minutes
+### Policy Library - COMPLETE ✅
+- **API Endpoints Added:**
+  - `GET /api/ironvision/generated-policies` - List all generated policies with pagination
+  - `GET /api/ironvision/generated-policies/{policy_id}` - Get single policy with full content
+  - `GET /api/ironvision/generated-policies/{policy_id}/export` - Export as HTML/Markdown/Text
 
-### Integration Flow (Option B - Atlas Initialization)
-```
-1. User creates draft via API → Local MongoDB
-2. Backend creates controlquestionanswers in Atlas
-3. Backend creates analysisprogresses job record in Atlas  
-4. Backend invokes ironvision-generate-policy Lambda
-5. Lambda reads from Atlas, generates policy via GPT-4o
-6. Lambda saves policy to createdpolicies in Atlas
-7. Policy available in IronVision system
-```
+- **UI Features:**
+  - Policy Library page with "AI Generated" and "Local Policies" tabs
+  - Policy cards showing name, framework, control family, status, version, date
+  - View dialog with full policy content (Overview, Roles, Policy, Procedures, etc.)
+  - Export dialog with HTML, Markdown, and Plain Text options
+  - Search functionality
 
-### AWS Lambda Functions
-| Function | Status | Purpose |
-|----------|--------|---------|
+### Policy Generation Lambda - COMPLETE ✅
+- Successfully generates NIST 800-53 compliant policies via Lambda
+- ~3 minute generation time using GPT-4o
+- 9 sections generated: overview, roles, policy, procedures, enforcement, definitions, revisionHistory, approvals, distribution
+
+### Document Analysis - COMPLETE ✅
+- S3 upload → Lambda preprocessing → Analysis Lambda
+- Compliance analysis completed in ~79 seconds
+
+### All AWS Integration Working
+| Lambda Function | Status | Purpose |
+|-----------------|--------|---------|
 | ironvision-preprocess-lambda | ✅ Active | Document preprocessing |
 | ironvision-analysis-lambda | ✅ Active | Document compliance analysis |
 | ironvision-generate-policy | ✅ Active | AI policy generation (GPT-4o) |
-
-### All Features Working
-- Document Upload → S3 → Lambda Analysis ✅
-- Policy Builder Questionnaire (982 questions) ✅
-- Policy Generation → Lambda → Atlas ✅
-- Dashboard, Risks, Tasks, Frameworks ✅
-- IronVision Atlas Integration ✅
-- Emergent LLM Key for AI Mappings ✅
 
 ## Test Credentials
 - **Demo Admin**: demo-admin@grc.com / DemoAdmin123!
 - **Demo User**: demo-user@grc.com / DemoUser123!
 
+## Architecture
+```
+Frontend: React 18 + Shadcn/UI + Tailwind CSS
+Backend: FastAPI + Python
+Local DB: MongoDB
+Atlas DB: IronVision MongoDB Atlas (ironvisioncluster.dois0.mongodb.net)
+AWS: S3 (project-assets-ironvision-dev) + Lambda + SES
+AI: GPT-4o via Lambda, GPT-5.2 via Emergent LLM Key
+```
+
 ## Next Steps
-1. Add endpoint to fetch generated policies from Atlas
-2. Display generated policy content in UI
-3. Add policy export (PDF/DOCX)
-4. Configure SES email notifications
+1. Configure SES email notifications (verify sender domain)
+2. Add PDF export option using ReportLab
+3. Add policy versioning and edit capabilities
+4. Add policy approval workflow
