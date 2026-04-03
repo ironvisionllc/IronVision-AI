@@ -189,11 +189,19 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
                 aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
             )
             payload = {
+                "draftId": data.draft_id,
                 "userId": current_user["id"],
                 "policyName": draft["policy_name"],
                 "framework": draft["framework"],
                 "controlFamily": draft["control_family"],
                 "answers": draft["answers"],
+                "metadata": {
+                    "organizationId": org_id,
+                    "organizationName": draft.get("organization_name", "Organization"),
+                    "userEmail": current_user.get("email", ""),
+                    "userName": current_user.get("name", ""),
+                    "source": "emergent-platform"
+                }
             }
             response = client.invoke(
                 FunctionName=lambda_fn,
