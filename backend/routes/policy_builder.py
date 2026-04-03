@@ -180,8 +180,111 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
     # Try to invoke IronVision's Lambda for generation
     try:
         import boto3
+        from motor.motor_asyncio import AsyncIOMotorClient
+        from bson import ObjectId
+        import time
+        import random
+        import string
+        
         lambda_fn = os.environ.get("POLICY_GENERATION_LAMBDA_FUNCTION_NAME")
-        if lambda_fn:
+        atlas_uri = os.environ.get("IRONVISION_MONGO_URI")
+        
+        if lambda_fn and atlas_uri:
+            # Connect to IronVision Atlas to initialize job records
+            atlas_client = AsyncIOMotorClient(atlas_uri)
+            atlas_db = atlas_client["ironvision"]
+            
+            # Generate job ID in IronVision's format
+            timestamp = int(time.time() * 1000)
+            random_suffix = ''.join(random.choices(string.hexdigits.lower(), k=8))
+            job_id = f"policy_gen_{timestamp}_{random_suffix}"
+            
+            # Get or create a mapping user ID (use existing IronVision user)
+            iv_user = await atlas_db.users.find_one({}, {"_id": 1})
+            iv_user_id = iv_user["_id"] if iv_user else ObjectId()
+            
+            # Get the controlquestions document for this control family
+            control_family = draft["control_family"]
+            cq_doc = await atlas_db.controlquestions.find_one({"controlFamily": control_family})
+            if not cq_doc:
+                raise HTTPException(status_code=400, detail=f"Control family {control_family} not found in IronVision")
+            
+            cq_id = cq_doc["_id"]
+            questions_list = cq_doc.get("questions", [])
+            
+            # Convert our answers dict to IronVision's format (indexed by question number)
+            # Map our q1, q2... format to 0, 1, 2... format
+            formatted_answers = {}
+            for key, value in draft["answers"].items():
+                if key.startswith("q"):
+                    idx = int(key[1:]) - 1  # q1 -> 0, q2 -> 1, etc.
+                    formatted_answers[str(idx)] = value
+                else:
+                    formatted_answers[key] = value
+            
+            # Create controlquestionanswers record in Atlas
+            cqa_doc = {
+                "userId": str(iv_user_id),
+                "policyName": draft["policy_name"],
+                "framework": "NIST 800-53",
+                "controlFamily": control_family,
+                "controlQuestionsId": cq_id,  # Link to questions document
+                "status": "generating",
+                "answers": formatted_answers,
+                "createdAt": datetime.now(timezone.utc),
+                "updatedAt": datetime.now(timezone.utc),
+                "generationJobId": job_id,
+                "emergentDraftId": data.draft_id,
+            }
+            cqa_result = await atlas_db.controlquestionanswers.insert_one(cqa_doc)
+            cqa_id = cqa_result.inserted_id
+            
+            # Create analysisprogresses record (required by Lambda)
+            progress_doc = {
+                "jobId": job_id,
+                "userId": iv_user_id,
+                "filename": f"Policy: {draft['policy_name']}",
+                "s3Key": f"policies/{str(cqa_id)}",
+                "fileType": "policy-generation",
+                "progress": 0,
+                "status": "Initializing policy generation...",
+                "metadata": {
+                    "framework": "NIST 800-53",
+                    "controlFamily": control_family,
+                    "draftId": str(cqa_id),
+                    "policyName": draft["policy_name"],
+                    "emergentDraftId": data.draft_id,
+                },
+                "createdAt": datetime.now(timezone.utc),
+                "updatedAt": datetime.now(timezone.utc),
+                "__v": 0
+            }
+            await atlas_db.analysisprogresses.insert_one(progress_doc)
+            
+            # Update local draft with Atlas references
+            await db.policy_drafts.update_one(
+                {"id": data.draft_id},
+                {"$set": {
+                    "atlas_job_id": job_id,
+                    "atlas_cqa_id": str(cqa_id),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            atlas_client.close()
+            
+            # Build answers array in Lambda's expected format
+            # Format: [{question: "...", answer: "..."}]
+            answers_array = []
+            for i, question_text in enumerate(questions_list):
+                idx_str = str(i)
+                if idx_str in formatted_answers:
+                    answers_array.append({
+                        "question": question_text,
+                        "answer": formatted_answers[idx_str]
+                    })
+            
+            # Now invoke Lambda with the Atlas IDs
             client = boto3.client(
                 "lambda",
                 region_name=os.environ.get("AWS_REGION", "us-east-1"),
@@ -189,13 +292,19 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
                 aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
             )
             payload = {
-                "draftId": data.draft_id,
-                "userId": current_user["id"],
+                "jobId": job_id,
+                "draftId": str(cqa_id),
+                "userId": str(iv_user_id),
                 "policyName": draft["policy_name"],
-                "framework": draft["framework"],
-                "controlFamily": draft["control_family"],
-                "answers": draft["answers"],
+                "framework": "NIST 800-53",
+                "controlFamily": control_family,
+                "answers": answers_array,
                 "metadata": {
+                    "framework": "NIST 800-53",
+                    "controlFamily": control_family,
+                    "draftId": str(cqa_id),
+                    "policyName": draft["policy_name"],
+                    "emergentDraftId": data.draft_id,
                     "organizationId": org_id,
                     "organizationName": draft.get("organization_name", "Organization"),
                     "userEmail": current_user.get("email", ""),
@@ -208,15 +317,24 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
                 InvocationType="Event",
                 Payload=json.dumps(payload).encode(),
             )
-            await db.policy_drafts.update_one(
-                {"id": data.draft_id},
-                {"$set": {"status": "generating", "updated_at": datetime.now(timezone.utc).isoformat()}}
-            )
+            
             await log_activity(org_id, current_user["id"], current_user.get("name", ""), "policy_created", f"Submitted for generation: {draft['policy_name']}")
-            return {"message": "Policy generation started via Lambda", "status": "generating", "draft_id": data.draft_id}
+            return {
+                "message": "Policy generation started via Lambda",
+                "status": "generating",
+                "draft_id": data.draft_id,
+                "job_id": job_id,
+                "atlas_cqa_id": str(cqa_id)
+            }
+    except HTTPException:
+        raise
     except Exception as e:
-        # Lambda not available - mark as submitted
-        pass
+        import traceback
+        print(f"Lambda generation error: {e}")
+        traceback.print_exc()
+        # Revert status on error
+        await db.policy_drafts.update_one({"id": data.draft_id}, {"$set": {"status": "draft"}})
+        raise HTTPException(status_code=500, detail=f"Policy generation failed: {str(e)}")
 
     # Fallback: mark as submitted (Lambda not configured or failed)
     await db.policy_drafts.update_one(
