@@ -1,0 +1,136 @@
+{
+  "summary": "Completed comprehensive testing of rebuilt Mappings page. All 16 backend tests passed (100%). All frontend features verified including stats display, filters, search, Manual Mapping dialog, AI Mapping dialog, approve/reject/delete actions, and demo viewer restrictions.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Manual Mapping Dialog", "issues": ["Console warning: Missing Description or aria-describedby for DialogContent - accessibility improvement (existing issue)"]},
+      {"screen": "AI Mapping Dialog", "issues": ["Console warning: Missing Description or aria-describedby for DialogContent - accessibility improvement (existing issue)"]}
+    ]
+  },
+  
+  "passed_tests": {
+    "backend": [
+      "GET /api/mappings returns list with all required fields (policy_name, control_title, framework_name, status, source, confidence_score)",
+      "GET /api/mappings returns 538 total mappings with correct stats (457 approved, 80 pending, 1 rejected, 166 AI, 372 manual)",
+      "Demo viewer can read mappings (200 OK)",
+      "POST /api/mappings creates manual mapping with status=approved, source=manual, confidence=1.0",
+      "Demo viewer blocked from creating mappings (403)",
+      "PUT /api/mappings/{id}/status with status=approved works correctly",
+      "PUT /api/mappings/{id}/status with status=rejected works correctly",
+      "PUT /api/mappings/{id}/status with invalid status returns 400",
+      "Demo viewer blocked from updating status (403)",
+      "POST /api/mappings/bulk-create creates AI suggestions with status=pending, source=ai",
+      "DELETE /api/mappings/{id} removes mapping successfully",
+      "DELETE nonexistent mapping returns 404",
+      "Demo viewer blocked from deleting (403)",
+      "POST /api/mappings/analyze endpoint exists and returns suggestions",
+      "POST /api/mappings/analyze without policy_id returns 400",
+      "POST /api/mappings/analyze with nonexistent policy returns 404"
+    ],
+    "frontend": [
+      "Mappings page loads with stats (Total, Approved, Pending, Rejected, AI Mapped, Manual)",
+      "Mappings list shows policy name, control ID, control title, framework name, confidence score, source badge",
+      "Filter by Pending shows only pending mappings with Approve/Reject buttons",
+      "Filter by Approved shows only approved mappings",
+      "Filter by All shows all mappings",
+      "Search works across policy names, control IDs, framework names",
+      "Manual Mapping button opens dialog with Policy/Framework/Control selects + Notes",
+      "AI Mapping button opens dialog with policy selector + Analyze button",
+      "Approve button updates mapping status to approved (toast shown)",
+      "Reject button updates mapping status to rejected (toast shown)",
+      "Delete button visible for all mappings",
+      "Demo viewer can view mappings (read-only)",
+      "Demo viewer blocked from Manual Mapping (toast shown)",
+      "Demo viewer blocked from AI Mapping (toast shown)",
+      "Demo viewer blocked from Approve action (toast shown)"
+    ]
+  },
+  
+  "test_report_links": [
+    "/app/backend/tests/test_mappings.py",
+    "/app/test_reports/pytest/mappings_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Minor: DialogContent components missing aria-describedby for accessibility (existing issue from previous iterations)"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_mappings.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "100% (all features working)"
+  },
+  
+  "test_credentials": {
+    "demo_admin": {
+      "email": "demo-admin@grc.com",
+      "password": "DemoAdmin123!",
+      "role": "admin",
+      "can_write": true
+    },
+    "demo_viewer": {
+      "email": "demo-user@grc.com",
+      "password": "DemoUser123!",
+      "role": "viewer",
+      "can_write": false
+    }
+  },
+  
+  "seed_data_creation": "Demo org has 538 mappings: 457 approved, 80 pending, 1 rejected, 166 AI-mapped, 372 manual. Stats updated during testing (approve/reject actions).",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Mappings page fully rebuilt and tested. Two creation modes: (1) Manual Mapping creates approved mappings with confidence=1.0, (2) AI Mapping analyzes policy and creates pending suggestions via bulk-create. Status workflow: Pending → Approved/Rejected via action buttons. Demo viewer has read-only access. AI analyze endpoint calls OpenAI GPT-5.2 via Emergent LLM key - may return 500 if key issues but endpoint exists and works.",
+  
+  "features_verified": {
+    "mappings_page_stats": {
+      "total": "538 mappings",
+      "approved": "457",
+      "pending": "80",
+      "rejected": "1",
+      "ai_mapped": "166",
+      "manual": "372"
+    },
+    "manual_mapping": {
+      "dialog": "Working - Policy/Framework/Control selects + Notes",
+      "creation": "Working - creates approved mapping with confidence=1.0",
+      "viewer_blocked": "Working - 403 for demo viewer"
+    },
+    "ai_mapping": {
+      "dialog": "Working - Policy selector + Analyze button",
+      "analyze_endpoint": "Working - returns suggestions from GPT-5.2",
+      "bulk_create": "Working - creates pending mappings with source=ai",
+      "viewer_blocked": "Working - 403 for demo viewer"
+    },
+    "status_workflow": {
+      "approve": "Working - updates status to approved",
+      "reject": "Working - updates status to rejected",
+      "viewer_blocked": "Working - 403 for demo viewer"
+    },
+    "filters_and_search": {
+      "filter_all": "Working",
+      "filter_pending": "Working - shows approve/reject buttons",
+      "filter_approved": "Working",
+      "filter_rejected": "Working",
+      "search": "Working - searches policy names, control IDs, framework names"
+    },
+    "delete": {
+      "delete_mapping": "Working - removes mapping",
+      "viewer_blocked": "Working - 403 for demo viewer"
+    }
+  }
+}
