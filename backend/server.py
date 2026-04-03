@@ -1,72 +1,64 @@
 from fastapi import FastAPI, APIRouter
-from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
-import uuid
-from datetime import datetime, timezone
 
+from database import client
+from seed import seed_demo_accounts
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+from routes.auth import router as auth_router
+from routes.frameworks import router as frameworks_router
+from routes.policies import router as policies_router
+from routes.mappings import router as mappings_router
+from routes.risks import router as risks_router
+from routes.vendors import router as vendors_router
+from routes.audits import router as audits_router
+from routes.training import router as training_router
+from routes.analytics import router as analytics_router
+from routes.compliance import router as compliance_router
+from routes.admin import router as admin_router
+from routes.tasks import router as tasks_router
+from routes.activity import router as activity_router
+from routes.reports import router as reports_router
+from routes.evidence import router as evidence_router
+from routes.exports import router as exports_router
+from routes.controls import router as controls_detail_router
+from routes.notifications import router as notifications_router
+from routes.ironvision import router as ironvision_router
+from routes.policy_builder import router as policy_builder_router
+from routes.documents import router as documents_router
+from routes.compliance_trends import router as compliance_trends_router
+from routes.email_notifications import router as email_notifications_router
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
-
-# Create the main app without a prefix
+# Create the main app
 app = FastAPI()
-
-# Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Include all route modules
+api_router.include_router(auth_router)
+api_router.include_router(frameworks_router)
+api_router.include_router(policies_router)
+api_router.include_router(mappings_router)
+api_router.include_router(risks_router)
+api_router.include_router(vendors_router)
+api_router.include_router(audits_router)
+api_router.include_router(training_router)
+api_router.include_router(analytics_router)
+api_router.include_router(compliance_router)
+api_router.include_router(admin_router)
+api_router.include_router(tasks_router)
+api_router.include_router(activity_router)
+api_router.include_router(reports_router)
+api_router.include_router(evidence_router)
+api_router.include_router(exports_router)
+api_router.include_router(controls_detail_router)
+api_router.include_router(notifications_router)
+api_router.include_router(ironvision_router)
+api_router.include_router(policy_builder_router)
+api_router.include_router(documents_router)
+api_router.include_router(compliance_trends_router)
+api_router.include_router(email_notifications_router)
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class StatusCheckCreate(BaseModel):
-    client_name: str
-
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
-
-# Include the router in the main app
 app.include_router(api_router)
 
 app.add_middleware(
@@ -77,13 +69,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+@app.on_event("startup")
+async def startup_event():
+    # Sync framework controls from source data
+    from routes.frameworks import seed_frameworks
+    await seed_frameworks()
+    # Seed demo accounts and data
+    await seed_demo_accounts()
+    logger.info("Demo accounts seeded successfully")
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+    from ironvision_db import close_ironvision_db
+    close_ironvision_db()
