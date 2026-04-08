@@ -777,6 +777,11 @@ a, button, input, textarea, select {
   mask-composite: exclude;
 }
 
+/* Hide joyride beacon dots */
+.react-joyride__beacon {
+  display: none !important;
+}
+
 /* ====== RESPONSIVE UTILITIES ====== */
 @media (max-width: 768px) {
   .iv-card {

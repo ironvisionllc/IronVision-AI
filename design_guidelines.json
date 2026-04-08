@@ -1,0 +1,111 @@
+{
+  "theme": "light",
+  "archetype": "Archetype 4 (Swiss & High-Contrast)",
+  "fonts": {
+    "headings": {
+      "family": "'Cabinet Grotesk', sans-serif",
+      "weights": ["800", "700", "500"],
+      "import_url": "https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500,400&display=swap",
+      "style": "tracking-tight"
+    },
+    "body": {
+      "family": "'IBM Plex Sans', sans-serif",
+      "weights": ["400", "500", "600"],
+      "import_url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap",
+      "style": "leading-relaxed"
+    }
+  },
+  "colors": {
+    "background": "#FFFFFF",
+    "foreground": "#0A0A0A",
+    "card": "#FFFFFF",
+    "card_foreground": "#0A0A0A",
+    "primary": "#002FA7",
+    "primary_foreground": "#FFFFFF",
+    "secondary": "#F4F4F5",
+    "secondary_foreground": "#18181B",
+    "muted": "#E4E4E7",
+    "muted_foreground": "#71717A",
+    "accent": "#002FA7",
+    "accent_foreground": "#FFFFFF",
+    "destructive": "#FF2A00",
+    "destructive_foreground": "#FFFFFF",
+    "warning": "#FFC000",
+    "warning_foreground": "#0A0A0A",
+    "success": "#00B55E",
+    "success_foreground": "#FFFFFF",
+    "border": "#E4E4E7",
+    "input": "#E4E4E7",
+    "ring": "#002FA7",
+    "radius": "0px"
+  },
+  "typography": {
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl font-black tracking-tighter text-foreground",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight text-foreground",
+      "h3": "text-xl font-bold tracking-tight text-foreground",
+      "h4": "text-lg font-semibold tracking-tight text-foreground",
+      "body": "text-sm md:text-base font-normal text-foreground",
+      "caption": "text-xs font-normal text-muted-foreground",
+      "label": "text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground"
+    }
+  },
+  "layout": {
+    "container": "max-w-[1600px] mx-auto w-full",
+    "spacing": "p-6 md:p-8 lg:p-12 gap-6",
+    "grid_system": "Mode B: The 'Control Room' Grid. Base: grid-cols-1 md:grid-cols-3 lg:grid-cols-4 with gap-6. Dense, sharp, every pixel utilized. Use h-full on children.",
+    "surface_strategy": "Grid Borders (Technical Look). Expose the skeleton. Strict 1px borders, ZERO soft shadows. Use sharp edges."
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-[#002277] transition-colors rounded-none px-6 py-2.5 font-semibold text-sm",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-[#E4E4E7] border border-border transition-colors rounded-none px-6 py-2.5 font-semibold text-sm",
+      "destructive": "bg-destructive text-destructive-foreground hover:bg-[#CC2200] transition-colors rounded-none px-6 py-2.5 font-semibold text-sm",
+      "ghost": "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground transition-colors rounded-none px-6 py-2.5 font-semibold text-sm"
+    },
+    "cards": {
+      "base": "bg-card border border-border rounded-none p-6 transition-colors duration-200",
+      "hover": "hover:border-[#0A0A0A] hover:shadow-[4px_4px_0px_0px_#0A0A0A]"
+    },
+    "inputs": {
+      "base": "border border-border bg-background px-4 py-2.5 rounded-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm w-full transition-shadow placeholder:text-muted-foreground"
+    },
+    "badges": {
+      "base": "inline-flex items-center px-2 py-0.5 border text-xs font-bold uppercase tracking-wider rounded-none",
+      "destructive": "border-destructive text-destructive bg-destructive/10",
+      "warning": "border-warning text-warning-foreground bg-warning/10",
+      "success": "border-success text-success bg-success/10",
+      "neutral": "border-border text-foreground bg-secondary"
+    }
+  },
+  "motion": {
+    "hover": "transition-all duration-200 ease-in-out",
+    "entrance": "staggered fade-in using framer-motion for dashboard widgets",
+    "micro": "active:scale-[0.98] on buttons for tactile feedback"
+  },
+  "icons": {
+    "library": "@phosphor-icons/react",
+    "installation": "yarn add @phosphor-icons/react",
+    "usage": "Use bold or regular weights for sharp technical look. Phosphor is ideal for dense dashboards."
+  },
+  "media": {
+    "image_urls": {
+      "user_avatar": {
+        "url": "https://images.unsplash.com/photo-1576558656222-ba66febe3dec?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDR8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc3NTY5MTk1NXww&ixlib=rb-4.1.0&q=85",
+        "description": "Professional headshot portrait"
+      }
+    }
+  },
+  "data_testid_rules": "All interactive elements, buttons, inputs, widgets, and key metrics MUST have a role-based kebab-case data-testid (e.g., data-testid='review-risks-btn').",
+  "instructions_to_main_agent": [
+    "1. Completely eradicate the current teal brand color (#2597B2) and replace it with the new Archetype 4 Swiss palette: International Klein Blue (#002FA7) as primary, stark black (#0A0A0A) and pure white (#FFFFFF).",
+    "2. Replace all instances of `rounded-*` and `shadow-*` utility classes with `rounded-none` and sharp 1px borders (`border-border`) to achieve the Swiss Brutalist/Technical look.",
+    "3. Dashboard Simplification: Remove the 6 disconnected stat cards. Implement a 4-column top metric row highlighting ONLY: Overall Compliance, Open Risks, Overdue Audits, Pending Tasks.",
+    "4. Action-Oriented Design: Implement a 'Command Bar' at the top of the dashboard. Instead of just showing a score, it should be a full-width high-contrast banner (using primary or dark background) that says exactly what needs attention and provides a direct CTA (e.g., 'Review 5 Open Risks').",
+    "5. Structural Consistency: Standardize layout using the CSS Grid 'Control Room' Mode. The dashboard should feel like a tight, cohesive instrument panel. Use Recharts for the heatmap and bar charts, customized with the new color palette (stark lines, no curved bars).",
+    "6. UX Improvements: Consolidate 'Overdue items', 'Upcoming activities', and 'Recent activity' into a single, tabbed 'Activity Center' widget to reduce visual clutter.",
+    "7. Typography: Inject Fontshare 'Cabinet Grotesk' for headings and Google 'IBM Plex Sans' for body text in the global CSS. Apply tracking-tight to all headings.",
+    "8. Add robust empty states with clear CTAs and Phosphor icons for any empty data views.",
+    "9. Use Shadcn components for complex logic but strictly override their default styles to match the flat, sharp, brutalist Swiss UI."
+  ]
+}
