@@ -1,7 +1,7 @@
 # IronVision AI - GRC Platform - Product Requirements Document
 
 ## Overview
-Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy generation and intelligent control mapping.
+Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy generation, intelligent control mapping, and LLM-powered compliance assistance.
 
 ## UI/UX Premium Redesign Complete (Apr 8, 2026)
 
@@ -38,14 +38,6 @@ Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy g
 - Tasks Page - Kanban/List views, priority indicators
 - Policy Library - Policy viewing with export
 
-### Files Modified
-- `/app/frontend/src/index.css` - Complete design system
-- `/app/frontend/src/pages/LoginPage.js` - Split-panel login
-- `/app/frontend/src/pages/Dashboard.js` - Premium dashboard
-- `/app/frontend/src/pages/RisksPage.js` - Risk management
-- `/app/frontend/src/pages/TasksPage.js` - Task management with Kanban
-- `/app/frontend/src/components/ui/skeleton-loaders.jsx` - Loading states
-
 ## Features
 
 ### Core Platform
@@ -57,17 +49,63 @@ Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy g
 - [x] Task management with Kanban view
 - [x] Cross-framework mapping
 
+### Breakthrough Features (Apr 8, 2026)
+- [x] **Compliance Copilot** - LLM-powered floating chat widget (Intercom-style)
+  - GPT-5.2 via Emergent LLM Key
+  - Session-based multi-turn conversations
+  - Context-aware with org data (policies, risks, frameworks)
+  - Suggestion prompts for quick queries
+  - Chat history with session management
+- [x] **Slack Integration** - Webhook-based GRC notifications
+  - Configurable webhook URL (Incoming Webhooks)
+  - Per-event toggles (risks, tasks, policies, audits)
+  - Test message sending
+  - Notification history log
+  - Block-formatted Slack messages with severity indicators
+- [x] **Control Effectiveness Score** - Auto-calculated 0-100 scoring
+  - 5-factor scoring: Policy Mapping (25), Evidence Coverage (25), CCI Completion (20), Risk Exposure (15), Recency (15)
+  - Manual override with reason tracking
+  - Visual score bar with grade labels
+  - Factor breakdown display on ControlDetailPage
+  - Framework-level summary endpoint
+
 ### AWS Integration
 - [x] S3: project-assets-ironvision-dev
 - [x] Lambda: ironvision-analysis-lambda, ironvision-generate-policy
 - [x] MongoDB Atlas: ironvisioncluster.dois0.mongodb.net
 
+## Architecture
+
+### Backend Routes
+- `/api/auth` - JWT authentication
+- `/api/frameworks` - Framework CRUD
+- `/api/controls` - Control details and CCIs
+- `/api/policies` - Policy management
+- `/api/policy-builder` - AI policy generation via Lambda
+- `/api/documents` - S3 document upload/analysis
+- `/api/ironvision` - Atlas DB integration
+- `/api/copilot` - Compliance Copilot LLM chat
+- `/api/slack` - Slack webhook configuration and notifications
+- `/api/control-effectiveness` - Control effectiveness scoring
+- `/api/risks`, `/api/tasks`, `/api/vendors`, `/api/audits`, etc.
+
+### Key Collections (Local MongoDB)
+- `users`, `policies`, `risks`, `tasks`, `frameworks`, `controls`
+- `copilot_sessions`, `copilot_messages` (Compliance Copilot)
+- `slack_config`, `slack_notifications` (Slack Integration)
+- `control_overrides` (Effectiveness Score overrides)
+
+### Key Collections (Atlas MongoDB)
+- `createdpolicies`, `controlquestionanswers`, `analysisprogresses`
+
 ## Test Credentials
 - **Demo Admin**: demo-admin@grc.com / DemoAdmin123!
 - **Demo User**: demo-user@grc.com / DemoUser123!
 
-## Next Steps
-- Add micro-animations (framer-motion)
+## Next Steps / Backlog
+- Micro-animations (framer-motion)
 - Dark mode refinements
 - Mobile responsive improvements
 - PDF export for policies
+- Slack bot token integration (full bidirectional)
+- Dashboard widget for Control Effectiveness overview
