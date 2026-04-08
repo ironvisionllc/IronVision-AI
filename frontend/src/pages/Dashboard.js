@@ -5,7 +5,7 @@ import Layout from "@/components/Layout";
 import {
   FileText, GitBranch, Warning, Calendar, ShieldCheck, ListChecks, Users,
   ArrowRight, Clock, DownloadSimple, CaretRight, Lightning, ChartBar, FolderOpen,
-  TrendUp, TrendDown, Minus
+  TrendUp, TrendDown, Minus, Gauge
 } from "@phosphor-icons/react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ const Dashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [execSummary, setExecSummary] = useState(null);
   const [trendData, setTrendData] = useState([]);
+  const [controlHealth, setControlHealth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
 
@@ -24,10 +25,12 @@ const Dashboard = () => {
       axios.get(`${API}/analytics/dashboard`).catch(() => ({ data: null })),
       axios.get(`${API}/reports/executive-summary`).catch(() => ({ data: null })),
       axios.get(`${API}/compliance-trends`).catch(() => ({ data: [] })),
-    ]).then(([a, e, t]) => {
+      axios.get(`${API}/control-effectiveness/dashboard`).catch(() => ({ data: null })),
+    ]).then(([a, e, t, ch]) => {
       setAnalytics(a.data);
       setExecSummary(e.data);
       setTrendData(Array.isArray(t.data) ? t.data : []);
+      setControlHealth(ch.data);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -366,6 +369,134 @@ const Dashboard = () => {
                 <span className="w-4 h-0.5 rounded" style={{ borderTop: "2px dashed #F59E0B" }} />
                 Open Risks
               </span>
+            </div>
+          </div>
+        )}
+
+        {/* Control Effectiveness Health */}
+        {controlHealth && controlHealth.total_frameworks > 0 && (
+          <div className="iv-card p-6" data-testid="control-health-widget">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#2597B212" }}>
+                  <Gauge size={20} weight="duotone" className="text-[#2597B2]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Control Effectiveness</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">{controlHealth.total_controls_sampled} controls across {controlHealth.total_frameworks} frameworks</p>
+                </div>
+              </div>
+              <a href="/frameworks" className="text-xs text-[#2597B2] hover:text-[#1B839F] flex items-center gap-1 font-medium transition-colors">
+                View details <CaretRight size={12} weight="bold" />
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Overall Score + Distribution */}
+              <div className="flex flex-col items-center">
+                <div className="relative w-28 h-28 mb-3">
+                  <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                    <circle cx="60" cy="60" r="52" fill="none" stroke="#F1F5F9" strokeWidth="10" />
+                    <circle
+                      cx="60" cy="60" r="52" fill="none"
+                      stroke={controlHealth.overall_score >= 75 ? "#10B981" : controlHealth.overall_score >= 60 ? "#2597B2" : controlHealth.overall_score >= 40 ? "#F59E0B" : "#EF4444"}
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      strokeDasharray={`${(controlHealth.overall_score / 100) * 327} 327`}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-bold text-gray-900 dark:text-gray-100" data-testid="control-health-score">{controlHealth.overall_score}</span>
+                    <span className="text-[10px] text-gray-400 font-medium">/ 100</span>
+                  </div>
+                </div>
+                <span
+                  className="px-3 py-1 rounded-full text-xs font-semibold"
+                  style={{
+                    color: controlHealth.overall_score >= 75 ? "#059669" : controlHealth.overall_score >= 60 ? "#0891B2" : controlHealth.overall_score >= 40 ? "#D97706" : "#DC2626",
+                    backgroundColor: controlHealth.overall_score >= 75 ? "#D1FAE5" : controlHealth.overall_score >= 60 ? "#CFFAFE" : controlHealth.overall_score >= 40 ? "#FEF3C7" : "#FEE2E2",
+                  }}
+                  data-testid="control-health-grade"
+                >
+                  {controlHealth.overall_grade}
+                </span>
+
+                {/* Grade Distribution */}
+                <div className="w-full mt-4">
+                  <div className="flex h-2 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+                    {[
+                      { key: "excellent", color: "#059669", val: controlHealth.distribution.excellent },
+                      { key: "good", color: "#06B6D4", val: controlHealth.distribution.good },
+                      { key: "fair", color: "#F59E0B", val: controlHealth.distribution.fair },
+                      { key: "needs_improvement", color: "#F97316", val: controlHealth.distribution.needs_improvement },
+                      { key: "critical", color: "#EF4444", val: controlHealth.distribution.critical },
+                    ].filter(d => d.val > 0).map(d => (
+                      <div
+                        key={d.key}
+                        className="h-full transition-all"
+                        style={{
+                          width: `${(d.val / controlHealth.total_controls_sampled) * 100}%`,
+                          backgroundColor: d.color,
+                        }}
+                        title={`${d.key.replace(/_/g, " ")}: ${d.val}`}
+                        data-testid={`distribution-bar-${d.key}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2.5">
+                    {[
+                      { key: "excellent", color: "#059669", label: "Excellent" },
+                      { key: "good", color: "#06B6D4", label: "Good" },
+                      { key: "fair", color: "#F59E0B", label: "Fair" },
+                      { key: "needs_improvement", color: "#F97316", label: "Needs Work" },
+                      { key: "critical", color: "#EF4444", label: "Critical" },
+                    ].map(d => (
+                      <span key={d.key} className="flex items-center gap-1 text-[10px] text-gray-500">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
+                        {d.label}: {controlHealth.distribution[d.key]}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Per-Framework Scores */}
+              <div className="lg:col-span-2">
+                <div className="space-y-2.5">
+                  {controlHealth.frameworks
+                    .sort((a, b) => b.average_score - a.average_score)
+                    .map(fw => {
+                      const scoreColor = fw.average_score >= 75 ? "#10B981" : fw.average_score >= 60 ? "#2597B2" : fw.average_score >= 40 ? "#F59E0B" : "#EF4444";
+                      return (
+                        <div key={fw.framework_id} className="group" data-testid={`fw-health-${fw.framework_id}`}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate max-w-[220px]">
+                              {fw.framework_name}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold" style={{ color: scoreColor }}>{fw.average_score}</span>
+                              <span
+                                className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                                style={{
+                                  color: scoreColor,
+                                  backgroundColor: `${scoreColor}15`,
+                                }}
+                              >
+                                {fw.grade}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{ width: `${fw.average_score}%`, backgroundColor: scoreColor }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
             </div>
           </div>
         )}

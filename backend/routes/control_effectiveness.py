@@ -138,6 +138,82 @@ async def _calculate_auto_score(framework_id: str, control_id: str, org_id: str)
     return min(total, 100), factors
 
 
+@router.get("/dashboard")
+async def get_dashboard_effectiveness(
+    current_user: Dict = Depends(get_current_user)
+):
+    """Cross-framework effectiveness summary for the dashboard widget."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+
+    frameworks = await db.frameworks.find(
+        {}, {"_id": 0, "id": 1, "name": 1}
+    ).to_list(50)
+
+    fw_results = []
+    grand_total_score = 0
+    grand_total_controls = 0
+    overall_dist = {"excellent": 0, "good": 0, "fair": 0, "needs_improvement": 0, "critical": 0}
+
+    for fw in frameworks:
+        controls = await db.controls.find(
+            {"framework_id": fw["id"]},
+            {"_id": 0, "control_id": 1}
+        ).to_list(500)
+
+        if not controls:
+            continue
+
+        sampled = controls[:30]  # sample for performance
+        fw_score_sum = 0
+        fw_dist = {"excellent": 0, "good": 0, "fair": 0, "needs_improvement": 0, "critical": 0}
+
+        for ctrl in sampled:
+            auto_score, _ = await _calculate_auto_score(fw["id"], ctrl["control_id"], org_id)
+            override = await db.control_overrides.find_one(
+                {"framework_id": fw["id"], "control_id": ctrl["control_id"], "organization_id": org_id},
+                {"_id": 0, "score": 1}
+            )
+            score = override["score"] if override else auto_score
+            fw_score_sum += score
+
+            if score >= 90:
+                fw_dist["excellent"] += 1
+            elif score >= 75:
+                fw_dist["good"] += 1
+            elif score >= 60:
+                fw_dist["fair"] += 1
+            elif score >= 40:
+                fw_dist["needs_improvement"] += 1
+            else:
+                fw_dist["critical"] += 1
+
+        avg = int(fw_score_sum / max(len(sampled), 1))
+        fw_results.append({
+            "framework_id": fw["id"],
+            "framework_name": fw["name"],
+            "average_score": avg,
+            "grade": _calc_grade(avg),
+            "total_controls": len(controls),
+            "sampled_controls": len(sampled),
+            "distribution": fw_dist,
+        })
+        grand_total_score += fw_score_sum
+        grand_total_controls += len(sampled)
+        for k in overall_dist:
+            overall_dist[k] += fw_dist[k]
+
+    overall_avg = int(grand_total_score / max(grand_total_controls, 1))
+
+    return {
+        "overall_score": overall_avg,
+        "overall_grade": _calc_grade(overall_avg),
+        "total_frameworks": len(fw_results),
+        "total_controls_sampled": grand_total_controls,
+        "distribution": overall_dist,
+        "frameworks": fw_results,
+    }
+
+
 # NOTE: Summary route MUST be defined BEFORE the generic /{framework_id}/{control_id} route
 # to prevent "summary" from being matched as a framework_id
 @router.get("/summary/{framework_id}")

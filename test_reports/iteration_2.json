@@ -1,0 +1,67 @@
+{
+  "summary": "Tested NEW Control Effectiveness Dashboard endpoint and widget. Backend: 13/13 tests pass for GET /api/control-effectiveness/dashboard. Frontend: Control Health widget renders correctly with circular gauge (score 33), grade badge (Critical), distribution bar, 12 framework health rows, and View details link.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_control_effectiveness_dashboard.py",
+    "/app/test_reports/pytest/pytest_dashboard_effectiveness.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_control_effectiveness_dashboard.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100% (all widget elements verified)"
+  },
+  "test_credentials": {
+    "admin": "demo-admin@grc.com / DemoAdmin123!"
+  },
+  "seed_data_creation": "None - used existing demo data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Control Effectiveness Dashboard feature fully functional. Backend returns 12 frameworks with effectiveness scores. Widget displays circular SVG gauge, grade distribution bar, and per-framework progress bars. All existing dashboard widgets (compliance score hero, stat cards, framework compliance chart, risk heatmap, compliance trend) continue to work.",
+  "features_tested": {
+    "control_effectiveness_dashboard": {
+      "backend_endpoint": {
+        "endpoint": "GET /api/control-effectiveness/dashboard",
+        "tests_passed": 13,
+        "response_fields_verified": [
+          "overall_score (int 0-100) ✓",
+          "overall_grade (Excellent/Good/Fair/Needs Improvement/Critical) ✓",
+          "total_frameworks (int) ✓",
+          "total_controls_sampled (int) ✓",
+          "distribution (excellent/good/fair/needs_improvement/critical counts) ✓",
+          "frameworks array with framework_id, framework_name, average_score, grade, total_controls, distribution ✓"
+        ],
+        "auth_required": true
+      },
+      "frontend_widget": {
+        "widget_testid": "control-health-widget ✓",
+        "circular_gauge": "data-testid='control-health-score' shows 33 ✓",
+        "grade_badge": "data-testid='control-health-grade' shows Critical ✓",
+        "distribution_bar": "data-testid='distribution-bar-*' segments visible ✓",
+        "framework_rows": "data-testid='fw-health-*' - 12 frameworks displayed ✓",
+        "view_details_link": "Links to /frameworks ✓"
+      }
+    },
+    "existing_dashboard_widgets_verified": [
+      "compliance-score-hero ✓",
+      "framework-compliance-chart ✓",
+      "risk-heatmap ✓",
+      "compliance-trend-chart ✓",
+      "overdue-tasks-section ✓",
+      "upcoming-deadlines-section ✓",
+      "recent-activity-section ✓",
+      "quick-actions ✓"
+    ]
+  }
+}
