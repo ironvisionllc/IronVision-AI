@@ -24,6 +24,7 @@ import CrossFrameworkPage from "@/pages/CrossFrameworkPage";
 import SettingsPage from "@/pages/SettingsPage";
 import PolicyBuilderPage from "@/pages/PolicyBuilderPage";
 import DocumentsPage from "@/pages/DocumentsPage";
+import ComplianceCopilot from "@/components/ComplianceCopilot";
 import "@/index.css";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -107,6 +108,7 @@ function App() {
           <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
         </Routes>
       </BrowserRouter>
+      <ComplianceCopilot />
       <Toaster />
     </AuthContext.Provider>
   );

@@ -3,6 +3,10 @@ import axios from "axios";
 import { API } from "@/App";
 import Layout from "@/components/Layout";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import {
   CaretRight,
   Files,
@@ -10,7 +14,10 @@ import {
   MagnifyingGlass,
   ArrowRight,
   ShieldCheck,
-  FileText
+  FileText,
+  Gauge,
+  PencilSimple,
+  ArrowCounterClockwise,
 } from "@phosphor-icons/react";
 
 const RELATIONSHIP_COLORS = {
@@ -33,9 +40,14 @@ const ControlDetailPage = ({ frameworkId, controlId, frameworkName, onBack }) =>
   const [loading, setLoading] = useState(true);
   const [cciFilter, setCciFilter] = useState("");
   const [cciTypeFilter, setCciTypeFilter] = useState("all");
+  const [effectiveness, setEffectiveness] = useState(null);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideScore, setOverrideScore] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
 
   useEffect(() => {
     fetchDetail();
+    fetchEffectiveness();
   }, [frameworkId, controlId]);
 
   const fetchDetail = async () => {
@@ -48,6 +60,53 @@ const ControlDetailPage = ({ frameworkId, controlId, frameworkName, onBack }) =>
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchEffectiveness = async () => {
+    try {
+      const res = await axios.get(`${API}/control-effectiveness/${frameworkId}/${controlId}`);
+      setEffectiveness(res.data);
+    } catch {}
+  };
+
+  const saveOverride = async () => {
+    const score = parseInt(overrideScore);
+    if (isNaN(score) || score < 0 || score > 100) {
+      toast.error("Score must be between 0 and 100");
+      return;
+    }
+    if (!overrideReason.trim()) {
+      toast.error("Please provide a reason for the override");
+      return;
+    }
+    try {
+      await axios.put(`${API}/control-effectiveness/${frameworkId}/${controlId}/override`, {
+        score, reason: overrideReason,
+      });
+      toast.success("Override saved");
+      setOverrideOpen(false);
+      fetchEffectiveness();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to save override");
+    }
+  };
+
+  const clearOverride = async () => {
+    try {
+      await axios.delete(`${API}/control-effectiveness/${frameworkId}/${controlId}/override`);
+      toast.success("Override cleared");
+      fetchEffectiveness();
+    } catch {
+      toast.error("Failed to clear override");
+    }
+  };
+
+  const getScoreColor = (score) => {
+    if (score >= 90) return { text: "#059669", bg: "#D1FAE5", ring: "#10B981" };
+    if (score >= 75) return { text: "#0891B2", bg: "#CFFAFE", ring: "#06B6D4" };
+    if (score >= 60) return { text: "#D97706", bg: "#FEF3C7", ring: "#F59E0B" };
+    if (score >= 40) return { text: "#EA580C", bg: "#FFEDD5", ring: "#F97316" };
+    return { text: "#DC2626", bg: "#FEE2E2", ring: "#EF4444" };
   };
 
   if (loading) {
@@ -128,20 +187,168 @@ const ControlDetailPage = ({ frameworkId, controlId, frameworkName, onBack }) =>
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="iv-card p-4 text-center">
             <div className="text-2xl font-bold text-[#2597B2]" data-testid="stat-ccis">{cci_count}</div>
             <div className="text-xs text-gray-500 mt-1">CCIs</div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+          <div className="iv-card p-4 text-center">
             <div className="text-2xl font-bold text-blue-600" data-testid="stat-cross-mappings">{cross_framework_mappings.length}</div>
             <div className="text-xs text-gray-500 mt-1">Cross-Framework Mappings</div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+          <div className="iv-card p-4 text-center">
             <div className="text-2xl font-bold text-emerald-600" data-testid="stat-policy-mappings">{policy_mappings.length}</div>
             <div className="text-xs text-gray-500 mt-1">Policy Mappings</div>
           </div>
+          {effectiveness && (
+            <div className="iv-card p-4 text-center" style={{ borderColor: getScoreColor(effectiveness.final_score).ring + "40" }}>
+              <div className="text-2xl font-bold" style={{ color: getScoreColor(effectiveness.final_score).text }} data-testid="stat-effectiveness-score">
+                {effectiveness.final_score}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">Effectiveness Score</div>
+            </div>
+          )}
         </div>
+
+        {/* Effectiveness Score Card */}
+        {effectiveness && (
+          <div className="iv-card p-6 mb-6" data-testid="effectiveness-card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: getScoreColor(effectiveness.final_score).bg }}>
+                  <Gauge size={22} weight="duotone" style={{ color: getScoreColor(effectiveness.final_score).text }} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Control Effectiveness Score</h2>
+                  <p className="text-xs text-gray-400">{effectiveness.grade} ({effectiveness.final_score}/100)</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {effectiveness.manual_override !== null && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-8 text-gray-500 hover:text-gray-700"
+                    onClick={clearOverride}
+                    data-testid="clear-override-btn"
+                  >
+                    <ArrowCounterClockwise size={14} className="mr-1" /> Reset to Auto
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-8"
+                  onClick={() => {
+                    setOverrideScore(String(effectiveness.final_score));
+                    setOverrideReason(effectiveness.override_reason || "");
+                    setOverrideOpen(true);
+                  }}
+                  data-testid="override-score-btn"
+                >
+                  <PencilSimple size={14} className="mr-1" /> Override
+                </Button>
+              </div>
+            </div>
+
+            {/* Score Bar */}
+            <div className="mb-4">
+              <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${effectiveness.final_score}%`,
+                    background: `linear-gradient(90deg, ${getScoreColor(effectiveness.final_score).ring}, ${getScoreColor(effectiveness.final_score).text})`,
+                  }}
+                  data-testid="effectiveness-bar"
+                />
+              </div>
+              <div className="flex justify-between mt-1.5 text-[10px] text-gray-400">
+                <span>0 Critical</span>
+                <span>40 Needs Improvement</span>
+                <span>60 Fair</span>
+                <span>75 Good</span>
+                <span>100 Excellent</span>
+              </div>
+            </div>
+
+            {effectiveness.manual_override !== null && (
+              <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                  Manual Override Active (Auto: {effectiveness.auto_score} → Override: {effectiveness.manual_override})
+                </p>
+                {effectiveness.override_reason && (
+                  <p className="text-xs text-amber-600/70 mt-0.5">Reason: {effectiveness.override_reason}</p>
+                )}
+              </div>
+            )}
+
+            {/* Factors Breakdown */}
+            <div className="grid grid-cols-5 gap-3">
+              {[
+                { key: "policy_mapping", label: "Policy Mapping", max: 25 },
+                { key: "evidence_coverage", label: "Evidence", max: 25 },
+                { key: "cci_completion", label: "CCI Completion", max: 20 },
+                { key: "risk_exposure", label: "Risk Exposure", max: 15 },
+                { key: "recency", label: "Recency", max: 15 },
+              ].map(f => {
+                const val = effectiveness.factors[f.key] || 0;
+                const pct = (val / f.max) * 100;
+                return (
+                  <div key={f.key} className="text-center" data-testid={`factor-${f.key}`}>
+                    <div className="text-lg font-bold text-gray-800 dark:text-gray-200">{val}</div>
+                    <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full mt-1 overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${pct}%`, backgroundColor: getScoreColor(pct).ring }}
+                      />
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-1">{f.label}</div>
+                    <div className="text-[10px] text-gray-300">/{f.max}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Override Dialog */}
+        <Dialog open={overrideOpen} onOpenChange={setOverrideOpen}>
+          <DialogContent className="sm:max-w-[400px]" data-testid="override-dialog">
+            <DialogHeader>
+              <DialogTitle>Override Effectiveness Score</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div>
+                <Label className="text-sm">Score (0-100)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={overrideScore}
+                  onChange={(e) => setOverrideScore(e.target.value)}
+                  className="mt-1"
+                  data-testid="override-score-input"
+                />
+              </div>
+              <div>
+                <Label className="text-sm">Reason for Override</Label>
+                <textarea
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  className="w-full mt-1 p-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2597B2] resize-none"
+                  rows={3}
+                  placeholder="e.g., Manual assessment completed, compensating controls in place"
+                  data-testid="override-reason-input"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setOverrideOpen(false)}>Cancel</Button>
+                <Button size="sm" className="iv-btn-primary" onClick={saveOverride} data-testid="override-save-btn">Save Override</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* CCIs Section */}
         {cci_count > 0 && (
