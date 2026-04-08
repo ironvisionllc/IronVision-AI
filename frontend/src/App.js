@@ -24,6 +24,7 @@ import CrossFrameworkPage from "@/pages/CrossFrameworkPage";
 import SettingsPage from "@/pages/SettingsPage";
 import PolicyBuilderPage from "@/pages/PolicyBuilderPage";
 import DocumentsPage from "@/pages/DocumentsPage";
+import SIEMPage from "@/pages/SIEMPage";
 import ComplianceCopilot from "@/components/ComplianceCopilot";
 import "@/index.css";
 
@@ -103,6 +104,7 @@ function App() {
           <Route path="/activity" element={user ? <ActivityPage /> : <Navigate to="/login" />} />
           <Route path="/integrations" element={user ? <IntegrationsPage /> : <Navigate to="/login" />} />
           <Route path="/evidence" element={user ? <EvidencePage /> : <Navigate to="/login" />} />
+          <Route path="/siem" element={user ? <SIEMPage /> : <Navigate to="/login" />} />
           <Route path="/cross-framework" element={user ? <CrossFrameworkPage /> : <Navigate to="/login" />} />
           <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/login" />} />
           <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />

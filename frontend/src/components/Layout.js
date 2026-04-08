@@ -26,7 +26,9 @@ import {
   ChartBar,
   CloudArrowUp,
   ShieldCheck,
-  Gear
+  Gear,
+  Eye,
+  Plugs
 } from "@phosphor-icons/react";
 
 const SIDEBAR_NAV = [
@@ -43,11 +45,14 @@ const SIDEBAR_NAV = [
   { name: "Risks", href: "/risks", icon: Warning },
   { name: "Vendors", href: "/vendors", icon: Users },
   { name: "Audits", href: "/audits", icon: Calendar },
+  { section: "SECURITY" },
+  { name: "SIEM", href: "/siem", icon: Eye },
   { section: "OPERATIONS" },
   { name: "Tasks", href: "/tasks", icon: ListChecks },
   { name: "Evidence", href: "/evidence", icon: FolderOpen },
   { name: "Activity", href: "/activity", icon: ClockCounterClockwise },
   { name: "Training", href: "/training", icon: GraduationCap },
+  { name: "Integrations", href: "/integrations", icon: Plugs },
 ];
 
 const Layout = ({ children }) => {

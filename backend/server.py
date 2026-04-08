@@ -32,6 +32,7 @@ from routes.email_notifications import router as email_notifications_router
 from routes.copilot import router as copilot_router
 from routes.slack_integration import router as slack_router
 from routes.control_effectiveness import router as effectiveness_router
+from routes.siem import router as siem_router
 
 # Create the main app
 app = FastAPI()
@@ -64,6 +65,7 @@ api_router.include_router(email_notifications_router)
 api_router.include_router(copilot_router)
 api_router.include_router(slack_router)
 api_router.include_router(effectiveness_router)
+api_router.include_router(siem_router)
 
 app.include_router(api_router)
 
