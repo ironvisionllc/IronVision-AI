@@ -68,6 +68,7 @@ Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy g
   - Visual score bar with grade labels
   - Factor breakdown display on ControlDetailPage
   - Framework-level summary endpoint
+  - **Dashboard Widget**: Cross-framework effectiveness overview with circular SVG gauge, grade distribution stacked bar, and per-framework progress bars (Apr 8, 2026)
 
 ### AWS Integration
 - [x] S3: project-assets-ironvision-dev
@@ -108,4 +109,4 @@ Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy g
 - Mobile responsive improvements
 - PDF export for policies
 - Slack bot token integration (full bidirectional)
-- Dashboard widget for Control Effectiveness overview
+- Framework detail page: inline effectiveness scores per control row
