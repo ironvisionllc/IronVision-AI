@@ -69,6 +69,14 @@ Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy g
   - Factor breakdown display on ControlDetailPage
   - Framework-level summary endpoint
   - **Dashboard Widget**: Cross-framework effectiveness overview with circular SVG gauge, grade distribution stacked bar, and per-framework progress bars (Apr 8, 2026)
+  - **Inline Framework Scores**: Effectiveness score badges on framework cards + effectiveness column in controls table (Apr 8, 2026)
+
+### Dark Mode (Apr 8, 2026)
+- [x] Comprehensive dark mode CSS refinements
+  - iv-stat-card, iv-table, iv-empty-state, iv-badge variants
+  - iv-btn-secondary, iv-btn-ghost, iv-grade-circle dark styles
+  - Selection, skeleton, spinner dark overrides
+  - FrameworksPage and ControlDetailPage full dark mode support
 
 ### AWS Integration
 - [x] S3: project-assets-ironvision-dev
@@ -105,8 +113,7 @@ Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy g
 
 ## Next Steps / Backlog
 - Micro-animations (framer-motion)
-- Dark mode refinements
 - Mobile responsive improvements
 - PDF export for policies
 - Slack bot token integration (full bidirectional)
-- Framework detail page: inline effectiveness scores per control row
+- User needs to provide Slack webhook URL to activate notifications
