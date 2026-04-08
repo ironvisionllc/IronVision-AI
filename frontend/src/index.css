@@ -242,6 +242,15 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0.12;
 }
 
+.dark .iv-stat-card {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(51, 65, 85, 0.5);
+}
+
+.dark .iv-stat-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+}
+
 /* ====== NAVIGATION SYSTEM ====== */
 .iv-nav-item {
   display: flex;
@@ -470,6 +479,21 @@ h1, h2, h3, h4, h5, h6 {
   border-bottom: none;
 }
 
+.dark .iv-table thead th {
+  background: rgba(30, 41, 59, 0.6);
+  color: #94a3b8;
+  border-bottom-color: rgba(51, 65, 85, 0.5);
+}
+
+.dark .iv-table tbody td {
+  color: #cbd5e1;
+  border-bottom-color: rgba(51, 65, 85, 0.3);
+}
+
+.dark .iv-table tbody tr:hover {
+  background: rgba(37, 151, 178, 0.06);
+}
+
 /* ====== SECTION HEADERS ====== */
 .iv-section-header {
   display: flex;
@@ -491,6 +515,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .dark .iv-section-title {
   color: #f1f5f9;
+}
+
+.dark .iv-section-header {
+  border-bottom-color: rgba(51, 65, 85, 0.5);
 }
 
 /* ====== GLASS MORPHISM ====== */
@@ -599,6 +627,80 @@ a, button, input, textarea, select {
   max-width: 300px;
 }
 
+.dark .iv-empty-state-icon {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(37, 151, 178, 0.1) 100%);
+}
+
+.dark .iv-empty-state-title {
+  color: #94a3b8;
+}
+
+.dark .iv-empty-state-description {
+  color: #64748b;
+}
+
+.dark .iv-badge-brand {
+  background: linear-gradient(135deg, rgba(37, 151, 178, 0.18) 0%, rgba(37, 151, 178, 0.12) 100%);
+  color: #47b8cf;
+  border-color: rgba(37, 151, 178, 0.25);
+}
+
+.dark .iv-badge-success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0.12) 100%);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.dark .iv-badge-warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(245, 158, 11, 0.12) 100%);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.dark .iv-badge-danger {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(239, 68, 68, 0.12) 100%);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.dark .iv-badge-neutral {
+  background: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+  border-color: rgba(100, 116, 139, 0.2);
+}
+
+.dark .iv-btn-secondary {
+  background: rgba(30, 41, 59, 0.8);
+  color: #cbd5e1;
+  border-color: rgba(71, 85, 105, 0.5);
+}
+
+.dark .iv-btn-secondary:hover {
+  background: rgba(51, 65, 85, 0.6);
+  border-color: rgba(100, 116, 139, 0.5);
+  color: #f1f5f9;
+}
+
+.dark .iv-btn-ghost:hover {
+  background: rgba(37, 151, 178, 0.12);
+  color: #47b8cf;
+}
+
+.dark .iv-input:focus {
+  border-color: var(--iv-brand-500);
+  box-shadow: 0 0 0 3px rgba(37, 151, 178, 0.15), var(--shadow-xs);
+}
+
+.dark .iv-skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+
+.dark .iv-spinner {
+  border-color: rgba(71, 85, 105, 0.5);
+  border-top-color: #47b8cf;
+}
+
 /* ====== FOCUS VISIBLE ====== */
 :focus-visible {
   outline: 2px solid var(--iv-brand-500);
@@ -609,6 +711,11 @@ a, button, input, textarea, select {
 ::selection {
   background: rgba(37, 151, 178, 0.2);
   color: var(--iv-brand-800);
+}
+
+.dark ::selection {
+  background: rgba(37, 151, 178, 0.3);
+  color: #e2e8f0;
 }
 
 /* ====== PREMIUM HERO CARD ====== */
@@ -647,6 +754,14 @@ a, button, input, textarea, select {
   justify-content: center;
   position: relative;
   background: white;
+}
+
+.dark .iv-grade-circle {
+  background: #1e293b;
+}
+
+.dark .iv-grade-circle::before {
+  background: conic-gradient(var(--grade-color, #47b8cf) calc(var(--grade-percent, 0) * 3.6deg), #334155 0);
 }
 
 .iv-grade-circle::before {

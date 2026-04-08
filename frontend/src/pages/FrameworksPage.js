@@ -7,8 +7,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Files, ListBullets, MagnifyingGlass, CaretRight } from "@phosphor-icons/react";
+import { Plus, Files, ListBullets, MagnifyingGlass, CaretRight, Gauge } from "@phosphor-icons/react";
 import ControlDetailPage from "@/pages/ControlDetailPage";
+
+const SCORE_COLORS = {
+  excellent: { text: "#059669", bg: "#D1FAE5" },
+  good: { text: "#0891B2", bg: "#CFFAFE" },
+  fair: { text: "#D97706", bg: "#FEF3C7" },
+  needs_improvement: { text: "#EA580C", bg: "#FFEDD5" },
+  critical: { text: "#DC2626", bg: "#FEE2E2" },
+};
+
+const getScoreStyle = (score) => {
+  if (score >= 90) return SCORE_COLORS.excellent;
+  if (score >= 75) return SCORE_COLORS.good;
+  if (score >= 60) return SCORE_COLORS.fair;
+  if (score >= 40) return SCORE_COLORS.needs_improvement;
+  return SCORE_COLORS.critical;
+};
 
 const FrameworksPage = () => {
   const [frameworks, setFrameworks] = useState([]);
@@ -27,8 +43,21 @@ const FrameworksPage = () => {
   // Control detail state
   const [selectedControl, setSelectedControl] = useState(null);
 
+  // Effectiveness scores
+  const [fwEffectiveness, setFwEffectiveness] = useState({});
+  const [controlScores, setControlScores] = useState({});
+
   useEffect(() => {
     fetchFrameworks();
+  }, []);
+
+  // Fetch dashboard effectiveness for framework cards
+  useEffect(() => {
+    axios.get(`${API}/control-effectiveness/dashboard`).then(res => {
+      const map = {};
+      (res.data?.frameworks || []).forEach(fw => { map[fw.framework_id] = fw; });
+      setFwEffectiveness(map);
+    }).catch(() => {});
   }, []);
 
   const fetchFrameworks = async () => {
@@ -74,9 +103,18 @@ const FrameworksPage = () => {
     setDetailCategory("all");
     setSelectedControl(null);
     setDetailLoading(true);
+    setControlScores({});
     try {
-      const res = await axios.get(`${API}/controls/${framework.id}`);
-      setDetailControls(res.data);
+      const [ctrlRes, effRes] = await Promise.all([
+        axios.get(`${API}/controls/${framework.id}`),
+        axios.get(`${API}/control-effectiveness/summary/${framework.id}`).catch(() => ({ data: null })),
+      ]);
+      setDetailControls(ctrlRes.data);
+      if (effRes.data?.controls) {
+        const map = {};
+        effRes.data.controls.forEach(c => { map[c.control_id] = c; });
+        setControlScores(map);
+      }
     } catch {
       toast.error("Failed to load controls");
       setDetailControls([]);
@@ -136,8 +174,8 @@ const FrameworksPage = () => {
                   <Files size={22} weight="duotone" className="text-[#2597B2]" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold text-gray-900 tracking-tight" style={{fontFamily: 'Inter, sans-serif'}}>{detailFramework.name}</h1>
-                  <p className="text-sm text-gray-600 mt-1">{detailFramework.description}</p>
+                  <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight" style={{fontFamily: 'Inter, sans-serif'}}>{detailFramework.name}</h1>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{detailFramework.description}</p>
                 </div>
               </div>
             </div>
@@ -166,7 +204,7 @@ const FrameworksPage = () => {
             <select
               value={detailCategory}
               onChange={(e) => setDetailCategory(e.target.value)}
-              className="h-9 px-3 text-sm border border-gray-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#2597B2]"
+              className="h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#2597B2]"
               data-testid="detail-category-filter"
             >
               <option value="all">All Categories ({detailControls.length})</option>
@@ -187,21 +225,25 @@ const FrameworksPage = () => {
           ) : filteredControls.length === 0 ? (
             <div className="text-center py-12 text-gray-500 text-sm">No controls match your filter.</div>
           ) : (
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden" data-testid="controls-table">
+            <div className="iv-card overflow-hidden" data-testid="controls-table">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600 w-[140px]">Control ID</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Title</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600 w-[160px]">Category</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-600 w-[80px]"></th>
+                  <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400 w-[140px]">Control ID</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">Title</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400 w-[160px]">Category</th>
+                    <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-400 w-[130px]">Effectiveness</th>
+                    <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-400 w-[80px]"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredControls.map((ctrl, i) => (
+                  {filteredControls.map((ctrl, i) => {
+                    const eff = controlScores[ctrl.control_id];
+                    const scoreStyle = eff ? getScoreStyle(eff.score) : null;
+                    return (
                     <tr
                       key={ctrl.id || i}
-                      className="border-b border-gray-100 last:border-0 hover:bg-[#2597B2]/[0.03] transition-colors cursor-pointer group"
+                      className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-[#2597B2]/[0.03] dark:hover:bg-[#2597B2]/[0.06] transition-colors cursor-pointer group"
                       data-testid={`control-row-${ctrl.control_id}`}
                       onClick={() => setSelectedControl(ctrl.control_id)}
                     >
@@ -209,13 +251,30 @@ const FrameworksPage = () => {
                         <span className="font-mono text-xs font-semibold text-[#2597B2] bg-[#2597B2]/8 px-2 py-0.5 rounded">{ctrl.control_id}</span>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="font-medium text-gray-900">{ctrl.title}</div>
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{ctrl.title}</div>
                         {ctrl.description && (
-                          <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{ctrl.description}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{ctrl.description}</div>
                         )}
                       </td>
                       <td className="py-3 px-4">
-                        <span className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">{ctrl.category}</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">{ctrl.category}</span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {eff ? (
+                          <div className="inline-flex items-center gap-1.5" data-testid={`control-score-${ctrl.control_id}`}>
+                            <div className="w-8 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${eff.score}%`, backgroundColor: scoreStyle.text }} />
+                            </div>
+                            <span
+                              className="text-xs font-semibold min-w-[26px] text-center px-1.5 py-0.5 rounded"
+                              style={{ color: scoreStyle.text, backgroundColor: scoreStyle.bg }}
+                            >
+                              {eff.score}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-300 dark:text-gray-600">--</span>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <span className="text-xs font-medium text-[#2597B2] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1">
@@ -223,7 +282,8 @@ const FrameworksPage = () => {
                         </span>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -239,8 +299,8 @@ const FrameworksPage = () => {
       <div data-testid="frameworks-page">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 tracking-tight" style={{fontFamily: 'Inter, sans-serif'}}>Compliance Frameworks</h1>
-            <p className="text-sm text-gray-600 mt-2">Manage compliance frameworks for your organization</p>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight" style={{fontFamily: 'Inter, sans-serif'}}>Compliance Frameworks</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Manage compliance frameworks for your organization</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -280,32 +340,59 @@ const FrameworksPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="frameworks-grid">
-            {frameworks.map((framework) => (
+            {frameworks.map((framework) => {
+              const eff = fwEffectiveness[framework.id];
+              const scoreStyle = eff ? getScoreStyle(eff.average_score) : null;
+              return (
               <div
                 key={framework.id}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-sm hover:-translate-y-[1px] transition-all duration-200 flex flex-col"
+                className="iv-card p-6 flex flex-col"
                 data-testid={`framework-card-${framework.id}`}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-12 h-12 bg-[#2597B2] bg-opacity-10 rounded-lg flex items-center justify-center">
                     <Files size={24} weight="duotone" className="text-[#2597B2]" />
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    framework.type === 'standard' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                  }`}>
-                    {framework.type === 'standard' ? 'Standard' : 'Custom'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {eff && (
+                      <span
+                        className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full"
+                        style={{ color: scoreStyle.text, backgroundColor: scoreStyle.bg }}
+                        data-testid={`fw-score-badge-${framework.id}`}
+                      >
+                        <Gauge size={12} weight="fill" />
+                        {eff.average_score}
+                      </span>
+                    )}
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      framework.type === 'standard' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                    }`}>
+                      {framework.type === 'standard' ? 'Standard' : 'Custom'}
+                    </span>
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{framework.name}</h3>
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{framework.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{framework.name}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{framework.description}</p>
 
-                <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                {eff && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                      <span>Effectiveness</span>
+                      <span>{eff.grade}</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${eff.average_score}%`, backgroundColor: scoreStyle.text }} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                     <ListBullets size={16} weight="bold" className="text-[#2597B2]" />
                     <span className="font-semibold" data-testid={`control-count-${framework.id}`}>
                       {controlCounts[framework.id] !== undefined ? controlCounts[framework.id] : "..."}
                     </span>
-                    <span className="text-gray-500">Controls</span>
+                    <span className="text-gray-500 dark:text-gray-400">Controls</span>
                   </div>
                   <button
                     onClick={() => openDetail(framework)}
@@ -317,7 +404,8 @@ const FrameworksPage = () => {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

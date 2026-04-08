@@ -1,0 +1,125 @@
+{
+  "summary": "Tested inline effectiveness scores on FrameworksPage (card grid + controls table) and dark mode CSS refinements. All features working correctly. Backend APIs return expected data. Frontend displays effectiveness badges on framework cards and controls table rows. Dark mode styling applies correctly to all components.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_3.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor: Console warning about <span> inside <option> in FrameworksPage.js category filter dropdown - not blocking but should be cleaned up"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (2/2 endpoints verified)",
+    "frontend": "100% (all UI elements verified)"
+  },
+  "test_credentials": {
+    "admin": "demo-admin@grc.com / DemoAdmin123!"
+  },
+  "seed_data_creation": "None - used existing demo data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All effectiveness score features working. Framework IDs are UUIDs. Dark mode toggle is at bottom of sidebar with data-testid='dark-mode-toggle'. Controls table loads effectiveness data via /api/control-effectiveness/summary/{framework_id}.",
+  "features_tested": {
+    "backend_endpoints": {
+      "GET /api/control-effectiveness/dashboard": {
+        "status": "PASS",
+        "verified_fields": [
+          "overall_score: 33",
+          "overall_grade: Critical",
+          "total_frameworks: 12",
+          "frameworks array with framework_id, average_score, grade per framework"
+        ]
+      },
+      "GET /api/control-effectiveness/summary/{framework_id}": {
+        "status": "PASS",
+        "verified_fields": [
+          "framework_id",
+          "average_score: 35",
+          "average_grade: Critical",
+          "total_controls: 50",
+          "controls array with control_id, score, grade per control"
+        ]
+      }
+    },
+    "frontend_frameworks_page_card_grid": {
+      "effectiveness_score_badges": {
+        "status": "PASS",
+        "details": "Found 12 fw-score-badge-* elements with scores (35, 29, 35, 32, 35, 30, etc.)"
+      },
+      "effectiveness_progress_bars": {
+        "status": "PASS",
+        "details": "Found 12 progress bars on framework cards"
+      }
+    },
+    "frontend_frameworks_page_controls_table": {
+      "effectiveness_column_header": {
+        "status": "PASS",
+        "details": "Effectiveness column header visible in table"
+      },
+      "inline_score_badges": {
+        "status": "PASS",
+        "details": "Found 50 control-score-* elements with scores (all showing 35)"
+      }
+    },
+    "dark_mode_dashboard": {
+      "toggle_functionality": {
+        "status": "PASS",
+        "details": "Dark mode toggle adds 'dark' class to html element"
+      },
+      "sidebar_styling": {
+        "status": "PASS",
+        "details": "Sidebar has dark background"
+      },
+      "stat_cards_styling": {
+        "status": "PASS",
+        "details": "Stat cards have dark background rgba(30, 41, 59, 0.8)"
+      },
+      "hero_section_styling": {
+        "status": "PASS",
+        "details": "Hero section has dark styling"
+      },
+      "charts_styling": {
+        "status": "PASS",
+        "details": "Charts render correctly in dark mode"
+      }
+    },
+    "dark_mode_frameworks_page": {
+      "framework_cards": {
+        "status": "PASS",
+        "details": "Cards have dark background rgba(30, 41, 59, 0.8), border rgba(51, 65, 85, 0.5)"
+      },
+      "controls_table": {
+        "status": "PASS",
+        "details": "Table has dark background, light text colors, dark borders"
+      },
+      "table_header": {
+        "status": "PASS",
+        "details": "Header text color rgb(156, 163, 175)"
+      },
+      "table_rows": {
+        "status": "PASS",
+        "details": "Row borders rgb(31, 41, 55), hover states working"
+      }
+    },
+    "regression_control_health_widget": {
+      "status": "PASS",
+      "details": {
+        "widget_found": true,
+        "score_displayed": "33",
+        "grade_displayed": "Critical",
+        "distribution_bar": "present",
+        "framework_rows": "12 rows displayed",
+        "view_details_link": "present"
+      }
+    }
+  }
+}
