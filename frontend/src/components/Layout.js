@@ -20,7 +20,8 @@ import {
   ShieldCheck,
   Gear,
   Eye,
-  Plugs
+  Plugs,
+  MagnifyingGlass
 } from "@phosphor-icons/react";
 
 const SIDEBAR_NAV = [
@@ -153,6 +154,16 @@ const Layout = ({ children }) => {
 
           {/* Bottom Section */}
           <div className="border-t border-gray-200/50 dark:border-gray-700/50 p-3 space-y-2">
+            {/* Search shortcut */}
+            <button
+              onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
+              className={`flex items-center ${collapsed ? "justify-center" : ""} w-full px-3 py-2 text-sm rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors`}
+              data-testid="search-shortcut-btn"
+            >
+              <MagnifyingGlass size={18} />
+              {!collapsed && <span className="ml-3 flex-1 text-left">Search</span>}
+              {!collapsed && <kbd className="text-[10px] text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">⌘K</kbd>}
+            </button>
             {/* Dark Mode Toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}

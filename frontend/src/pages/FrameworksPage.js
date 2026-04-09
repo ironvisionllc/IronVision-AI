@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Files, ListBullets, MagnifyingGlass, CaretRight, Gauge } from "@phosphor-icons/react";
-import ControlDetailPage from "@/pages/ControlDetailPage";
+import FrameworkWorkspace from "@/components/FrameworkWorkspace";
 
 const SCORE_COLORS = {
   excellent: { text: "#059669", bg: "#D1FAE5" },
@@ -36,17 +36,9 @@ const FrameworksPage = ({ embedded = false }) => {
 
   // Detail view state
   const [detailFramework, setDetailFramework] = useState(null);
-  const [detailControls, setDetailControls] = useState([]);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailSearch, setDetailSearch] = useState("");
-  const [detailCategory, setDetailCategory] = useState("all");
-
-  // Control detail state
-  const [selectedControl, setSelectedControl] = useState(null);
 
   // Effectiveness scores
   const [fwEffectiveness, setFwEffectiveness] = useState({});
-  const [controlScores, setControlScores] = useState({});
 
   useEffect(() => {
     fetchFrameworks();
@@ -98,199 +90,19 @@ const FrameworksPage = ({ embedded = false }) => {
     }
   };
 
-  const openDetail = async (framework) => {
+  const openDetail = (framework) => {
     setDetailFramework(framework);
-    setDetailSearch("");
-    setDetailCategory("all");
-    setSelectedControl(null);
-    setDetailLoading(true);
-    setControlScores({});
-    try {
-      const [ctrlRes, effRes] = await Promise.all([
-        axios.get(`${API}/controls/${framework.id}`),
-        axios.get(`${API}/control-effectiveness/summary/${framework.id}`).catch(() => ({ data: null })),
-      ]);
-      setDetailControls(ctrlRes.data);
-      if (effRes.data?.controls) {
-        const map = {};
-        effRes.data.controls.forEach(c => { map[c.control_id] = c; });
-        setControlScores(map);
-      }
-    } catch {
-      toast.error("Failed to load controls");
-      setDetailControls([]);
-    } finally {
-      setDetailLoading(false);
-    }
   };
 
   const closeDetail = () => {
     setDetailFramework(null);
-    setDetailControls([]);
-    setDetailSearch("");
-    setDetailCategory("all");
   };
 
-  // Derive categories and filtered controls for detail view
-  const categories = [...new Set(detailControls.map(c => c.category))].sort();
-  const filteredControls = detailControls.filter(c => {
-    const matchesSearch = !detailSearch ||
-      c.control_id.toLowerCase().includes(detailSearch.toLowerCase()) ||
-      c.title.toLowerCase().includes(detailSearch.toLowerCase()) ||
-      c.description.toLowerCase().includes(detailSearch.toLowerCase());
-    const matchesCat = detailCategory === "all" || c.category === detailCategory;
-    return matchesSearch && matchesCat;
-  });
-
-  // Control detail view
-  if (selectedControl && detailFramework) {
-    return (
-      <ControlDetailPage
-        frameworkId={detailFramework.id}
-        controlId={selectedControl}
-        frameworkName={detailFramework.name}
-        onBack={() => setSelectedControl(null)}
-        embedded={embedded}
-      />
-    );
-  }
-
-  // Detail view
+  // Show workspace when a framework is selected
   if (detailFramework) {
     return (
       <Wrap>
-        <div data-testid="framework-detail-page">
-          <button
-            onClick={closeDetail}
-            className="flex items-center gap-1 text-sm text-[#2597B2] hover:text-[#1B839F] font-medium mb-6 transition-colors"
-            data-testid="back-to-frameworks-btn"
-          >
-            <CaretRight size={14} weight="bold" className="rotate-180" />
-            Back to Frameworks
-          </button>
-
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <div className="w-10 h-10 bg-[#2597B2] bg-opacity-10 rounded-lg flex items-center justify-center">
-                  <Files size={22} weight="duotone" className="text-[#2597B2]" />
-                </div>
-                <div>
-                  <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight" style={{fontFamily: 'Inter, sans-serif'}}>{detailFramework.name}</h1>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{detailFramework.description}</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                v{detailFramework.version}
-              </span>
-              <span className="px-3 py-1 text-xs font-medium rounded-full bg-[#2597B2] bg-opacity-10 text-[#2597B2]" data-testid="detail-control-count">
-                {detailControls.length} Controls
-              </span>
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="relative flex-1 max-w-sm">
-              <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Search controls..."
-                value={detailSearch}
-                onChange={(e) => setDetailSearch(e.target.value)}
-                className="pl-9 h-9 text-sm"
-                data-testid="detail-search-input"
-              />
-            </div>
-            <select
-              value={detailCategory}
-              onChange={(e) => setDetailCategory(e.target.value)}
-              className="h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-[#2597B2]"
-              data-testid="detail-category-filter"
-            >
-              <option value="all">All Categories ({detailControls.length})</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat} ({detailControls.filter(c => c.category === cat).length})</option>
-              ))}
-            </select>
-            <span className="text-xs text-gray-500 ml-auto">
-              Showing {filteredControls.length} of {detailControls.length}
-            </span>
-          </div>
-
-          {/* Controls Table */}
-          {detailLoading ? (
-            <div className="flex items-center justify-center h-40">
-              <p className="text-gray-500 text-sm">Loading controls...</p>
-            </div>
-          ) : filteredControls.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 text-sm">No controls match your filter.</div>
-          ) : (
-            <div className="iv-card overflow-hidden" data-testid="controls-table">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400 w-[140px]">Control ID</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400">Title</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-400 w-[160px]">Category</th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-400 w-[130px]">Effectiveness</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-400 w-[80px]"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredControls.map((ctrl, i) => {
-                    const eff = controlScores[ctrl.control_id];
-                    const scoreStyle = eff ? getScoreStyle(eff.score) : null;
-                    return (
-                    <tr
-                      key={ctrl.id || i}
-                      className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-[#2597B2]/[0.03] dark:hover:bg-[#2597B2]/[0.06] transition-colors cursor-pointer group"
-                      data-testid={`control-row-${ctrl.control_id}`}
-                      onClick={() => setSelectedControl(ctrl.control_id)}
-                    >
-                      <td className="py-3 px-4">
-                        <span className="font-mono text-xs font-semibold text-[#2597B2] bg-[#2597B2]/8 px-2 py-0.5 rounded">{ctrl.control_id}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">{ctrl.title}</div>
-                        {ctrl.description && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{ctrl.description}</div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">{ctrl.category}</span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        {eff ? (
-                          <div className="inline-flex items-center gap-1.5" data-testid={`control-score-${ctrl.control_id}`}>
-                            <div className="w-8 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                              <div className="h-full rounded-full" style={{ width: `${eff.score}%`, backgroundColor: scoreStyle.text }} />
-                            </div>
-                            <span
-                              className="text-xs font-semibold min-w-[26px] text-center px-1.5 py-0.5 rounded"
-                              style={{ color: scoreStyle.text, backgroundColor: scoreStyle.bg }}
-                            >
-                              {eff.score}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-gray-300 dark:text-gray-600">--</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-xs font-medium text-[#2597B2] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1">
-                          Details <CaretRight size={12} weight="bold" />
-                        </span>
-                      </td>
-                    </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <FrameworkWorkspace framework={detailFramework} onBack={closeDetail} />
       </Wrap>
     );
   }

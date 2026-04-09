@@ -17,6 +17,7 @@ import IntegrationsPage from "@/pages/IntegrationsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import SIEMPage from "@/pages/SIEMPage";
 import ComplianceCopilot from "@/components/ComplianceCopilot";
+import CommandPalette from "@/components/CommandPalette";
 import "@/index.css";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -93,8 +94,8 @@ function App() {
           {/* Redirects from old routes */}
           <Route path="/policy-library" element={<Navigate to="/policies?tab=library" />} />
           <Route path="/documents" element={<Navigate to="/policies?tab=documents" />} />
-          <Route path="/mappings" element={<Navigate to="/frameworks?tab=mappings" />} />
-          <Route path="/cross-framework" element={<Navigate to="/frameworks?tab=cross-framework" />} />
+          <Route path="/mappings" element={<Navigate to="/policies?tab=mappings" />} />
+          <Route path="/cross-framework" element={<Navigate to="/policies?tab=cross-framework" />} />
           <Route path="/audits" element={<Navigate to="/compliance?tab=audits" />} />
           <Route path="/evidence" element={<Navigate to="/compliance?tab=evidence" />} />
           <Route path="/analytics" element={<Navigate to="/dashboard" />} />
@@ -102,6 +103,7 @@ function App() {
           <Route path="/training" element={<Navigate to="/dashboard" />} />
           <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
         </Routes>
+        {user && <CommandPalette />}
       </BrowserRouter>
       <ComplianceCopilot />
       <Toaster />

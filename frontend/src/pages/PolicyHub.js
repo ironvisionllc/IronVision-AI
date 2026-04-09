@@ -4,12 +4,16 @@ import Layout from "@/components/Layout";
 import PolicyBuilderPage from "@/pages/PolicyBuilderPage";
 import PolicyLibraryPage from "@/pages/PolicyLibraryPage";
 import DocumentsPage from "@/pages/DocumentsPage";
-import { FileText, Files, CloudArrowUp } from "@phosphor-icons/react";
+import MappingsPage from "@/pages/MappingsPage";
+import CrossFrameworkPage from "@/pages/CrossFrameworkPage";
+import { FileText, Files, CloudArrowUp, GitBranch, FlowArrow } from "@phosphor-icons/react";
 
 const TABS = [
   { id: "builder", label: "Policy Builder", icon: FileText },
   { id: "library", label: "Policy Library", icon: Files },
   { id: "documents", label: "Document Analysis", icon: CloudArrowUp },
+  { id: "mappings", label: "Control Mappings", icon: GitBranch },
+  { id: "cross-framework", label: "Cross-Framework", icon: FlowArrow },
 ];
 
 const PolicyHub = () => {
@@ -27,14 +31,13 @@ const PolicyHub = () => {
       <div data-testid="policy-hub-page">
         <div className="mb-6">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-            Policies & Documents
+            Policies & Mappings
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5">
-            Create, manage, and analyze compliance policies and documents
+            Create policies, analyze documents, and manage control mappings
           </p>
         </div>
 
-        {/* Tab Navigation */}
         <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-700 mb-6" data-testid="policy-hub-tabs">
           {TABS.map(tab => (
             <button
@@ -53,11 +56,12 @@ const PolicyHub = () => {
           ))}
         </div>
 
-        {/* Tab Content */}
         <div data-testid="policy-hub-content">
           {activeTab === "builder" && <PolicyBuilderPage embedded />}
           {activeTab === "library" && <PolicyLibraryPage embedded />}
           {activeTab === "documents" && <DocumentsPage embedded />}
+          {activeTab === "mappings" && <MappingsPage embedded />}
+          {activeTab === "cross-framework" && <CrossFrameworkPage embedded />}
         </div>
       </div>
     </Layout>
