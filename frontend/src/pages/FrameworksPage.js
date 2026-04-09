@@ -26,7 +26,8 @@ const getScoreStyle = (score) => {
   return SCORE_COLORS.critical;
 };
 
-const FrameworksPage = () => {
+const FrameworksPage = ({ embedded = false }) => {
+  const Wrap = embedded ? React.Fragment : Layout;
   const [frameworks, setFrameworks] = useState([]);
   const [controlCounts, setControlCounts] = useState({});
   const [loading, setLoading] = useState(true);
@@ -149,6 +150,7 @@ const FrameworksPage = () => {
         controlId={selectedControl}
         frameworkName={detailFramework.name}
         onBack={() => setSelectedControl(null)}
+        embedded={embedded}
       />
     );
   }
@@ -156,7 +158,7 @@ const FrameworksPage = () => {
   // Detail view
   if (detailFramework) {
     return (
-      <Layout>
+      <Wrap>
         <div data-testid="framework-detail-page">
           <button
             onClick={closeDetail}
@@ -289,13 +291,13 @@ const FrameworksPage = () => {
             </div>
           )}
         </div>
-      </Layout>
+      </Wrap>
     );
   }
 
   // Grid view
   return (
-    <Layout>
+    <Wrap>
       <div data-testid="frameworks-page">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -409,7 +411,7 @@ const FrameworksPage = () => {
           </div>
         )}
       </div>
-    </Layout>
+    </Wrap>
   );
 };
 

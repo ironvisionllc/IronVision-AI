@@ -40,9 +40,10 @@ const formatFileSize = (bytes) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const EvidencePage = () => {
+const EvidencePage = ({ embedded = false }) => {
   const { user } = useContext(AuthContext);
   const { isDemo, isDemoViewer, guardDemo } = useDemo();
+  const Wrap = embedded ? React.Fragment : Layout;
   const [evidence, setEvidence] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
@@ -155,10 +156,10 @@ const EvidencePage = () => {
 
   const isAdmin = user?.roles?.[0]?.role === "admin";
 
-  if (loading) return <Layout><div className="flex items-center justify-center h-64"><p className="text-gray-500">Loading evidence library...</p></div></Layout>;
+  if (loading) return <Wrap><div className="flex items-center justify-center h-64"><p className="text-gray-500">Loading evidence library...</p></div></Wrap>;
 
   return (
-    <Layout>
+    <Wrap>
       <div data-testid="evidence-page">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -354,7 +355,7 @@ const EvidencePage = () => {
           </div>
         )}
       </div>
-    </Layout>
+    </Wrap>
   );
 };
 

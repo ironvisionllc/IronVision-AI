@@ -4,7 +4,8 @@ import { API } from "@/App";
 import Layout from "@/components/Layout";
 import { Calendar } from "@phosphor-icons/react";
 
-const AuditsPage = () => {
+const AuditsPage = ({ embedded = false }) => {
+  const Wrap = embedded ? React.Fragment : Layout;
   const [audits, setAudits] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +25,7 @@ const AuditsPage = () => {
   };
 
   return (
-    <Layout>
+    <Wrap>
       <div data-testid="audits-page">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 tracking-tight" style={{fontFamily: 'Inter, sans-serif'}}>Audit Management</h1>
@@ -42,7 +43,7 @@ const AuditsPage = () => {
           </div>
         )}
       </div>
-    </Layout>
+    </Wrap>
   );
 };
 

@@ -12,9 +12,10 @@ import {
   Warning, ArrowDown, Spinner, Trash, Eye
 } from "@phosphor-icons/react";
 
-const DocumentsPage = () => {
+const DocumentsPage = ({ embedded = false }) => {
   const { user } = useContext(AuthContext);
   const isAdmin = user?.roles?.[0]?.role === "admin";
+  const Wrap = embedded ? React.Fragment : Layout;
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -94,7 +95,7 @@ const DocumentsPage = () => {
   };
 
   return (
-    <Layout>
+    <Wrap>
       <div data-testid="documents-page">
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Document Analysis</h1>
@@ -227,7 +228,7 @@ const DocumentsPage = () => {
           </div>
         )}
       </div>
-    </Layout>
+    </Wrap>
   );
 };
 

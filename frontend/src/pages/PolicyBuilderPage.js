@@ -14,9 +14,10 @@ import {
 
 const STEPS = ["framework", "family", "questionnaire", "review"];
 
-const PolicyBuilderPage = () => {
+const PolicyBuilderPage = ({ embedded = false }) => {
   const { user } = useContext(AuthContext);
   const isAdmin = user?.roles?.[0]?.role === "admin";
+  const Wrap = embedded ? React.Fragment : Layout;
   const [step, setStep] = useState("list"); // "list" | "framework" | "family" | "questionnaire" | "review"
   const [drafts, setDrafts] = useState([]);
   const [families, setFamilies] = useState([]);
@@ -133,7 +134,7 @@ const PolicyBuilderPage = () => {
   // ── List View ────────────────────────────────────────────────
   if (step === "list") {
     return (
-      <Layout>
+      <Wrap>
         <div data-testid="policy-builder-page">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -207,14 +208,14 @@ const PolicyBuilderPage = () => {
             </div>
           )}
         </div>
-      </Layout>
+      </Wrap>
     );
   }
 
   // ── Family Selection ─────────────────────────────────────────
   if (step === "family") {
     return (
-      <Layout>
+      <Wrap>
         <div data-testid="policy-builder-family-step">
           <button onClick={() => setStep("list")} className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#2597B2] mb-4" data-testid="back-to-list">
             <CaretLeft size={14} /> Back to Policies
@@ -242,14 +243,14 @@ const PolicyBuilderPage = () => {
             ))}
           </div>
         </div>
-      </Layout>
+      </Wrap>
     );
   }
 
   // ── Questionnaire ────────────────────────────────────────────
   if (step === "questionnaire") {
     return (
-      <Layout>
+      <Wrap>
         <div data-testid="policy-builder-questionnaire">
           <button onClick={() => { setStep("family"); }} className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#2597B2] mb-4" data-testid="back-to-families">
             <CaretLeft size={14} /> Back to Control Families
@@ -338,14 +339,14 @@ const PolicyBuilderPage = () => {
             </div>
           )}
         </div>
-      </Layout>
+      </Wrap>
     );
   }
 
   // ── Review & Generate ────────────────────────────────────────
   if (step === "review") {
     return (
-      <Layout>
+      <Wrap>
         <div data-testid="policy-builder-review">
           <button onClick={() => setStep("questionnaire")} className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#2597B2] mb-4" data-testid="back-to-questions">
             <CaretLeft size={14} /> Back to Questions
@@ -395,7 +396,7 @@ const PolicyBuilderPage = () => {
             </Button>
           </div>
         </div>
-      </Layout>
+      </Wrap>
     );
   }
 

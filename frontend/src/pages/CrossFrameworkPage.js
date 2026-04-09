@@ -14,7 +14,8 @@ const REL_STYLES = {
   partial: { label: "Partial", color: "#FB923C", bg: "bg-orange-50" },
 };
 
-const CrossFrameworkPage = () => {
+const CrossFrameworkPage = ({ embedded = false }) => {
+  const Wrap = embedded ? React.Fragment : Layout;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sourceFilter, setSourceFilter] = useState("all");
@@ -29,8 +30,8 @@ const CrossFrameworkPage = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Layout><div className="flex items-center justify-center h-64"><p className="text-gray-500">Loading cross-framework mappings...</p></div></Layout>;
-  if (!data) return <Layout><div className="flex items-center justify-center h-64"><p className="text-gray-500">Failed to load data</p></div></Layout>;
+  if (loading) return <Wrap><div className="flex items-center justify-center h-64"><p className="text-gray-500">Loading cross-framework mappings...</p></div></Wrap>;
+  if (!data) return <Wrap><div className="flex items-center justify-center h-64"><p className="text-gray-500">Failed to load data</p></div></Wrap>;
 
   const frameworks = data.frameworks || [];
   const allMappings = data.mappings || [];
@@ -102,7 +103,7 @@ const CrossFrameworkPage = () => {
   const uniqueFwPairs = new Set(flatMappings.map(m => `${m.srcFw}→${m.tgtFw}`)).size;
 
   return (
-    <Layout>
+    <Wrap>
       <div data-testid="cross-framework-page">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 tracking-tight" style={{fontFamily: 'Inter, sans-serif'}}>Cross-Framework Mapping</h1>
@@ -257,7 +258,7 @@ const CrossFrameworkPage = () => {
           </div>
         )}
       </div>
-    </Layout>
+    </Wrap>
   );
 };
 

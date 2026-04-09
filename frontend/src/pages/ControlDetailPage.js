@@ -35,7 +35,8 @@ const CCI_TYPE_COLORS = {
   monitoring: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
 };
 
-const ControlDetailPage = ({ frameworkId, controlId, frameworkName, onBack }) => {
+const ControlDetailPage = ({ frameworkId, controlId, frameworkName, onBack, embedded = false }) => {
+  const Wrap = embedded ? React.Fragment : Layout;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cciFilter, setCciFilter] = useState("");
@@ -111,22 +112,22 @@ const ControlDetailPage = ({ frameworkId, controlId, frameworkName, onBack }) =>
 
   if (loading) {
     return (
-      <Layout>
+      <Wrap>
         <div className="flex items-center justify-center h-64">
           <p className="text-gray-500 text-sm">Loading control details...</p>
         </div>
-      </Layout>
+      </Wrap>
     );
   }
 
   if (!data || !data.control) {
     return (
-      <Layout>
+      <Wrap>
         <div className="text-center py-16">
           <p className="text-gray-500">Control not found.</p>
           <button onClick={onBack} className="text-sm text-[#2597B2] mt-4 hover:underline">Go back</button>
         </div>
-      </Layout>
+      </Wrap>
     );
   }
 
@@ -142,7 +143,7 @@ const ControlDetailPage = ({ frameworkId, controlId, frameworkName, onBack }) =>
   });
 
   return (
-    <Layout>
+    <Wrap>
       <div data-testid="control-detail-page">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-sm text-gray-500 mb-6">
@@ -495,7 +496,7 @@ const ControlDetailPage = ({ frameworkId, controlId, frameworkName, onBack }) =>
           </div>
         )}
       </div>
-    </Layout>
+    </Wrap>
   );
 };
 

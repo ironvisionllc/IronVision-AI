@@ -32,7 +32,8 @@ const CONTROL_FAMILY_NAMES = {
   SR: "Supply Chain Risk Management",
 };
 
-const PolicyLibraryPage = () => {
+const PolicyLibraryPage = ({ embedded = false }) => {
+  const Wrap = embedded ? React.Fragment : Layout;
   const [generatedPolicies, setGeneratedPolicies] = useState([]);
   const [localPolicies, setLocalPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -251,7 +252,7 @@ const PolicyLibraryPage = () => {
   );
 
   return (
-    <Layout>
+    <Wrap>
       <div data-testid="policy-library-page">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -490,7 +491,7 @@ const PolicyLibraryPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
+    </Wrap>
   );
 };
 

@@ -7,23 +7,14 @@ import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import Dashboard from "@/pages/Dashboard";
-import FrameworksPage from "@/pages/FrameworksPage";
-import PoliciesPage from "@/pages/PoliciesPage";
-import PolicyLibraryPage from "@/pages/PolicyLibraryPage";
-import MappingsPage from "@/pages/MappingsPage";
+import FrameworkHub from "@/pages/FrameworkHub";
+import PolicyHub from "@/pages/PolicyHub";
+import ComplianceHub from "@/pages/ComplianceHub";
 import RisksPage from "@/pages/RisksPage";
 import VendorsPage from "@/pages/VendorsPage";
-import AuditsPage from "@/pages/AuditsPage";
-import TrainingPage from "@/pages/TrainingPage";
-import AnalyticsPage from "@/pages/AnalyticsPage";
 import TasksPage from "@/pages/TasksPage";
-import ActivityPage from "@/pages/ActivityPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
-import EvidencePage from "@/pages/EvidencePage";
-import CrossFrameworkPage from "@/pages/CrossFrameworkPage";
 import SettingsPage from "@/pages/SettingsPage";
-import PolicyBuilderPage from "@/pages/PolicyBuilderPage";
-import DocumentsPage from "@/pages/DocumentsPage";
 import SIEMPage from "@/pages/SIEMPage";
 import ComplianceCopilot from "@/components/ComplianceCopilot";
 import "@/index.css";
@@ -90,23 +81,25 @@ function App() {
           <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" />} />
           <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/login" />} />
-          <Route path="/frameworks" element={user ? <FrameworksPage /> : <Navigate to="/login" />} />
-          <Route path="/policies" element={user ? <PolicyBuilderPage /> : <Navigate to="/login" />} />
-          <Route path="/policy-library" element={user ? <PolicyLibraryPage /> : <Navigate to="/login" />} />
-          <Route path="/documents" element={user ? <DocumentsPage /> : <Navigate to="/login" />} />
-          <Route path="/mappings" element={user ? <MappingsPage /> : <Navigate to="/login" />} />
+          <Route path="/frameworks" element={user ? <FrameworkHub /> : <Navigate to="/login" />} />
+          <Route path="/policies" element={user ? <PolicyHub /> : <Navigate to="/login" />} />
+          <Route path="/compliance" element={user ? <ComplianceHub /> : <Navigate to="/login" />} />
           <Route path="/risks" element={user ? <RisksPage /> : <Navigate to="/login" />} />
           <Route path="/vendors" element={user ? <VendorsPage /> : <Navigate to="/login" />} />
-          <Route path="/audits" element={user ? <AuditsPage /> : <Navigate to="/login" />} />
-          <Route path="/training" element={user ? <TrainingPage /> : <Navigate to="/login" />} />
           <Route path="/tasks" element={user ? <TasksPage /> : <Navigate to="/login" />} />
-          <Route path="/analytics" element={user ? <AnalyticsPage /> : <Navigate to="/login" />} />
-          <Route path="/activity" element={user ? <ActivityPage /> : <Navigate to="/login" />} />
           <Route path="/integrations" element={user ? <IntegrationsPage /> : <Navigate to="/login" />} />
-          <Route path="/evidence" element={user ? <EvidencePage /> : <Navigate to="/login" />} />
           <Route path="/siem" element={user ? <SIEMPage /> : <Navigate to="/login" />} />
-          <Route path="/cross-framework" element={user ? <CrossFrameworkPage /> : <Navigate to="/login" />} />
           <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/login" />} />
+          {/* Redirects from old routes */}
+          <Route path="/policy-library" element={<Navigate to="/policies?tab=library" />} />
+          <Route path="/documents" element={<Navigate to="/policies?tab=documents" />} />
+          <Route path="/mappings" element={<Navigate to="/frameworks?tab=mappings" />} />
+          <Route path="/cross-framework" element={<Navigate to="/frameworks?tab=cross-framework" />} />
+          <Route path="/audits" element={<Navigate to="/compliance?tab=audits" />} />
+          <Route path="/evidence" element={<Navigate to="/compliance?tab=evidence" />} />
+          <Route path="/analytics" element={<Navigate to="/dashboard" />} />
+          <Route path="/activity" element={<Navigate to="/dashboard" />} />
+          <Route path="/training" element={<Navigate to="/dashboard" />} />
           <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
         </Routes>
       </BrowserRouter>

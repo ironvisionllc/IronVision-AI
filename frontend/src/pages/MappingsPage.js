@@ -20,9 +20,10 @@ const STATUS_CONFIG = {
   rejected: { label: "Rejected", color: "#EF4444", bg: "bg-red-50", icon: XCircle },
 };
 
-const MappingsPage = () => {
+const MappingsPage = ({ embedded = false }) => {
   const { user } = useContext(AuthContext);
   const { guardDemo } = useDemo();
+  const Wrap = embedded ? React.Fragment : Layout;
   const [mappings, setMappings] = useState([]);
   const [policies, setPolicies] = useState([]);
   const [frameworks, setFrameworks] = useState([]);
@@ -158,10 +159,10 @@ const MappingsPage = () => {
     manual: mappings.filter(m => m.source === "manual").length,
   };
 
-  if (loading) return <Layout><div className="flex items-center justify-center h-64"><p className="text-gray-500">Loading mappings...</p></div></Layout>;
+  if (loading) return <Wrap><div className="flex items-center justify-center h-64"><p className="text-gray-500">Loading mappings...</p></div></Wrap>;
 
   return (
-    <Layout>
+    <Wrap>
       <div data-testid="mappings-page">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -406,7 +407,7 @@ const MappingsPage = () => {
           </div>
         )}
       </div>
-    </Layout>
+    </Wrap>
   );
 };
 
