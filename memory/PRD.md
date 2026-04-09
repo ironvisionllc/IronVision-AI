@@ -50,7 +50,7 @@ Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy g
 - [x] Inline scores on Framework cards and controls table
 - [x] Framework-level summary endpoint
 
-### SIEM Integration (Apr 8, 2026)
+### SIEM Integration (Apr 8-9, 2026)
 - [x] Security event collection and monitoring
 - [x] 7 event categories: authentication, authorization, data_access, policy_change, risk_management, incident, system
 - [x] Auto-mapping to NIST 800-53 and NIST 800-171 controls
@@ -60,7 +60,14 @@ Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy g
 - [x] Event log with search, severity, and category filtering
 - [x] Control mapping visualization
 - [x] Export: JSON, CSV, syslog formats
-- [x] Demo data seeding
+- [x] **Real-Time Ingestion** (Apr 9, 2026)
+  - Source management: Create/delete external sources with unique webhook URLs and API keys
+  - Universal webhook endpoint: `POST /api/siem/ingest/{source_key}` with X-API-Key auth
+  - Format adapters: Splunk HEC, AWS CloudTrail, IBM QRadar, Generic JSON
+  - Auto-categorization and control mapping of ingested events
+  - Sources tab with management UI, webhook URL + API key display, cURL example
+  - **Live Simulator**: Generates realistic security events (2-6s interval) from simulated Splunk/CloudTrail/QRadar sources for demos
+  - Live event feed with 4s polling and "LIVE" badge indicator
 
 ### Dark Mode (Apr 8, 2026)
 - [x] Full CSS dark mode for all components
@@ -82,9 +89,9 @@ External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2)
 - Demo User: demo-user@grc.com / DemoUser123!
 
 ## Next Steps / Backlog
-- Micro-animations (framer-motion)
 - Mobile responsive improvements
 - PDF export for policies
 - Slack bot token integration (full bidirectional)
-- Real-time SIEM event ingestion from external sources
 - User needs to provide Slack webhook URL to activate notifications
+- SIEM alerting rules (auto-trigger Slack/email on critical events)
+- SIEM event correlation (link related events across sources)
