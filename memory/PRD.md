@@ -9,22 +9,22 @@ Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy g
 - Component system: .iv-card, .iv-stat-card, .iv-badge, .iv-btn-*, .iv-table
 - Full dark mode support
 
-## App Structure (Phase 1 Restructure - Apr 9, 2026)
+## App Structure (Phase A Restructure Complete - Apr 9, 2026)
 
-### Navigation Architecture (8 Core Pillars)
+### Navigation Architecture
 ```
 COMMAND CENTER
-  - Dashboard (/dashboard) - Unified command center with compliance posture, risk heatmap, trends, control health
+  - Dashboard (/dashboard)
 
 GOVERNANCE
-  - Frameworks (/frameworks) - Hub with 3 tabs:
-    - Frameworks: Manage compliance frameworks (12 built-in)
-    - Control Mappings: Manual + AI-powered policy-control mapping
-    - Cross-Framework: Framework relationship heatmap & mapping matrix
-  - Policies (/policies) - Hub with 3 tabs:
+  - Frameworks (/frameworks) — Framework grid → click into Framework Workspace
+    - Workspace: per-control compliance status, SIEM evidence, AI assessment, editable notes, policy suggestions
+  - Policies (/policies) — Hub with 5 tabs:
     - Policy Builder: Guided questionnaire-based policy generation
     - Policy Library: Generated & local policies with export
     - Document Analysis: Upload docs for AI-powered compliance analysis
+    - Control Mappings: Manual + AI-powered policy-control mapping
+    - Cross-Framework: Framework relationship heatmap & mapping matrix
 
 RISK
   - Risk Assessment (/risks) - Risk register with severity/likelihood scoring
@@ -34,7 +34,7 @@ SECURITY
   - SIEM (/siem) - Security event monitoring, live simulator, source management
 
 COMPLIANCE
-  - Compliance (/compliance) - Hub with 2 tabs:
+  - Compliance (/compliance) — Hub with 2 tabs:
     - Audit Management: Schedule and track audits
     - Evidence Library: Central evidence repository with file uploads
 
@@ -44,13 +44,9 @@ OPERATIONS
   - Settings (/settings) - App configuration
 ```
 
-### Route Redirects (Backward Compatibility)
-- /policy-library → /policies?tab=library
-- /documents → /policies?tab=documents
-- /mappings → /frameworks?tab=mappings
-- /cross-framework → /frameworks?tab=cross-framework
-- /audits → /compliance?tab=audits
-- /evidence → /compliance?tab=evidence
+### Global Features
+- **Command Palette (Cmd+K)**: Global search across pages, frameworks, controls with keyboard navigation
+- **Compliance Copilot**: Floating AI chat widget (GPT-5.2 via Emergent LLM Key)
 
 ## Features
 
@@ -64,48 +60,39 @@ OPERATIONS
 - [x] Cross-framework mapping
 - [x] JWT Authentication with demo accounts
 
+### AI-Automated Control Mapping / Framework Workspace (Apr 9, 2026) — NEW
+- [x] Per-control compliance status (Compliant/Partial/Non-Compliant/Not Assessed)
+- [x] AI bulk assessment using GPT-5.2 — analyzes SIEM data + policy coverage to suggest status
+- [x] SIEM evidence per control — maps SIEM event categories to framework controls
+- [x] Editable compliance status — user can override any AI suggestion
+- [x] Editable notes per control — free-text for implementation details, exceptions
+- [x] AI policy suggestions — suggests policy title, statements, and guidance per control
+- [x] Compliance progress bar with color-coded segments
+- [x] Summary cards (Total, Compliant, Partial, Non-Compliant, Not Assessed)
+- [x] Filters: search, status filter, category filter
+- [x] Technical control badges showing SIEM event counts
+- [x] Policy mapping indicators
+- [x] Backend: /api/control-compliance/ with 6 endpoints
+
+### Command Palette (Apr 9, 2026) — NEW
+- [x] Cmd+K / Ctrl+K shortcut to open
+- [x] Quick navigation to all pages
+- [x] Search frameworks by name
+- [x] Keyboard navigation (arrow keys + enter)
+- [x] Sidebar Search button with ⌘K hint
+
 ### Dashboard (Redesigned Apr 8, 2026)
-- [x] Command Bar — "Needs Your Attention" with actionable alerts
-- [x] 5 Key Metrics: Compliance Score, Control Health, Open Risks, Threat Level, Tasks
-- [x] Framework Compliance horizontal bar chart
-- [x] Risk Heatmap (likelihood vs impact)
-- [x] Compliance Trend area chart
-- [x] Control Effectiveness circular gauge + per-framework bars
-- [x] Overdue Tasks + Upcoming sections
-- [x] Quick Actions grid (4 shortcuts)
-- [x] AI Analysis + Export Report buttons
+- [x] Command Bar, 5 Key Metrics, Framework Compliance chart
+- [x] Risk Heatmap, Compliance Trend, Control Effectiveness gauge
+- [x] Overdue/Upcoming Tasks, Quick Actions, AI Analysis
 
-### Compliance Copilot (Apr 8, 2026)
-- [x] Floating Intercom-style chat widget (GPT-5.2 via Emergent LLM Key)
-- [x] Session-based multi-turn conversations with history
-- [x] Context-aware with org data
-
-### Slack Integration (Apr 8, 2026)
-- [x] Webhook-based GRC notifications
-- [x] Per-event toggles, test message, notification history
-
-### Control Effectiveness Score (Apr 8, 2026)
-- [x] Auto-calculated 0-100 scoring (5 factors)
-- [x] Manual override with reason tracking
-- [x] Dashboard widget + inline scores
-
-### SIEM Integration (Apr 8-9, 2026)
-- [x] Security event collection and monitoring
-- [x] 7 event categories with auto-mapping to NIST controls
-- [x] Live Simulator for demos
-- [x] Source management with webhook URLs + API keys
-- [x] Export: JSON, CSV, syslog formats
-
-### Phase 1 Structural Overhaul (Apr 9, 2026)
-- [x] Consolidated sidebar navigation (15+ items → 10 items in 6 sections)
-- [x] PolicyHub: Tabbed view merging Policy Builder + Library + Documents
-- [x] FrameworkHub: Tabbed view merging Frameworks + Mappings + Cross-Framework
-- [x] ComplianceHub: Tabbed view merging Audits + Evidence
-- [x] Old route redirects for backward compatibility
-- [x] All sub-pages support `embedded` prop for reuse without Layout wrapper
-
-### Dark Mode (Apr 8, 2026)
-- [x] Full CSS dark mode for all components
+### Previous Features
+- [x] Compliance Copilot (LLM chat)
+- [x] Slack Integration
+- [x] Control Effectiveness Scores
+- [x] SIEM Integration with live simulator
+- [x] Phase 1 Structural Overhaul (consolidated navigation)
+- [x] Full dark mode
 
 ## Architecture
 ```
@@ -113,7 +100,8 @@ Backend: FastAPI + Motor (async MongoDB)
 Frontend: React 18 + Tailwind + Shadcn
 Routes: /api/auth, /api/frameworks, /api/controls, /api/policies, /api/policy-builder,
         /api/documents, /api/ironvision, /api/copilot, /api/slack,
-        /api/control-effectiveness, /api/siem, /api/risks, /api/tasks, etc.
+        /api/control-effectiveness, /api/siem, /api/risks, /api/tasks,
+        /api/control-compliance (NEW)
 Databases: Local MongoDB (ironvision_grc) + Atlas MongoDB (IronVision Lambda data)
 External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2)
 ```
@@ -125,7 +113,6 @@ External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2)
 ## Next Steps / Backlog (Prioritized)
 
 ### P1 - Upcoming
-- AI-Automated Control Mapping (LLM-based suggestions from policies + SIEM data)
 - Dynamic Risk Scoring (SIEM events → real-time risk score adjustments)
 - Vendor Risk Assessments (expand TPRM module with compliance tracking)
 
@@ -135,6 +122,5 @@ External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2)
 - Predictive Insights & Automated Recommendations (ML/LLM forecasting)
 - Mobile responsive improvements
 - PDF export for policies
-- Slack bot token integration (full bidirectional)
 - SIEM alerting rules (auto-trigger Slack/email on critical events)
 - SIEM event correlation (link related events across sources)
