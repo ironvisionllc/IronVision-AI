@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Files, ListBullets, MagnifyingGlass, CaretRight, Gauge } from "@phosphor-icons/react";
+import { Plus, Files, ListBullets, MagnifyingGlass, CaretRight, Gauge, GearSix, Eye, EyeSlash, CaretUp, CaretDown, DotsSixVertical } from "@phosphor-icons/react";
 import FrameworkWorkspace from "@/components/FrameworkWorkspace";
 
 const SCORE_COLORS = {
@@ -26,6 +26,10 @@ const getScoreStyle = (score) => {
   return SCORE_COLORS.critical;
 };
 
+const FW_PREFS_KEY = "iv_framework_prefs";
+const loadFwPrefs = () => { try { const s = localStorage.getItem(FW_PREFS_KEY); if (s) return JSON.parse(s); } catch {} return null; };
+const saveFwPrefs = (p) => localStorage.setItem(FW_PREFS_KEY, JSON.stringify(p));
+
 const FrameworksPage = ({ embedded = false }) => {
   const Wrap = embedded ? React.Fragment : Layout;
   const [frameworks, setFrameworks] = useState([]);
@@ -36,9 +40,53 @@ const FrameworksPage = ({ embedded = false }) => {
 
   // Detail view state
   const [detailFramework, setDetailFramework] = useState(null);
+  const [showOrganize, setShowOrganize] = useState(false);
+  const [fwPrefs, setFwPrefs] = useState(null); // { order: [...ids], hidden: [...ids] }
 
   // Effectiveness scores
   const [fwEffectiveness, setFwEffectiveness] = useState({});
+
+  // Initialize preferences when frameworks load
+  useEffect(() => {
+    if (frameworks.length > 0 && fwPrefs === null) {
+      const stored = loadFwPrefs();
+      if (stored && stored.order) {
+        // Add any new frameworks not in saved prefs
+        const newIds = frameworks.map(f => f.id).filter(id => !stored.order.includes(id));
+        setFwPrefs({ order: [...stored.order, ...newIds], hidden: stored.hidden || [] });
+      } else {
+        setFwPrefs({ order: frameworks.map(f => f.id), hidden: [] });
+      }
+    }
+  }, [frameworks, fwPrefs]);
+
+  useEffect(() => { if (fwPrefs) saveFwPrefs(fwPrefs); }, [fwPrefs]);
+
+  const moveFw = (id, dir) => {
+    setFwPrefs(prev => {
+      const order = [...prev.order];
+      const idx = order.indexOf(id);
+      const swap = dir === "up" ? idx - 1 : idx + 1;
+      if (swap < 0 || swap >= order.length) return prev;
+      [order[idx], order[swap]] = [order[swap], order[idx]];
+      return { ...prev, order };
+    });
+  };
+
+  const toggleFwVisibility = (id) => {
+    setFwPrefs(prev => ({
+      ...prev,
+      hidden: prev.hidden.includes(id) ? prev.hidden.filter(h => h !== id) : [...prev.hidden, id],
+    }));
+  };
+
+  // Sorted/filtered frameworks based on preferences
+  const visibleFrameworks = fwPrefs
+    ? fwPrefs.order
+        .filter(id => !fwPrefs.hidden.includes(id))
+        .map(id => frameworks.find(f => f.id === id))
+        .filter(Boolean)
+    : frameworks;
 
   useEffect(() => {
     fetchFrameworks();
@@ -116,37 +164,75 @@ const FrameworksPage = ({ embedded = false }) => {
             <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight" style={{fontFamily: 'Inter, sans-serif'}}>Compliance Frameworks</h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Manage compliance frameworks for your organization</p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-[#2597B2] hover:bg-[#1B839F]" data-testid="create-framework-button">
-                <Plus size={20} weight="bold" className="mr-2" />
-                Create Custom Framework
-              </Button>
-            </DialogTrigger>
-            <DialogContent data-testid="create-framework-dialog">
-              <DialogHeader>
-                <DialogTitle>Create Custom Framework</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                <div>
-                  <Label htmlFor="name">Framework Name</Label>
-                  <Input id="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required data-testid="framework-name-input" />
-                </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Input id="description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} required data-testid="framework-description-input" />
-                </div>
-                <div>
-                  <Label htmlFor="version">Version</Label>
-                  <Input id="version" value={formData.version} onChange={(e) => setFormData({...formData, version: e.target.value})} required data-testid="framework-version-input" />
-                </div>
-                <Button type="submit" className="w-full bg-[#2597B2] hover:bg-[#1B839F]" data-testid="submit-framework-button">
-                  Create Framework
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setShowOrganize(!showOrganize)} data-testid="organize-frameworks-btn">
+              <GearSix size={14} className="mr-1.5" /> Organize
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-[#2597B2] hover:bg-[#1B839F]" data-testid="create-framework-button">
+                  <Plus size={20} weight="bold" className="mr-2" />
+                  Create Custom Framework
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent data-testid="create-framework-dialog">
+                <DialogHeader>
+                  <DialogTitle>Create Custom Framework</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                  <div>
+                    <Label htmlFor="name">Framework Name</Label>
+                    <Input id="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required data-testid="framework-name-input" />
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Input id="description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} required data-testid="framework-description-input" />
+                  </div>
+                  <div>
+                    <Label htmlFor="version">Version</Label>
+                    <Input id="version" value={formData.version} onChange={(e) => setFormData({...formData, version: e.target.value})} required data-testid="framework-version-input" />
+                  </div>
+                  <Button type="submit" className="w-full bg-[#2597B2] hover:bg-[#1B839F]" data-testid="submit-framework-button">
+                    Create Framework
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
+
+        {/* Organize Panel */}
+        {showOrganize && fwPrefs && (
+          <div className="iv-card p-4 mb-6" data-testid="organize-panel">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Organize Frameworks</h3>
+              <button onClick={() => setFwPrefs({ order: frameworks.map(f => f.id), hidden: [] })} className="text-xs text-[#2597B2] hover:text-[#1B839F] font-medium" data-testid="reset-fw-prefs-btn">Reset</button>
+            </div>
+            <div className="space-y-1.5">
+              {fwPrefs.order.map((id, idx) => {
+                const fw = frameworks.find(f => f.id === id);
+                if (!fw) return null;
+                const hidden = fwPrefs.hidden.includes(id);
+                return (
+                  <div key={id} className={`flex items-center gap-3 p-2.5 rounded-lg border transition-colors ${hidden ? "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 opacity-50" : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"}`} data-testid={`fw-organize-${id}`}>
+                    <DotsSixVertical size={14} className="text-gray-300" />
+                    <div className="flex flex-col gap-0.5">
+                      <button onClick={() => moveFw(id, "up")} disabled={idx === 0} className="text-gray-400 hover:text-gray-600 disabled:opacity-20" data-testid={`fw-move-up-${id}`}><CaretUp size={11} weight="bold" /></button>
+                      <button onClick={() => moveFw(id, "down")} disabled={idx === fwPrefs.order.length - 1} className="text-gray-400 hover:text-gray-600 disabled:opacity-20" data-testid={`fw-move-down-${id}`}><CaretDown size={11} weight="bold" /></button>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{fw.name}</span>
+                      <span className="text-xs text-gray-400 ml-2">{controlCounts[fw.id] || 0} controls</span>
+                    </div>
+                    <button onClick={() => toggleFwVisibility(id)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" data-testid={`fw-toggle-${id}`}>
+                      {hidden ? <EyeSlash size={16} className="text-gray-400" /> : <Eye size={16} className="text-[#2597B2]" />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
@@ -154,7 +240,7 @@ const FrameworksPage = ({ embedded = false }) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="frameworks-grid">
-            {frameworks.map((framework) => {
+            {visibleFrameworks.map((framework) => {
               const eff = fwEffectiveness[framework.id];
               const scoreStyle = eff ? getScoreStyle(eff.average_score) : null;
               return (

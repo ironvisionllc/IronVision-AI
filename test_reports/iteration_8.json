@@ -1,0 +1,140 @@
+{
+  "summary": "Completed comprehensive testing of Phase B feature enhancements for IronVision GRC. All 19 backend tests passed (100%). All 17 frontend test cases passed. Features tested: Dashboard widget customization (show/hide, reorder), Framework grid organization (show/hide, reorder), Implementation & Guidelines tab with AI guidance generation, Enhanced AI Policy Suggestion with 'Where Requirements Are Met' and 'Gaps' sections, SIEM events mapped to NIST CSF and GDPR frameworks, Expand All/Collapse All for controls.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Framework Workspace",
+        "issues": ["Console warnings about 'Invalid prop supplied to React.Fragment' - cosmetic only, does not affect functionality"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_new_features_phase_b.py",
+    "/app/test_reports/pytest/pytest_new_features_phase_b.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_new_features_phase_b.py"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 tests passed)",
+    "frontend": "100% (17/17 test cases passed)"
+  },
+  "test_credentials": {
+    "admin": "demo-admin@grc.com / DemoAdmin123!"
+  },
+  "seed_data_creation": "None - used existing demo data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Phase B feature enhancements complete and verified. Dashboard has widget customization (localStorage key: iv_dashboard_widgets). Frameworks page has organize panel (localStorage key: iv_framework_prefs). Framework workspace has Expand All/Collapse All button, Implementation & Guidelines tab with Generate Guidance button, and enhanced AI Policy Suggestion showing satisfied/gaps sections. SIEM events now map to NIST CSF (27 technical controls) and GDPR (7 technical controls) in addition to NIST 800-53.",
+  "features_tested": {
+    "login": {
+      "status": "PASS",
+      "details": "Login with demo-admin@grc.com / DemoAdmin123! works correctly"
+    },
+    "dashboard_customize_button": {
+      "status": "PASS",
+      "details": "Dashboard shows 'Customize' button in header"
+    },
+    "dashboard_customize_panel": {
+      "status": "PASS",
+      "details": "Customize panel shows all 5 widgets with up/down arrows and eye toggle"
+    },
+    "widget_visibility_toggle": {
+      "status": "PASS",
+      "details": "Toggling a widget hides/shows it on the dashboard"
+    },
+    "widget_reorder": {
+      "status": "PASS",
+      "details": "Moving a widget up/down changes its position"
+    },
+    "dashboard_widgets_render": {
+      "status": "PASS",
+      "details": "All 5 dashboard widgets render correctly: Posture, Framework Coverage, Risk Heatmap, Compliance Trend, Control Effectiveness, Tasks, Quick Actions"
+    },
+    "frameworks_organize_button": {
+      "status": "PASS",
+      "details": "Frameworks page shows 'Organize' button"
+    },
+    "frameworks_organize_panel": {
+      "status": "PASS",
+      "details": "Organize panel shows all 12 frameworks with up/down arrows and eye toggle"
+    },
+    "framework_hide_show": {
+      "status": "PASS",
+      "details": "Hiding a framework removes it from the grid (12 -> 11). Reset button restores all (12)"
+    },
+    "expand_all_button": {
+      "status": "PASS",
+      "details": "Framework workspace shows 'Expand All' button. Clicking expands controls and changes to 'Collapse All'"
+    },
+    "collapse_all_button": {
+      "status": "PASS",
+      "details": "Clicking 'Collapse All' collapses all controls and changes back to 'Expand All'"
+    },
+    "control_detail_tabs": {
+      "status": "PASS",
+      "details": "Expanded control shows 4-5 tabs: Overview, Implementation & Guidelines, SIEM Evidence (for technical), Policies, Notes"
+    },
+    "implementation_guidelines_tab": {
+      "status": "PASS",
+      "details": "Implementation & Guidelines tab shows 'Generate Guidance' button"
+    },
+    "implementation_guidance_api": {
+      "status": "PASS",
+      "details": "POST /api/control-compliance/{fw_id}/{ctrl_id}/implementation-guidance returns implementation_steps, technical_guidelines, assessment_criteria, common_pitfalls"
+    },
+    "ai_policy_suggestion_enhanced": {
+      "status": "PASS",
+      "details": "AI Policy Suggestion (renamed 'Analyze Policy Coverage') shows 'Where Requirements Are Met' (green) and 'Gaps - Requirements Not Met' (red) sections"
+    },
+    "nist_csf_siem_mapping": {
+      "status": "PASS",
+      "details": "NIST CSF framework has 27 technical controls with SIEM event counts (PR.AC-1, PR.DS-1, DE.AE-3, etc.)"
+    },
+    "gdpr_siem_mapping": {
+      "status": "PASS",
+      "details": "GDPR framework has 7 technical controls with SIEM event counts (Art.5, Art.25, Art.32, Art.33, Art.34, Art.35)"
+    },
+    "status_filter": {
+      "status": "PASS",
+      "details": "Status filter works - filtering by 'Compliant' reduces controls from 190 to 3"
+    },
+    "category_filter": {
+      "status": "PASS",
+      "details": "Category filter works - filtering by 'Access Control' reduces controls from 190 to 17"
+    },
+    "search_filter": {
+      "status": "PASS",
+      "details": "Search filter works - searching 'access' reduces controls from 190 to 9"
+    }
+  },
+  "backend_tests": {
+    "test_implementation_guidance_endpoint_exists": "PASS",
+    "test_implementation_guidance_response_structure": "PASS",
+    "test_implementation_guidance_has_content": "PASS",
+    "test_implementation_guidance_nonexistent_control": "PASS",
+    "test_nist_csf_framework_exists": "PASS",
+    "test_nist_csf_compliance_overview": "PASS",
+    "test_nist_csf_technical_controls_have_siem": "PASS",
+    "test_nist_csf_siem_evidence_endpoint": "PASS",
+    "test_gdpr_framework_exists": "PASS",
+    "test_gdpr_compliance_overview": "PASS",
+    "test_gdpr_technical_controls_have_siem": "PASS",
+    "test_gdpr_siem_evidence_endpoint": "PASS",
+    "test_policy_suggestion_has_satisfied_field": "PASS",
+    "test_policy_suggestion_has_gaps_field": "PASS",
+    "test_policy_suggestion_full_structure": "PASS",
+    "test_analytics_endpoint": "PASS",
+    "test_control_effectiveness_dashboard": "PASS",
+    "test_frameworks_list": "PASS",
+    "test_controls_endpoint": "PASS"
+  }
+}

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import {
   CaretRight, CaretDown, MagnifyingGlass, ShieldCheck, Warning,
   CheckCircle, XCircle, MinusCircle, Question, Lightning, FileText,
-  ArrowsClockwise, PencilSimple, FloppyDisk, CaretLeft, Funnel
+  ArrowsClockwise, PencilSimple, FloppyDisk, CaretLeft, Funnel,
+  ArrowsOutSimple, ArrowsInSimple, BookOpen, Wrench
 } from "@phosphor-icons/react";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
@@ -26,10 +27,13 @@ const FrameworkWorkspace = ({ framework, onBack }) => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [expandedControl, setExpandedControl] = useState(null);
+  const [expandedSet, setExpandedSet] = useState(new Set());
   const [editingNotes, setEditingNotes] = useState({});
   const [siemEvidence, setSiemEvidence] = useState({});
   const [suggestingPolicy, setSuggestingPolicy] = useState(null);
   const [policySuggestions, setPolicySuggestions] = useState({});
+  const [implGuidance, setImplGuidance] = useState({});
+  const [loadingImpl, setLoadingImpl] = useState({});
 
   const fetchCompliance = useCallback(async () => {
     setLoading(true);
@@ -112,13 +116,40 @@ const FrameworkWorkspace = ({ framework, onBack }) => {
     }
   };
 
-  const toggleControl = (controlId) => {
-    if (expandedControl === controlId) {
-      setExpandedControl(null);
-    } else {
-      setExpandedControl(controlId);
-      fetchSiemEvidence(controlId);
+  const fetchImplGuidance = async (controlId) => {
+    if (implGuidance[controlId] || loadingImpl[controlId]) return;
+    setLoadingImpl(prev => ({ ...prev, [controlId]: true }));
+    try {
+      const res = await axios.post(`${API}/control-compliance/${framework.id}/${controlId}/implementation-guidance`, {});
+      setImplGuidance(prev => ({ ...prev, [controlId]: res.data }));
+    } catch {
+      toast.error("Failed to load guidance");
+    } finally {
+      setLoadingImpl(prev => ({ ...prev, [controlId]: false }));
     }
+  };
+
+  const toggleControl = (controlId) => {
+    setExpandedSet(prev => {
+      const next = new Set(prev);
+      if (next.has(controlId)) {
+        next.delete(controlId);
+      } else {
+        next.add(controlId);
+        fetchSiemEvidence(controlId);
+      }
+      return next;
+    });
+  };
+
+  const expandAll = () => {
+    const allIds = new Set(filtered.map(c => c.control_id));
+    setExpandedSet(allIds);
+    allIds.forEach(id => fetchSiemEvidence(id));
+  };
+
+  const collapseAll = () => {
+    setExpandedSet(new Set());
   };
 
   if (loading) {
@@ -247,13 +278,16 @@ const FrameworkWorkspace = ({ framework, onBack }) => {
         <span className="text-xs text-gray-500 ml-auto">
           {filtered.length} of {controls.length} controls
         </span>
+        <Button variant="outline" size="sm" className="h-9 text-xs ml-2" onClick={expandedSet.size > 0 ? collapseAll : expandAll} data-testid="expand-collapse-all-btn">
+          {expandedSet.size > 0 ? <><ArrowsInSimple size={14} className="mr-1" /> Collapse All</> : <><ArrowsOutSimple size={14} className="mr-1" /> Expand All</>}
+        </Button>
       </div>
 
       {/* Controls List */}
       <div className="space-y-2" data-testid="controls-list">
         {filtered.map(ctrl => {
           const cfg = STATUS_CONFIG[ctrl.status] || STATUS_CONFIG.not_assessed;
-          const isExpanded = expandedControl === ctrl.control_id;
+          const isExpanded = expandedSet.has(ctrl.control_id);
           const Icon = cfg.icon;
 
           return (
@@ -311,6 +345,9 @@ const FrameworkWorkspace = ({ framework, onBack }) => {
                   policySuggestion={policySuggestions[ctrl.control_id]}
                   onSuggestPolicy={() => suggestPolicy(ctrl.control_id)}
                   suggestingPolicy={suggestingPolicy === ctrl.control_id}
+                  implGuidance={implGuidance[ctrl.control_id]}
+                  loadingImpl={loadingImpl[ctrl.control_id]}
+                  onFetchGuidance={() => fetchImplGuidance(ctrl.control_id)}
                 />
               )}
             </div>
@@ -326,11 +363,12 @@ const FrameworkWorkspace = ({ framework, onBack }) => {
 };
 
 
-const ControlDetailPanel = ({ ctrl, framework, onStatusChange, notes, onNotesChange, onSaveNotes, siemData, policySuggestion, onSuggestPolicy, suggestingPolicy }) => {
+const ControlDetailPanel = ({ ctrl, framework, onStatusChange, notes, onNotesChange, onSaveNotes, siemData, policySuggestion, onSuggestPolicy, suggestingPolicy, implGuidance, loadingImpl, onFetchGuidance }) => {
   const [activeDetailTab, setActiveDetailTab] = useState("overview");
 
   const DETAIL_TABS = [
     { id: "overview", label: "Overview" },
+    { id: "implementation", label: "Implementation & Guidelines" },
     { id: "siem", label: `SIEM Evidence (${ctrl.siem_events_count})`, show: ctrl.is_technical },
     { id: "policies", label: `Policies (${ctrl.policy_count})` },
     { id: "notes", label: "Notes" },
@@ -401,10 +439,10 @@ const ControlDetailPanel = ({ ctrl, framework, onStatusChange, notes, onNotesCha
               </div>
             )}
 
-            {/* Policy Suggestion */}
+            {/* Policy Suggestion - Enhanced with WHERE requirements are satisfied */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase">AI Policy Suggestion</h4>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase">AI Policy Analysis</h4>
                 <Button
                   variant="outline"
                   size="sm"
@@ -414,29 +452,17 @@ const ControlDetailPanel = ({ ctrl, framework, onStatusChange, notes, onNotesCha
                   data-testid={`suggest-policy-btn-${ctrl.control_id}`}
                 >
                   {suggestingPolicy ? <ArrowsClockwise size={12} className="animate-spin mr-1" /> : <Lightning size={12} className="mr-1" />}
-                  {suggestingPolicy ? "Generating..." : "Suggest Policy"}
+                  {suggestingPolicy ? "Analyzing..." : "Analyze Policy Coverage"}
                 </Button>
               </div>
-              {policySuggestion && (
-                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg" data-testid={`policy-suggestion-${ctrl.control_id}`}>
-                  <p className="text-sm font-medium text-purple-700 dark:text-purple-400 mb-2">{policySuggestion.title}</p>
-                  <ul className="space-y-1">
-                    {(policySuggestion.statements || []).map((s, i) => (
-                      <li key={i} className="text-xs text-purple-600 dark:text-purple-300 flex items-start gap-2">
-                        <CheckCircle size={12} weight="fill" className="shrink-0 mt-0.5 text-purple-400" />
-                        {s}
-                      </li>
-                    ))}
-                  </ul>
-                  {policySuggestion.guidance && (
-                    <p className="text-xs text-purple-500 mt-2 italic">{policySuggestion.guidance}</p>
-                  )}
-                </div>
-              )}
-              {!policySuggestion && ctrl.policy_suggestion && (() => {
-                try {
-                  const ps = JSON.parse(ctrl.policy_suggestion);
-                  return (
+              {(policySuggestion || ctrl.policy_suggestion) && (() => {
+                let ps = policySuggestion;
+                if (!ps && ctrl.policy_suggestion) {
+                  try { ps = JSON.parse(ctrl.policy_suggestion); } catch { return null; }
+                }
+                if (!ps) return null;
+                return (
+                  <div className="space-y-3" data-testid={`policy-suggestion-${ctrl.control_id}`}>
                     <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
                       <p className="text-sm font-medium text-purple-700 dark:text-purple-400 mb-2">{ps.title}</p>
                       <ul className="space-y-1">
@@ -448,10 +474,118 @@ const ControlDetailPanel = ({ ctrl, framework, onStatusChange, notes, onNotesCha
                         ))}
                       </ul>
                     </div>
-                  );
-                } catch { return null; }
+
+                    {/* WHERE requirements ARE being satisfied */}
+                    {ps.satisfied?.length > 0 && (
+                      <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                        <h5 className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1.5 flex items-center gap-1"><CheckCircle size={12} weight="fill" /> Where Requirements Are Met</h5>
+                        <ul className="space-y-1">
+                          {ps.satisfied.map((s, i) => (
+                            <li key={i} className="text-xs text-emerald-600 dark:text-emerald-300 flex items-start gap-2">
+                              <span className="w-1 h-1 bg-emerald-400 rounded-full shrink-0 mt-1.5" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* WHERE requirements are NOT met (gaps) */}
+                    {ps.gaps?.length > 0 && (
+                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <h5 className="text-xs font-semibold text-red-700 dark:text-red-400 mb-1.5 flex items-center gap-1"><XCircle size={12} weight="fill" /> Gaps - Requirements Not Met</h5>
+                        <ul className="space-y-1">
+                          {ps.gaps.map((s, i) => (
+                            <li key={i} className="text-xs text-red-600 dark:text-red-300 flex items-start gap-2">
+                              <span className="w-1 h-1 bg-red-400 rounded-full shrink-0 mt-1.5" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {ps.guidance && (
+                      <p className="text-xs text-gray-500 italic">{ps.guidance}</p>
+                    )}
+                  </div>
+                );
               })()}
             </div>
+          </div>
+        )}
+
+        {/* Implementation & Guidelines Tab */}
+        {activeDetailTab === "implementation" && (
+          <div data-testid={`implementation-${ctrl.control_id}`}>
+            {!implGuidance && !loadingImpl && (
+              <div className="text-center py-8">
+                <BookOpen size={28} className="mx-auto mb-2 text-gray-300" />
+                <p className="text-sm text-gray-500 mb-3">Generate implementation guidance for this control</p>
+                <Button size="sm" className="bg-[#2597B2] hover:bg-[#1B839F] h-8 text-xs" onClick={onFetchGuidance} data-testid={`fetch-guidance-btn-${ctrl.control_id}`}>
+                  <Wrench size={14} className="mr-1" /> Generate Guidance
+                </Button>
+              </div>
+            )}
+            {loadingImpl && (
+              <div className="text-center py-8 text-gray-500 text-sm"><ArrowsClockwise size={20} className="animate-spin mx-auto mb-2" /> Generating implementation guidance...</div>
+            )}
+            {implGuidance && (
+              <div className="space-y-4">
+                {implGuidance.implementation_steps?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2 flex items-center gap-1"><Wrench size={12} /> Implementation Steps</h4>
+                    <ol className="space-y-1.5">
+                      {implGuidance.implementation_steps.map((s, i) => (
+                        <li key={i} className="text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                          <span className="w-5 h-5 rounded-full bg-[#2597B2]/10 text-[#2597B2] flex items-center justify-center shrink-0 text-[10px] font-bold">{i + 1}</span>
+                          {s}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                {implGuidance.technical_guidelines?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Technical Guidelines</h4>
+                    <ul className="space-y-1.5">
+                      {implGuidance.technical_guidelines.map((s, i) => (
+                        <li key={i} className="text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+                          <Lightning size={12} weight="fill" className="shrink-0 mt-0.5 text-blue-500" />
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {implGuidance.assessment_criteria?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Assessment Criteria</h4>
+                    <ul className="space-y-1">
+                      {implGuidance.assessment_criteria.map((s, i) => (
+                        <li key={i} className="text-xs text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                          <CheckCircle size={12} weight="fill" className="shrink-0 mt-0.5 text-emerald-500" />
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {implGuidance.common_pitfalls?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Common Pitfalls</h4>
+                    <ul className="space-y-1">
+                      {implGuidance.common_pitfalls.map((s, i) => (
+                        <li key={i} className="text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-lg">
+                          <Warning size={12} weight="fill" className="shrink-0 mt-0.5" />
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

@@ -20,15 +20,44 @@ from utils import get_current_user
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/control-compliance", tags=["control-compliance"])
 
-# Reuse SIEM control mappings
+# SIEM control mappings — all frameworks
 SIEM_CONTROL_MAP = {
-    "authentication": ["AC-2", "AC-7", "IA-2", "IA-5"],
-    "authorization": ["AC-3", "AC-6", "AC-17"],
-    "data_access": ["AU-3", "AU-6", "AU-12", "SI-4"],
-    "policy_change": ["CM-3", "CM-5", "CM-6"],
-    "risk_management": ["RA-3", "RA-5", "PM-9"],
-    "incident": ["IR-4", "IR-5", "IR-6"],
-    "system": ["SI-2", "SI-4", "SI-7"],
+    # NIST SP 800-53
+    "authentication": [
+        "AC-2", "AC-7", "IA-2", "IA-5",
+        "PR.AC-1", "PR.AC-7", "DE.CM-1",   # NIST CSF
+        "Art.32",                              # GDPR
+    ],
+    "authorization": [
+        "AC-3", "AC-6", "AC-17",
+        "PR.AC-3", "PR.AC-4", "PR.AC-5",   # NIST CSF
+        "Art.25", "Art.32",                    # GDPR
+    ],
+    "data_access": [
+        "AU-3", "AU-6", "AU-12", "SI-4",
+        "PR.DS-1", "PR.DS-2", "PR.DS-5", "DE.AE-3", "DE.CM-3", "DE.CM-7",  # NIST CSF
+        "Art.5", "Art.30",                     # GDPR
+    ],
+    "policy_change": [
+        "CM-3", "CM-5", "CM-6",
+        "PR.IP-1", "PR.IP-3",               # NIST CSF
+        "Art.25",                              # GDPR
+    ],
+    "risk_management": [
+        "RA-3", "RA-5", "PM-9",
+        "ID.RA-1", "ID.RA-3", "ID.RA-5", "ID.RM-1",  # NIST CSF
+        "Art.35",                              # GDPR
+    ],
+    "incident": [
+        "IR-4", "IR-5", "IR-6",
+        "RS.AN-1", "RS.AN-2", "RS.MI-1", "RS.MI-2", "DE.AE-2", "DE.AE-5",  # NIST CSF
+        "Art.33", "Art.34",                    # GDPR
+    ],
+    "system": [
+        "SI-2", "SI-4", "SI-7",
+        "PR.MA-1", "DE.CM-4", "DE.CM-8",   # NIST CSF
+        "Art.32",                              # GDPR
+    ],
 }
 
 # Reverse map: control_id -> [siem_categories]
@@ -382,26 +411,39 @@ async def suggest_policy_for_control(
     ).to_list(50)
     cci_text = "\n".join([f"- {c['cci_id']}: {c.get('definition','')[:150]}" for c in ccis[:10]])
 
+    # Get existing mapped policies for context
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    mapped_policies = await db.mappings.find(
+        {"organization_id": org_id, "framework_id": framework_id, "control_id": control_id}, {"_id": 0}
+    ).to_list(10)
+    existing_policy_text = ""
+    if mapped_policies:
+        names = [p.get("policy_name", "Unknown") for p in mapped_policies]
+        existing_policy_text = f"\nExisting mapped policies: {', '.join(names)}"
+
     api_key = os.environ.get("EMERGENT_LLM_KEY")
     chat = LlmChat(
         api_key=api_key,
         session_id=f"suggest-{uuid.uuid4()}",
-        system_message="You are a GRC policy expert. Suggest concise, actionable policy content to satisfy compliance controls."
+        system_message="You are a GRC policy expert. Provide specific, actionable policy analysis showing exactly where requirements are met or not met."
     ).with_model("openai", "gpt-5.2")
 
-    prompt = f"""Suggest a policy to satisfy this compliance control:
+    prompt = f"""Analyze this compliance control and provide a detailed policy recommendation:
 
 Framework: {fw_name}
 Control: {control_id} - {control.get('title', '')}
 Description: {control.get('description', '')}
 {f'CCIs:{chr(10)}{cci_text}' if cci_text else ''}
+{existing_policy_text}
 
-Provide:
-1. A suggested policy title
-2. Key policy statements (3-5 bullet points) that would satisfy this control
-3. Implementation guidance (2-3 sentences)
+Provide a JSON response with:
+1. "title": A suggested policy title that would satisfy this control
+2. "statements": Array of 3-5 specific policy statements, each showing what requirement it addresses
+3. "satisfied": Array describing WHERE in the policy each control requirement IS being addressed (be specific about sections/clauses). If no existing policy is mapped, describe what sections SHOULD exist.
+4. "gaps": Array of specific requirements from this control that are NOT currently addressed by any policy
+5. "guidance": 2-3 sentences of implementation guidance
 
-Return as JSON: {{"title": "...", "statements": ["..."], "guidance": "..."}}"""
+Return ONLY valid JSON: {{"title": "...", "statements": ["..."], "satisfied": ["Section X.Y addresses requirement Z..."], "gaps": ["No policy covers requirement for..."], "guidance": "..."}}"""
 
     try:
         response = await chat.send_message(UserMessage(text=prompt))
@@ -436,3 +478,86 @@ Return as JSON: {{"title": "...", "statements": ["..."], "guidance": "..."}}"""
     except Exception as e:
         logger.error(f"Policy suggestion failed: {e}")
         raise HTTPException(500, f"AI suggestion failed: {str(e)}")
+
+
+@router.post("/{framework_id}/{control_id}/implementation-guidance")
+async def get_implementation_guidance(
+    framework_id: str, control_id: str,
+    current_user: Dict = Depends(get_current_user)
+):
+    """AI generates implementation guidance and guidelines for a control."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+
+    # Check cache first
+    cached = await db.control_compliance.find_one(
+        {"organization_id": org_id, "framework_id": framework_id, "control_id": control_id},
+        {"_id": 0, "implementation_guidance": 1}
+    )
+    if cached and cached.get("implementation_guidance"):
+        try:
+            return json.loads(cached["implementation_guidance"])
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    control = await db.controls.find_one(
+        {"framework_id": framework_id, "control_id": control_id}, {"_id": 0}
+    )
+    if not control:
+        raise HTTPException(404, "Control not found")
+
+    framework = await db.frameworks.find_one({"id": framework_id}, {"_id": 0, "name": 1})
+    fw_name = framework.get("name", "") if framework else ""
+
+    ccis = await db.ccis.find(
+        {"parent_control_id": control_id, "framework_id": framework_id}, {"_id": 0}
+    ).to_list(50)
+    cci_text = "\n".join([f"- {c['cci_id']}: {c.get('definition','')[:150]}" for c in ccis[:10]])
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"impl-{uuid.uuid4()}",
+        system_message="You are a compliance implementation expert. Provide practical, specific guidance."
+    ).with_model("openai", "gpt-5.2")
+
+    prompt = f"""Provide implementation guidance for this compliance control:
+
+Framework: {fw_name}
+Control: {control_id} - {control.get('title', '')}
+Description: {control.get('description', '')}
+{f'CCIs:{chr(10)}{cci_text}' if cci_text else ''}
+
+Return JSON with:
+1. "implementation_steps": Array of 3-5 specific steps to implement this control
+2. "technical_guidelines": Array of 2-3 technical requirements or configurations needed
+3. "assessment_criteria": Array of 2-3 criteria to verify the control is properly implemented
+4. "common_pitfalls": Array of 1-2 common mistakes to avoid
+
+Return ONLY valid JSON: {{"implementation_steps": ["..."], "technical_guidelines": ["..."], "assessment_criteria": ["..."], "common_pitfalls": ["..."]}}"""
+
+    try:
+        response = await chat.send_message(UserMessage(text=prompt))
+        response_text = response if isinstance(response, str) else str(response)
+
+        json_match = re.search(r'\{[\s\S]*\}', response_text)
+        if json_match:
+            guidance = json.loads(json_match.group())
+        else:
+            guidance = {"implementation_steps": [response_text[:500]], "technical_guidelines": [], "assessment_criteria": [], "common_pitfalls": []}
+
+        # Cache it
+        now = datetime.now(timezone.utc).isoformat()
+        await db.control_compliance.update_one(
+            {"organization_id": org_id, "framework_id": framework_id, "control_id": control_id},
+            {"$set": {"implementation_guidance": json.dumps(guidance), "updated_at": now},
+             "$setOnInsert": {
+                 "organization_id": org_id, "framework_id": framework_id, "control_id": control_id,
+                 "status": "not_assessed", "is_user_override": False, "notes": "", "ai_assessment": "", "policy_suggestion": "", "created_at": now,
+             }},
+            upsert=True
+        )
+
+        return guidance
+    except Exception as e:
+        logger.error(f"Implementation guidance failed: {e}")
+        raise HTTPException(500, f"AI guidance failed: {str(e)}")
