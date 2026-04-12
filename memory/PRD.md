@@ -22,54 +22,59 @@ Global: Cmd+K Command Palette, Compliance Copilot (AI chat)
 
 ## Key Features
 
-### Policy Center (Standout Feature - Apr 12, 2026)
+### Policy Center (Standout Feature)
 **Tab 1: Policy Templates**
-- [x] 10 pre-built GRC templates: Access Control, Incident Response, Risk Management, Data Protection, System Integrity, Configuration Management, Audit & Accountability, Personnel Security, Contingency Planning, Physical Security
-- [x] Each template maps to multiple frameworks (NIST 800-53, NIST CSF, GDPR) with specific controls
-- [x] **Organization Questionnaire**: CISO, Data Owner, Policy Owner, Compliance Officer, Industry, Review Frequency — auto-populates generated policies
-- [x] **SIEM Threshold Suggestions**: For technical controls (AC-2, AC-7, IR-4, SI-4, etc.) with specific best-practice thresholds
-- [x] AI policy generation via GPT-5.2 produces full editable documents with proper sections
-- [x] **Fully editable output**: Every section can be edited and saved inline
-- [x] Generated policies listed with version, status, and date
+- [x] 10 pre-built GRC templates with framework mappings
+- [x] Organization Questionnaire for personalized policies
+- [x] SIEM Threshold Suggestions for technical controls
+- [x] AI policy generation via GPT-5.2
+- [x] Fully editable sections with inline save
+- [x] Generated policies listed with version, status, date
+
+**Policy Version Control (Apr 12, 2026)**
+- [x] **Version Snapshots**: Save current policy state as immutable version with change summary
+- [x] **Auto Version 1**: Auto-created on policy generation
+- [x] **Version History Dialog**: Full list with version numbers, summaries, creator, timestamps, LATEST/INITIAL tags
+- [x] **Version Diff**: Section-by-section unified diff between any two versions (additions in green, deletions in red)
+- [x] **Version Restore**: Restore any previous version (creates new version automatically)
+- [x] **Approval Workflow**: Draft -> Under Review -> Approved with validated transitions
+- [x] **Status Badge**: Color-coded (Draft=amber, Under Review=blue, Approved=green)
+- [x] **Read-Only Mode**: Edit buttons hidden when policy is approved or under review
+- [x] **Status Transitions**: Submit for Review, Approve, Return to Draft, Reopen as Draft buttons
 
 **Tab 2: Upload & Map**
 - [x] Upload PDF/DOCX policy documents
-- [x] **Multi-framework selector**: Choose which frameworks to map against (12 frameworks)
+- [x] Multi-framework selector
 - [x] Drag & drop + browse upload UI
-- [x] Recent uploads list with status
 
 **Tab 3: Document Library**
-- [x] Central repository of all uploaded documents
-- [x] **Document tagging**: Tag any document to specific framework controls
+- [x] Central repository with document tagging to controls
 - [x] Tag dialog: select document, framework, control IDs, notes
-- [x] Tags visible on each document card, removable
 
-**Tab 4-5: Control Mappings + Cross-Framework** (secondary utilities)
+**Tab 4-5: Control Mappings + Cross-Framework**
 
 ### Frameworks & AI Control Mapping
 - [x] Framework grid with Organize panel (show/hide, reorder)
-- [x] Framework Workspace: per-control compliance, SIEM evidence, AI assessment
-- [x] Expand All / Collapse All
+- [x] Framework Workspace with AI assessment
 - [x] Implementation & Guidelines tab (AI-generated, cached)
 - [x] Enhanced AI Policy Suggestion (WHERE met + Gaps)
-- [x] SIEM maps to all frameworks (NIST 800-53, NIST CSF, GDPR)
 
 ### Dashboard (Customizable)
 - [x] 5 widget sections, toggle visibility + reorder
-- [x] Posture metrics, Framework Coverage, Risk Heatmap, Compliance Trend, Control Effectiveness, Tasks
 
 ### Other Features
 - [x] 12 frameworks, 869 controls, Command Palette (Cmd+K)
 - [x] Compliance Copilot (GPT-5.2), Slack Integration
-- [x] Control Effectiveness Scores, SIEM with live simulator
-- [x] Full dark mode, JWT auth with demo accounts
+- [x] SIEM with live simulator, Full dark mode, JWT auth
 
 ## Architecture
 ```
 Backend: FastAPI + Motor (async MongoDB)
 Frontend: React 18 + Tailwind + Shadcn
-Key Routes: /api/policy-templates (NEW), /api/control-compliance, /api/copilot, /api/siem, etc.
-DB Collections: org_profiles, generated_templates, document_tags, control_compliance, siem_events, etc.
+Key Routes: /api/policy-templates (templates, versions, status, diff, restore, document-tags)
+            /api/control-compliance, /api/copilot, /api/siem, etc.
+DB Collections: org_profiles, generated_templates, policy_versions, document_tags, 
+                control_compliance, siem_events, users, frameworks, controls
 External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2)
 ```
 
@@ -79,7 +84,7 @@ External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2)
 
 ## Backlog
 ### P1
-- Dynamic Risk Scoring (SIEM → real-time risk scores)
+- Dynamic Risk Scoring (SIEM -> real-time risk scores)
 - Vendor Risk Assessments (TPRM with compliance tracking)
 ### P2
 - Automated Evidence Collection, Compliance Calendar
