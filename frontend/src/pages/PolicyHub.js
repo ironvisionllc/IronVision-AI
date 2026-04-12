@@ -17,6 +17,7 @@ import {
   CaretDown, Download, BookOpen, Wrench, Clock
 } from "@phosphor-icons/react";
 import { PolicyApprovalBar, VersionHistoryDialog } from "@/components/PolicyVersionControl";
+import { DocumentDetailPanel, CATEGORIES, CATEGORY_COLORS as DOC_CAT_COLORS } from "@/components/DocumentDetailPanel";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
 
@@ -548,7 +549,7 @@ const TemplateDetailView = ({ template, onBack, onGenerate, generating, selected
 
 
 /* ══════════════════════════════════════════════════════════
-   TAB 2: UPLOAD & MAP
+   TAB 2: UPLOAD & MAP (Redesigned — Framework Map or General Upload)
    ══════════════════════════════════════════════════════════ */
 const UploadMapTab = () => {
   const [frameworks, setFrameworks] = useState([]);
@@ -557,6 +558,9 @@ const UploadMapTab = () => {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploadMode, setUploadMode] = useState("framework"); // "framework" or "general"
+  const [category, setCategory] = useState("policy");
+  const [customTagsInput, setCustomTagsInput] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -571,45 +575,81 @@ const UploadMapTab = () => {
 
   const handleUpload = async (file) => {
     if (!file) return;
-    if (selectedFrameworks.length === 0) { toast.error("Select at least one framework to map against"); return; }
-    const allowedTypes = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
-    if (!allowedTypes.includes(file.type)) { toast.error("Only PDF and DOCX files are supported"); return; }
+    if (uploadMode === "framework" && selectedFrameworks.length === 0) {
+      toast.error("Select at least one framework to map against");
+      return;
+    }
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("framework", selectedFrameworks[0]);
+      formData.append("framework", uploadMode === "framework" ? selectedFrameworks[0] : "");
       formData.append("control_family", "");
-      const res = await axios.post(`${API}/documents/upload`, formData, { headers: { "Content-Type": "multipart/form-data" } });
-      toast.success("Document uploaded. Select it in Document Library to tag to controls.");
+      formData.append("category", category);
+      formData.append("custom_tags", customTagsInput);
+      await axios.post(`${API}/documents/upload`, formData, { headers: { "Content-Type": "multipart/form-data" } });
+      toast.success("Document uploaded successfully. View it in the Document Library.");
       const updated = await axios.get(`${API}/documents`);
       setDocuments(updated.data);
+      setCustomTagsInput("");
     } catch (err) { toast.error(err.response?.data?.detail || "Upload failed"); }
     finally { setUploading(false); }
   };
 
   return (
     <div data-testid="upload-tab">
+      {/* Upload Mode Toggle */}
+      <div className="flex items-center gap-2 mb-5" data-testid="upload-mode-toggle">
+        <button onClick={() => setUploadMode("framework")} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${uploadMode === "framework" ? "bg-[#2597B2] text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"}`} data-testid="mode-framework-btn">
+          <ShieldCheck size={14} weight="duotone" className="inline mr-1.5 -mt-0.5" /> Map to Framework
+        </button>
+        <button onClick={() => setUploadMode("general")} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${uploadMode === "general" ? "bg-[#2597B2] text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"}`} data-testid="mode-general-btn">
+          <CloudArrowUp size={14} weight="duotone" className="inline mr-1.5 -mt-0.5" /> General Upload
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Framework Selection */}
-        <div className="iv-card p-5" data-testid="framework-selector">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Select Target Frameworks</h3>
-          <p className="text-[10px] text-gray-400 mb-3">Choose which frameworks to map your document against</p>
-          <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
-            {frameworks.map(fw => (
-              <label key={fw.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all ${selectedFrameworks.includes(fw.id) ? "bg-[#2597B2]/5 border-[#2597B2]/30 ring-1 ring-[#2597B2]/20" : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-gray-300"}`} data-testid={`fw-select-${fw.id}`}>
-                <input type="checkbox" checked={selectedFrameworks.includes(fw.id)} onChange={() => toggleFramework(fw.id)} className="rounded border-gray-300 text-[#2597B2] focus:ring-[#2597B2]" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{fw.name}</p>
-                  <p className="text-[10px] text-gray-400">{fw.control_count || 0} controls</p>
-                </div>
-                {selectedFrameworks.includes(fw.id) && <CheckCircle size={14} weight="fill" className="text-[#2597B2] shrink-0" />}
-              </label>
-            ))}
-          </div>
-          {selectedFrameworks.length > 0 && (
-            <p className="text-[10px] text-[#2597B2] font-medium mt-2">{selectedFrameworks.length} framework{selectedFrameworks.length > 1 ? "s" : ""} selected</p>
+        {/* Left Sidebar */}
+        <div className="space-y-4">
+          {/* Framework Selector (only in framework mode) */}
+          {uploadMode === "framework" && (
+            <div className="iv-card p-5" data-testid="framework-selector">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Target Frameworks</h3>
+              <p className="text-[10px] text-gray-400 mb-3">Map your document against compliance frameworks</p>
+              <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                {frameworks.map(fw => (
+                  <label key={fw.id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-all ${selectedFrameworks.includes(fw.id) ? "bg-[#2597B2]/5 border-[#2597B2]/30 ring-1 ring-[#2597B2]/20" : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-gray-300"}`} data-testid={`fw-select-${fw.id}`}>
+                    <input type="checkbox" checked={selectedFrameworks.includes(fw.id)} onChange={() => toggleFramework(fw.id)} className="rounded border-gray-300 text-[#2597B2] focus:ring-[#2597B2]" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{fw.name}</p>
+                      <p className="text-[10px] text-gray-400">{fw.control_count || 0} controls</p>
+                    </div>
+                    {selectedFrameworks.includes(fw.id) && <CheckCircle size={14} weight="fill" className="text-[#2597B2] shrink-0" />}
+                  </label>
+                ))}
+              </div>
+              {selectedFrameworks.length > 0 && (
+                <p className="text-[10px] text-[#2597B2] font-medium mt-2">{selectedFrameworks.length} framework{selectedFrameworks.length > 1 ? "s" : ""} selected</p>
+              )}
+            </div>
           )}
+
+          {/* Document Metadata */}
+          <div className="iv-card p-5" data-testid="upload-metadata">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Document Details</h3>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Category</Label>
+                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800" data-testid="upload-category-select">
+                  {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs">Labels (comma-separated)</Label>
+                <Input value={customTagsInput} onChange={e => setCustomTagsInput(e.target.value)} placeholder="Annual Review, Q1 Audit..." className="text-sm" data-testid="upload-tags-input" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Right: Upload Area */}
@@ -623,11 +663,11 @@ const UploadMapTab = () => {
           >
             <CloudArrowUp size={40} weight="duotone" className={`mx-auto mb-3 ${dragOver ? "text-[#2597B2]" : "text-gray-300"}`} />
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {uploading ? "Uploading..." : "Drop a policy document here"}
+              {uploading ? "Uploading..." : uploadMode === "framework" ? "Drop a document to map against frameworks" : "Drop any document to upload"}
             </p>
-            <p className="text-xs text-gray-400 mb-4">PDF or DOCX files supported</p>
+            <p className="text-xs text-gray-400 mb-4">PDF, DOCX, TXT, CSV, XLSX, PNG, JPG supported</p>
             <label className="inline-block">
-              <input type="file" accept=".pdf,.docx" onChange={e => handleUpload(e.target.files[0])} className="hidden" />
+              <input type="file" accept=".pdf,.docx,.doc,.txt,.csv,.xlsx,.png,.jpg,.jpeg" onChange={e => handleUpload(e.target.files[0])} className="hidden" />
               <Button variant="outline" size="sm" className="h-8 text-xs" disabled={uploading} asChild>
                 <span data-testid="browse-files-btn">{uploading ? <ArrowsClockwise size={14} className="animate-spin mr-1" /> : <Plus size={14} className="mr-1" />} Browse Files</span>
               </Button>
@@ -639,18 +679,28 @@ const UploadMapTab = () => {
             <div className="mt-4" data-testid="recent-uploads">
               <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Recent Uploads</h4>
               <div className="space-y-2">
-                {documents.slice(0, 5).map(doc => (
-                  <div key={doc.job_id} className="iv-card p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText size={16} weight="duotone" className="text-[#2597B2]" />
-                      <div>
-                        <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{doc.filename}</p>
-                        <p className="text-[10px] text-gray-400">{doc.framework} | {new Date(doc.created_at).toLocaleDateString()}</p>
+                {documents.slice(0, 5).map(doc => {
+                  const catLabel = CATEGORIES.find(c => c.value === doc.category)?.label || doc.category || "Other";
+                  return (
+                    <div key={doc.job_id || doc.id} className="iv-card p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText size={16} weight="duotone" className="text-[#2597B2]" />
+                        <div>
+                          <p className="text-xs font-medium text-gray-900 dark:text-gray-100">{doc.filename || doc.original_name}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {catLabel}{doc.framework ? ` | ${doc.framework}` : ""} | {new Date(doc.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {doc.custom_tags?.length > 0 && doc.custom_tags.slice(0, 2).map(t => (
+                          <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#2597B2]/10 text-[#2597B2]">{t}</span>
+                        ))}
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${doc.status === "completed" ? "bg-emerald-50 text-emerald-700" : doc.status === "failed" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{doc.status}</span>
                       </div>
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${doc.status === "completed" ? "bg-emerald-50 text-emerald-700" : doc.status === "failed" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{doc.status}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -662,7 +712,7 @@ const UploadMapTab = () => {
 
 
 /* ══════════════════════════════════════════════════════════
-   TAB 3: DOCUMENT LIBRARY (Unified: Uploads + Generated Policies)
+   TAB 3: DOCUMENT LIBRARY (Unified with Click-to-View)
    ══════════════════════════════════════════════════════════ */
 const STATUS_STYLES = {
   draft: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-400", label: "Draft" },
@@ -671,6 +721,8 @@ const STATUS_STYLES = {
   completed: { bg: "bg-emerald-50 dark:bg-emerald-900/20", text: "text-emerald-700 dark:text-emerald-400", label: "Completed" },
   pending: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-400", label: "Pending" },
   failed: { bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-700 dark:text-red-400", label: "Failed" },
+  uploaded: { bg: "bg-gray-50 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", label: "Uploaded" },
+  uploaded_pending_processing: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-400", label: "Pending" },
 };
 
 const DocumentLibraryTab = () => {
@@ -682,10 +734,12 @@ const DocumentLibraryTab = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [showTagDialog, setShowTagDialog] = useState(false);
-  const [tagForm, setTagForm] = useState({ document_id: "", document_name: "", framework_id: "", framework_name: "", control_ids: "", notes: "" });
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [viewingDoc, setViewingDoc] = useState(null);
+  const [viewingPolicy, setViewingPolicy] = useState(null);
+  const [editingSections, setEditingSections] = useState({});
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     Promise.all([
       axios.get(`${API}/documents`).then(r => setDocuments(r.data)).catch(() => {}),
       axios.get(`${API}/policy-templates/document-tags`).then(r => setTags(r.data)).catch(() => {}),
@@ -694,20 +748,14 @@ const DocumentLibraryTab = () => {
     ]).finally(() => setLoading(false));
   }, []);
 
-  const createTag = async () => {
-    if (!tagForm.document_id || !tagForm.framework_id) { toast.error("Select a document and framework"); return; }
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const createTag = async (tagData) => {
     try {
-      const fw = frameworks.find(f => f.id === tagForm.framework_id);
-      const res = await axios.post(`${API}/policy-templates/document-tags`, {
-        ...tagForm,
-        framework_name: fw?.name || "",
-        control_ids: tagForm.control_ids.split(",").map(s => s.trim()).filter(Boolean),
-      });
+      const res = await axios.post(`${API}/policy-templates/document-tags`, tagData);
       setTags(prev => [...prev, res.data]);
-      setShowTagDialog(false);
-      setTagForm({ document_id: "", document_name: "", framework_id: "", framework_name: "", control_ids: "", notes: "" });
-      toast.success("Document tagged to controls");
-    } catch { toast.error("Failed to tag document"); }
+      toast.success("Framework tag added");
+    } catch { toast.error("Failed to add tag"); }
   };
 
   const removeTag = async (tagId) => {
@@ -718,20 +766,67 @@ const DocumentLibraryTab = () => {
     } catch { toast.error("Failed to remove tag"); }
   };
 
+  const saveSectionEdit = async (policyId, sectionIdx, newContent) => {
+    const policy = viewingPolicy;
+    if (!policy) return;
+    const updated = [...policy.sections];
+    updated[sectionIdx] = { ...updated[sectionIdx], content: newContent };
+    try {
+      await axios.put(`${API}/policy-templates/generated/${policyId}/sections`, { sections: updated });
+      setViewingPolicy({ ...policy, sections: updated });
+      setEditingSections(prev => ({ ...prev, [sectionIdx]: false }));
+      toast.success("Section saved");
+    } catch { toast.error("Failed to save"); }
+  };
+
   const allItems = [
-    ...documents.map(d => ({ _key: `up-${d.job_id}`, type: "uploaded", id: d.job_id, name: d.filename, date: d.created_at, status: d.status, framework: d.framework, raw: d })),
-    ...generatedPolicies.map(p => ({ _key: `gp-${p.id}`, type: "generated", id: p.id, name: p.title, date: p.created_at, status: p.status, version: p.version, frameworks: p.frameworks_addressed, sectionCount: p.sections?.length, raw: p })),
+    ...documents.map(d => ({ _key: `up-${d.job_id || d.id}`, type: "uploaded", id: d.job_id || d.id, name: d.filename || d.original_name, date: d.created_at, status: d.status, framework: d.framework, category: d.category || "other", customTags: d.custom_tags || [], raw: d })),
+    ...generatedPolicies.map(p => ({ _key: `gp-${p.id}`, type: "generated", id: p.id, name: p.title, date: p.created_at, status: p.status, version: p.version, frameworks: p.frameworks_addressed, sectionCount: p.sections?.length, category: "policy", customTags: [], raw: p })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const filtered = allItems.filter(item => {
     if (search && !item.name?.toLowerCase().includes(search.toLowerCase())) return false;
     if (typeFilter !== "all" && item.type !== typeFilter) return false;
     if (statusFilter !== "all" && item.status !== statusFilter) return false;
+    if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
     return true;
   });
 
   const statusCounts = { all: allItems.length };
   allItems.forEach(i => { statusCounts[i.status] = (statusCounts[i.status] || 0) + 1; });
+
+  // View an uploaded document detail
+  if (viewingDoc) {
+    return (
+      <div data-testid="library-tab">
+        <DocumentDetailPanel
+          document={viewingDoc}
+          onClose={() => { setViewingDoc(null); loadData(); }}
+          onUpdate={(updated) => { setViewingDoc(updated); setDocuments(prev => prev.map(d => (d.job_id || d.id) === (updated.job_id || updated.id) ? { ...d, ...updated } : d)); }}
+          frameworks={frameworks}
+          tags={tags}
+          onTagCreate={createTag}
+          onTagRemove={removeTag}
+        />
+      </div>
+    );
+  }
+
+  // View a generated policy
+  if (viewingPolicy) {
+    return (
+      <div data-testid="library-tab">
+        <PolicyViewer
+          policy={viewingPolicy}
+          onBack={() => { setViewingPolicy(null); setEditingSections({}); loadData(); }}
+          editingSections={editingSections}
+          setEditingSections={setEditingSections}
+          onSave={saveSectionEdit}
+          onPolicyUpdate={(p) => { setViewingPolicy(p); setGeneratedPolicies(prev => prev.map(gp => gp.id === p.id ? p : gp)); }}
+        />
+      </div>
+    );
+  }
 
   if (loading) return <div className="flex items-center justify-center h-40"><ArrowsClockwise size={24} className="animate-spin text-[#2597B2]" /></div>;
 
@@ -739,60 +834,28 @@ const DocumentLibraryTab = () => {
     <div data-testid="library-tab">
       {/* Filter Bar */}
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex items-center gap-2 flex-1 flex-wrap">
+          <div className="relative flex-1 max-w-sm min-w-[200px]">
             <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <Input placeholder="Search all documents..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" data-testid="library-search" />
           </div>
           <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" data-testid="library-type-filter">
             <option value="all">All Types ({allItems.length})</option>
-            <option value="generated">Generated Policies ({allItems.filter(i => i.type === "generated").length})</option>
-            <option value="uploaded">Uploaded Documents ({allItems.filter(i => i.type === "uploaded").length})</option>
+            <option value="generated">Policies ({allItems.filter(i => i.type === "generated").length})</option>
+            <option value="uploaded">Uploads ({allItems.filter(i => i.type === "uploaded").length})</option>
           </select>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" data-testid="library-status-filter">
             <option value="all">All Statuses</option>
             <option value="draft">Draft ({statusCounts.draft || 0})</option>
             <option value="under_review">Under Review ({statusCounts.under_review || 0})</option>
             <option value="approved">Approved ({statusCounts.approved || 0})</option>
-            <option value="completed">Completed ({statusCounts.completed || 0})</option>
+          </select>
+          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" data-testid="library-category-filter">
+            <option value="all">All Categories</option>
+            {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </div>
-        <Button size="sm" className="h-8 text-xs bg-[#2597B2] hover:bg-[#1B839F]" onClick={() => setShowTagDialog(true)} data-testid="tag-document-btn">
-          <Tag size={14} className="mr-1" /> Tag Document
-        </Button>
       </div>
-
-      {/* Tag Dialog */}
-      <Dialog open={showTagDialog} onOpenChange={setShowTagDialog}>
-        <DialogContent data-testid="tag-dialog">
-          <DialogHeader><DialogTitle>Tag Document to Controls</DialogTitle></DialogHeader>
-          <div className="space-y-3 mt-2">
-            <div>
-              <Label>Document</Label>
-              <select value={tagForm.document_id} onChange={e => { const d = documents.find(dd => dd.job_id === e.target.value); setTagForm(p => ({...p, document_id: e.target.value, document_name: d?.filename || ""})); }} className="w-full h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800" data-testid="tag-document-select">
-                <option value="">Select a document...</option>
-                {documents.map(d => <option key={d.job_id} value={d.job_id}>{d.filename}</option>)}
-              </select>
-            </div>
-            <div>
-              <Label>Framework</Label>
-              <select value={tagForm.framework_id} onChange={e => setTagForm(p => ({...p, framework_id: e.target.value}))} className="w-full h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800" data-testid="tag-framework-select">
-                <option value="">Select a framework...</option>
-                {frameworks.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <Label>Control IDs (comma-separated)</Label>
-              <Input value={tagForm.control_ids} onChange={e => setTagForm(p => ({...p, control_ids: e.target.value}))} placeholder="AC-2, AC-3, IA-2" data-testid="tag-controls-input" />
-            </div>
-            <div>
-              <Label>Notes</Label>
-              <Input value={tagForm.notes} onChange={e => setTagForm(p => ({...p, notes: e.target.value}))} placeholder="Optional notes..." data-testid="tag-notes-input" />
-            </div>
-            <Button className="w-full bg-[#2597B2] hover:bg-[#1B839F]" onClick={createTag} data-testid="save-tag-btn">Tag Document</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Unified Document List */}
       {filtered.length === 0 ? (
@@ -801,13 +864,14 @@ const DocumentLibraryTab = () => {
           <p className="text-sm text-gray-500">{allItems.length === 0 ? "No documents yet. Generate a policy or upload a document to get started." : "No documents match your filters."}</p>
         </div>
       ) : (
-        <div className="space-y-3" data-testid="documents-list">
+        <div className="space-y-2" data-testid="documents-list">
           {filtered.map(item => {
             const st = STATUS_STYLES[item.status] || STATUS_STYLES.pending;
+            const catColor = DOC_CAT_COLORS[item.category] || DOC_CAT_COLORS.other;
             if (item.type === "generated") {
               return (
-                <div key={item._key} className="iv-card p-4" data-testid={`lib-policy-${item.id}`}>
-                  <div className="flex items-start justify-between mb-2">
+                <div key={item._key} className="iv-card p-4 cursor-pointer hover:ring-1 hover:ring-[#2597B2]/20 transition-all" onClick={() => setViewingPolicy(item.raw)} data-testid={`lib-policy-${item.id}`}>
+                  <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg bg-[#2597B2]/10 flex items-center justify-center shrink-0">
                         <FileText size={18} weight="duotone" className="text-[#2597B2]" />
@@ -815,17 +879,18 @@ const DocumentLibraryTab = () => {
                       <div>
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.name}</p>
                         <p className="text-[10px] text-gray-400 mt-0.5">
-                          Generated Policy &middot; v{item.version} &middot; {item.sectionCount} sections &middot; {new Date(item.date).toLocaleDateString()}
+                          v{item.version} &middot; {item.sectionCount} sections &middot; {new Date(item.date).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${st.bg} ${st.text}`}>{st.label}</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#2597B2]/10 text-[#2597B2] font-medium">Policy</span>
+                      <CaretRight size={12} className="text-gray-400" />
                     </div>
                   </div>
                   {item.frameworks?.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <div className="flex flex-wrap gap-1.5 mt-2 ml-12">
                       {item.frameworks.map(fw => (
                         <span key={fw} className="text-[10px] px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 font-medium">{fw}</span>
                       ))}
@@ -837,31 +902,32 @@ const DocumentLibraryTab = () => {
             // Uploaded document
             const docTags = tags.filter(t => t.document_id === item.id);
             return (
-              <div key={item._key} className="iv-card p-4" data-testid={`doc-${item.id}`}>
-                <div className="flex items-start justify-between mb-2">
+              <div key={item._key} className="iv-card p-4 cursor-pointer hover:ring-1 hover:ring-[#2597B2]/20 transition-all" onClick={() => setViewingDoc(item.raw)} data-testid={`doc-${item.id}`}>
+                <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
                       <CloudArrowUp size={18} weight="duotone" className="text-gray-500" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.name}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Uploaded Document &middot; {item.framework} &middot; {new Date(item.date).toLocaleDateString()}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {item.framework || "General"} &middot; {new Date(item.date).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    {item.customTags?.slice(0, 2).map(t => (
+                      <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#2597B2]/10 text-[#2597B2] font-medium">{t}</span>
+                    ))}
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${catColor}`}>{CATEGORIES.find(c => c.value === item.category)?.label || "Other"}</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${st.bg} ${st.text}`}>{st.label}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 font-medium">Upload</span>
+                    <CaretRight size={12} className="text-gray-400" />
                   </div>
                 </div>
                 {docTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                  <div className="flex flex-wrap gap-1.5 mt-2 ml-12">
                     {docTags.map(tag => (
-                      <div key={tag.id} className="flex items-center gap-1 px-2 py-1 bg-[#2597B2]/5 border border-[#2597B2]/20 rounded text-[10px]" data-testid={`tag-${tag.id}`}>
-                        <Tag size={10} className="text-[#2597B2]" />
-                        <span className="font-medium text-[#2597B2]">{tag.framework_name}</span>
-                        {tag.control_ids?.length > 0 && <span className="text-gray-400">: {tag.control_ids.join(", ")}</span>}
-                        <button onClick={() => removeTag(tag.id)} className="ml-1 text-gray-400 hover:text-red-500"><Trash size={10} /></button>
-                      </div>
+                      <span key={tag.id} className="text-[10px] px-2 py-0.5 rounded bg-[#2597B2]/5 border border-[#2597B2]/20 text-[#2597B2] font-medium">{tag.framework_name}{tag.control_ids?.length > 0 ? `: ${tag.control_ids.join(", ")}` : ""}</span>
                     ))}
                   </div>
                 )}

@@ -47,8 +47,10 @@ def get_lambda_client():
 @router.post("/documents/upload")
 async def upload_document(
     file: UploadFile = File(...),
-    framework: str = Form("nist-800-53"),
+    framework: str = Form(""),
     control_family: str = Form(""),
+    category: str = Form("other"),
+    custom_tags: str = Form(""),
     current_user: Dict = Depends(get_current_user),
 ):
     """Upload a document to S3 and trigger preprocessing Lambda."""
@@ -62,9 +64,15 @@ async def upload_document(
     allowed_types = [
         "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+        "text/plain",
+        "text/csv",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "image/png",
+        "image/jpeg",
     ]
     if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Only PDF and DOCX files are supported")
+        raise HTTPException(status_code=400, detail="Unsupported file type. Allowed: PDF, DOCX, DOC, TXT, CSV, XLSX, PNG, JPG")
 
     job_id = str(uuid.uuid4())
     file_ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "pdf"
@@ -88,6 +96,7 @@ async def upload_document(
 
     # Create file record in local DB
     now = datetime.now(timezone.utc).isoformat()
+    parsed_tags = [t.strip() for t in custom_tags.split(",") if t.strip()] if custom_tags else []
     doc_record = {
         "id": job_id,
         "organization_id": org_id,
@@ -97,6 +106,8 @@ async def upload_document(
         "file_type": file_ext,
         "framework": framework,
         "control_family": control_family,
+        "category": category,
+        "custom_tags": parsed_tags,
         "status": "uploaded",
         "progress": 0,
         "created_at": now,
@@ -197,7 +208,29 @@ async def list_documents(current_user: Dict = Depends(get_current_user)):
     docs = await db.document_uploads.find(
         {"organization_id": org_id}, {"_id": 0}
     ).sort("created_at", -1).to_list(100)
+    # Ensure filename field exists for frontend compatibility
+    for d in docs:
+        if "filename" not in d and "original_name" in d:
+            d["filename"] = d["original_name"]
+        if "job_id" not in d and "id" in d:
+            d["job_id"] = d["id"]
     return docs
+
+
+@router.get("/documents/custom-tags")
+async def get_custom_tags(current_user: Dict = Depends(get_current_user)):
+    """Get all unique custom tags used in the organization for auto-suggest."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    pipeline = [
+        {"$match": {"organization_id": org_id, "custom_tags": {"$exists": True, "$ne": []}}},
+        {"$unwind": "$custom_tags"},
+        {"$group": {"_id": "$custom_tags"}},
+        {"$sort": {"_id": 1}},
+    ]
+    tags = []
+    async for doc in db.document_uploads.aggregate(pipeline):
+        tags.append(doc["_id"])
+    return tags
 
 
 @router.get("/documents/{job_id}")
@@ -228,3 +261,28 @@ async def get_download_url(job_id: str, current_user: Dict = Depends(get_current
         return {"url": url, "expires_in": 3600}
     except ClientError as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate URL: {str(e)}")
+
+
+@router.put("/documents/{job_id}/metadata")
+async def update_document_metadata(job_id: str, data: dict, current_user: Dict = Depends(get_current_user)):
+    """Update document metadata: category, custom_tags, framework."""
+    guard_demo(current_user)
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    doc = await db.document_uploads.find_one({"id": job_id, "organization_id": org_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    now = datetime.now(timezone.utc).isoformat()
+    update = {"updated_at": now}
+    if "category" in data:
+        update["category"] = data["category"]
+    if "custom_tags" in data:
+        update["custom_tags"] = data["custom_tags"] if isinstance(data["custom_tags"], list) else []
+    if "framework" in data:
+        update["framework"] = data["framework"]
+    if "description" in data:
+        update["description"] = data["description"]
+
+    await db.document_uploads.update_one({"id": job_id}, {"$set": update})
+    updated = await db.document_uploads.find_one({"id": job_id}, {"_id": 0})
+    return updated

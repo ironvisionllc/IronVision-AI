@@ -1,0 +1,116 @@
+{
+  "summary": "Completed comprehensive testing of Document Management enhancements for iteration 12. All 17 backend tests passed (100%). All frontend UI tests passed. Features tested: Upload & Map redesign with mode toggle (Map to Framework / General Upload), category selector, custom tags input, expanded file type support. Document Library with category filter, click-to-view for both uploaded documents and generated policies. DocumentDetailPanel with edit mode, custom labels with auto-suggest, framework control tags.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Document Library filters",
+        "issues": ["Console warning: 'In HTML, <span> cannot be a child of <option>' - React hydration warning in select dropdowns. This is a minor cosmetic issue that doesn't affect functionality."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration12_document_management.py",
+    "/app/test_reports/pytest/pytest_iteration12_document_management.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration12_document_management.py"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 tests passed)",
+    "frontend": "100% (all UI tests passed)"
+  },
+  "test_credentials": {
+    "admin": "demo-admin@grc.com / DemoAdmin123!"
+  },
+  "seed_data_creation": "Used existing uploaded document (sample_security_policy.pdf) with custom_tags ['Annual Review', 'Q1 Audit'] and category 'evidence'. Also used existing generated policies.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Document Management enhancements fully implemented and tested. Key features: (1) Upload & Map has mode toggle - 'Map to Framework' shows framework selector, 'General Upload' hides it. Both modes have category selector and custom tags input. (2) Document Library has category filter dropdown, type filter, status filter. Clicking uploaded doc opens DocumentDetailPanel, clicking generated policy opens PolicyViewer with approval bar. (3) DocumentDetailPanel has Edit button that reveals category selector and description input. Custom Labels section allows add/remove freeform labels with auto-suggest from previously used tags. Framework Control Tags section allows linking to framework controls. Key endpoints: GET /api/documents (returns filename, job_id fields), GET /api/documents/custom-tags (returns unique tags for auto-suggest), PUT /api/documents/{id}/metadata (updates category, custom_tags, description).",
+  "features_tested": {
+    "upload_map_redesign": {
+      "mode_toggle_present": "PASS - Map to Framework / General Upload buttons",
+      "framework_selector_in_framework_mode": "PASS - Shows target frameworks with checkboxes",
+      "framework_selector_hidden_in_general_mode": "PASS - Hidden when General Upload selected",
+      "category_selector": "PASS - Policy/Procedure/Evidence/Contract/Training/Other options",
+      "custom_tags_input": "PASS - Labels (comma-separated) input field",
+      "expanded_file_types": "PASS - PDF, DOCX, TXT, CSV, XLSX, PNG, JPG supported text shown",
+      "upload_dropzone": "PASS - Drag and drop area with Browse Files button",
+      "recent_uploads_section": "PASS - Shows uploaded documents with custom tags visible"
+    },
+    "document_library_enhancements": {
+      "category_filter_dropdown": "PASS - All Categories / Policy / Procedure / Evidence / Contract / Training / Other",
+      "type_filter": "PASS - All Types / Policies / Uploads",
+      "status_filter": "PASS - All Statuses / Draft / Under Review / Approved",
+      "search_input": "PASS - Search all documents...",
+      "unified_list": "PASS - Shows both generated policies and uploaded documents",
+      "custom_tags_visible_on_cards": "PASS - Tags shown as badges on document cards",
+      "clickable_items_with_arrow": "PASS - CaretRight indicator on each item"
+    },
+    "click_to_view_uploaded_document": {
+      "opens_document_detail_panel": "PASS",
+      "shows_file_info": "PASS - filename, file type, upload date, mapped framework",
+      "shows_category_badge": "PASS - Evidence badge shown",
+      "edit_button_present": "PASS",
+      "back_button_returns_to_list": "PASS"
+    },
+    "click_to_view_generated_policy": {
+      "opens_policy_viewer": "PASS",
+      "shows_approval_bar": "PASS - Approved status, Reopen as Draft, Assign, History buttons",
+      "shows_policy_sections": "PASS - Purpose, Scope, etc.",
+      "shows_framework_tags": "PASS - NIST SP 800-53, NIST CSF, GDPR",
+      "back_button_returns_to_list": "PASS"
+    },
+    "document_detail_panel_edit_mode": {
+      "category_selector_in_edit": "PASS - Dropdown with all categories",
+      "description_input_in_edit": "PASS - Textarea for description",
+      "save_button": "PASS"
+    },
+    "custom_labels_section": {
+      "existing_tags_shown": "PASS - Annual Review, Q1 Audit with X to remove",
+      "add_label_button": "PASS",
+      "tag_input_field": "PASS - Type a label... placeholder",
+      "add_confirm_button": "PASS",
+      "cancel_button": "PASS",
+      "auto_suggest_from_previously_used": "PASS - Previously used: section shown"
+    },
+    "framework_control_tags_section": {
+      "add_tag_button": "PASS",
+      "framework_selector_dropdown": "PASS - Select framework...",
+      "control_ids_input": "PASS - Control IDs (AC-2, AC-3...)",
+      "notes_input": "PASS - Notes (optional)",
+      "tag_button": "PASS",
+      "cancel_button": "PASS"
+    }
+  },
+  "backend_tests": {
+    "test_get_documents_returns_list": "PASS",
+    "test_documents_have_filename_field": "PASS",
+    "test_documents_have_job_id_field": "PASS",
+    "test_documents_have_category_field": "PASS",
+    "test_documents_have_custom_tags_field": "PASS",
+    "test_get_custom_tags_returns_list": "PASS",
+    "test_custom_tags_are_strings": "PASS",
+    "test_update_category": "PASS",
+    "test_update_custom_tags": "PASS",
+    "test_update_description": "PASS",
+    "test_update_multiple_fields": "PASS",
+    "test_update_nonexistent_document_returns_404": "PASS",
+    "test_get_generated_policies": "PASS",
+    "test_generated_policies_have_required_fields": "PASS",
+    "test_get_frameworks": "PASS",
+    "test_frameworks_have_required_fields": "PASS",
+    "test_get_document_tags": "PASS"
+  },
+  "notes": {
+    "s3_upload": "S3 bucket is configured but upload may fail in preview environment - this is expected as noted in the review request.",
+    "console_warning": "Minor React hydration warning about <span> inside <option> in select dropdowns - does not affect functionality."
+  }
+}
