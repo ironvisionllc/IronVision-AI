@@ -11,6 +11,7 @@ import os
 import re
 import json
 import logging
+import difflib
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 from database import db
@@ -154,6 +155,20 @@ class GenerateRequest(BaseModel):
     custom_sections: Optional[Dict] = None
 
 
+class VersionCreateRequest(BaseModel):
+    change_summary: Optional[str] = ""
+
+
+class StatusUpdateRequest(BaseModel):
+    status: str
+    comment: Optional[str] = ""
+
+
+class DiffRequest(BaseModel):
+    version_id_1: str
+    version_id_2: str
+
+
 @router.get("")
 async def get_templates(current_user: Dict = Depends(get_current_user)):
     """Return all policy templates with framework mappings."""
@@ -293,6 +308,23 @@ Generate professional, specific content - not generic placeholders. Reference th
             "created_by": current_user["id"],
         }
         await db.generated_templates.insert_one(doc)
+        # Auto-create version 1 snapshot
+        version_doc = {
+            "id": str(uuid.uuid4()),
+            "policy_id": doc["id"],
+            "organization_id": org_id,
+            "version_number": 1,
+            "title": doc["title"],
+            "sections": doc["sections"],
+            "frameworks_addressed": doc.get("frameworks_addressed", []),
+            "controls_addressed": doc.get("controls_addressed", {}),
+            "status": "draft",
+            "change_summary": "Initial policy generation",
+            "created_at": now,
+            "created_by": current_user["id"],
+            "created_by_name": current_user.get("name", current_user.get("email", "Unknown")),
+        }
+        await db.policy_versions.insert_one(version_doc)
         del doc["_id"]
         return doc
     except Exception as e:
@@ -350,6 +382,194 @@ async def update_policy_sections(policy_id: str, data: dict, current_user: Dict 
     if result.matched_count == 0:
         raise HTTPException(404, "Policy not found")
     return {"message": "Updated"}
+
+
+@router.post("/generated/{policy_id}/versions")
+async def create_version(policy_id: str, data: VersionCreateRequest, current_user: Dict = Depends(get_current_user)):
+    """Create a new version snapshot of the current policy state."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    policy = await db.generated_templates.find_one({"organization_id": org_id, "id": policy_id}, {"_id": 0})
+    if not policy:
+        raise HTTPException(404, "Policy not found")
+
+    latest = await db.policy_versions.find({"policy_id": policy_id}).sort("version_number", -1).limit(1).to_list(1)
+    next_ver = (latest[0]["version_number"] + 1) if latest else 1
+
+    now = datetime.now(timezone.utc).isoformat()
+    version = {
+        "id": str(uuid.uuid4()),
+        "policy_id": policy_id,
+        "organization_id": org_id,
+        "version_number": next_ver,
+        "title": policy["title"],
+        "sections": policy["sections"],
+        "frameworks_addressed": policy.get("frameworks_addressed", []),
+        "controls_addressed": policy.get("controls_addressed", {}),
+        "status": policy.get("status", "draft"),
+        "change_summary": data.change_summary or f"Version {next_ver}",
+        "created_at": now,
+        "created_by": current_user["id"],
+        "created_by_name": current_user.get("name", current_user.get("email", "Unknown")),
+    }
+    await db.policy_versions.insert_one(version)
+    del version["_id"]
+
+    await db.generated_templates.update_one(
+        {"id": policy_id},
+        {"$set": {"version": f"{next_ver}.0", "updated_at": now}}
+    )
+
+    return version
+
+
+@router.get("/generated/{policy_id}/versions")
+async def list_versions(policy_id: str, current_user: Dict = Depends(get_current_user)):
+    """List all version snapshots for a policy."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    versions = await db.policy_versions.find(
+        {"policy_id": policy_id, "organization_id": org_id}, {"_id": 0}
+    ).sort("version_number", -1).to_list(100)
+    return versions
+
+
+@router.post("/generated/{policy_id}/versions/diff")
+async def diff_versions(policy_id: str, data: DiffRequest, current_user: Dict = Depends(get_current_user)):
+    """Compute section-by-section diff between two versions."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    v1 = await db.policy_versions.find_one(
+        {"policy_id": policy_id, "organization_id": org_id, "id": data.version_id_1}, {"_id": 0}
+    )
+    v2 = await db.policy_versions.find_one(
+        {"policy_id": policy_id, "organization_id": org_id, "id": data.version_id_2}, {"_id": 0}
+    )
+    if not v1 or not v2:
+        raise HTTPException(404, "One or both versions not found")
+
+    diffs = []
+    s1_list = v1.get("sections", [])
+    s2_list = v2.get("sections", [])
+    max_sections = max(len(s1_list), len(s2_list))
+
+    for i in range(max_sections):
+        s1 = s1_list[i] if i < len(s1_list) else {"heading": "(removed)", "content": ""}
+        s2 = s2_list[i] if i < len(s2_list) else {"heading": "(added)", "content": ""}
+        diff_lines = list(difflib.unified_diff(
+            (s1.get("content", "") or "").splitlines(keepends=False),
+            (s2.get("content", "") or "").splitlines(keepends=False),
+            lineterm=""
+        ))
+        diffs.append({
+            "section_index": i,
+            "heading_v1": s1.get("heading", ""),
+            "heading_v2": s2.get("heading", ""),
+            "has_changes": len(diff_lines) > 2,
+            "diff_lines": diff_lines,
+        })
+
+    return {
+        "version_1": {"id": v1["id"], "version_number": v1["version_number"], "created_at": v1["created_at"], "change_summary": v1.get("change_summary", "")},
+        "version_2": {"id": v2["id"], "version_number": v2["version_number"], "created_at": v2["created_at"], "change_summary": v2.get("change_summary", "")},
+        "sections": diffs,
+        "total_changes": sum(1 for d in diffs if d["has_changes"]),
+    }
+
+
+@router.get("/generated/{policy_id}/versions/{version_id}")
+async def get_version(policy_id: str, version_id: str, current_user: Dict = Depends(get_current_user)):
+    """Get a specific version snapshot."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    version = await db.policy_versions.find_one(
+        {"policy_id": policy_id, "organization_id": org_id, "id": version_id}, {"_id": 0}
+    )
+    if not version:
+        raise HTTPException(404, "Version not found")
+    return version
+
+
+@router.put("/generated/{policy_id}/versions/{version_id}/restore")
+async def restore_version(policy_id: str, version_id: str, current_user: Dict = Depends(get_current_user)):
+    """Restore a policy to a previous version's state."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    version = await db.policy_versions.find_one(
+        {"policy_id": policy_id, "organization_id": org_id, "id": version_id}, {"_id": 0}
+    )
+    if not version:
+        raise HTTPException(404, "Version not found")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.generated_templates.update_one(
+        {"organization_id": org_id, "id": policy_id},
+        {"$set": {
+            "title": version["title"],
+            "sections": version["sections"],
+            "status": "draft",
+            "updated_at": now,
+        }}
+    )
+
+    latest = await db.policy_versions.find({"policy_id": policy_id}).sort("version_number", -1).limit(1).to_list(1)
+    next_ver = (latest[0]["version_number"] + 1) if latest else 1
+
+    restore_doc = {
+        "id": str(uuid.uuid4()),
+        "policy_id": policy_id,
+        "organization_id": org_id,
+        "version_number": next_ver,
+        "title": version["title"],
+        "sections": version["sections"],
+        "frameworks_addressed": version.get("frameworks_addressed", []),
+        "controls_addressed": version.get("controls_addressed", {}),
+        "status": "draft",
+        "change_summary": f"Restored from version {version['version_number']}",
+        "created_at": now,
+        "created_by": current_user["id"],
+        "created_by_name": current_user.get("name", current_user.get("email", "Unknown")),
+    }
+    await db.policy_versions.insert_one(restore_doc)
+    del restore_doc["_id"]
+
+    await db.generated_templates.update_one(
+        {"id": policy_id},
+        {"$set": {"version": f"{next_ver}.0"}}
+    )
+
+    return restore_doc
+
+
+@router.put("/generated/{policy_id}/status")
+async def update_policy_status(policy_id: str, data: StatusUpdateRequest, current_user: Dict = Depends(get_current_user)):
+    """Update policy approval status with workflow validation."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    valid_statuses = ["draft", "under_review", "approved"]
+    if data.status not in valid_statuses:
+        raise HTTPException(400, f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+
+    policy = await db.generated_templates.find_one({"organization_id": org_id, "id": policy_id}, {"_id": 0})
+    if not policy:
+        raise HTTPException(404, "Policy not found")
+
+    current_status = policy.get("status", "draft")
+    valid_transitions = {
+        "draft": ["under_review"],
+        "under_review": ["approved", "draft"],
+        "approved": ["draft"],
+    }
+    if data.status != current_status and data.status not in valid_transitions.get(current_status, []):
+        raise HTTPException(400, f"Cannot transition from '{current_status}' to '{data.status}'")
+
+    now = datetime.now(timezone.utc).isoformat()
+    update_fields = {"status": data.status, "updated_at": now}
+    if data.status == "approved":
+        update_fields["approved_by"] = current_user["id"]
+        update_fields["approved_by_name"] = current_user.get("name", current_user.get("email", "Unknown"))
+        update_fields["approved_at"] = now
+
+    await db.generated_templates.update_one(
+        {"organization_id": org_id, "id": policy_id},
+        {"$set": update_fields}
+    )
+
+    return {"message": f"Status updated to {data.status}", "status": data.status}
 
 
 @router.post("/document-tags")

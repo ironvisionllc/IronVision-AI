@@ -16,6 +16,7 @@ import {
   Pencil, FloppyDisk, ArrowsClockwise, Tag, Trash, Eye, CaretRight,
   CaretDown, Download, BookOpen, Wrench, Clock
 } from "@phosphor-icons/react";
+import { PolicyApprovalBar, VersionHistoryDialog } from "@/components/PolicyVersionControl";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
 
@@ -165,12 +166,12 @@ const PolicyTemplatesTab = () => {
 
   // Viewing a generated policy
   if (viewingPolicy) {
-    return <PolicyViewer policy={viewingPolicy} onBack={() => { setViewingPolicy(null); setEditingSections({}); }} editingSections={editingSections} setEditingSections={setEditingSections} onSave={saveSectionEdit} />;
+    return <PolicyViewer policy={viewingPolicy} onBack={() => { setViewingPolicy(null); setEditingSections({}); }} editingSections={editingSections} setEditingSections={setEditingSections} onSave={saveSectionEdit} onPolicyUpdate={(p) => { setViewingPolicy(p); setGeneratedPolicies(prev => prev.map(gp => gp.id === p.id ? p : gp)); }} />;
   }
 
   // Viewing freshly generated policy
   if (generatedPolicy) {
-    return <PolicyViewer policy={generatedPolicy} onBack={() => { setGeneratedPolicy(null); setEditingSections({}); }} editingSections={editingSections} setEditingSections={setEditingSections} onSave={saveSectionEdit} />;
+    return <PolicyViewer policy={generatedPolicy} onBack={() => { setGeneratedPolicy(null); setEditingSections({}); }} editingSections={editingSections} setEditingSections={setEditingSections} onSave={saveSectionEdit} onPolicyUpdate={(p) => { setGeneratedPolicy(p); setGeneratedPolicies(prev => prev.map(gp => gp.id === p.id ? p : gp)); }} />;
   }
 
   if (loading) return <div className="flex items-center justify-center h-40"><ArrowsClockwise size={24} className="animate-spin text-[#2597B2]" /></div>;
@@ -305,7 +306,11 @@ const PolicyTemplatesTab = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${p.status === "draft" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>{p.status}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                    p.status === "draft" ? "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400" :
+                    p.status === "under_review" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400" :
+                    "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
+                  }`}>{p.status === "under_review" ? "Under Review" : p.status}</span>
                   <CaretRight size={14} className="text-gray-400" />
                 </div>
               </div>
@@ -319,8 +324,44 @@ const PolicyTemplatesTab = () => {
 
 
 /* ── Policy Viewer / Editor ── */
-const PolicyViewer = ({ policy, onBack, editingSections, setEditingSections, onSave }) => {
+const PolicyViewer = ({ policy, onBack, editingSections, setEditingSections, onSave, onPolicyUpdate }) => {
   const [editBuffer, setEditBuffer] = useState({});
+  const [showHistory, setShowHistory] = useState(false);
+  const [versionCount, setVersionCount] = useState(0);
+
+  useEffect(() => {
+    if (policy?.id) {
+      axios.get(`${API}/policy-templates/generated/${policy.id}/versions`)
+        .then(r => setVersionCount(r.data.length))
+        .catch(() => {});
+    }
+  }, [policy?.id]);
+
+  const handleStatusChange = (newStatus) => {
+    const updated = { ...policy, status: newStatus };
+    if (newStatus === "approved") {
+      updated.approved_at = new Date().toISOString();
+    }
+    onPolicyUpdate?.(updated);
+  };
+
+  const handleRestore = async () => {
+    try {
+      const res = await axios.get(`${API}/policy-templates/generated/${policy.id}`);
+      onPolicyUpdate?.(res.data);
+      setVersionCount(prev => prev + 1);
+    } catch {}
+  };
+
+  const handleVersionSaved = async () => {
+    try {
+      const res = await axios.get(`${API}/policy-templates/generated/${policy.id}`);
+      onPolicyUpdate?.(res.data);
+      setVersionCount(prev => prev + 1);
+    } catch {}
+  };
+
+  const isReadOnly = policy?.status === "approved" || policy?.status === "under_review";
 
   return (
     <div data-testid="policy-viewer">
@@ -328,7 +369,7 @@ const PolicyViewer = ({ policy, onBack, editingSections, setEditingSections, onS
         <CaretRight size={14} weight="bold" className="rotate-180" /> Back to Templates
       </button>
 
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{policy.title}</h2>
           <p className="text-xs text-gray-400 mt-1">Version {policy.version} | {policy.sections?.length} sections | Created {new Date(policy.created_at).toLocaleDateString()}</p>
@@ -340,21 +381,46 @@ const PolicyViewer = ({ policy, onBack, editingSections, setEditingSections, onS
         </div>
       </div>
 
+      <PolicyApprovalBar
+        policy={policy}
+        onStatusChange={handleStatusChange}
+        onSaveVersion={() => setShowHistory(true)}
+        versionCount={versionCount}
+        onOpenHistory={() => setShowHistory(true)}
+      />
+
+      <VersionHistoryDialog
+        open={showHistory}
+        onOpenChange={setShowHistory}
+        policyId={policy.id}
+        onRestore={handleRestore}
+        onVersionSaved={handleVersionSaved}
+      />
+
+      {isReadOnly && (
+        <div className="flex items-center gap-2 px-4 py-2.5 mb-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-xs text-gray-500" data-testid="readonly-banner">
+          <Warning size={14} />
+          {policy.status === "approved" ? "This policy is approved. Reopen as draft to make edits." : "This policy is under review. Return to draft to make edits."}
+        </div>
+      )}
+
       <div className="space-y-4" data-testid="policy-sections">
         {(policy.sections || []).map((section, idx) => (
           <div key={idx} className="iv-card" data-testid={`policy-section-${idx}`}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-800">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{section.heading}</h3>
-              <button
-                onClick={() => {
-                  if (editingSections[idx]) { setEditingSections(p => ({...p, [idx]: false})); }
-                  else { setEditBuffer(p => ({...p, [idx]: section.content})); setEditingSections(p => ({...p, [idx]: true})); }
-                }}
-                className="text-xs text-[#2597B2] hover:text-[#1B839F] font-medium flex items-center gap-1"
-                data-testid={`edit-section-btn-${idx}`}
-              >
-                {editingSections[idx] ? "Cancel" : <><Pencil size={12} /> Edit</>}
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={() => {
+                    if (editingSections[idx]) { setEditingSections(p => ({...p, [idx]: false})); }
+                    else { setEditBuffer(p => ({...p, [idx]: section.content})); setEditingSections(p => ({...p, [idx]: true})); }
+                  }}
+                  className="text-xs text-[#2597B2] hover:text-[#1B839F] font-medium flex items-center gap-1"
+                  data-testid={`edit-section-btn-${idx}`}
+                >
+                  {editingSections[idx] ? "Cancel" : <><Pencil size={12} /> Edit</>}
+                </button>
+              )}
             </div>
             <div className="p-5">
               {editingSections[idx] ? (
