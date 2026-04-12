@@ -25,66 +25,52 @@ Global: Cmd+K Command Palette, Compliance Copilot (AI chat)
 ### Policy Center (Standout Feature)
 **Tab 1: Policy Templates**
 - [x] 10 pre-built GRC templates with framework mappings
-- [x] **Template Detail View**: Click any template → see all sections, framework coverage with individual control IDs, SIEM thresholds with best practices, Generate button
-- [x] Organization Questionnaire for personalized policies
-- [x] SIEM Threshold Suggestions for technical controls
-- [x] AI policy generation via GPT-5.2
-- [x] Fully editable sections with inline save
-- [x] Generated policies listed with version, status, date
+- [x] Template Detail View: click template → see all sections, framework coverage with control IDs, SIEM thresholds, Generate button
+- [x] Organization Questionnaire, AI policy generation via GPT-5.2
+- [x] Policy Version Control: snapshots, diff, restore, approval workflow (Draft→Under Review→Approved)
+- [x] Reviewer & Approver Assignment from org users
+- [x] Approved Policy → Framework Linkage (auto-creates control mappings)
 
-**Policy Version Control (Apr 12, 2026)**
-- [x] Version Snapshots with change summaries, auto-version 1 on generation
-- [x] Version History Dialog with LATEST/INITIAL tags, version diff (unified diff)
-- [x] Version Restore creates new version automatically
-- [x] Approval Workflow: Draft → Under Review → Approved with validated transitions
-- [x] Read-Only Mode when policy is approved or under review
+**Tab 2: Upload & Map (Redesigned Apr 12, 2026)**
+- [x] Dual upload mode: "Map to Framework" (select frameworks) or "General Upload" (no framework required)
+- [x] Document category selector: Policy, Procedure, Evidence, Contract, Training, Other
+- [x] Custom labels/tags input (comma-separated) stored on upload
+- [x] Expanded file support: PDF, DOCX, DOC, TXT, CSV, XLSX, PNG, JPG
+- [x] Recent uploads with category + custom tag badges
 
-**Reviewer & Approver Assignment (Apr 12, 2026)**
-- [x] Assign specific reviewers and approvers to each policy from org users
-- [x] Assignee dialog with checkbox-based user selection (Reviewers/Approvers)
-- [x] Assigned users displayed in the approval bar (blue for reviewers, green for approvers)
-
-**Approved Policy → Framework Linkage (Apr 12, 2026)**
-- [x] When policy approved, auto-creates mapping records in `mappings` collection
-- [x] Maps policy to all addressed framework controls (fuzzy framework name matching)
-- [x] Re-approval cleans old mappings and recreates fresh ones
-- [x] Approved policies visible in Framework Workspace per-control "Policies" tab
-
-**Tab 2: Upload & Map**
-- [x] Upload PDF/DOCX policy documents, multi-framework selector, drag & drop
-
-**Tab 3: Document Library (Unified, Apr 12, 2026)**
-- [x] Unified view of generated policies AND uploaded documents
-- [x] Type filter: All Types / Generated Policies / Uploaded Documents
-- [x] Status filter: All / Draft / Under Review / Approved / Completed
-- [x] Status badges + type badges (Policy/Upload) + framework tags
-- [x] Search across both types, document tagging preserved
+**Tab 3: Document Library (Redesigned Apr 12, 2026)**
+- [x] Unified view: generated policies + uploaded documents in one list
+- [x] 4 filters: Search, Type (Policies/Uploads), Status (Draft/Under Review/Approved), Category
+- [x] **Click-to-view**: Click generated policy → opens PolicyViewer with approval bar; Click uploaded doc → opens DocumentDetailPanel
+- [x] DocumentDetailPanel: file info, category badge, Edit mode (change category, description)
+- [x] **Custom Labels system**: Add/remove freeform tags with auto-suggest from previously used labels
+- [x] **Framework Control Tags**: Add/remove framework+control ID tags per document
+- [x] Status badges, type badges, framework tags, custom tag pills on each card
 
 **Tab 4-5: Control Mappings + Cross-Framework**
 
 ### Frameworks & AI Control Mapping
-- [x] Framework grid with Organize panel (show/hide, reorder)
-- [x] Framework Workspace with AI assessment, policies tab per control
-- [x] Implementation & Guidelines tab (AI-generated, cached)
-- [x] Enhanced AI Policy Suggestion (WHERE met + Gaps)
+- [x] Framework grid with Organize panel, Framework Workspace with AI assessment
+- [x] Policies tab per control shows approved policy mappings
 
 ### Dashboard (Customizable)
 - [x] 5 widget sections, toggle visibility + reorder
 
 ### Other Features
 - [x] 12 frameworks, 869 controls, Command Palette (Cmd+K)
-- [x] Compliance Copilot (GPT-5.2), Slack Integration
-- [x] SIEM with live simulator, Full dark mode, JWT auth
+- [x] Compliance Copilot (GPT-5.2), Slack Integration, SIEM with live simulator
+- [x] Full dark mode, JWT auth with demo accounts
 
 ## Architecture
 ```
 Backend: FastAPI + Motor (async MongoDB)
 Frontend: React 18 + Tailwind + Shadcn
-Key Routes: /api/policy-templates (templates, versions, status, diff, restore, 
-            assignees, org-users, document-tags)
-            /api/control-compliance, /api/copilot, /api/siem, etc.
+Key Routes:
+  /api/policy-templates (templates, versions, status, diff, restore, assignees, org-users, document-tags)
+  /api/documents (upload, list, metadata, custom-tags, download-url)
+  /api/control-compliance, /api/copilot, /api/siem, etc.
 DB Collections: org_profiles, generated_templates, policy_versions, mappings,
-                document_tags, control_compliance, siem_events, users, frameworks
+                document_tags, document_uploads, control_compliance, siem_events, users, frameworks
 External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2)
 ```
 
