@@ -104,6 +104,7 @@ const PolicyTemplatesTab = () => {
   const [editingSections, setEditingSections] = useState({});
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [detailTemplate, setDetailTemplate] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -163,6 +164,11 @@ const PolicyTemplatesTab = () => {
   });
 
   const categories = [...new Set(templates.map(t => t.category))];
+
+  // Viewing template detail
+  if (detailTemplate) {
+    return <TemplateDetailView template={detailTemplate} onBack={() => setDetailTemplate(null)} onGenerate={generatePolicy} generating={generating} selectedTemplate={selectedTemplate} />;
+  }
 
   // Viewing a generated policy
   if (viewingPolicy) {
@@ -245,7 +251,7 @@ const PolicyTemplatesTab = () => {
         {filtered.map(t => {
           const cat = CATEGORY_COLORS[t.category] || CATEGORY_COLORS.Security;
           return (
-            <div key={t.id} className="iv-card p-5 hover:ring-1 hover:ring-[#2597B2]/20 transition-all group" data-testid={`template-card-${t.id}`}>
+            <div key={t.id} className="iv-card p-5 hover:ring-1 hover:ring-[#2597B2]/20 transition-all group cursor-pointer" onClick={() => setDetailTemplate(t)} data-testid={`template-card-${t.id}`}>
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 group-hover:text-[#2597B2] transition-colors">{t.title}</h3>
@@ -266,9 +272,9 @@ const PolicyTemplatesTab = () => {
                   <span>{t.sections.length} sections</span>
                   {t.has_siem && <span className="flex items-center gap-0.5 text-blue-500"><Lightning size={10} weight="fill" /> SIEM thresholds</span>}
                 </div>
-                <Button size="sm" className="h-7 text-xs bg-[#2597B2] hover:bg-[#1B839F]" onClick={() => generatePolicy(t)} disabled={generating && selectedTemplate?.id === t.id} data-testid={`generate-btn-${t.id}`}>
-                  {generating && selectedTemplate?.id === t.id ? <><ArrowsClockwise size={12} className="animate-spin mr-1" /> Generating...</> : <>Generate <ArrowRight size={12} className="ml-1" /></>}
-                </Button>
+                <span className="text-xs font-medium text-[#2597B2] group-hover:translate-x-0.5 transition-transform flex items-center gap-1" data-testid={`view-template-btn-${t.id}`}>
+                  Details <ArrowRight size={12} />
+                </span>
               </div>
 
               {/* SIEM Thresholds Preview */}
@@ -387,6 +393,7 @@ const PolicyViewer = ({ policy, onBack, editingSections, setEditingSections, onS
         onSaveVersion={() => setShowHistory(true)}
         versionCount={versionCount}
         onOpenHistory={() => setShowHistory(true)}
+        onPolicyUpdate={onPolicyUpdate}
       />
 
       <VersionHistoryDialog
@@ -445,6 +452,96 @@ const PolicyViewer = ({ policy, onBack, editingSections, setEditingSections, onS
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+
+/* ── Template Detail View ── */
+const TemplateDetailView = ({ template, onBack, onGenerate, generating, selectedTemplate }) => {
+  const cat = CATEGORY_COLORS[template.category] || CATEGORY_COLORS.Security;
+  const totalControls = Object.values(template.frameworks).reduce((sum, ctrls) => sum + ctrls.length, 0);
+
+  return (
+    <div data-testid="template-detail-view">
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-[#2597B2] hover:text-[#1B839F] font-medium mb-4" data-testid="back-from-detail">
+        <CaretRight size={14} weight="bold" className="rotate-180" /> Back to Templates
+      </button>
+
+      <div className="iv-card p-6 mb-5">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{template.title}</h2>
+              <span className={`text-[10px] font-medium px-2.5 py-1 rounded-full border ${cat.bg} ${cat.text} ${cat.border}`}>{template.category}</span>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{template.description}</p>
+          </div>
+          <Button className="h-10 px-6 bg-[#2597B2] hover:bg-[#1B839F] text-white shrink-0 ml-4" onClick={() => onGenerate(template)} disabled={generating && selectedTemplate?.id === template.id} data-testid="generate-from-detail-btn">
+            {generating && selectedTemplate?.id === template.id ? <><ArrowsClockwise size={14} className="animate-spin mr-2" /> Generating...</> : <>Generate Policy <ArrowRight size={14} className="ml-2" /></>}
+          </Button>
+        </div>
+        <div className="flex items-center gap-4 text-xs text-gray-500">
+          <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-[#2597B2]" /> {Object.keys(template.frameworks).length} frameworks</span>
+          <span>{totalControls} controls</span>
+          <span>{template.sections.length} sections</span>
+          {template.has_siem && <span className="flex items-center gap-1 text-blue-500"><Lightning size={14} weight="fill" /> SIEM thresholds included</span>}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+        <div className="iv-card p-5" data-testid="template-sections-detail">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+            <BookOpen size={16} weight="duotone" className="text-[#2597B2]" /> Policy Sections
+          </h3>
+          <ol className="space-y-1.5">
+            {template.sections.map((section, idx) => (
+              <li key={idx} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                <span className="w-6 h-6 rounded-full bg-[#2597B2]/10 text-[#2597B2] text-[10px] font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">{section}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="iv-card p-5" data-testid="template-frameworks-detail">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+            <ShieldCheck size={16} weight="duotone" className="text-[#2597B2]" /> Framework Coverage
+          </h3>
+          <div className="space-y-4">
+            {Object.entries(template.frameworks).map(([fw, controls]) => (
+              <div key={fw}>
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">{fw}</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {controls.map(ctrl => (
+                    <span key={ctrl} className="text-[10px] font-mono px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">{ctrl}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {template.siem_thresholds?.length > 0 && (
+        <div className="iv-card p-5" data-testid="template-siem-detail">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+            <Lightning size={16} weight="duotone" className="text-blue-500" /> SIEM Monitoring Thresholds
+          </h3>
+          <div className="space-y-3">
+            {template.siem_thresholds.map((st, i) => (
+              <div key={i} className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-xs font-mono font-bold text-[#2597B2]">{st.control_id}</span>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{st.description}</span>
+                </div>
+                <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-1"><span className="font-semibold">Threshold:</span> {st.threshold}</p>
+                <p className="text-[11px] text-gray-500"><span className="font-semibold">Best Practice:</span> {st.best_practice}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -565,14 +662,26 @@ const UploadMapTab = () => {
 
 
 /* ══════════════════════════════════════════════════════════
-   TAB 3: DOCUMENT LIBRARY
+   TAB 3: DOCUMENT LIBRARY (Unified: Uploads + Generated Policies)
    ══════════════════════════════════════════════════════════ */
+const STATUS_STYLES = {
+  draft: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-400", label: "Draft" },
+  under_review: { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-700 dark:text-blue-400", label: "Under Review" },
+  approved: { bg: "bg-emerald-50 dark:bg-emerald-900/20", text: "text-emerald-700 dark:text-emerald-400", label: "Approved" },
+  completed: { bg: "bg-emerald-50 dark:bg-emerald-900/20", text: "text-emerald-700 dark:text-emerald-400", label: "Completed" },
+  pending: { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-700 dark:text-amber-400", label: "Pending" },
+  failed: { bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-700 dark:text-red-400", label: "Failed" },
+};
+
 const DocumentLibraryTab = () => {
   const [documents, setDocuments] = useState([]);
+  const [generatedPolicies, setGeneratedPolicies] = useState([]);
   const [tags, setTags] = useState([]);
   const [frameworks, setFrameworks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [showTagDialog, setShowTagDialog] = useState(false);
   const [tagForm, setTagForm] = useState({ document_id: "", document_name: "", framework_id: "", framework_name: "", control_ids: "", notes: "" });
 
@@ -581,6 +690,7 @@ const DocumentLibraryTab = () => {
       axios.get(`${API}/documents`).then(r => setDocuments(r.data)).catch(() => {}),
       axios.get(`${API}/policy-templates/document-tags`).then(r => setTags(r.data)).catch(() => {}),
       axios.get(`${API}/frameworks`).then(r => setFrameworks(r.data)).catch(() => {}),
+      axios.get(`${API}/policy-templates/generated`).then(r => setGeneratedPolicies(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -608,22 +718,44 @@ const DocumentLibraryTab = () => {
     } catch { toast.error("Failed to remove tag"); }
   };
 
-  const filtered = documents.filter(d => {
-    if (search) {
-      const q = search.toLowerCase();
-      return d.filename?.toLowerCase().includes(q);
-    }
+  const allItems = [
+    ...documents.map(d => ({ _key: `up-${d.job_id}`, type: "uploaded", id: d.job_id, name: d.filename, date: d.created_at, status: d.status, framework: d.framework, raw: d })),
+    ...generatedPolicies.map(p => ({ _key: `gp-${p.id}`, type: "generated", id: p.id, name: p.title, date: p.created_at, status: p.status, version: p.version, frameworks: p.frameworks_addressed, sectionCount: p.sections?.length, raw: p })),
+  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const filtered = allItems.filter(item => {
+    if (search && !item.name?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (typeFilter !== "all" && item.type !== typeFilter) return false;
+    if (statusFilter !== "all" && item.status !== statusFilter) return false;
     return true;
   });
+
+  const statusCounts = { all: allItems.length };
+  allItems.forEach(i => { statusCounts[i.status] = (statusCounts[i.status] || 0) + 1; });
 
   if (loading) return <div className="flex items-center justify-center h-40"><ArrowsClockwise size={24} className="animate-spin text-[#2597B2]" /></div>;
 
   return (
     <div data-testid="library-tab">
-      <div className="flex items-center justify-between mb-4">
-        <div className="relative flex-1 max-w-sm">
-          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="Search documents..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" data-testid="library-search" />
+      {/* Filter Bar */}
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="relative flex-1 max-w-sm">
+            <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Input placeholder="Search all documents..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-9 text-sm" data-testid="library-search" />
+          </div>
+          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} className="h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" data-testid="library-type-filter">
+            <option value="all">All Types ({allItems.length})</option>
+            <option value="generated">Generated Policies ({allItems.filter(i => i.type === "generated").length})</option>
+            <option value="uploaded">Uploaded Documents ({allItems.filter(i => i.type === "uploaded").length})</option>
+          </select>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="h-9 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" data-testid="library-status-filter">
+            <option value="all">All Statuses</option>
+            <option value="draft">Draft ({statusCounts.draft || 0})</option>
+            <option value="under_review">Under Review ({statusCounts.under_review || 0})</option>
+            <option value="approved">Approved ({statusCounts.approved || 0})</option>
+            <option value="completed">Completed ({statusCounts.completed || 0})</option>
+          </select>
         </div>
         <Button size="sm" className="h-8 text-xs bg-[#2597B2] hover:bg-[#1B839F]" onClick={() => setShowTagDialog(true)} data-testid="tag-document-btn">
           <Tag size={14} className="mr-1" /> Tag Document
@@ -662,30 +794,65 @@ const DocumentLibraryTab = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Documents List */}
+      {/* Unified Document List */}
       {filtered.length === 0 ? (
         <div className="text-center py-12">
           <Files size={32} className="mx-auto mb-2 text-gray-300" />
-          <p className="text-sm text-gray-500">No documents yet. Upload one in the "Upload & Map" tab.</p>
+          <p className="text-sm text-gray-500">{allItems.length === 0 ? "No documents yet. Generate a policy or upload a document to get started." : "No documents match your filters."}</p>
         </div>
       ) : (
         <div className="space-y-3" data-testid="documents-list">
-          {filtered.map(doc => {
-            const docTags = tags.filter(t => t.document_id === doc.job_id);
-            return (
-              <div key={doc.job_id} className="iv-card p-4" data-testid={`doc-${doc.job_id}`}>
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <FileText size={20} weight="duotone" className="text-[#2597B2] shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{doc.filename}</p>
-                      <p className="text-[10px] text-gray-400">{doc.framework} | Uploaded {new Date(doc.created_at).toLocaleDateString()}</p>
+          {filtered.map(item => {
+            const st = STATUS_STYLES[item.status] || STATUS_STYLES.pending;
+            if (item.type === "generated") {
+              return (
+                <div key={item._key} className="iv-card p-4" data-testid={`lib-policy-${item.id}`}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-[#2597B2]/10 flex items-center justify-center shrink-0">
+                        <FileText size={18} weight="duotone" className="text-[#2597B2]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.name}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          Generated Policy &middot; v{item.version} &middot; {item.sectionCount} sections &middot; {new Date(item.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${st.bg} ${st.text}`}>{st.label}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#2597B2]/10 text-[#2597B2] font-medium">Policy</span>
                     </div>
                   </div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${doc.status === "completed" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{doc.status}</span>
+                  {item.frameworks?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                      {item.frameworks.map(fw => (
+                        <span key={fw} className="text-[10px] px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-500 font-medium">{fw}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                {/* Tags */}
+              );
+            }
+            // Uploaded document
+            const docTags = tags.filter(t => t.document_id === item.id);
+            return (
+              <div key={item._key} className="iv-card p-4" data-testid={`doc-${item.id}`}>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
+                      <CloudArrowUp size={18} weight="duotone" className="text-gray-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.name}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">Uploaded Document &middot; {item.framework} &middot; {new Date(item.date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${st.bg} ${st.text}`}>{st.label}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 font-medium">Upload</span>
+                  </div>
+                </div>
                 {docTags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                     {docTags.map(tag => (

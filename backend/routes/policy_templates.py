@@ -569,7 +569,90 @@ async def update_policy_status(policy_id: str, data: StatusUpdateRequest, curren
         {"$set": update_fields}
     )
 
+    # Auto-link approved policy to framework controls
+    if data.status == "approved":
+        controls_addressed = policy.get("controls_addressed", {})
+        frameworks_addressed = policy.get("frameworks_addressed", [])
+        # Remove old mappings for this policy
+        await db.mappings.delete_many({"organization_id": org_id, "source_policy_id": policy_id})
+        # Pre-fetch all frameworks for fuzzy matching
+        all_fws = await db.frameworks.find({}, {"_id": 0, "id": 1, "name": 1}).to_list(100)
+        # Create new mappings per framework/control
+        for fw_name in frameworks_addressed:
+            # Fuzzy match: try exact, then substring, then first word
+            fw_id = fw_name
+            for db_fw in all_fws:
+                db_name_lower = db_fw["name"].lower()
+                fw_name_lower = fw_name.lower()
+                if db_name_lower == fw_name_lower or db_name_lower in fw_name_lower or fw_name_lower in db_name_lower:
+                    fw_id = db_fw["id"]
+                    break
+            ctrl_ids = controls_addressed.get(fw_name, [])
+            for ctrl_id in ctrl_ids:
+                mapping = {
+                    "id": str(uuid.uuid4()),
+                    "organization_id": org_id,
+                    "framework_id": fw_id,
+                    "control_id": ctrl_id,
+                    "policy_name": policy.get("title", "Unnamed Policy"),
+                    "source_policy_id": policy_id,
+                    "source": "Generated Policy",
+                    "confidence_score": 1.0,
+                    "status": "approved",
+                    "created_at": now,
+                }
+                await db.mappings.insert_one(mapping)
+
     return {"message": f"Status updated to {data.status}", "status": data.status}
+
+
+class AssigneeUpdateRequest(BaseModel):
+    reviewers: Optional[List[str]] = None
+    approvers: Optional[List[str]] = None
+
+
+@router.put("/generated/{policy_id}/assignees")
+async def update_policy_assignees(policy_id: str, data: AssigneeUpdateRequest, current_user: Dict = Depends(get_current_user)):
+    """Assign reviewers and approvers to a policy."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    policy = await db.generated_templates.find_one({"organization_id": org_id, "id": policy_id}, {"_id": 0})
+    if not policy:
+        raise HTTPException(404, "Policy not found")
+
+    now = datetime.now(timezone.utc).isoformat()
+    update = {"updated_at": now}
+    if data.reviewers is not None:
+        # Resolve user names
+        reviewer_details = []
+        for uid in data.reviewers:
+            user = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "email": 1, "name": 1})
+            if user:
+                reviewer_details.append({"id": user["id"], "email": user.get("email", ""), "name": user.get("name", user.get("email", ""))})
+        update["reviewers"] = reviewer_details
+    if data.approvers is not None:
+        approver_details = []
+        for uid in data.approvers:
+            user = await db.users.find_one({"id": uid}, {"_id": 0, "id": 1, "email": 1, "name": 1})
+            if user:
+                approver_details.append({"id": user["id"], "email": user.get("email", ""), "name": user.get("name", user.get("email", ""))})
+        update["approvers"] = approver_details
+
+    await db.generated_templates.update_one(
+        {"organization_id": org_id, "id": policy_id},
+        {"$set": update}
+    )
+    return {"message": "Assignees updated", "reviewers": update.get("reviewers", policy.get("reviewers", [])), "approvers": update.get("approvers", policy.get("approvers", []))}
+
+
+@router.get("/org-users")
+async def get_org_users(current_user: Dict = Depends(get_current_user)):
+    """Get all users in the organization for assignment."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    users = await db.users.find(
+        {"roles.organization_id": org_id},
+        {"_id": 0, "id": 1, "email": 1, "name": 1, "roles": 1}
+    ).to_list(100)
+    return [{"id": u["id"], "email": u.get("email", ""), "name": u.get("name", u.get("email", "")), "role": u.get("roles", [{}])[0].get("role", "")} for u in users]
 
 
 @router.post("/document-tags")

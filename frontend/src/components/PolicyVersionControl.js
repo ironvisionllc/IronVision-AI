@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   Clock, CheckCircle, ArrowsClockwise, CaretDown, CaretRight,
-  GitBranch, FloppyDisk, Eye, ShieldCheck, PaperPlaneTilt
+  GitBranch, FloppyDisk, Eye, ShieldCheck, PaperPlaneTilt, UserCirclePlus, Users
 } from "@phosphor-icons/react";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
@@ -21,8 +21,9 @@ const STATUS_CONFIG = {
 /* ══════════════════════════════════════════════════════════
    APPROVAL STATUS BAR
    ══════════════════════════════════════════════════════════ */
-export const PolicyApprovalBar = ({ policy, onStatusChange, onSaveVersion, versionCount, onOpenHistory }) => {
+export const PolicyApprovalBar = ({ policy, onStatusChange, onSaveVersion, versionCount, onOpenHistory, onPolicyUpdate }) => {
   const [changingStatus, setChangingStatus] = useState(false);
+  const [showAssign, setShowAssign] = useState(false);
   const status = policy?.status || "draft";
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
   const StatusIcon = cfg.icon;
@@ -39,52 +40,184 @@ export const PolicyApprovalBar = ({ policy, onStatusChange, onSaveVersion, versi
     } finally { setChangingStatus(false); }
   };
 
+  const reviewers = policy?.reviewers || [];
+  const approvers = policy?.approvers || [];
+
   return (
-    <div className="iv-card p-4 mb-5 flex items-center justify-between flex-wrap gap-3" data-testid="policy-approval-bar">
-      <div className="flex items-center gap-3">
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`} data-testid="policy-status-badge">
-          <StatusIcon size={14} weight="fill" />
-          {cfg.label}
+    <>
+      <div className="iv-card p-4 mb-3" data-testid="policy-approval-bar">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`} data-testid="policy-status-badge">
+              <StatusIcon size={14} weight="fill" />
+              {cfg.label}
+            </div>
+            {status === "approved" && policy.approved_at && (
+              <span className="text-[10px] text-gray-400">
+                Approved {new Date(policy.approved_at).toLocaleDateString()}{policy.approved_by_name ? ` by ${policy.approved_by_name}` : ""}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {status === "draft" && (
+              <>
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={onSaveVersion} data-testid="save-version-btn">
+                  <FloppyDisk size={13} /> Save Version
+                </Button>
+                <Button size="sm" className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5" onClick={() => changeStatus("under_review")} disabled={changingStatus} data-testid="submit-review-btn">
+                  <PaperPlaneTilt size={13} /> Submit for Review
+                </Button>
+              </>
+            )}
+            {status === "under_review" && (
+              <>
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => changeStatus("draft")} disabled={changingStatus} data-testid="return-draft-btn">
+                  Return to Draft
+                </Button>
+                <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5" onClick={() => changeStatus("approved")} disabled={changingStatus} data-testid="approve-btn">
+                  <CheckCircle size={13} weight="fill" /> Approve
+                </Button>
+              </>
+            )}
+            {status === "approved" && (
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => changeStatus("draft")} disabled={changingStatus} data-testid="reopen-draft-btn">
+                Reopen as Draft
+              </Button>
+            )}
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => setShowAssign(true)} data-testid="assign-btn">
+              <UserCirclePlus size={13} /> Assign
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={onOpenHistory} data-testid="version-history-btn">
+              <GitBranch size={13} /> History
+              {versionCount > 0 && <span className="ml-0.5 bg-gray-100 dark:bg-gray-800 px-1.5 rounded-full text-[10px]">{versionCount}</span>}
+            </Button>
+          </div>
         </div>
-        {status === "approved" && policy.approved_at && (
-          <span className="text-[10px] text-gray-400">
-            Approved {new Date(policy.approved_at).toLocaleDateString()}{policy.approved_by_name ? ` by ${policy.approved_by_name}` : ""}
-          </span>
+
+        {/* Assignees Row */}
+        {(reviewers.length > 0 || approvers.length > 0) && (
+          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800" data-testid="assignees-row">
+            {reviewers.length > 0 && (
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                <span className="font-semibold text-gray-600 dark:text-gray-400">Reviewers:</span>
+                {reviewers.map((r, i) => (
+                  <span key={r.id || i} className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium">{r.name || r.email}</span>
+                ))}
+              </div>
+            )}
+            {approvers.length > 0 && (
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                <span className="font-semibold text-gray-600 dark:text-gray-400">Approvers:</span>
+                {approvers.map((a, i) => (
+                  <span key={a.id || i} className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-medium">{a.name || a.email}</span>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        {status === "draft" && (
-          <>
-            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={onSaveVersion} data-testid="save-version-btn">
-              <FloppyDisk size={13} /> Save Version
+      <AssigneeDialog open={showAssign} onOpenChange={setShowAssign} policy={policy} onUpdate={onPolicyUpdate} />
+    </>
+  );
+};
+
+
+/* ══════════════════════════════════════════════════════════
+   ASSIGNEE DIALOG (Reviewer & Approver Assignment)
+   ══════════════════════════════════════════════════════════ */
+const AssigneeDialog = ({ open, onOpenChange, policy, onUpdate }) => {
+  const [orgUsers, setOrgUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [selectedReviewers, setSelectedReviewers] = useState([]);
+  const [selectedApprovers, setSelectedApprovers] = useState([]);
+
+  React.useEffect(() => {
+    if (open) {
+      setSelectedReviewers((policy?.reviewers || []).map(r => r.id));
+      setSelectedApprovers((policy?.approvers || []).map(a => a.id));
+      setLoading(true);
+      axios.get(`${API}/policy-templates/org-users`)
+        .then(r => setOrgUsers(r.data))
+        .catch(() => toast.error("Failed to load users"))
+        .finally(() => setLoading(false));
+    }
+  }, [open, policy]);
+
+  const toggleUser = (userId, list, setter) => {
+    setter(prev => prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await axios.put(`${API}/policy-templates/generated/${policy.id}/assignees`, {
+        reviewers: selectedReviewers,
+        approvers: selectedApprovers,
+      });
+      toast.success("Assignees updated");
+      onUpdate?.({ ...policy, reviewers: res.data.reviewers, approvers: res.data.approvers });
+      onOpenChange(false);
+    } catch { toast.error("Failed to update assignees"); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md" data-testid="assignee-dialog">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users size={18} weight="duotone" className="text-[#2597B2]" />
+            Assign Reviewers & Approvers
+          </DialogTitle>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8"><ArrowsClockwise size={20} className="animate-spin text-[#2597B2]" /></div>
+        ) : orgUsers.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center py-6">No users found in your organization.</p>
+        ) : (
+          <div className="space-y-4 mt-2">
+            <div>
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                <Eye size={13} className="text-blue-500" /> Reviewers
+              </p>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {orgUsers.map(u => (
+                  <label key={`r-${u.id}`} className={`flex items-center gap-2.5 p-2 rounded-lg border cursor-pointer transition-all text-xs ${selectedReviewers.includes(u.id) ? "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800" : "border-gray-200 dark:border-gray-700 hover:border-gray-300"}`}>
+                    <input type="checkbox" checked={selectedReviewers.includes(u.id)} onChange={() => toggleUser(u.id, selectedReviewers, setSelectedReviewers)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    <span className="text-gray-700 dark:text-gray-300">{u.name || u.email}</span>
+                    <span className="text-[10px] text-gray-400 ml-auto">{u.role}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                <ShieldCheck size={13} className="text-emerald-500" /> Approvers
+              </p>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {orgUsers.map(u => (
+                  <label key={`a-${u.id}`} className={`flex items-center gap-2.5 p-2 rounded-lg border cursor-pointer transition-all text-xs ${selectedApprovers.includes(u.id) ? "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800" : "border-gray-200 dark:border-gray-700 hover:border-gray-300"}`}>
+                    <input type="checkbox" checked={selectedApprovers.includes(u.id)} onChange={() => toggleUser(u.id, selectedApprovers, setSelectedApprovers)} className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                    <span className="text-gray-700 dark:text-gray-300">{u.name || u.email}</span>
+                    <span className="text-[10px] text-gray-400 ml-auto">{u.role}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <Button className="w-full bg-[#2597B2] hover:bg-[#1B839F] text-white" onClick={save} disabled={saving} data-testid="save-assignees-btn">
+              {saving ? <ArrowsClockwise size={14} className="animate-spin mr-2" /> : null}
+              Save Assignments
             </Button>
-            <Button size="sm" className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5" onClick={() => changeStatus("under_review")} disabled={changingStatus} data-testid="submit-review-btn">
-              <PaperPlaneTilt size={13} /> Submit for Review
-            </Button>
-          </>
+          </div>
         )}
-        {status === "under_review" && (
-          <>
-            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => changeStatus("draft")} disabled={changingStatus} data-testid="return-draft-btn">
-              Return to Draft
-            </Button>
-            <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5" onClick={() => changeStatus("approved")} disabled={changingStatus} data-testid="approve-btn">
-              <CheckCircle size={13} weight="fill" /> Approve
-            </Button>
-          </>
-        )}
-        {status === "approved" && (
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => changeStatus("draft")} disabled={changingStatus} data-testid="reopen-draft-btn">
-            Reopen as Draft
-          </Button>
-        )}
-        <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={onOpenHistory} data-testid="version-history-btn">
-          <GitBranch size={13} /> History
-          {versionCount > 0 && <span className="ml-0.5 bg-gray-100 dark:bg-gray-800 px-1.5 rounded-full text-[10px]">{versionCount}</span>}
-        </Button>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

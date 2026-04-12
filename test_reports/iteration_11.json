@@ -1,0 +1,78 @@
+{
+  "summary": "Completed comprehensive testing of 4 new features: (1) Template Detail View - clicking template card shows all sections, framework coverage with individual control IDs, SIEM thresholds with best practices, Generate button works; (2) Document Library Enhancement - unified list shows both generated policies and uploaded documents, type filter (All/Generated/Uploaded), status filter (Draft/Under Review/Approved/Completed), search works across both types; (3) Approved Policy → Framework Linkage - backend creates mappings in mappings collection when policy approved, re-approval replaces old mappings; (4) Reviewer/Approver Assignment - Assign button opens dialog, lists org users with checkboxes for Reviewer/Approver roles, Save Assignments persists to backend, assignees shown in approval bar.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration11_new_features.py",
+    "/app/test_reports/pytest/pytest_iteration11_new_features.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration11_new_features.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (all UI tests passed)"
+  },
+  "test_credentials": {
+    "admin": "demo-admin@grc.com / DemoAdmin123!"
+  },
+  "seed_data_creation": "Used existing generated policies and org users from prior sessions.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 4 new features fully implemented and tested. Template Detail View shows sections, frameworks with control IDs, SIEM thresholds. Document Library has type/status filters and unified list. Framework linkage creates mappings on approval. Assignee dialog works with org users. Key endpoints: GET /api/policy-templates (returns full template info), GET /api/policy-templates/org-users (returns org users), PUT /api/policy-templates/generated/{id}/assignees (assigns reviewers/approvers), PUT /api/policy-templates/generated/{id}/status (triggers framework linkage on approval).",
+  "features_tested": {
+    "template_detail_view": {
+      "click_template_card_opens_detail": "PASS",
+      "sections_list_visible": "PASS - Shows numbered list of all sections (Purpose, Scope, Roles & Responsibilities, etc.)",
+      "framework_coverage_with_control_ids": "PASS - Shows NIST 800-53 (AC-1, AC-2, etc.), NIST CSF (PR.AC-1, etc.), GDPR (Art.25, Art.32)",
+      "siem_thresholds_with_best_practices": "PASS - Shows control ID, description, threshold, best practice",
+      "generate_policy_button": "PASS - Visible and functional",
+      "back_button_returns_to_grid": "PASS"
+    },
+    "document_library_enhancement": {
+      "unified_list_shows_both_types": "PASS - 7 generated policies + 1 uploaded document",
+      "type_filter": "PASS - All Types / Generated Policies / Uploaded Documents",
+      "status_filter": "PASS - All Statuses / Draft / Under Review / Approved / Completed",
+      "search_works_across_types": "PASS - Filtered by 'Access' correctly",
+      "status_badge_visible": "PASS - Draft, Approved badges shown",
+      "policy_type_badge_visible": "PASS - 'Policy' badge shown",
+      "framework_tags_visible": "PASS - NIST SP 800-53, NIST CSF, GDPR tags"
+    },
+    "reviewer_approver_assignment": {
+      "assign_button_visible": "PASS",
+      "assignee_dialog_opens": "PASS",
+      "org_users_listed": "PASS - Demo Admin, Demo Viewer with roles",
+      "reviewer_checkboxes": "PASS",
+      "approver_checkboxes": "PASS",
+      "save_assignments_persists": "PASS - Toast: 'Assignees updated'",
+      "assignees_shown_in_approval_bar": "PASS - Shows 'Approvers: Demo Admin'"
+    },
+    "framework_linkage": {
+      "approve_creates_mappings": "PASS - Backend test verified",
+      "reapprove_replaces_mappings": "PASS - Backend test verified",
+      "mappings_visible_in_control_mappings_tab": "PASS - 733 total mappings, 622 approved"
+    }
+  },
+  "backend_tests": {
+    "test_get_templates_returns_all_fields": "PASS",
+    "test_template_frameworks_have_control_ids": "PASS",
+    "test_get_generated_policies": "PASS",
+    "test_get_uploaded_documents": "PASS",
+    "test_document_tags_endpoint": "PASS",
+    "test_get_org_users": "PASS",
+    "test_assign_reviewers_approvers": "PASS",
+    "test_assignees_persist_on_policy": "PASS",
+    "test_approve_policy_creates_mappings": "PASS",
+    "test_reapprove_replaces_old_mappings": "PASS",
+    "test_get_mappings": "PASS"
+  }
+}
