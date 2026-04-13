@@ -1,0 +1,140 @@
+{
+  "summary": "Completed comprehensive testing of Iteration 13 features: Create Document, Document Review & Approval workflow, Framework Workspace Link Document, Policy Coverage Summary, and AI Coverage Analysis. All 23 backend tests passed (100%). All frontend UI tests passed. Features verified: Create Document mode with text editor form, Document Detail Panel with approval workflow bar (Draft→Under Review→Approved), Framework Workspace with Policy Coverage Summary bar showing X/Y controls with linked policies, Policies tab with Link Document button and document picker, Analyze button for AI coverage analysis.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Framework Workspace and Document Library filters",
+        "issues": ["Console warning: 'In HTML, <span> cannot be a child of <option>' - React hydration warning in select dropdowns. This is a minor cosmetic issue that doesn't affect functionality."]
+      },
+      {
+        "screen": "Framework Workspace",
+        "issues": ["Console warning: 'Invalid prop x-file-name supplied to React.Fragment' - Minor React warning, doesn't affect functionality."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration13_new_features.py",
+    "/app/test_reports/pytest/pytest_iteration13_new_features.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iteration13_new_features.py"
+  ],
+  "success_rate": {
+    "backend": "100% (23/23 tests passed)",
+    "frontend": "100% (all UI tests passed)"
+  },
+  "test_credentials": {
+    "admin": "demo-admin@grc.com / DemoAdmin123!"
+  },
+  "seed_data_creation": "Created multiple TEST_ prefixed documents via backend tests for testing Create Document and approval workflow features.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 13 features fully implemented and tested. Key features: (1) Create Document mode in Upload & Map tab - shows text editor form with title input, content textarea, category selector, and Create Document button. Documents created have file_type='created' and status='draft'. (2) Document Detail Panel has approval workflow bar with Draft badge, Submit for Review button (transitions to under_review), Approve button (transitions to approved), and Reopen as Draft button. Created documents also have Edit Content button for editing content. (3) Framework Workspace has Policy Coverage Summary bar showing 'X of Y controls have linked policies (Z%)' with progress bar. (4) Policies tab in expanded control shows linked documents with Analyze button for AI coverage analysis and trash icon for unlinking. Link Document button opens picker showing all library docs and generated policies. (5) AI Coverage Analysis endpoint uses Emergent LLM Key (GPT-5.2) and returns coverage_score, coverage_level, addressed_requirements, gaps, and recommendation. Key endpoints: POST /api/documents/create, PUT /api/documents/{id}/status, PUT /api/documents/{id}/content, POST /api/control-compliance/{fw}/{ctrl}/link-document, DELETE /api/control-compliance/{fw}/{ctrl}/unlink-document/{id}, POST /api/control-compliance/{fw}/{ctrl}/analyze-coverage. Framework IDs are UUIDs (e.g., NIST SP 800-53 = 394b18c4-f22e-4b9a-984b-b5e2ec8143cb).",
+  "features_tested": {
+    "create_document": {
+      "mode_button_present": "PASS - 'Create Document' button in Upload & Map tab",
+      "title_input": "PASS - Document Title input with placeholder 'e.g., Access Control Policy'",
+      "content_textarea": "PASS - Content textarea with placeholder 'Write your policy, procedure, or document content here...'",
+      "category_selector": "PASS - Category dropdown (Policy/Procedure/Evidence/Contract/Training/Other)",
+      "labels_input": "PASS - Labels (comma-separated) input field",
+      "create_button": "PASS - 'Create Document' submit button",
+      "backend_create_endpoint": "PASS - POST /api/documents/create returns document with file_type='created', status='draft'"
+    },
+    "document_approval_workflow": {
+      "approval_bar_present": "PASS - Approval workflow bar in Document Detail Panel",
+      "draft_badge": "PASS - Draft status badge (amber color)",
+      "submit_for_review_button": "PASS - 'Submit for Review' button visible in draft state",
+      "approve_button": "PASS - 'Approve' button visible in under_review state",
+      "reopen_as_draft_button": "PASS - 'Reopen as Draft' button visible in approved state",
+      "status_transitions": "PASS - draft→under_review→approved→draft all working",
+      "invalid_transition_blocked": "PASS - Cannot transition directly from draft to approved"
+    },
+    "document_content_editing": {
+      "edit_content_button": "PASS - 'Edit Content' button for created documents",
+      "content_display": "PASS - Document content displayed in detail panel",
+      "content_update_endpoint": "PASS - PUT /api/documents/{id}/content updates content and title"
+    },
+    "policy_coverage_summary": {
+      "summary_bar_present": "PASS - Policy Coverage bar in Framework Workspace",
+      "controls_count": "PASS - Shows 'X of Y controls have linked policies (Z%)'",
+      "progress_bar": "PASS - Visual progress bar showing coverage percentage",
+      "percentage_display": "PASS - Shows 88% coverage for NIST SP 800-53"
+    },
+    "link_document_to_control": {
+      "policies_tab": "PASS - Policies tab in expanded control detail panel",
+      "linked_documents_count": "PASS - Shows 'X linked document(s)'",
+      "link_document_button": "PASS - '+ Link Document' button",
+      "document_picker": "PASS - Opens picker showing library docs and generated policies",
+      "document_options": "PASS - 19 document options found in picker",
+      "link_endpoint": "PASS - POST /api/control-compliance/{fw}/{ctrl}/link-document creates mapping"
+    },
+    "unlink_document": {
+      "trash_icon": "PASS - Trash icon on linked documents",
+      "unlink_endpoint": "PASS - DELETE /api/control-compliance/{fw}/{ctrl}/unlink-document/{id} removes mapping"
+    },
+    "ai_coverage_analysis": {
+      "analyze_button": "PASS - 'Analyze' button on linked documents",
+      "analyze_endpoint": "PASS - POST /api/control-compliance/{fw}/{ctrl}/analyze-coverage returns coverage analysis",
+      "coverage_score": "PASS - Returns coverage_score (0-100)",
+      "coverage_level": "PASS - Returns coverage_level (full/partial/minimal/none)",
+      "gaps_array": "PASS - Returns gaps array",
+      "addressed_requirements": "PASS - Returns addressed_requirements array"
+    }
+  },
+  "backend_tests": {
+    "TestCreateDocument": {
+      "test_create_document_basic": "PASS",
+      "test_create_document_with_tags": "PASS",
+      "test_create_document_with_framework": "PASS",
+      "test_create_document_empty_title_uses_default": "PASS"
+    },
+    "TestDocumentApprovalWorkflow": {
+      "test_get_created_document": "PASS",
+      "test_submit_for_review": "PASS",
+      "test_approve_document": "PASS",
+      "test_reopen_as_draft": "PASS",
+      "test_invalid_status_transition": "PASS",
+      "test_invalid_status_value": "PASS"
+    },
+    "TestDocumentContentUpdate": {
+      "test_update_content": "PASS",
+      "test_update_title_via_content_endpoint": "PASS"
+    },
+    "TestLinkDocumentToControl": {
+      "test_link_document_to_control": "PASS",
+      "test_link_duplicate_document_fails": "PASS",
+      "test_link_without_document_id_fails": "PASS"
+    },
+    "TestAnalyzeCoverage": {
+      "test_analyze_coverage_with_content": "PASS",
+      "test_analyze_coverage_nonexistent_document": "PASS"
+    },
+    "TestUnlinkDocument": {
+      "test_unlink_document": "PASS",
+      "test_unlink_nonexistent_mapping": "PASS"
+    },
+    "TestPolicyCoverageSummary": {
+      "test_compliance_overview_has_policy_count": "PASS"
+    },
+    "TestGetDocumentsForLinking": {
+      "test_get_documents_list": "PASS",
+      "test_get_generated_policies_list": "PASS"
+    },
+    "TestCleanup": {
+      "test_cleanup_test_documents": "PASS"
+    }
+  },
+  "notes": {
+    "framework_ids": "Framework IDs are UUIDs, not slugs. NIST SP 800-53 = 394b18c4-f22e-4b9a-984b-b5e2ec8143cb",
+    "ai_coverage_analysis": "Uses Emergent LLM Key (GPT-5.2). May take 5-15 seconds for response.",
+    "console_warnings": "Minor React hydration warnings about <span> inside <option> in select dropdowns - does not affect functionality."
+  }
+}

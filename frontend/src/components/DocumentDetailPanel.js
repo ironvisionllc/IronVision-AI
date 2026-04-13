@@ -44,6 +44,10 @@ export const DocumentDetailPanel = ({ document, onClose, onUpdate, frameworks, t
   const [saving, setSaving] = useState(false);
   const [suggestedTags, setSuggestedTags] = useState([]);
   const [showTagInput, setShowTagInput] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
+  const [contentEditing, setContentEditing] = useState(false);
+  const [contentBuffer, setContentBuffer] = useState(document?.content || "");
+  const [titleBuffer, setTitleBuffer] = useState(document?.filename || document?.original_name || "");
 
   // Framework tag state
   const [showFwTagForm, setShowFwTagForm] = useState(false);
@@ -97,6 +101,33 @@ export const DocumentDetailPanel = ({ document, onClose, onUpdate, frameworks, t
 
   const catColor = CATEGORY_COLORS[category] || CATEGORY_COLORS.other;
 
+  const normalizedStatus = ["draft","under_review","approved"].includes(document?.status) ? document.status : "draft";
+
+  const changeStatus = async (newStatus) => {
+    setChangingStatus(true);
+    try {
+      await axios.put(`${API}/documents/${document.job_id || document.id}/status`, { status: newStatus });
+      const labels = { under_review: "Under Review", approved: "Approved", draft: "Draft" };
+      toast.success(`Document moved to ${labels[newStatus]}`);
+      onUpdate?.({ ...document, status: newStatus });
+    } catch (err) { toast.error(err.response?.data?.detail || "Status change failed"); }
+    finally { setChangingStatus(false); }
+  };
+
+  const saveContent = async () => {
+    setSaving(true);
+    try {
+      const res = await axios.put(`${API}/documents/${document.job_id || document.id}/content`, { content: contentBuffer, title: titleBuffer });
+      onUpdate?.(res.data);
+      setContentEditing(false);
+      toast.success("Content saved");
+    } catch { toast.error("Failed to save content"); }
+    finally { setSaving(false); }
+  };
+
+  const isCreated = document?.file_type === "created";
+  const isReadOnly = normalizedStatus === "approved" || normalizedStatus === "under_review";
+
   return (
     <div data-testid="document-detail-panel">
       <button onClick={onClose} className="flex items-center gap-1 text-sm text-[#2597B2] hover:text-[#1B839F] font-medium mb-4" data-testid="close-doc-detail">
@@ -148,6 +179,79 @@ export const DocumentDetailPanel = ({ document, onClose, onUpdate, frameworks, t
           </div>
         )}
       </div>
+
+      {/* Approval Workflow Bar */}
+      <div className="iv-card p-4 mb-4 flex items-center justify-between flex-wrap gap-3" data-testid="doc-approval-bar">
+        <div className="flex items-center gap-2">
+          <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+            normalizedStatus === "approved" ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" :
+            normalizedStatus === "under_review" ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800" :
+            "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+          }`} data-testid="doc-status-badge">
+            {normalizedStatus === "approved" ? "Approved" : normalizedStatus === "under_review" ? "Under Review" : "Draft"}
+          </span>
+          {document.approved_at && normalizedStatus === "approved" && (
+            <span className="text-[10px] text-gray-400">Approved {new Date(document.approved_at).toLocaleDateString()}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {normalizedStatus === "draft" && (
+            <Button size="sm" className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5" onClick={() => changeStatus("under_review")} disabled={changingStatus} data-testid="doc-submit-review-btn">
+              Submit for Review
+            </Button>
+          )}
+          {normalizedStatus === "under_review" && (
+            <>
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => changeStatus("draft")} disabled={changingStatus} data-testid="doc-return-draft-btn">Return to Draft</Button>
+              <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5" onClick={() => changeStatus("approved")} disabled={changingStatus} data-testid="doc-approve-btn">Approve</Button>
+            </>
+          )}
+          {normalizedStatus === "approved" && (
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => changeStatus("draft")} disabled={changingStatus} data-testid="doc-reopen-btn">Reopen as Draft</Button>
+          )}
+        </div>
+      </div>
+
+      {/* Content Section (for created documents) */}
+      {isCreated && (
+        <div className="iv-card p-5 mb-4" data-testid="doc-content-section">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <FileText size={16} weight="duotone" className="text-[#2597B2]" /> Document Content
+            </h3>
+            {!isReadOnly && (
+              contentEditing ? (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setContentEditing(false)}>Cancel</Button>
+                  <Button size="sm" className="h-7 text-xs bg-[#2597B2] hover:bg-[#1B839F] text-white gap-1" onClick={saveContent} disabled={saving} data-testid="save-content-btn">
+                    <FloppyDisk size={12} /> Save
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setContentEditing(true)} data-testid="edit-content-btn">
+                  <Pencil size={12} /> Edit Content
+                </Button>
+              )
+            )}
+          </div>
+          {contentEditing ? (
+            <div className="space-y-2">
+              <Input value={titleBuffer} onChange={e => setTitleBuffer(e.target.value)} placeholder="Document title" className="text-sm font-medium" data-testid="content-title-input" />
+              <Textarea value={contentBuffer} onChange={e => setContentBuffer(e.target.value)} rows={16} className="text-sm font-mono" placeholder="Write your policy or document content here..." data-testid="content-editor" />
+            </div>
+          ) : (
+            <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap" data-testid="content-display">
+              {document.content || <span className="text-gray-400 italic">No content yet. Click "Edit Content" to start writing.</span>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isReadOnly && (
+        <div className="flex items-center gap-2 px-4 py-2.5 mb-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-xs text-gray-500" data-testid="doc-readonly-banner">
+          {normalizedStatus === "approved" ? "This document is approved. Reopen as draft to make edits." : "This document is under review. Return to draft to make edits."}
+        </div>
+      )}
 
       {/* Custom Tags */}
       <div className="iv-card p-5 mb-4" data-testid="custom-tags-section">

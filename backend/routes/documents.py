@@ -286,3 +286,103 @@ async def update_document_metadata(job_id: str, data: dict, current_user: Dict =
     await db.document_uploads.update_one({"id": job_id}, {"$set": update})
     updated = await db.document_uploads.find_one({"id": job_id}, {"_id": 0})
     return updated
+
+
+@router.post("/documents/create")
+async def create_document(data: dict, current_user: Dict = Depends(get_current_user)):
+    """Create a document from scratch using the built-in text editor."""
+    guard_demo(current_user)
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    user_id = current_user["id"]
+
+    title = data.get("title", "Untitled Document")
+    content = data.get("content", "")
+    category = data.get("category", "policy")
+    custom_tags = data.get("custom_tags", [])
+    framework = data.get("framework", "")
+
+    now = datetime.now(timezone.utc).isoformat()
+    doc_id = str(uuid.uuid4())
+    doc_record = {
+        "id": doc_id,
+        "organization_id": org_id,
+        "user_id": user_id,
+        "original_name": title,
+        "filename": title,
+        "file_type": "created",
+        "s3_key": "",
+        "framework": framework,
+        "control_family": "",
+        "category": category,
+        "custom_tags": custom_tags if isinstance(custom_tags, list) else [],
+        "content": content,
+        "status": "draft",
+        "progress": 100,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.document_uploads.insert_one(doc_record)
+    doc_record.pop("_id", None)
+    doc_record["job_id"] = doc_id
+    return doc_record
+
+
+@router.put("/documents/{job_id}/content")
+async def update_document_content(job_id: str, data: dict, current_user: Dict = Depends(get_current_user)):
+    """Update the text content of a created document."""
+    guard_demo(current_user)
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    doc = await db.document_uploads.find_one({"id": job_id, "organization_id": org_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    now = datetime.now(timezone.utc).isoformat()
+    update = {"updated_at": now}
+    if "content" in data:
+        update["content"] = data["content"]
+    if "title" in data:
+        update["original_name"] = data["title"]
+        update["filename"] = data["title"]
+    await db.document_uploads.update_one({"id": job_id}, {"$set": update})
+    updated = await db.document_uploads.find_one({"id": job_id}, {"_id": 0})
+    if updated:
+        updated["job_id"] = updated.get("id", job_id)
+    return updated
+
+
+@router.put("/documents/{job_id}/status")
+async def update_document_status(job_id: str, data: dict, current_user: Dict = Depends(get_current_user)):
+    """Update document approval status: draft -> under_review -> approved."""
+    guard_demo(current_user)
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    doc = await db.document_uploads.find_one({"id": job_id, "organization_id": org_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    new_status = data.get("status", "")
+    valid_statuses = ["draft", "under_review", "approved"]
+    if new_status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+
+    current_status = doc.get("status", "draft")
+    # Normalize legacy statuses
+    if current_status in ("uploaded", "uploaded_pending_processing", "preprocessing", "analysis_completed", "completed"):
+        current_status = "draft"
+
+    valid_transitions = {
+        "draft": ["under_review"],
+        "under_review": ["approved", "draft"],
+        "approved": ["draft"],
+    }
+    if new_status != current_status and new_status not in valid_transitions.get(current_status, []):
+        raise HTTPException(status_code=400, detail=f"Cannot transition from '{current_status}' to '{new_status}'")
+
+    now = datetime.now(timezone.utc).isoformat()
+    update_fields = {"status": new_status, "updated_at": now}
+    if new_status == "approved":
+        update_fields["approved_by"] = current_user["id"]
+        update_fields["approved_by_name"] = current_user.get("name", current_user.get("email", "Unknown"))
+        update_fields["approved_at"] = now
+
+    await db.document_uploads.update_one({"id": job_id}, {"$set": update_fields})
+    return {"message": f"Status updated to {new_status}", "status": new_status}

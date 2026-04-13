@@ -558,9 +558,12 @@ const UploadMapTab = () => {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [uploadMode, setUploadMode] = useState("framework"); // "framework" or "general"
+  const [uploadMode, setUploadMode] = useState("framework"); // "framework" | "general" | "create"
   const [category, setCategory] = useState("policy");
   const [customTagsInput, setCustomTagsInput] = useState("");
+  const [createTitle, setCreateTitle] = useState("");
+  const [createContent, setCreateContent] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -596,6 +599,22 @@ const UploadMapTab = () => {
     finally { setUploading(false); }
   };
 
+  const createDocument = async () => {
+    if (!createTitle.trim()) { toast.error("Please enter a document title"); return; }
+    setCreating(true);
+    try {
+      const tags = customTagsInput ? customTagsInput.split(",").map(t => t.trim()).filter(Boolean) : [];
+      await axios.post(`${API}/documents/create`, { title: createTitle, content: createContent, category, custom_tags: tags, framework: selectedFrameworks[0] || "" });
+      toast.success("Document created! View it in the Document Library.");
+      const updated = await axios.get(`${API}/documents`);
+      setDocuments(updated.data);
+      setCreateTitle("");
+      setCreateContent("");
+      setCustomTagsInput("");
+    } catch (err) { toast.error(err.response?.data?.detail || "Creation failed"); }
+    finally { setCreating(false); }
+  };
+
   return (
     <div data-testid="upload-tab">
       {/* Upload Mode Toggle */}
@@ -605,6 +624,9 @@ const UploadMapTab = () => {
         </button>
         <button onClick={() => setUploadMode("general")} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${uploadMode === "general" ? "bg-[#2597B2] text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"}`} data-testid="mode-general-btn">
           <CloudArrowUp size={14} weight="duotone" className="inline mr-1.5 -mt-0.5" /> General Upload
+        </button>
+        <button onClick={() => setUploadMode("create")} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${uploadMode === "create" ? "bg-[#2597B2] text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"}`} data-testid="mode-create-btn">
+          <Pencil size={14} weight="duotone" className="inline mr-1.5 -mt-0.5" /> Create Document
         </button>
       </div>
 
@@ -652,27 +674,51 @@ const UploadMapTab = () => {
           </div>
         </div>
 
-        {/* Right: Upload Area */}
+        {/* Right: Upload Area or Create Form */}
         <div className="lg:col-span-2">
-          <div
-            className={`iv-card p-8 text-center border-2 border-dashed transition-all ${dragOver ? "border-[#2597B2] bg-[#2597B2]/5" : "border-gray-200 dark:border-gray-700"}`}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={(e) => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files[0]); }}
-            data-testid="upload-dropzone"
-          >
-            <CloudArrowUp size={40} weight="duotone" className={`mx-auto mb-3 ${dragOver ? "text-[#2597B2]" : "text-gray-300"}`} />
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {uploading ? "Uploading..." : uploadMode === "framework" ? "Drop a document to map against frameworks" : "Drop any document to upload"}
-            </p>
-            <p className="text-xs text-gray-400 mb-4">PDF, DOCX, TXT, CSV, XLSX, PNG, JPG supported</p>
-            <label className="inline-block">
-              <input type="file" accept=".pdf,.docx,.doc,.txt,.csv,.xlsx,.png,.jpg,.jpeg" onChange={e => handleUpload(e.target.files[0])} className="hidden" />
-              <Button variant="outline" size="sm" className="h-8 text-xs" disabled={uploading} asChild>
-                <span data-testid="browse-files-btn">{uploading ? <ArrowsClockwise size={14} className="animate-spin mr-1" /> : <Plus size={14} className="mr-1" />} Browse Files</span>
-              </Button>
-            </label>
-          </div>
+          {uploadMode === "create" ? (
+            <div className="iv-card p-6" data-testid="create-document-form">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <Pencil size={16} weight="duotone" className="text-[#2597B2]" /> Create New Document
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs">Document Title *</Label>
+                  <Input value={createTitle} onChange={e => setCreateTitle(e.target.value)} placeholder="e.g., Access Control Policy" className="text-sm" data-testid="create-doc-title" />
+                </div>
+                <div>
+                  <Label className="text-xs">Content</Label>
+                  <Textarea value={createContent} onChange={e => setCreateContent(e.target.value)} rows={14} className="text-sm font-mono" placeholder="Write your policy, procedure, or document content here..." data-testid="create-doc-content" />
+                </div>
+                <Button className="w-full bg-[#2597B2] hover:bg-[#1B839F] text-white h-10" onClick={createDocument} disabled={creating} data-testid="create-doc-submit">
+                  {creating ? <ArrowsClockwise size={14} className="animate-spin mr-2" /> : <Plus size={14} className="mr-2" />}
+                  Create Document
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                className={`iv-card p-8 text-center border-2 border-dashed transition-all ${dragOver ? "border-[#2597B2] bg-[#2597B2]/5" : "border-gray-200 dark:border-gray-700"}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files[0]); }}
+                data-testid="upload-dropzone"
+              >
+                <CloudArrowUp size={40} weight="duotone" className={`mx-auto mb-3 ${dragOver ? "text-[#2597B2]" : "text-gray-300"}`} />
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {uploading ? "Uploading..." : uploadMode === "framework" ? "Drop a document to map against frameworks" : "Drop any document to upload"}
+                </p>
+                <p className="text-xs text-gray-400 mb-4">PDF, DOCX, TXT, CSV, XLSX, PNG, JPG supported</p>
+                <label className="inline-block">
+                  <input type="file" accept=".pdf,.docx,.doc,.txt,.csv,.xlsx,.png,.jpg,.jpeg" onChange={e => handleUpload(e.target.files[0])} className="hidden" />
+                  <Button variant="outline" size="sm" className="h-8 text-xs" disabled={uploading} asChild>
+                    <span data-testid="browse-files-btn">{uploading ? <ArrowsClockwise size={14} className="animate-spin mr-1" /> : <Plus size={14} className="mr-1" />} Browse Files</span>
+                  </Button>
+                </label>
+              </div>
+            </>
+          )}
 
           {/* Recent Uploads */}
           {documents.length > 0 && (

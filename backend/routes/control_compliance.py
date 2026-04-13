@@ -561,3 +561,150 @@ Return ONLY valid JSON: {{"implementation_steps": ["..."], "technical_guidelines
     except Exception as e:
         logger.error(f"Implementation guidance failed: {e}")
         raise HTTPException(500, f"AI guidance failed: {str(e)}")
+
+
+@router.post("/{framework_id}/{control_id}/link-document")
+async def link_document_to_control(
+    framework_id: str, control_id: str, data: dict,
+    current_user: Dict = Depends(get_current_user)
+):
+    """Link a document from the library to a specific framework control."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    doc_id = data.get("document_id", "")
+    doc_name = data.get("document_name", "")
+    doc_type = data.get("document_type", "uploaded")
+
+    if not doc_id:
+        raise HTTPException(400, "document_id is required")
+
+    now = datetime.now(timezone.utc).isoformat()
+    # Check if already linked
+    existing = await db.mappings.find_one({
+        "organization_id": org_id, "framework_id": framework_id,
+        "control_id": control_id, "source_document_id": doc_id
+    })
+    if existing:
+        raise HTTPException(400, "Document already linked to this control")
+
+    mapping = {
+        "id": str(uuid.uuid4()),
+        "organization_id": org_id,
+        "framework_id": framework_id,
+        "control_id": control_id,
+        "policy_name": doc_name,
+        "source_document_id": doc_id,
+        "source_policy_id": doc_id if doc_type == "generated" else "",
+        "source": f"Linked ({doc_type.title()})",
+        "confidence_score": 1.0,
+        "status": "linked",
+        "created_at": now,
+        "created_by": current_user["id"],
+    }
+    await db.mappings.insert_one(mapping)
+    del mapping["_id"]
+    return mapping
+
+
+@router.delete("/{framework_id}/{control_id}/unlink-document/{mapping_id}")
+async def unlink_document_from_control(
+    framework_id: str, control_id: str, mapping_id: str,
+    current_user: Dict = Depends(get_current_user)
+):
+    """Remove a linked document from a control."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    result = await db.mappings.delete_one({
+        "organization_id": org_id, "framework_id": framework_id,
+        "control_id": control_id, "id": mapping_id
+    })
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Mapping not found")
+    return {"message": "Document unlinked"}
+
+
+@router.post("/{framework_id}/{control_id}/analyze-coverage")
+async def analyze_document_coverage(
+    framework_id: str, control_id: str, data: dict,
+    current_user: Dict = Depends(get_current_user)
+):
+    """AI analyzes how well a linked document covers a specific control."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    doc_id = data.get("document_id", "")
+
+    control = await db.controls.find_one(
+        {"framework_id": framework_id, "control_id": control_id}, {"_id": 0}
+    )
+    if not control:
+        raise HTTPException(404, "Control not found")
+
+    framework = await db.frameworks.find_one({"id": framework_id}, {"_id": 0, "name": 1})
+    fw_name = framework.get("name", "") if framework else ""
+
+    # Get document content
+    doc_content = ""
+    doc_name = ""
+    # Try uploaded document
+    uploaded = await db.document_uploads.find_one({"id": doc_id, "organization_id": org_id}, {"_id": 0})
+    if uploaded:
+        doc_name = uploaded.get("filename", uploaded.get("original_name", "Unknown"))
+        doc_content = uploaded.get("content", "")
+        if not doc_content:
+            doc_content = f"[Document: {doc_name} — content available in original file, file type: {uploaded.get('file_type', 'unknown')}]"
+    else:
+        # Try generated policy
+        generated = await db.generated_templates.find_one({"id": doc_id, "organization_id": org_id}, {"_id": 0})
+        if generated:
+            doc_name = generated.get("title", "Unknown")
+            sections = generated.get("sections", [])
+            doc_content = "\n\n".join([f"## {s.get('heading','')}\n{s.get('content','')}" for s in sections])
+
+    if not doc_content:
+        raise HTTPException(404, "Document not found or has no content")
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"coverage-{uuid.uuid4()}",
+        system_message="You are a GRC compliance analyst. Analyze document coverage against control requirements precisely."
+    ).with_model("openai", "gpt-5.2")
+
+    prompt = f"""Analyze how well this document covers the requirements of the following compliance control.
+
+Framework: {fw_name}
+Control ID: {control_id}
+Control Title: {control.get('title', '')}
+Control Description: {control.get('description', '')}
+
+Document: {doc_name}
+Document Content (excerpt):
+{doc_content[:4000]}
+
+Return ONLY a JSON object with:
+- "coverage_score": number 0-100 (how well the document addresses this control)
+- "coverage_level": "full" | "partial" | "minimal" | "none"
+- "addressed_requirements": array of strings listing what the document covers
+- "gaps": array of strings listing what's missing or inadequate
+- "recommendation": string with a brief recommendation"""
+
+    try:
+        response = await chat.send_message(UserMessage(text=prompt))
+        response_text = response if isinstance(response, str) else str(response)
+        json_match = re.search(r'\{[\s\S]*\}', response_text)
+        if json_match:
+            analysis = json.loads(json_match.group())
+        else:
+            analysis = {"coverage_score": 0, "coverage_level": "none", "addressed_requirements": [], "gaps": ["Unable to parse analysis"], "recommendation": response_text[:300]}
+
+        # Save to mapping
+        await db.mappings.update_one(
+            {"organization_id": org_id, "framework_id": framework_id, "control_id": control_id, "source_document_id": doc_id},
+            {"$set": {
+                "coverage_analysis": analysis,
+                "confidence_score": analysis.get("coverage_score", 0) / 100,
+                "analyzed_at": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+
+        return {"document_name": doc_name, "control_id": control_id, **analysis}
+    except Exception as e:
+        logger.error(f"Coverage analysis failed: {e}")
+        raise HTTPException(500, f"Analysis failed: {str(e)}")

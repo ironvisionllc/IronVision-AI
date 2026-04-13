@@ -7,7 +7,7 @@ import {
   CaretRight, CaretDown, MagnifyingGlass, ShieldCheck, Warning,
   CheckCircle, XCircle, MinusCircle, Question, Lightning, FileText,
   ArrowsClockwise, PencilSimple, FloppyDisk, CaretLeft, Funnel,
-  ArrowsOutSimple, ArrowsInSimple, BookOpen, Wrench
+  ArrowsOutSimple, ArrowsInSimple, BookOpen, Wrench, Plus, Trash, LinkSimple, ChartBar
 } from "@phosphor-icons/react";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
@@ -241,6 +241,29 @@ const FrameworkWorkspace = ({ framework, onBack }) => {
         </div>
       </div>
 
+      {/* Policy Coverage Summary */}
+      {(() => {
+        const withPolicy = controls.filter(c => c.policy_count > 0).length;
+        const coveragePct = controls.length > 0 ? Math.round((withPolicy / controls.length) * 100) : 0;
+        return (
+          <div className="iv-card p-4 mb-6 flex items-center justify-between" data-testid="policy-coverage-summary">
+            <div className="flex items-center gap-3">
+              <FileText size={18} weight="duotone" className="text-purple-500" />
+              <div>
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Policy Coverage</span>
+                <p className="text-[10px] text-gray-400">{withPolicy} of {controls.length} controls have linked policies ({coveragePct}%)</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-32 h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: `${coveragePct}%` }} />
+              </div>
+              <span className="text-xs font-bold text-purple-600">{coveragePct}%</span>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Filters */}
       <div className="flex items-center gap-3 mb-4" data-testid="workspace-filters">
         <div className="relative flex-1 max-w-sm">
@@ -348,6 +371,7 @@ const FrameworkWorkspace = ({ framework, onBack }) => {
                   implGuidance={implGuidance[ctrl.control_id]}
                   loadingImpl={loadingImpl[ctrl.control_id]}
                   onFetchGuidance={() => fetchImplGuidance(ctrl.control_id)}
+                  onRefresh={fetchCompliance}
                 />
               )}
             </div>
@@ -363,8 +387,14 @@ const FrameworkWorkspace = ({ framework, onBack }) => {
 };
 
 
-const ControlDetailPanel = ({ ctrl, framework, onStatusChange, notes, onNotesChange, onSaveNotes, siemData, policySuggestion, onSuggestPolicy, suggestingPolicy, implGuidance, loadingImpl, onFetchGuidance }) => {
+const ControlDetailPanel = ({ ctrl, framework, onStatusChange, notes, onNotesChange, onSaveNotes, siemData, policySuggestion, onSuggestPolicy, suggestingPolicy, implGuidance, loadingImpl, onFetchGuidance, onRefresh }) => {
   const [activeDetailTab, setActiveDetailTab] = useState("overview");
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [libraryDocs, setLibraryDocs] = useState([]);
+  const [libraryPolicies, setLibraryPolicies] = useState([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+  const [analyzingDoc, setAnalyzingDoc] = useState(null);
+  const [coverageResults, setCoverageResults] = useState({});
 
   const DETAIL_TABS = [
     { id: "overview", label: "Overview" },
@@ -635,30 +665,150 @@ const ControlDetailPanel = ({ ctrl, framework, onStatusChange, notes, onNotesCha
         {/* Policies Tab */}
         {activeDetailTab === "policies" && (
           <div data-testid={`policies-panel-${ctrl.control_id}`}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs text-gray-500">{ctrl.policy_mappings?.length || 0} linked document{(ctrl.policy_mappings?.length || 0) !== 1 ? "s" : ""}</span>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={async () => {
+                setShowLinkDialog(true);
+                setLoadingLibrary(true);
+                try {
+                  const [docs, pols] = await Promise.all([
+                    axios.get(`${API}/documents`).then(r => r.data),
+                    axios.get(`${API}/policy-templates/generated`).then(r => r.data),
+                  ]);
+                  setLibraryDocs(docs);
+                  setLibraryPolicies(pols);
+                } catch {}
+                finally { setLoadingLibrary(false); }
+              }} data-testid={`link-doc-btn-${ctrl.control_id}`}>
+                <Plus size={10} /> Link Document
+              </Button>
+            </div>
+
             {ctrl.policy_mappings?.length > 0 ? (
               <div className="space-y-2">
-                {ctrl.policy_mappings.map((pm, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <FileText size={16} weight="duotone" className="text-[#2597B2]" />
-                      <div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{pm.policy_name || "Unnamed Policy"}</span>
-                        <div className="text-xs text-gray-500">Source: {pm.source} | Confidence: {Math.round((pm.confidence_score || 0) * 100)}%</div>
+                {ctrl.policy_mappings.map((pm, i) => {
+                  const coverage = coverageResults[pm.source_document_id || pm.source_policy_id];
+                  return (
+                    <div key={pm.id || i} className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText size={16} weight="duotone" className="text-[#2597B2]" />
+                          <div>
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{pm.policy_name || "Unnamed"}</span>
+                            <div className="text-[10px] text-gray-500">Source: {pm.source} | Confidence: {Math.round((pm.confidence_score || 0) * 100)}%</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 gap-1" disabled={analyzingDoc === (pm.source_document_id || pm.source_policy_id)} onClick={async () => {
+                            const docId = pm.source_document_id || pm.source_policy_id;
+                            if (!docId) { toast.error("No document ID"); return; }
+                            setAnalyzingDoc(docId);
+                            try {
+                              const res = await axios.post(`${API}/control-compliance/${framework.id}/${ctrl.control_id}/analyze-coverage`, { document_id: docId });
+                              setCoverageResults(prev => ({ ...prev, [docId]: res.data }));
+                              toast.success("Coverage analyzed");
+                              onRefresh?.();
+                            } catch (err) { toast.error(err.response?.data?.detail || "Analysis failed"); }
+                            finally { setAnalyzingDoc(null); }
+                          }} data-testid={`analyze-btn-${ctrl.control_id}-${i}`}>
+                            {analyzingDoc === (pm.source_document_id || pm.source_policy_id) ? <ArrowsClockwise size={10} className="animate-spin" /> : <ChartBar size={10} />}
+                            Analyze
+                          </Button>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                            pm.status === "approved" ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700" :
+                            pm.status === "linked" ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700" :
+                            "bg-gray-100 text-gray-600"
+                          }`}>{pm.status}</span>
+                          {pm.id && (
+                            <button onClick={async () => {
+                              try {
+                                await axios.delete(`${API}/control-compliance/${framework.id}/${ctrl.control_id}/unlink-document/${pm.id}`);
+                                toast.success("Document unlinked");
+                                onRefresh?.();
+                              } catch { toast.error("Failed to unlink"); }
+                            }} className="text-gray-400 hover:text-red-500" data-testid={`unlink-btn-${ctrl.control_id}-${i}`}>
+                              <Trash size={12} />
+                            </button>
+                          )}
+                        </div>
                       </div>
+                      {/* Coverage Analysis Results */}
+                      {(coverage || pm.coverage_analysis) && (() => {
+                        const ca = coverage || pm.coverage_analysis;
+                        return (
+                          <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800" data-testid={`coverage-result-${ctrl.control_id}-${i}`}>
+                            <div className="flex items-center gap-3 mb-1.5">
+                              <span className={`text-xs font-bold ${ca.coverage_score >= 70 ? "text-emerald-600" : ca.coverage_score >= 40 ? "text-amber-600" : "text-red-600"}`}>{ca.coverage_score}% Coverage</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                ca.coverage_level === "full" ? "bg-emerald-100 text-emerald-700" :
+                                ca.coverage_level === "partial" ? "bg-amber-100 text-amber-700" :
+                                "bg-red-100 text-red-700"
+                              }`}>{ca.coverage_level}</span>
+                            </div>
+                            {ca.gaps?.length > 0 && (
+                              <div className="text-[10px] text-gray-500">
+                                <span className="font-semibold text-red-500">Gaps: </span>{ca.gaps.slice(0, 2).join("; ")}
+                                {ca.gaps.length > 2 && ` (+${ca.gaps.length - 2} more)`}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      pm.status === "approved" ? "bg-emerald-100 text-emerald-700" :
-                      pm.status === "pending" ? "bg-amber-100 text-amber-700" :
-                      "bg-gray-100 text-gray-600"
-                    }`}>{pm.status}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500 text-sm">
+              <div className="text-center py-6 text-gray-500 text-sm">
                 <FileText size={24} className="mx-auto mb-2 text-gray-300" />
-                No policies mapped to this control yet.
-                <p className="text-xs text-gray-400 mt-1">Use the Policies hub to map policies to controls.</p>
+                No documents linked to this control.
+              </div>
+            )}
+
+            {/* Link Document Picker */}
+            {showLinkDialog && (
+              <div className="mt-3 p-3 border border-[#2597B2]/20 rounded-lg bg-[#2597B2]/5" data-testid={`link-picker-${ctrl.control_id}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Select a document to link</span>
+                  <button onClick={() => setShowLinkDialog(false)} className="text-xs text-gray-400 hover:text-gray-600">Close</button>
+                </div>
+                {loadingLibrary ? (
+                  <div className="flex justify-center py-4"><ArrowsClockwise size={16} className="animate-spin text-[#2597B2]" /></div>
+                ) : (
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {[
+                      ...libraryPolicies.map(p => ({ id: p.id, name: p.title, type: "generated", status: p.status })),
+                      ...libraryDocs.map(d => ({ id: d.job_id || d.id, name: d.filename || d.original_name, type: "uploaded", status: d.status })),
+                    ].map(doc => {
+                      const alreadyLinked = ctrl.policy_mappings?.some(pm => pm.source_document_id === doc.id || pm.source_policy_id === doc.id);
+                      return (
+                        <button
+                          key={doc.id}
+                          disabled={alreadyLinked}
+                          onClick={async () => {
+                            try {
+                              await axios.post(`${API}/control-compliance/${framework.id}/${ctrl.control_id}/link-document`, { document_id: doc.id, document_name: doc.name, document_type: doc.type });
+                              toast.success(`Linked "${doc.name}"`);
+                              setShowLinkDialog(false);
+                              onRefresh?.();
+                            } catch (err) { toast.error(err.response?.data?.detail || "Link failed"); }
+                          }}
+                          className={`w-full flex items-center justify-between p-2 rounded text-xs hover:bg-white dark:hover:bg-gray-800 transition-colors ${alreadyLinked ? "opacity-50 cursor-not-allowed" : ""}`}
+                          data-testid={`link-option-${doc.id}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <FileText size={12} className="text-[#2597B2]" />
+                            <span className="text-gray-700 dark:text-gray-300 truncate max-w-[250px]">{doc.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">{doc.type === "generated" ? "Policy" : "Upload"}</span>
+                            {alreadyLinked && <span className="text-[9px] text-[#2597B2]">Linked</span>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
