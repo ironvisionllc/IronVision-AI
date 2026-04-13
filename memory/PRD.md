@@ -84,6 +84,9 @@ External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2)
 - Demo Admin: demo-admin@grc.com / DemoAdmin123!
 - Demo User: demo-user@grc.com / DemoUser123!
 
+## SIEM Mappings (Updated Apr 13, 2026)
+All 12 frameworks mapped to 7 SIEM categories (authentication, authorization, data_access, policy_change, risk_management, incident, system). Coverage: NIST 800-171 92%, StateRAMP 99%, CMMC 70%, NIS2 67%, HIPAA 62%, ISO 27001 52%, SOC 2 49%, FS AI 40%, NIST AI RMF 33%, GDPR 28%, NIST CSF 25%, NIST 800-53 12%.
+
 ## Backlog
 ### P1
 - Dynamic Risk Scoring (SIEM → real-time risk scores)

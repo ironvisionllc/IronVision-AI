@@ -15,41 +15,118 @@ from utils import get_current_user
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/siem", tags=["siem"])
 
-# SIEM event categories and their control mappings
+# SIEM event categories and their control mappings (all frameworks)
 CONTROL_MAPPINGS = {
     "authentication": {
-        "controls": ["AC-2", "AC-7", "IA-2", "IA-5"],
-        "frameworks": ["nist-800-53", "nist-800-171"],
+        "controls": [
+            "AC-2", "AC-7", "IA-2", "IA-5",
+            "PR.AC-1", "PR.AC-7", "DE.CM-1",
+            "3.1.1", "3.1.2", "3.1.8", "3.5.1", "3.5.2",
+            "5.15", "5.16", "5.17", "8.5",
+            "164.312(a)(1)", "164.312(d)",
+            "CC6.1", "CC6.2", "CC6.3",
+            "AC.L1-3.1.1", "AC.L1-3.1.2", "IA.L1-3.5.1", "IA.L1-3.5.2",
+            "NIS2-8", "NIS2-9",
+            "SR-AC-1", "SR-AC-2", "SR-AC-7", "SR-IA-1", "SR-IA-2",
+            "Art.32",
+        ],
+        "frameworks": ["nist-800-53", "nist-csf", "nist-800-171", "iso-27001", "hipaa", "soc2", "cmmc", "nis2", "stateramp", "gdpr"],
         "description": "Authentication & Access Control",
     },
     "authorization": {
-        "controls": ["AC-3", "AC-6", "AC-17"],
-        "frameworks": ["nist-800-53"],
+        "controls": [
+            "AC-3", "AC-6", "AC-17",
+            "PR.AC-3", "PR.AC-4", "PR.AC-5",
+            "3.1.3", "3.1.4", "3.1.5", "3.1.6", "3.1.7", "3.1.12",
+            "5.3", "5.18", "8.1", "8.4",
+            "164.312(a)(2)(ii)", "164.308(a)(3)(i)",
+            "CC6.6", "CC6.7", "CC6.8",
+            "AC.L2-3.1.3", "AC.L2-3.1.4", "AC.L2-3.1.5",
+            "NIS2-10",
+            "SR-AC-3", "SR-AC-5", "SR-AC-6", "SR-AC-17",
+            "Art.25",
+        ],
+        "frameworks": ["nist-800-53", "nist-csf", "nist-800-171", "iso-27001", "hipaa", "soc2", "cmmc", "nis2", "stateramp", "gdpr"],
         "description": "Authorization & Least Privilege",
     },
     "data_access": {
-        "controls": ["AU-3", "AU-6", "AU-12", "SI-4"],
-        "frameworks": ["nist-800-53", "nist-800-171"],
+        "controls": [
+            "AU-3", "AU-6", "AU-12", "SI-4",
+            "PR.DS-1", "PR.DS-2", "PR.DS-5", "DE.AE-3", "DE.CM-3", "DE.CM-7",
+            "3.3.1", "3.3.2", "3.3.3", "3.3.4", "3.3.5",
+            "5.33", "8.10", "8.12", "8.13",
+            "164.312(b)", "164.312(c)(1)", "164.308(a)(1)(ii)(D)",
+            "CC4.1", "CC4.2", "CC5.1", "C1.1",
+            "AU.L2-3.3.1", "AU.L2-3.3.2", "AU.L2-3.3.5",
+            "NIS2-5",
+            "SR-AU-1", "SR-AU-2", "SR-AU-3", "SR-AU-6",
+            "Art.5", "Art.30",
+        ],
+        "frameworks": ["nist-800-53", "nist-csf", "nist-800-171", "iso-27001", "hipaa", "soc2", "cmmc", "nis2", "stateramp", "gdpr"],
         "description": "Audit & Data Monitoring",
     },
     "policy_change": {
-        "controls": ["CM-3", "CM-5", "CM-6"],
-        "frameworks": ["nist-800-53"],
+        "controls": [
+            "CM-3", "CM-5", "CM-6",
+            "PR.IP-1", "PR.IP-3",
+            "3.4.1", "3.4.2", "3.4.3", "3.4.5",
+            "5.1", "5.37", "8.9",
+            "164.308(a)(1)(i)",
+            "CC8.1", "CC5.2",
+            "CM.L2-3.4.1", "CM.L2-3.4.2", "CM.L2-3.4.3",
+            "NIS2-6",
+            "SR-CM-1", "SR-CM-2", "SR-CM-3",
+            "Art.25",
+        ],
+        "frameworks": ["nist-800-53", "nist-csf", "nist-800-171", "iso-27001", "hipaa", "soc2", "cmmc", "nis2", "stateramp", "gdpr"],
         "description": "Configuration & Change Management",
     },
     "risk_management": {
-        "controls": ["RA-3", "RA-5", "PM-9"],
-        "frameworks": ["nist-800-53"],
+        "controls": [
+            "RA-3", "RA-5", "PM-9",
+            "ID.RA-1", "ID.RA-3", "ID.RA-5", "ID.RM-1",
+            "3.11.1", "3.11.2", "3.11.3", "3.12.1", "3.12.2",
+            "5.7", "5.23", "5.29",
+            "164.308(a)(1)(ii)(A)", "164.308(a)(1)(ii)(B)",
+            "CC3.1", "CC3.2", "CC3.3", "CC9.1",
+            "RE.L2-3.13.1",
+            "NIS2-1", "NIS2-4",
+            "SR-CA-1", "SR-CA-2", "SR-CA-7",
+            "Art.35",
+        ],
+        "frameworks": ["nist-800-53", "nist-csf", "nist-800-171", "iso-27001", "hipaa", "soc2", "cmmc", "nis2", "stateramp", "gdpr"],
         "description": "Risk Assessment",
     },
     "incident": {
-        "controls": ["IR-4", "IR-5", "IR-6"],
-        "frameworks": ["nist-800-53", "nist-800-171"],
+        "controls": [
+            "IR-4", "IR-5", "IR-6",
+            "RS.AN-1", "RS.AN-2", "RS.MI-1", "RS.MI-2", "DE.AE-2", "DE.AE-5",
+            "3.6.1", "3.6.2", "3.6.3",
+            "5.24", "5.25", "5.26",
+            "164.308(a)(6)(i)", "164.308(a)(6)(ii)",
+            "CC7.2", "CC7.3",
+            "IR.L2-3.6.1", "IR.L2-3.6.2", "IR.L2-3.6.3",
+            "NIS2-2", "NIS2-11", "NIS2-12",
+            "SR-IR-1", "SR-IR-2", "SR-IR-4", "SR-IR-6",
+            "Art.33", "Art.34",
+        ],
+        "frameworks": ["nist-800-53", "nist-csf", "nist-800-171", "iso-27001", "hipaa", "soc2", "cmmc", "nis2", "stateramp", "gdpr"],
         "description": "Incident Response",
     },
     "system": {
-        "controls": ["SI-2", "SI-4", "SI-7"],
-        "frameworks": ["nist-800-53"],
+        "controls": [
+            "SI-2", "SI-4", "SI-7",
+            "PR.MA-1", "DE.CM-4", "DE.CM-8",
+            "3.13.1", "3.14.1", "3.14.2", "3.14.3", "3.14.6", "3.7.1",
+            "8.7", "8.8", "8.15", "8.16",
+            "164.310(a)(1)", "164.310(d)(1)",
+            "CC7.1", "A1.1", "A1.2",
+            "MA.L2-3.7.1",
+            "NIS2-3", "NIS2-7",
+            "SR-SI-1", "SR-SI-2", "SR-SI-3", "SR-SI-4", "SR-CP-1",
+            "Art.32",
+        ],
+        "frameworks": ["nist-800-53", "nist-csf", "nist-800-171", "iso-27001", "hipaa", "soc2", "cmmc", "nis2", "stateramp", "gdpr"],
         "description": "System & Information Integrity",
     },
 }
@@ -227,7 +304,8 @@ async def export_events(
     ).sort("timestamp", -1).to_list(1000)
 
     if format == "csv":
-        import io, csv
+        import io
+        import csv
         output = io.StringIO()
         if events:
             writer = csv.DictWriter(output, fieldnames=["timestamp", "event_type", "category", "severity", "source", "details", "user_name", "ip_address"])
