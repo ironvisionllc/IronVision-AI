@@ -65,6 +65,8 @@ async def seed_frameworks():
         {"name": "NIST AI Risk Management Framework", "type": "standard", "description": "AI Risk Management Framework for AI systems", "version": "1.0"},
         {"name": "Financial Services AI Risk Management Framework", "type": "standard", "description": "AI RMF tailored for financial services", "version": "1.0"},
         {"name": "StateRAMP", "type": "standard", "description": "State Risk and Authorization Management Program for cloud security", "version": "4.0"},
+        {"name": "NERC CIP", "type": "standard", "description": "Critical Infrastructure Protection standards for Bulk Electric System cybersecurity", "version": "v7"},
+        {"name": "NERC Reliability Standards (Order 693)", "type": "standard", "description": "Mandatory reliability standards for Bulk Power System operations, balancing, and planning", "version": "2024"},
     ]
 
     frameworks_created = 0

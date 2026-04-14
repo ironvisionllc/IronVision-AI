@@ -47,6 +47,8 @@ SIEM_CONTROL_MAP = {
         # StateRAMP
         "SR-AC-1", "SR-AC-2", "SR-AC-7", "SR-AC-8", "SR-AC-11", "SR-AC-12",
         "SR-IA-1", "SR-IA-2", "SR-IA-4", "SR-IA-5", "SR-IA-6", "SR-IA-8",
+        # NERC CIP
+        "CIP-004-R4", "CIP-004-R5", "CIP-005-R1", "CIP-005-R2", "CIP-005-R3", "CIP-007-R5",
     ],
     "authorization": [
         # NIST SP 800-53
@@ -72,6 +74,8 @@ SIEM_CONTROL_MAP = {
         "NIS2-10",
         # StateRAMP
         "SR-AC-3", "SR-AC-4", "SR-AC-5", "SR-AC-6", "SR-AC-17", "SR-AC-18", "SR-AC-20",
+        # NERC CIP
+        "CIP-006-R1", "CIP-006-R2", "CIP-006-R3", "CIP-011-R1",
         # FS AI
         "FS-SP-1",
     ],
@@ -99,6 +103,10 @@ SIEM_CONTROL_MAP = {
         "NIS2-5",
         # StateRAMP
         "SR-AU-1", "SR-AU-2", "SR-AU-3", "SR-AU-4", "SR-AU-5", "SR-AU-6", "SR-AU-8", "SR-AU-9", "SR-AU-12",
+        # NERC CIP
+        "CIP-007-R4", "CIP-011-R2",
+        # NERC 693
+        "PRC-002",
         # FS AI
         "FS-SP-3", "FS-SP-4", "FS-DM-1", "FS-DM-2",
     ],
@@ -124,6 +132,10 @@ SIEM_CONTROL_MAP = {
         "NIS2-6",
         # StateRAMP
         "SR-CM-1", "SR-CM-2", "SR-CM-3", "SR-CM-4", "SR-CM-6", "SR-CM-7", "SR-CM-8",
+        # NERC CIP
+        "CIP-010-R1", "CIP-010-R2", "CIP-010-R4",
+        # NERC 693
+        "TOP-003",
         # NIST AI RMF
         "GV-1.2", "GV-1.3",
     ],
@@ -149,6 +161,10 @@ SIEM_CONTROL_MAP = {
         "NIS2-1", "NIS2-4", "NIS2-16",
         # StateRAMP
         "SR-CA-1", "SR-CA-2", "SR-CA-3", "SR-CA-5", "SR-CA-6", "SR-CA-7",
+        # NERC CIP
+        "CIP-010-R3", "CIP-013-R1", "CIP-013-R2", "CIP-014-R1", "CIP-014-R4",
+        # NERC 693
+        "IRO-001", "IRO-002", "IRO-008", "FAC-014", "TPL-001",
         # NIST AI RMF
         "GV-1.5", "GV-3.2", "MP-2.1", "MP-2.2", "MP-2.3", "MS-1.1", "MS-1.2", "MS-2.1",
         # FS AI
@@ -175,6 +191,10 @@ SIEM_CONTROL_MAP = {
         "NIS2-2", "NIS2-11", "NIS2-12", "NIS2-13",
         # StateRAMP
         "SR-IR-1", "SR-IR-2", "SR-IR-3", "SR-IR-4", "SR-IR-5", "SR-IR-6", "SR-IR-8",
+        # NERC CIP
+        "CIP-008-R1", "CIP-008-R2", "CIP-008-R3",
+        # NERC 693
+        "EOP-004", "EOP-008", "EOP-011",
     ],
     "system": [
         # NIST SP 800-53
@@ -202,6 +222,10 @@ SIEM_CONTROL_MAP = {
         "SR-SI-1", "SR-SI-2", "SR-SI-3", "SR-SI-4", "SR-SI-5", "SR-SI-10", "SR-SI-12",
         "SR-SC-1", "SR-SC-5", "SR-SC-7", "SR-SC-8", "SR-SC-12", "SR-SC-13", "SR-SC-28",
         "SR-CP-1", "SR-CP-2", "SR-CP-3", "SR-CP-4", "SR-CP-9", "SR-CP-10",
+        # NERC CIP
+        "CIP-003-R1", "CIP-007-R1", "CIP-007-R2", "CIP-007-R3", "CIP-009-R1", "CIP-009-R2", "CIP-009-R3", "CIP-012-R1",
+        # NERC 693
+        "COM-001", "COM-002", "EOP-005", "EOP-006", "TOP-001", "TOP-010", "BAL-001", "BAL-005", "PRC-005",
         # NIST AI RMF
         "MS-2.2", "MS-2.3", "MS-3.1", "MG-2.1", "MG-2.2",
         # FS AI

@@ -1003,6 +1003,134 @@ STATERAMP_CONTROLS = [
 ]
 
 
+# NERC CIP (Critical Infrastructure Protection) Standards — CIP-002 through CIP-014
+NERC_CIP_CONTROLS = [
+    # CIP-002: BES Cyber System Categorization
+    {"control_id": "CIP-002-R1", "title": "BES Cyber System Categorization", "category": "Asset Categorization", "description": "Implement a process to identify and categorize BES Cyber Systems as high, medium, or low impact"},
+    {"control_id": "CIP-002-R2", "title": "Review and Approve BES Cyber System Lists", "category": "Asset Categorization", "description": "Review and obtain CIP Senior Manager approval of identifications at least once every 15 months"},
+    # CIP-003: Security Management Controls
+    {"control_id": "CIP-003-R1", "title": "Cyber Security Policy", "category": "Security Management", "description": "Document and implement cyber security policies addressing CIP-002 through CIP-011"},
+    {"control_id": "CIP-003-R2", "title": "CIP Senior Manager", "category": "Security Management", "description": "Designate a single CIP Senior Manager with overall authority and responsibility for CIP standards"},
+    {"control_id": "CIP-003-R3", "title": "Delegate Authority", "category": "Security Management", "description": "Document and authorize delegations of CIP Senior Manager authority where applicable"},
+    {"control_id": "CIP-003-R4", "title": "Low Impact BES Cyber Systems", "category": "Security Management", "description": "Implement cyber security plans for low impact BES Cyber Systems per Attachment 1"},
+    # CIP-004: Personnel & Training
+    {"control_id": "CIP-004-R1", "title": "Security Awareness Program", "category": "Personnel & Training", "description": "Implement a security awareness program for personnel with authorized access to BES Cyber Systems"},
+    {"control_id": "CIP-004-R2", "title": "Cyber Security Training", "category": "Personnel & Training", "description": "Implement a cyber security training program for personnel with authorized electronic or physical access"},
+    {"control_id": "CIP-004-R3", "title": "Personnel Risk Assessment", "category": "Personnel & Training", "description": "Conduct personnel risk assessments for personnel with authorized access prior to granting access"},
+    {"control_id": "CIP-004-R4", "title": "Access Management", "category": "Personnel & Training", "description": "Implement an access management program for authorizing and revoking access to BES Cyber Systems"},
+    {"control_id": "CIP-004-R5", "title": "Access Revocation", "category": "Personnel & Training", "description": "Implement procedures for timely revocation of access to BES Cyber Systems upon personnel changes"},
+    # CIP-005: Electronic Security Perimeters
+    {"control_id": "CIP-005-R1", "title": "Electronic Security Perimeter", "category": "Electronic Security", "description": "Implement electronic access points and manage inbound/outbound traffic for high and medium impact BCS"},
+    {"control_id": "CIP-005-R2", "title": "Remote Access Management", "category": "Electronic Security", "description": "Implement controls for Interactive Remote Access sessions to BES Cyber Systems"},
+    {"control_id": "CIP-005-R3", "title": "Vendor Remote Access", "category": "Electronic Security", "description": "Manage vendor remote access including ability to disable active sessions and control methods"},
+    # CIP-006: Physical Security
+    {"control_id": "CIP-006-R1", "title": "Physical Security Plan", "category": "Physical Security", "description": "Implement a physical security plan to restrict physical access to BES Cyber Systems"},
+    {"control_id": "CIP-006-R2", "title": "Visitor Control Program", "category": "Physical Security", "description": "Implement a visitor control program for visitors to Physical Security Perimeters"},
+    {"control_id": "CIP-006-R3", "title": "Physical Access Control Maintenance", "category": "Physical Security", "description": "Maintain and test Physical Access Control Systems and locally mounted hardware"},
+    # CIP-007: System Security Management
+    {"control_id": "CIP-007-R1", "title": "Ports and Services", "category": "System Security", "description": "Protect against use of unnecessary physical and logical ports on BES Cyber Systems"},
+    {"control_id": "CIP-007-R2", "title": "Security Patch Management", "category": "System Security", "description": "Implement a patch management process for tracking and installing security patches"},
+    {"control_id": "CIP-007-R3", "title": "Malicious Code Prevention", "category": "System Security", "description": "Deploy methods to prevent, detect, and mitigate malicious code on BES Cyber Systems"},
+    {"control_id": "CIP-007-R4", "title": "Security Event Monitoring", "category": "System Security", "description": "Log and monitor security events on BES Cyber Systems for at least 90 days"},
+    {"control_id": "CIP-007-R5", "title": "System Access Controls", "category": "System Security", "description": "Enforce authentication and manage accounts on BES Cyber Systems"},
+    # CIP-008: Incident Reporting & Response
+    {"control_id": "CIP-008-R1", "title": "Cyber Security Incident Response Plan", "category": "Incident Response", "description": "Develop and maintain a Cyber Security Incident Response plan"},
+    {"control_id": "CIP-008-R2", "title": "Incident Response Plan Implementation", "category": "Incident Response", "description": "Implement the Cyber Security Incident Response plan including testing and review"},
+    {"control_id": "CIP-008-R3", "title": "Incident Notification", "category": "Incident Response", "description": "Notify the Electricity Subsector Coordinating Council (ESCC) upon identification of incidents"},
+    # CIP-009: Recovery Plans
+    {"control_id": "CIP-009-R1", "title": "Recovery Plans", "category": "Recovery Planning", "description": "Develop and maintain recovery plans for BES Cyber Systems including conditions for activation"},
+    {"control_id": "CIP-009-R2", "title": "Recovery Plan Implementation and Testing", "category": "Recovery Planning", "description": "Test the recovery plan at least once every 15 months and update based on lessons learned"},
+    {"control_id": "CIP-009-R3", "title": "Recovery Plan Review and Communication", "category": "Recovery Planning", "description": "Maintain backup and recovery practices including information essential to recovery"},
+    # CIP-010: Configuration Change Management
+    {"control_id": "CIP-010-R1", "title": "Configuration Change Management", "category": "Configuration Management", "description": "Implement a configuration change management process for changes to BES Cyber Systems"},
+    {"control_id": "CIP-010-R2", "title": "Configuration Monitoring", "category": "Configuration Management", "description": "Monitor for unauthorized changes to baseline configurations at least every 35 days"},
+    {"control_id": "CIP-010-R3", "title": "Vulnerability Assessment", "category": "Configuration Management", "description": "Conduct vulnerability assessments at least once every 15 months"},
+    {"control_id": "CIP-010-R4", "title": "Transient Cyber Assets", "category": "Configuration Management", "description": "Implement plans for Transient Cyber Assets and Removable Media"},
+    # CIP-011: Information Protection
+    {"control_id": "CIP-011-R1", "title": "Information Protection", "category": "Information Protection", "description": "Implement methods to prevent unauthorized access to BES Cyber System Information"},
+    {"control_id": "CIP-011-R2", "title": "BES Cyber Asset Reuse and Disposal", "category": "Information Protection", "description": "Prevent unauthorized retrieval of BES Cyber System Information from assets being disposed or redeployed"},
+    # CIP-012: Communications Between Control Centers
+    {"control_id": "CIP-012-R1", "title": "Control Center Communications", "category": "Communications Security", "description": "Implement security protections for real-time assessment and monitoring data between Control Centers"},
+    # CIP-013: Supply Chain Risk Management
+    {"control_id": "CIP-013-R1", "title": "Supply Chain Cyber Security Risk Management Plan", "category": "Supply Chain", "description": "Develop and implement plans to manage cyber security risks in the supply chain"},
+    {"control_id": "CIP-013-R2", "title": "Supply Chain Risk Assessment", "category": "Supply Chain", "description": "Implement processes for supply chain risk assessment of BES Cyber System vendors"},
+    # CIP-014: Physical Security
+    {"control_id": "CIP-014-R1", "title": "Physical Security Risk Assessment", "category": "Physical Security Assessment", "description": "Perform risk assessment of Transmission stations and substations for potential physical attack"},
+    {"control_id": "CIP-014-R2", "title": "Third-Party Verification", "category": "Physical Security Assessment", "description": "Obtain unaffiliated third-party verification of risk assessments"},
+    {"control_id": "CIP-014-R3", "title": "Notification to Transmission Operator", "category": "Physical Security Assessment", "description": "Notify the Transmission Operator of identified critical facilities"},
+    {"control_id": "CIP-014-R4", "title": "Evaluation of Physical Security Threats", "category": "Physical Security Assessment", "description": "Evaluate potential threats and vulnerabilities of physical attack to identified critical facilities"},
+    {"control_id": "CIP-014-R5", "title": "Physical Security Plan", "category": "Physical Security Assessment", "description": "Develop and implement a documented physical security plan for identified critical facilities"},
+    {"control_id": "CIP-014-R6", "title": "Physical Security Plan Evaluation", "category": "Physical Security Assessment", "description": "Obtain third-party review of the physical security plan for identified critical facilities"},
+]
+
+
+# NERC Reliability Standards (Order 693) — Key operational reliability standards
+NERC_693_CONTROLS = [
+    # BAL: Resource and Demand Balancing
+    {"control_id": "BAL-001", "title": "Real Power Balancing Control Performance", "category": "Balancing", "description": "Balancing Authority shall operate to maintain system frequency within defined limits"},
+    {"control_id": "BAL-002", "title": "Disturbance Control Standard", "category": "Balancing", "description": "Recover ACE within the Disturbance Recovery Period following reportable disturbances"},
+    {"control_id": "BAL-003", "title": "Frequency Response and Bias", "category": "Balancing", "description": "Maintain adequate frequency response and frequency bias settings"},
+    {"control_id": "BAL-005", "title": "Automatic Generation Control", "category": "Balancing", "description": "Operate with Automatic Generation Control (AGC) to maintain interchange schedules and frequency"},
+    # COM: Communications
+    {"control_id": "COM-001", "title": "Communications", "category": "Communications", "description": "Each Reliability Coordinator, Transmission Operator, and Balancing Authority shall have interpersonal communication capability"},
+    {"control_id": "COM-002", "title": "Communication and Coordination", "category": "Communications", "description": "Establish and maintain communication facilities for real-time reliability operations"},
+    # EOP: Emergency Preparedness and Operations
+    {"control_id": "EOP-004", "title": "Event Reporting", "category": "Emergency Operations", "description": "Report events to appropriate entities including NERC, Regional Entity, and Reliability Coordinator"},
+    {"control_id": "EOP-005", "title": "System Restoration from Blackstart Resources", "category": "Emergency Operations", "description": "Establish plans for system restoration including blackstart resource testing"},
+    {"control_id": "EOP-006", "title": "System Restoration Coordination", "category": "Emergency Operations", "description": "Coordinate system restoration plans between Transmission Operators and Reliability Coordinators"},
+    {"control_id": "EOP-008", "title": "Loss of Control Center Functionality", "category": "Emergency Operations", "description": "Ensure reliable operation of the BES in the event of loss of primary control center functionality"},
+    {"control_id": "EOP-010", "title": "Geomagnetic Disturbance Operations", "category": "Emergency Operations", "description": "Mitigate the effects of geomagnetic disturbances (GMDs) on the reliable operation of the BES"},
+    {"control_id": "EOP-011", "title": "Emergency Preparedness and Operations", "category": "Emergency Operations", "description": "Prepare for and mitigate emergency events affecting BES reliability"},
+    # FAC: Facility Ratings and Design
+    {"control_id": "FAC-001", "title": "Facility Interconnection Requirements", "category": "Facility Design", "description": "Document Facility interconnection requirements for reliable planning and operation"},
+    {"control_id": "FAC-002", "title": "Facility Interconnection Studies", "category": "Facility Design", "description": "Coordinate joint studies of new facilities and impacts on reliability"},
+    {"control_id": "FAC-008", "title": "Facility Ratings", "category": "Facility Design", "description": "Ensure Facility Ratings are established consistently and are available for reliable operation"},
+    {"control_id": "FAC-014", "title": "Establish and Communicate System Operating Limits", "category": "Facility Design", "description": "Establish System Operating Limits (SOLs) and Interconnection Reliability Operating Limits (IROLs)"},
+    # IRO: Interconnection Reliability Operations
+    {"control_id": "IRO-001", "title": "Reliability Coordination — Responsibilities", "category": "Reliability Operations", "description": "Reliability Coordinator has authority to act to prevent/mitigate Emergency situations"},
+    {"control_id": "IRO-002", "title": "Reliability Coordination — Monitoring and Analysis", "category": "Reliability Operations", "description": "Monitor the state of the Reliability Coordinator Area and perform real-time reliability assessment"},
+    {"control_id": "IRO-008", "title": "Reliability Coordinator Operational Analyses", "category": "Reliability Operations", "description": "Perform operational planning analyses for next-day and current-day operations"},
+    {"control_id": "IRO-009", "title": "Reliability Coordinator Actions to Address IROLs", "category": "Reliability Operations", "description": "Operate to prevent exceeding Interconnection Reliability Operating Limits"},
+    {"control_id": "IRO-010", "title": "Reliability Coordinator Data Specification", "category": "Reliability Operations", "description": "Specify data and information requirements for operational reliability analysis"},
+    {"control_id": "IRO-014", "title": "Coordination Among Reliability Coordinators", "category": "Reliability Operations", "description": "Coordinate operations with neighboring Reliability Coordinators"},
+    # MOD: Modeling, Data, and Analysis
+    {"control_id": "MOD-025", "title": "Verification and Data Reporting of Generator Real and Reactive Power", "category": "Modeling & Data", "description": "Verify generator gross and net real/reactive power capability through testing"},
+    {"control_id": "MOD-026", "title": "Verification of Models and Data for Generator Excitation Systems", "category": "Modeling & Data", "description": "Verify models and data for generator excitation control systems"},
+    {"control_id": "MOD-027", "title": "Verification of Models and Data for Turbine/Governor", "category": "Modeling & Data", "description": "Verify turbine/governor and load control or active power/frequency control models"},
+    {"control_id": "MOD-031", "title": "Demand and Energy Data", "category": "Modeling & Data", "description": "Provide demand and energy data for reliability assessments and planning"},
+    {"control_id": "MOD-032", "title": "Data for Power System Modeling and Analysis", "category": "Modeling & Data", "description": "Provide data to support power system modeling, analysis, and planning"},
+    {"control_id": "MOD-033", "title": "Steady-State and Dynamic System Model Validation", "category": "Modeling & Data", "description": "Validate steady-state and dynamic models against actual system events"},
+    # NUC: Nuclear
+    {"control_id": "NUC-001", "title": "Nuclear Plant Interface Coordination", "category": "Nuclear", "description": "Coordinate Nuclear Plant Interface Requirements between nuclear plant and transmission entities"},
+    # PER: Personnel Performance
+    {"control_id": "PER-003", "title": "Operating Personnel Credentials", "category": "Personnel", "description": "Ensure System Operators are NERC-certified and maintain valid credentials"},
+    {"control_id": "PER-005", "title": "Operations Personnel Training", "category": "Personnel", "description": "Implement systematic approach to training operations personnel including emergency scenarios"},
+    # PRC: Protection and Control
+    {"control_id": "PRC-002", "title": "Disturbance Monitoring and Reporting Requirements", "category": "Protection & Control", "description": "Ensure adequate DME coverage for analysis of disturbances and system events"},
+    {"control_id": "PRC-004", "title": "Protection System Misoperation Identification", "category": "Protection & Control", "description": "Identify and correct causes of Protection System Misoperations"},
+    {"control_id": "PRC-005", "title": "Protection System, Automatic Reclosing, and Sudden Pressure Relaying Maintenance", "category": "Protection & Control", "description": "Ensure Protection Systems and automatic reclosing are maintained to support reliable operation"},
+    {"control_id": "PRC-006", "title": "Automatic Underfrequency Load Shedding", "category": "Protection & Control", "description": "Develop and implement UFLS programs to arrest declining frequency and assist recovery"},
+    {"control_id": "PRC-010", "title": "Undervoltage Load Shedding", "category": "Protection & Control", "description": "Ensure automatic undervoltage load shedding programs support BES reliability"},
+    {"control_id": "PRC-019", "title": "Coordination of Generating Unit/Plant Protection", "category": "Protection & Control", "description": "Verify coordination of generating unit/plant protection systems with generator capability"},
+    {"control_id": "PRC-023", "title": "Relay Loadability", "category": "Protection & Control", "description": "Ensure protective relays are set such that they do not limit transmission loadability"},
+    {"control_id": "PRC-024", "title": "Generator Frequency and Voltage Protective Relay Settings", "category": "Protection & Control", "description": "Ensure generators remain connected during frequency and voltage excursions"},
+    {"control_id": "PRC-025", "title": "Generator Relay Loadability", "category": "Protection & Control", "description": "Set generator protective relays to not trip generator during recoverable system disturbances"},
+    {"control_id": "PRC-026", "title": "Relay Performance During Stable Power Swings", "category": "Protection & Control", "description": "Ensure Protection System elements do not operate on stable power swings"},
+    {"control_id": "PRC-027", "title": "Coordination of Protection Systems for Performance During Faults", "category": "Protection & Control", "description": "Coordinate protection systems for reliable fault performance"},
+    # TOP: Transmission Operations
+    {"control_id": "TOP-001", "title": "Transmission Operations", "category": "Transmission Operations", "description": "Operate within the limits of the most limiting applicable equipment ratings and SOLs"},
+    {"control_id": "TOP-002", "title": "Operations Planning", "category": "Transmission Operations", "description": "Plan operations for the next day and current day to operate within SOLs and IROLs"},
+    {"control_id": "TOP-003", "title": "Operational Reliability Data", "category": "Transmission Operations", "description": "Provide operational data and information specified for reliable operations"},
+    {"control_id": "TOP-010", "title": "Real-time Reliability Monitoring", "category": "Transmission Operations", "description": "Ensure monitoring and assessment of the reliability of their transmission systems in real-time"},
+    # TPL: Transmission Planning
+    {"control_id": "TPL-001", "title": "Transmission System Planning Performance", "category": "Transmission Planning", "description": "Establish and document performance requirements for the planning of the Bulk Electric System"},
+    {"control_id": "TPL-007", "title": "Transmission System Planned Performance for GMD Events", "category": "Transmission Planning", "description": "Plan for geomagnetic disturbance events that could affect BES performance"},
+    # VAR: Voltage and Reactive
+    {"control_id": "VAR-001", "title": "Voltage and Reactive Control", "category": "Voltage & Reactive", "description": "Ensure sufficient reactive resources are available to maintain voltage levels within limits"},
+    {"control_id": "VAR-002", "title": "Generator Operation for Maintaining Network Voltage", "category": "Voltage & Reactive", "description": "Provide reactive power and voltage support as required by Transmission Operators"},
+]
+
+
 def get_framework_controls(framework_name):
     """Return controls for a specific framework"""
     mapping = {
@@ -1017,6 +1145,8 @@ def get_framework_controls(framework_name):
         "CMMC": CMMC_CONTROLS,
         "NIS2": NIS2_CONTROLS,
         "NIST SP 800-171": NIST_800_171_CONTROLS,
-        "StateRAMP": STATERAMP_CONTROLS
+        "StateRAMP": STATERAMP_CONTROLS,
+        "NERC CIP": NERC_CIP_CONTROLS,
+        "NERC Reliability Standards (Order 693)": NERC_693_CONTROLS,
     }
     return mapping.get(framework_name, [])

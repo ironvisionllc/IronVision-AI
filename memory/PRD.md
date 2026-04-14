@@ -62,7 +62,7 @@ Global: Cmd+K Command Palette, Compliance Copilot (AI chat)
 - [x] 5 widget sections, toggle visibility + reorder
 
 ### Other Features
-- [x] 12 frameworks, 869 controls, Command Palette (Cmd+K)
+- [x] 14 frameworks (incl. NERC CIP, NERC 693), 962 controls, Command Palette (Cmd+K)
 - [x] Compliance Copilot (GPT-5.2), Slack Integration, SIEM with live simulator
 - [x] Full dark mode, JWT auth with demo accounts
 
@@ -84,8 +84,8 @@ External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2)
 - Demo Admin: demo-admin@grc.com / DemoAdmin123!
 - Demo User: demo-user@grc.com / DemoUser123!
 
-## SIEM Mappings (Updated Apr 13, 2026)
-All 12 frameworks mapped to 7 SIEM categories (authentication, authorization, data_access, policy_change, risk_management, incident, system). Coverage: NIST 800-171 92%, StateRAMP 99%, CMMC 70%, NIS2 67%, HIPAA 62%, ISO 27001 52%, SOC 2 49%, FS AI 40%, NIST AI RMF 33%, GDPR 28%, NIST CSF 25%, NIST 800-53 12%.
+## SIEM Mappings (Updated Apr 14, 2026)
+All 14 frameworks mapped to 7 SIEM categories. Coverage: StateRAMP 99%, NIST 800-171 92%, NERC CIP 72%, CMMC 70%, NIS2 67%, HIPAA 62%, ISO 27001 52%, SOC 2 49%, FS AI 40%, NERC 693 38%, NIST AI RMF 33%, GDPR 28%, NIST CSF 25%, NIST 800-53 12%.
 
 ## Backlog
 ### P1
