@@ -35,6 +35,7 @@ from routes.control_effectiveness import router as effectiveness_router
 from routes.siem import router as siem_router
 from routes.control_compliance import router as control_compliance_router
 from routes.policy_templates import router as policy_templates_router
+from routes.ingestion import router as ingestion_router
 
 # Create the main app
 app = FastAPI()
@@ -70,6 +71,7 @@ api_router.include_router(effectiveness_router)
 api_router.include_router(siem_router)
 api_router.include_router(control_compliance_router)
 api_router.include_router(policy_templates_router)
+api_router.include_router(ingestion_router)
 
 app.include_router(api_router)
 

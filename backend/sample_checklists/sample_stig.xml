@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="xccdf_mil.disa.stig_benchmark_Windows_Server_2019">
+  <title>Windows Server 2019 Security Technical Implementation Guide</title>
+  <version>2.8</version>
+  <Group id="V-205625">
+    <title>Windows Server 2019 Account Policies</title>
+    <Rule id="SV-205625r569188_rule" severity="high">
+      <title>Windows Server 2019 must have the password complexity policy enabled</title>
+      <description>The use of complex passwords increases their strength against attack. Passwords that do not meet the minimum complexity requirements are much easier to guess and therefore more susceptible to brute force attacks.</description>
+      <fixtext>Configure the policy value for Computer Configuration - Windows Settings - Security Settings - Account Policies - Password Policy - Password must meet complexity requirements to Enabled.</fixtext>
+    </Rule>
+  </Group>
+  <Group id="V-205626">
+    <title>Windows Server 2019 Audit Policies</title>
+    <Rule id="SV-205626r569191_rule" severity="medium">
+      <title>Windows Server 2019 must be configured to audit Account Logon events</title>
+      <description>Maintaining an audit trail of system activity logs can help identify configuration errors, troubleshoot service disruptions, and analyze compromises or attacks.</description>
+      <fixtext>Configure the policy for Computer Configuration - Windows Settings - Security Settings - Advanced Audit Policy Configuration - Account Logon.</fixtext>
+    </Rule>
+  </Group>
+  <Group id="V-205627">
+    <title>Windows Server 2019 Access Controls</title>
+    <Rule id="SV-205627r569194_rule" severity="high">
+      <title>Windows Server 2019 must restrict remote access to system administration tools</title>
+      <description>Restricting remote access to administration tools reduces the attack surface of the system. Remote Desktop must be configured to use FIPS compliant encryption and restrict access to authorized users only.</description>
+      <fixtext>Configure Remote Desktop Services to require Network Level Authentication and encrypt sessions using FIPS 140-2 validated cryptographic modules.</fixtext>
+    </Rule>
+  </Group>
+  <Group id="V-205628">
+    <title>Windows Server 2019 System Integrity</title>
+    <Rule id="SV-205628r569197_rule" severity="medium">
+      <title>Windows Server 2019 must employ automated mechanisms to detect unauthorized changes to software and information</title>
+      <description>Unauthorized changes to software or configuration can indicate compromise. File integrity monitoring must be implemented to detect modifications to critical system files and configuration data.</description>
+      <fixtext>Implement file integrity monitoring tools that alert administrators to unauthorized modifications of critical system files, executables, and configuration data.</fixtext>
+    </Rule>
+  </Group>
+  <Group id="V-205629">
+    <title>Windows Server 2019 Encryption</title>
+    <Rule id="SV-205629r569200_rule" severity="high">
+      <title>Windows Server 2019 must use FIPS-compliant algorithms for encryption, hashing, and signing</title>
+      <description>Use of weak or non-FIPS compliant algorithms undermines the protection of sensitive data. FIPS 140-2 validated cryptographic modules must be used for all cryptographic operations including data at rest and data in transit.</description>
+      <fixtext>Enable the System cryptography: Use FIPS compliant algorithms for encryption, hashing, and signing setting under Local Policy - Security Options.</fixtext>
+    </Rule>
+  </Group>
+  <Group id="V-205630">
+    <title>Windows Server 2019 Network Security</title>
+    <Rule id="SV-205630r569203_rule" severity="medium">
+      <title>Windows Server 2019 must configure the Windows Firewall to restrict inbound network traffic</title>
+      <description>A host-based firewall provides a layered defense against network-based attacks. Windows Firewall must be configured to restrict all inbound connections that are not explicitly allowed by rule.</description>
+      <fixtext>Configure Windows Firewall with Advanced Security to block all inbound connections by default and create explicit allow rules only for required services.</fixtext>
+    </Rule>
+  </Group>
+  <Group id="V-205631">
+    <title>Windows Server 2019 Logging</title>
+    <Rule id="SV-205631r569206_rule" severity="medium">
+      <title>Windows Server 2019 must generate audit records for privileged operations</title>
+      <description>Without generating audit records for privileged operations, it is difficult to identify misuse of elevated privileges. All use of elevated privileges including administrative actions must be logged.</description>
+      <fixtext>Configure audit policy to audit Privilege Use - Sensitive Privilege Use for both Success and Failure events.</fixtext>
+    </Rule>
+  </Group>
+  <Group id="V-205632">
+    <title>Windows Server 2019 Session Controls</title>
+    <Rule id="SV-205632r569209_rule" severity="low">
+      <title>Windows Server 2019 must automatically lock the session after 15 minutes of inactivity</title>
+      <description>A session lock is a temporary action taken when a user stops work and moves away from the terminal. The screen saver timeout must be configured to 15 minutes or less to reduce the window of opportunity for unauthorized access.</description>
+      <fixtext>Configure the machine inactivity limit to 900 seconds (15 minutes) through Group Policy: Computer Configuration - Windows Settings - Security Settings - Local Policies - Security Options.</fixtext>
+    </Rule>
+  </Group>
+</Benchmark>

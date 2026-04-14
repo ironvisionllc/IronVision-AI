@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Files, ListBullets, MagnifyingGlass, CaretRight, Gauge, GearSix, Eye, EyeSlash, CaretUp, CaretDown, DotsSixVertical } from "@phosphor-icons/react";
+import { Plus, Files, ListBullets, MagnifyingGlass, CaretRight, Gauge, GearSix, Eye, EyeSlash, CaretUp, CaretDown, DotsSixVertical, Upload } from "@phosphor-icons/react";
 import FrameworkWorkspace from "@/components/FrameworkWorkspace";
+import ComplianceIngestion from "@/components/ComplianceIngestion";
 
 const SCORE_COLORS = {
   excellent: { text: "#059669", bg: "#D1FAE5" },
@@ -41,6 +42,7 @@ const FrameworksPage = ({ embedded = false }) => {
   // Detail view state
   const [detailFramework, setDetailFramework] = useState(null);
   const [showOrganize, setShowOrganize] = useState(false);
+  const [showIngestion, setShowIngestion] = useState(false);
   const [fwPrefs, setFwPrefs] = useState(null); // { order: [...ids], hidden: [...ids] }
 
   // Effectiveness scores
@@ -155,6 +157,15 @@ const FrameworksPage = ({ embedded = false }) => {
     );
   }
 
+  // Show Ingestion Layer
+  if (showIngestion) {
+    return (
+      <Wrap>
+        <ComplianceIngestion onBack={() => setShowIngestion(false)} />
+      </Wrap>
+    );
+  }
+
   // Grid view
   return (
     <Wrap>
@@ -165,6 +176,9 @@ const FrameworksPage = ({ embedded = false }) => {
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Manage compliance frameworks for your organization</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setShowIngestion(true)} data-testid="open-ingestion-btn">
+              <Upload size={14} className="mr-1.5" /> Ingestion Layer
+            </Button>
             <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setShowOrganize(!showOrganize)} data-testid="organize-frameworks-btn">
               <GearSix size={14} className="mr-1.5" /> Organize
             </Button>

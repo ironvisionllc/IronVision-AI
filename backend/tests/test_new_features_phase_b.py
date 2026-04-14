@@ -11,7 +11,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ai-framework-hub.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://compliance-ingestion.preview.emergentagent.com')
 
 # Test credentials
 TEST_EMAIL = "demo-admin@grc.com"

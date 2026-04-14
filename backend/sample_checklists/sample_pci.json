@@ -1,0 +1,104 @@
+{
+  "name": "PCI DSS v4.0 Compliance Checklist",
+  "version": "4.0",
+  "requirements": [
+    {
+      "id": "1.1",
+      "title": "Install and maintain network security controls",
+      "description": "Network security controls such as firewalls must be configured and maintained to protect the cardholder data environment from unauthorized network access.",
+      "severity": "high",
+      "section": "Build and Maintain a Secure Network"
+    },
+    {
+      "id": "1.2",
+      "title": "Restrict connections between untrusted networks and the CDE",
+      "description": "Configure firewall and router rules to restrict inbound and outbound traffic to that which is necessary for the cardholder data environment.",
+      "severity": "high",
+      "section": "Build and Maintain a Secure Network"
+    },
+    {
+      "id": "2.1",
+      "title": "Apply secure configurations to all system components",
+      "description": "Vendor-supplied defaults and unnecessary services must be changed or removed before deploying systems to production.",
+      "severity": "high",
+      "section": "Build and Maintain a Secure Network"
+    },
+    {
+      "id": "3.1",
+      "title": "Protect stored account data",
+      "description": "Stored cardholder data must be protected using encryption, truncation, masking, and hashing to render it unreadable.",
+      "severity": "high",
+      "section": "Protect Cardholder Data"
+    },
+    {
+      "id": "3.2",
+      "title": "Do not store sensitive authentication data after authorization",
+      "description": "Sensitive authentication data including full track data, CAV2/CVC2/CVV2/CID and PINs must not be stored after authorization.",
+      "severity": "high",
+      "section": "Protect Cardholder Data"
+    },
+    {
+      "id": "4.1",
+      "title": "Protect cardholder data with strong cryptography during transmission",
+      "description": "Use strong cryptography and security protocols to safeguard cardholder data during transmission over open, public networks.",
+      "severity": "high",
+      "section": "Protect Cardholder Data"
+    },
+    {
+      "id": "5.1",
+      "title": "Protect all systems and networks from malicious software",
+      "description": "Deploy anti-malware solutions on all systems commonly affected by malicious software and ensure they are kept up to date.",
+      "severity": "high",
+      "section": "Maintain a Vulnerability Management Program"
+    },
+    {
+      "id": "6.1",
+      "title": "Develop and maintain secure systems and software",
+      "description": "Establish a process to identify and manage security vulnerabilities in custom and third-party software throughout the development lifecycle.",
+      "severity": "high",
+      "section": "Maintain a Vulnerability Management Program"
+    },
+    {
+      "id": "7.1",
+      "title": "Restrict access to system components and cardholder data by business need to know",
+      "description": "Limit access to cardholder data and system components to only those individuals whose jobs require such access.",
+      "severity": "high",
+      "section": "Implement Strong Access Control Measures"
+    },
+    {
+      "id": "8.1",
+      "title": "Identify users and authenticate access to system components",
+      "description": "Ensure proper user identification and authentication management for non-consumer users and administrators on all system components.",
+      "severity": "high",
+      "section": "Implement Strong Access Control Measures"
+    },
+    {
+      "id": "9.1",
+      "title": "Restrict physical access to cardholder data",
+      "description": "Use appropriate facility entry controls to limit and monitor physical access to systems in the cardholder data environment.",
+      "severity": "medium",
+      "section": "Implement Strong Access Control Measures"
+    },
+    {
+      "id": "10.1",
+      "title": "Log and monitor all access to system components and cardholder data",
+      "description": "Implement logging mechanisms to track user activities, exceptions, faults, and information security events.",
+      "severity": "high",
+      "section": "Regularly Monitor and Test Networks"
+    },
+    {
+      "id": "11.1",
+      "title": "Test security of systems and networks regularly",
+      "description": "Regularly test security systems and processes including vulnerability scans and penetration testing.",
+      "severity": "high",
+      "section": "Regularly Monitor and Test Networks"
+    },
+    {
+      "id": "12.1",
+      "title": "Support information security with organizational policies and programs",
+      "description": "Establish, publish, maintain, and disseminate a security policy that addresses all PCI DSS requirements.",
+      "severity": "medium",
+      "section": "Maintain an Information Security Policy"
+    }
+  ]
+}

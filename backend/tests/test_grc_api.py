@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://grc-enterprise-3.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://compliance-ingestion.preview.emergentagent.com')
 
 # Demo credentials
 DEMO_ADMIN = {"email": "demo-admin@grc.com", "password": "DemoAdmin123!"}
