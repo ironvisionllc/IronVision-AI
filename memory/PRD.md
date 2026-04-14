@@ -1,7 +1,7 @@
 # IronVision AI - GRC Platform - Product Requirements Document
 
 ## Overview
-Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy generation, intelligent control mapping, LLM-powered compliance assistance, and SIEM integration.
+Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy generation, intelligent control mapping, LLM-powered compliance assistance, SIEM integration, and Universal Compliance Ingestion Layer.
 
 ## Design System
 - Brand: #2597B2 (primary), #1B839F (hover), #0a3540 (dark)
@@ -12,7 +12,7 @@ Enterprise GRC (Governance, Risk & Compliance) platform with AI-powered policy g
 ### Navigation
 ```
 COMMAND CENTER - Dashboard (customizable widgets)
-GOVERNANCE - Frameworks (organize + workspace) | Policies (Policy Center - 5 tabs)
+GOVERNANCE - Frameworks (organize + workspace + Ingestion Layer) | Policies (Policy Center - 5 tabs)
 RISK - Risk Assessment | Vendors
 SECURITY - SIEM
 COMPLIANCE - Compliance (Audits + Evidence)
@@ -33,8 +33,6 @@ Global: Cmd+K Command Palette, Compliance Copilot (AI chat)
 - [x] **Map to Framework**: Select frameworks + upload docs for compliance mapping
 - [x] **General Upload**: Upload any document (no framework required)
 - [x] **Create Document**: Built-in text editor to write policies/procedures locally
-  - Title + content textarea + category + custom labels
-  - No S3/Lambda dependency — saves directly to DB
 - [x] Category selector: Policy/Procedure/Evidence/Contract/Training/Other
 - [x] Custom labels input, expanded file support
 
@@ -43,7 +41,7 @@ Global: Cmd+K Command Palette, Compliance Copilot (AI chat)
 - [x] 4 filters: Search, Type, Status, Category
 - [x] Click-to-view: opens PolicyViewer or DocumentDetailPanel
 - [x] DocumentDetailPanel: file info, category, custom labels, framework tags
-- [x] **Document Approval Workflow**: Draft→Under Review→Approved for uploaded/created docs
+- [x] **Document Approval Workflow**: Draft→Under Review→Approved
 - [x] **Content Editor**: Edit content inline for created documents
 - [x] Read-only mode when approved/under review
 
@@ -51,12 +49,34 @@ Global: Cmd+K Command Palette, Compliance Copilot (AI chat)
 
 ### Frameworks & AI Control Mapping
 - [x] Framework grid with Organize panel, Framework Workspace
-- [x] **Policy Coverage Summary**: Aggregate bar showing X/Y controls have linked policies with progress bar
-- [x] **Link Document to Control**: In Policies tab, pick any document from library to link
+- [x] **Policy Coverage Summary**: Aggregate bar showing X/Y controls have linked policies
+- [x] **Link Document to Control**: In Policies tab, pick any document to link
 - [x] **AI Coverage Analysis**: Analyze how well a linked document covers a control's requirements
-  - Returns coverage score (0-100), coverage level, addressed requirements, gaps
 - [x] **Unlink Document**: Remove linked documents from controls
 - [x] Implementation & Guidelines tab, AI Policy Suggestions
+
+### Universal Compliance Ingestion Layer (NEW - Apr 14, 2026)
+- [x] **Phase 1: Checklist Parser Engine** - Parses STIG (XML/XCCDF), CIS (YAML/CSV), PCI DSS (JSON), Questionnaires (CSV/JSON)
+  - Normalizes all parsed items into unified `ingested_controls` schema
+  - Handles namespace-agnostic XML parsing, nested sections, flexible field mapping
+- [x] **Phase 2: Auto-Mapping Engine** - AI-powered cross-framework mapping using GPT-5.2
+  - Maps ingested controls against 14 existing compliance frameworks
+  - Batch processing (15 controls at a time) for token management
+  - Returns confidence scores and mapping reasons
+- [x] **Phase 3: SIEM Tie-In** - Links ingested controls to SIEM events
+  - Derives SIEM categories from mapped framework controls
+  - Shows monitored/attention/critical/no_events status
+  - Correlates with last 30 days of SIEM event data
+- [x] **Phase 4: Frontend UI** - Full ingestion management interface
+  - Upload interface with source type selection (STIG/CIS/PCI/Questionnaire)
+  - Checklist list view with status badges (Parsed/Mapped)
+  - Detail view with 3 tabs: Control Graph, Framework Overlaps, SIEM Status
+  - Stats cards (total/mapped/unmapped/severity), mapping progress bar
+  - Search & filter (severity, mapping status)
+  - Expandable control rows showing framework mappings and SIEM categories
+  - Framework coverage distribution bars
+  - Overlap pairs and multi-framework controls view
+  - Sample files available for testing
 
 ### Dashboard (Customizable)
 - [x] 5 widget sections, toggle visibility + reorder
@@ -74,9 +94,11 @@ Key Routes:
   /api/policy-templates (templates, versions, status, diff, restore, assignees, org-users, document-tags)
   /api/documents (upload, create, list, metadata, content, status, custom-tags, download-url)
   /api/control-compliance (compliance, link-document, unlink-document, analyze-coverage, suggest-policy)
+  /api/ingestion (upload, checklists, auto-map, overlap, siem-status, sample-files)
   /api/copilot, /api/siem, /api/frameworks, etc.
 DB Collections: org_profiles, generated_templates, policy_versions, mappings,
-                document_tags, document_uploads, control_compliance, siem_events, users, frameworks
+                document_tags, document_uploads, control_compliance, siem_events, users, frameworks,
+                ingested_checklists, ingested_controls
 External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2)
 ```
 
@@ -95,3 +117,4 @@ All 14 frameworks mapped to 7 SIEM categories. Coverage: StateRAMP 99%, NIST 800
 - Automated Evidence Collection, Compliance Calendar
 - Predictive Insights, Compliance Report Export (PDF/DOCX)
 - SIEM alerting rules, event correlation
+- Coverage Gap Report (aggregate controls with low/no coverage)
