@@ -1,0 +1,120 @@
+{
+  "summary": "Phase B & C Testing Complete: Dynamic Risk Scoring + Policy-as-Code + Drift Detection. All 14 backend tests passed (100%). All frontend UI tests passed. Features verified: Phase B - Org risk score with 5 factors (SIEM, compliance, pipeline, ingestion, policy), framework-level risk scores, risk trend history, risk alerts. Phase C - 8 built-in policy rules (PAC-001 to PAC-008), policy evaluation with violation detection, custom rule creation, evaluation history, drift detection with baseline snapshots.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Drift Detection Tab",
+        "issues": ["Some snapshots show 'Invalid Date' - likely due to missing or malformed created_at field in older snapshot records. Minor display issue, doesn't affect functionality."]
+      },
+      {
+        "screen": "Framework Workspace",
+        "issues": ["Console warning: 'Invalid prop x-file-name supplied to React.Fragment' - Minor React warning, doesn't affect functionality (same as previous iterations)."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase_bc_risk_policy.py",
+    "/app/test_reports/pytest/pytest_phase_bc_risk_policy.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_phase_bc_risk_policy.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (all UI tests passed)"
+  },
+  "test_credentials": {
+    "admin": "demo-admin@grc.com / DemoAdmin123!"
+  },
+  "seed_data_creation": "Created test policy evaluations, custom rules, and drift snapshots via backend tests and UI testing. TEST_ prefixed custom rules created for testing.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Phase B & C of IronVision GRC upgrade complete. Key features: (1) Dynamic Risk Scoring (Phase B) - GET /api/risk-scoring/org-score returns aggregate org risk with 5 weighted factors: SIEM (25%), Compliance (25%), Pipeline (20%), Ingestion (15%), Policy (15%). Risk levels: critical (80+), high (60+), elevated (40+), moderate (20+), low (0+). GET /api/risk-scoring/framework-scores returns per-framework risk with compliance stats and policy coverage. GET /api/risk-scoring/trend?days=N returns risk history. GET /api/risk-scoring/alerts returns active alerts (SIEM critical events, pipeline failures, non-compliant controls, unmapped ingested controls, stale assessments). (2) Policy-as-Code (Phase C) - GET /api/policy-engine/rules returns 8 built-in rules (PAC-001 to PAC-008) covering encryption, MFA, public access, logging, TLS version, backups, secrets, tagging. POST /api/policy-engine/evaluate evaluates JSON config against rules, returns violations with severity and mapped control IDs. POST /api/policy-engine/rules creates custom rules. GET /api/policy-engine/evaluations lists evaluation history. (3) Drift Detection (Phase C) - POST /api/policy-engine/drift/snapshot creates compliance baseline capturing all framework compliance states, pipeline stats, and ingestion stats. GET /api/policy-engine/drift/detect compares current state vs baseline, returns changes with direction (improved/degraded). GET /api/policy-engine/drift/snapshots lists all snapshots. (4) Frontend - Risk Scoring button opens dashboard with org score gauge, 5 factor breakdown, alerts section, framework risk scores, and trend chart. Policy-as-Code button opens view with 4 tabs: Evaluate Config (JSON editor + results), Policy Rules (8 built-in rules displayed), Drift Detection (create snapshot + detect drift), History (evaluation history). All 5 action buttons present on Frameworks page: Policy-as-Code, Risk Scoring, DevSecOps Pipeline, Ingestion Layer, Organize.",
+  "features_tested": {
+    "phase_b_risk_scoring": {
+      "org_score": "PASS - GET /api/risk-scoring/org-score returns score (0-100), level, label, color, 5 factors with scores/weights/labels, timestamp",
+      "framework_scores": "PASS - GET /api/risk-scoring/framework-scores returns list with framework_id, name, risk_score, risk_level, total_controls, compliant/partial/non_compliant/not_assessed counts, policy_coverage",
+      "trend_default": "PASS - GET /api/risk-scoring/trend returns history array, period_days=30, data_points count",
+      "trend_custom": "PASS - GET /api/risk-scoring/trend?days=7 returns 7-day history",
+      "alerts": "PASS - GET /api/risk-scoring/alerts returns alerts array with type, severity, title, description, action"
+    },
+    "phase_c_policy_engine": {
+      "list_rules": "PASS - GET /api/policy-engine/rules returns 8 builtin_rules (PAC-001 to PAC-008), custom_rules, total count",
+      "evaluate_violations": "PASS - POST /api/policy-engine/evaluate with non-compliant config returns violations with rule_id, name, severity, violation message, control_ids",
+      "evaluate_pass": "PASS - POST /api/policy-engine/evaluate with compliant config returns pass=true, violation_count=0",
+      "create_custom_rule": "PASS - POST /api/policy-engine/rules creates custom rule with CUSTOM- prefix ID",
+      "list_evaluations": "PASS - GET /api/policy-engine/evaluations returns evaluation history"
+    },
+    "phase_c_drift_detection": {
+      "create_snapshot": "PASS - POST /api/policy-engine/drift/snapshot creates baseline with snapshot_id, frameworks_captured count",
+      "detect_drift": "PASS - GET /api/policy-engine/drift/detect returns drift_detected, changes array, summary with improved/degraded counts",
+      "list_snapshots": "PASS - GET /api/policy-engine/drift/snapshots returns snapshot list with id, created_at"
+    },
+    "frontend_ui": {
+      "frameworks_page_buttons": "PASS - All 5 action buttons present: Policy-as-Code, Risk Scoring, DevSecOps Pipeline, Ingestion Layer, Organize",
+      "risk_scoring_dashboard": "PASS - Opens with org score gauge, risk level badge, 5 factor breakdown (SIEM, Compliance, Pipeline, Ingestion, Policy)",
+      "risk_scoring_alerts": "PASS - Alerts section displays when active alerts exist",
+      "risk_scoring_framework_scores": "PASS - Framework risk scores section with per-framework risk and policy coverage",
+      "risk_scoring_trend": "PASS - Risk trend chart displays history",
+      "policy_engine_tabs": "PASS - 4 tabs: Evaluate Config, Policy Rules, Drift Detection, History",
+      "policy_engine_evaluate": "PASS - JSON editor with sample config, Run Policy Evaluation button, results with violations",
+      "policy_engine_rules": "PASS - Displays 8 built-in rules with ID, severity, category, description, control IDs",
+      "policy_engine_drift": "PASS - Create Baseline Snapshot and Detect Drift buttons, drift result display, snapshots list",
+      "policy_engine_history": "PASS - Evaluation history list with pass/fail status, violation counts"
+    }
+  },
+  "backend_tests": {
+    "TestRiskScoringOrgScore": {
+      "test_get_org_risk_score": "PASS"
+    },
+    "TestRiskScoringFrameworkScores": {
+      "test_get_framework_risk_scores": "PASS"
+    },
+    "TestRiskScoringTrend": {
+      "test_get_risk_trend_default": "PASS",
+      "test_get_risk_trend_custom_days": "PASS"
+    },
+    "TestRiskScoringAlerts": {
+      "test_get_risk_alerts": "PASS"
+    },
+    "TestPolicyEngineRules": {
+      "test_list_policy_rules": "PASS"
+    },
+    "TestPolicyEngineEvaluate": {
+      "test_evaluate_config_with_violations": "PASS",
+      "test_evaluate_config_all_pass": "PASS"
+    },
+    "TestPolicyEngineCustomRules": {
+      "test_create_custom_rule": "PASS"
+    },
+    "TestPolicyEngineEvaluationHistory": {
+      "test_list_evaluations": "PASS"
+    },
+    "TestDriftSnapshot": {
+      "test_create_drift_snapshot": "PASS"
+    },
+    "TestDriftDetect": {
+      "test_detect_drift": "PASS"
+    },
+    "TestDriftSnapshots": {
+      "test_list_snapshots": "PASS"
+    },
+    "TestCleanup": {
+      "test_cleanup_test_data": "PASS"
+    }
+  },
+  "notes": {
+    "risk_scoring_weights": "SIEM 25%, Compliance 25%, Pipeline 20%, Ingestion 15%, Policy 15%",
+    "risk_levels": "critical (80+), high (60+), elevated (40+), moderate (20+), low (0+)",
+    "policy_rules": "8 built-in rules: PAC-001 (encryption), PAC-002 (MFA), PAC-003 (public access), PAC-004 (logging), PAC-005 (TLS 1.2+), PAC-006 (backup), PAC-007 (no hardcoded secrets), PAC-008 (tagging)",
+    "drift_detection": "Compares current compliance state against stored baseline snapshot, tracks improved vs degraded changes"
+  }
+}
