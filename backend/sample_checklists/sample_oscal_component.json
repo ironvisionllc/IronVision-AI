@@ -1,0 +1,82 @@
+{
+  "component-definition": {
+    "uuid": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    "metadata": {
+      "title": "Web Application Security Component Definition",
+      "version": "1.0",
+      "oscal-version": "1.2.1",
+      "published": "2026-01-20T00:00:00Z",
+      "last-modified": "2026-01-20T00:00:00Z"
+    },
+    "components": [
+      {
+        "uuid": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+        "type": "software",
+        "title": "Authentication Service",
+        "description": "Central authentication and identity management service",
+        "control-implementations": [
+          {
+            "uuid": "d4e5f6a7-b8c9-0123-def1-234567890123",
+            "source": "NIST SP 800-53 Rev 5",
+            "implemented-requirements": [
+              {
+                "uuid": "e5f6a7b8-c9d0-1234-ef12-345678901234",
+                "control-id": "ia-2",
+                "props": [{"name": "implementation-status", "value": "implemented"}],
+                "statements": [
+                  {"statement-id": "ia-2_stmt", "uuid": "f6a7b8c9-d0e1-2345-f123-456789012345", "prose": "The authentication service uniquely identifies and authenticates all users via SAML 2.0 and OIDC protocols. Multi-factor authentication is enforced for all privileged accounts using TOTP or hardware tokens."}
+                ]
+              },
+              {
+                "uuid": "a7b8c9d0-e1f2-3456-a234-567890123456",
+                "control-id": "ia-5",
+                "props": [{"name": "implementation-status", "value": "implemented"}],
+                "statements": [
+                  {"statement-id": "ia-5_stmt", "uuid": "b8c9d0e1-f2a3-4567-b345-678901234567", "prose": "Authenticator management includes password complexity requirements (14+ characters, mixed case, symbols), 90-day rotation, and bcrypt hashing with per-user salts. API keys use HMAC-SHA256 with automatic rotation."}
+                ]
+              },
+              {
+                "uuid": "c9d0e1f2-a3b4-5678-c456-789012345678",
+                "control-id": "ac-2",
+                "props": [{"name": "implementation-status", "value": "partial"}],
+                "statements": [
+                  {"statement-id": "ac-2_stmt", "uuid": "d0e1f2a3-b4c5-6789-d567-890123456789", "prose": "Account management includes automated provisioning via SCIM, role-based access control, and quarterly access reviews. Inactive accounts are automatically disabled after 90 days."}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "uuid": "e1f2a3b4-c5d6-7890-ef12-345678901234",
+        "type": "software",
+        "title": "Encryption Service",
+        "description": "Data encryption and key management service",
+        "control-implementations": [
+          {
+            "uuid": "f2a3b4c5-d6e7-8901-f234-567890123456",
+            "source": "NIST SP 800-53 Rev 5",
+            "implemented-requirements": [
+              {
+                "uuid": "a3b4c5d6-e7f8-9012-a345-678901234567",
+                "control-id": "sc-13",
+                "props": [{"name": "implementation-status", "value": "implemented"}],
+                "statements": [
+                  {"statement-id": "sc-13_stmt", "uuid": "b4c5d6e7-f8a9-0123-b456-789012345678", "prose": "All cryptographic operations use FIPS 140-2 validated modules. Data at rest uses AES-256-GCM. Data in transit uses TLS 1.3. Key management uses AWS KMS with automatic annual rotation."}
+                ]
+              },
+              {
+                "uuid": "c5d6e7f8-a9b0-1234-c567-890123456789",
+                "control-id": "sc-28",
+                "props": [{"name": "implementation-status", "value": "implemented"}],
+                "statements": [
+                  {"statement-id": "sc-28_stmt", "uuid": "d6e7f8a9-b0c1-2345-d678-901234567890", "prose": "Protection of information at rest is achieved through full disk encryption on all servers and database-level encryption using customer-managed keys."}
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

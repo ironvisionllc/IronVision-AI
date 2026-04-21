@@ -1,0 +1,102 @@
+{
+  "catalog": {
+    "uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "metadata": {
+      "title": "Sample OSCAL Security Controls Catalog",
+      "version": "1.0",
+      "oscal-version": "1.2.1",
+      "published": "2026-01-15T00:00:00Z",
+      "last-modified": "2026-01-15T00:00:00Z"
+    },
+    "groups": [
+      {
+        "id": "ac",
+        "title": "Access Control",
+        "controls": [
+          {
+            "id": "ac-1",
+            "title": "Access Control Policy and Procedures",
+            "props": [{"name": "priority", "value": "P1"}],
+            "parts": [
+              {"id": "ac-1_stmt", "name": "statement", "prose": "Develop, document, and disseminate an access control policy that addresses purpose, scope, roles, responsibilities, and compliance. Review and update the access control policy at least annually."}
+            ]
+          },
+          {
+            "id": "ac-2",
+            "title": "Account Management",
+            "props": [{"name": "priority", "value": "P1"}],
+            "parts": [
+              {"id": "ac-2_stmt", "name": "statement", "prose": "Define and document information system account types. Assign account managers. Establish conditions for group and role membership. Identify authorized system users and specify access authorizations. Require manager approval for account creation requests."}
+            ],
+            "controls": [
+              {
+                "id": "ac-2.1",
+                "title": "Account Management | Automated System Account Management",
+                "parts": [
+                  {"id": "ac-2.1_stmt", "name": "statement", "prose": "Support the management of information system accounts using automated mechanisms."}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "ac-3",
+            "title": "Access Enforcement",
+            "props": [{"name": "priority", "value": "P1"}],
+            "parts": [
+              {"id": "ac-3_stmt", "name": "statement", "prose": "Enforce approved authorizations for logical access to information and system resources in accordance with applicable access control policies."}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "au",
+        "title": "Audit and Accountability",
+        "controls": [
+          {
+            "id": "au-1",
+            "title": "Audit and Accountability Policy and Procedures",
+            "parts": [
+              {"id": "au-1_stmt", "name": "statement", "prose": "Develop, document, and disseminate an audit and accountability policy that addresses purpose, scope, roles, and responsibilities."}
+            ]
+          },
+          {
+            "id": "au-2",
+            "title": "Event Logging",
+            "props": [{"name": "priority", "value": "P1"}],
+            "parts": [
+              {"id": "au-2_stmt", "name": "statement", "prose": "Identify the types of events that the system is capable of logging. Coordinate the event logging function with other entities requiring audit information."}
+            ]
+          },
+          {
+            "id": "au-3",
+            "title": "Content of Audit Records",
+            "parts": [
+              {"id": "au-3_stmt", "name": "statement", "prose": "Ensure that audit records contain information about the type of event, when it occurred, where it occurred, the source of the event, the outcome, and the identity of individuals or subjects."}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "cm",
+        "title": "Configuration Management",
+        "controls": [
+          {
+            "id": "cm-1",
+            "title": "Configuration Management Policy",
+            "parts": [
+              {"id": "cm-1_stmt", "name": "statement", "prose": "Develop, document, and disseminate a configuration management policy and procedures."}
+            ]
+          },
+          {
+            "id": "cm-2",
+            "title": "Baseline Configuration",
+            "props": [{"name": "priority", "value": "P1"}],
+            "parts": [
+              {"id": "cm-2_stmt", "name": "statement", "prose": "Develop, document, and maintain a current baseline configuration of the information system under configuration control."}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

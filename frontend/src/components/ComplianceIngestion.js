@@ -16,6 +16,7 @@ const SOURCE_TYPES = [
   { value: "cis", label: "CIS", ext: ".yaml,.yml,.csv", desc: "CIS Benchmark YAML/CSV" },
   { value: "pci", label: "PCI DSS", ext: ".json", desc: "PCI DSS Checklist JSON" },
   { value: "questionnaire", label: "Questionnaire", ext: ".csv,.json", desc: "Generic Compliance CSV/JSON" },
+  { value: "oscal", label: "OSCAL", ext: ".json", desc: "OSCAL Catalog / Component / Assessment" },
 ];
 
 const SIEM_STATUS_CONFIG = {
@@ -71,8 +72,13 @@ const ComplianceIngestion = ({ onBack }) => {
     try {
       const formData = new FormData();
       formData.append("file", uploadFile);
-      formData.append("source_type", sourceType);
-      const res = await axios.post(`${API}/ingestion/upload`, formData, {
+      let endpoint = `${API}/ingestion/upload`;
+      if (sourceType === "oscal") {
+        endpoint = `${API}/oscal/import`;
+      } else {
+        formData.append("source_type", sourceType);
+      }
+      const res = await axios.post(endpoint, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       toast.success(res.data.message);
