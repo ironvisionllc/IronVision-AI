@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IronVision AI — Product Brochure</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+@page{size:A4;margin:0}
+body{font-family:'Inter',-apple-system,sans-serif;color:#1e293b;background:#fff;width:210mm;margin:0 auto}
+.page{padding:32px;min-height:297mm;position:relative;page-break-after:always}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:16px;border-bottom:3px solid #2597B2}
+.logo{font-size:1.4rem;font-weight:800;color:#0a3540;letter-spacing:-0.02em}
+.logo span{color:#2597B2}
+.contact{text-align:right;font-size:0.7rem;color:#64748b;line-height:1.6}
+.hero-banner{background:linear-gradient(135deg,#0a3540 0%,#134e5e 60%,#1a6b7a 100%);color:#fff;border-radius:16px;padding:40px;margin-bottom:24px;position:relative;overflow:hidden}
+.hero-banner::after{content:'';position:absolute;top:-50px;right:-50px;width:200px;height:200px;background:radial-gradient(circle,rgba(37,151,178,0.3),transparent);pointer-events:none}
+.hero-banner h1{font-size:2rem;font-weight:800;margin-bottom:8px;position:relative;z-index:1}
+.hero-banner p{font-size:0.95rem;opacity:0.85;max-width:400px;position:relative;z-index:1}
+.hero-banner .tag{display:inline-block;background:rgba(37,151,178,0.4);border:1px solid rgba(37,151,178,0.6);padding:3px 12px;border-radius:99px;font-size:0.65rem;font-weight:700;letter-spacing:0.05em;margin-bottom:12px;position:relative;z-index:1}
+h2{font-size:1.15rem;font-weight:700;color:#0a3540;margin:20px 0 10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0}
+h3{font-size:0.9rem;font-weight:700;color:#134e5e;margin:12px 0 4px}
+p{font-size:0.78rem;color:#475569;line-height:1.65;margin-bottom:8px}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g4{grid-template-columns:1fr 1fr 1fr 1fr}
+.feature-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px}
+.feature-card h4{font-size:0.8rem;font-weight:700;color:#0a3540;margin-bottom:4px}
+.feature-card p{font-size:0.7rem;margin-bottom:0}
+.stat-bar{display:flex;gap:10px;margin:12px 0}
+.stat-item{flex:1;text-align:center;background:#f0f9ff;border-radius:8px;padding:12px 8px}
+.stat-item .num{font-size:1.6rem;font-weight:800;color:#2597B2}
+.stat-item .lbl{font-size:0.6rem;color:#64748b;margin-top:2px}
+.check-list{list-style:none;padding:0}
+.check-list li{padding:4px 0;font-size:0.75rem;color:#475569}
+.check-list li::before{content:'> ';color:#2597B2;font-weight:700}
+.fw-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.fw-chip{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;text-align:center;font-size:0.65rem;font-weight:600;color:#334155}
+.cta-bar{background:linear-gradient(135deg,#2597B2,#1B839F);color:#fff;border-radius:12px;padding:20px 28px;text-align:center;margin-top:16px}
+.cta-bar h3{color:#fff;font-size:1rem;margin-bottom:4px}
+.cta-bar p{color:rgba(255,255,255,0.85);font-size:0.78rem;margin:0}
+.footer{position:absolute;bottom:16px;left:32px;right:32px;text-align:center;font-size:0.6rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:8px}
+</style>
+</head>
+<body>
+
+<!-- PAGE 1: Front -->
+<div class="page">
+<div class="header">
+<div class="logo">IRON<span>VISION</span> AI</div>
+<div class="contact">Enterprise GRC Platform<br>ironvision.ai | sales@ironvision.ai</div>
+</div>
+
+<div class="hero-banner">
+<div class="tag">ENTERPRISE GRC PLATFORM</div>
+<h1>Compliance at Machine Speed</h1>
+<p>The autonomous GRC command center that unifies governance, risk, and compliance across your entire security ecosystem.</p>
+</div>
+
+<div class="stat-bar">
+<div class="stat-item"><div class="num">14</div><div class="lbl">Compliance Frameworks</div></div>
+<div class="stat-item"><div class="num">962</div><div class="lbl">Mapped Controls</div></div>
+<div class="stat-item"><div class="num">8</div><div class="lbl">Core Pillars</div></div>
+<div class="stat-item"><div class="num">5</div><div class="lbl">AI Engines</div></div>
+</div>
+
+<h2>Core Capabilities</h2>
+<div class="grid g2" style="margin-bottom:12px">
+<div class="feature-card">
+<h4>AI-Powered Control Mapping</h4>
+<p>GPT-5.2 assesses 962 controls across 14 frameworks against real SIEM telemetry. Auto-generates policy suggestions and implementation guidance.</p>
+</div>
+<div class="feature-card">
+<h4>Universal Compliance Ingestion</h4>
+<p>Parse STIG XML, CIS YAML, PCI JSON, OSCAL v1.2.1, and questionnaires into a unified control graph with cross-framework overlap analysis.</p>
+</div>
+<div class="feature-card">
+<h4>DevSecOps Compliance Gate</h4>
+<p>CI/CD webhook API for SAST, DAST, SCA, and container scans. Three gate policies (strict/default/permissive) block non-compliant deployments.</p>
+</div>
+<div class="feature-card">
+<h4>Dynamic Risk Scoring</h4>
+<p>5-factor risk model combining SIEM events, compliance status, pipeline findings, checklist coverage, and policy gaps into a real-time risk score.</p>
+</div>
+<div class="feature-card">
+<h4>Policy-as-Code Engine</h4>
+<p>8 built-in compliance rules. Evaluate infrastructure configs against policies. Map violations directly to framework controls. Drift detection from baseline.</p>
+</div>
+<div class="feature-card">
+<h4>Automated Evidence Collection</h4>
+<p>Auto-gather SIEM snapshots, pipeline reports, approved policies, assessments, and checklist mappings. Track evidence freshness per framework.</p>
+</div>
+</div>
+
+<h2>Supported Frameworks</h2>
+<div class="fw-grid">
+<div class="fw-chip">NIST 800-53</div>
+<div class="fw-chip">NIST 800-171</div>
+<div class="fw-chip">NIST CSF</div>
+<div class="fw-chip">CMMC 2.0</div>
+<div class="fw-chip">ISO 27001</div>
+<div class="fw-chip">SOC 2</div>
+<div class="fw-chip">HIPAA</div>
+<div class="fw-chip">GDPR</div>
+<div class="fw-chip">StateRAMP</div>
+<div class="fw-chip">NIS2</div>
+<div class="fw-chip">NERC CIP</div>
+<div class="fw-chip">NERC 693</div>
+</div>
+
+<div class="cta-bar">
+<h3>Ready for Compliance at Machine Speed?</h3>
+<p>Schedule a demo — sales@ironvision.ai | ironvision.ai/demo</p>
+</div>
+
+<div class="footer">&copy; 2026 IronVision AI — Enterprise GRC Platform. All rights reserved.</div>
+</div>
+
+<!-- PAGE 2: Technical Details -->
+<div class="page">
+<div class="header">
+<div class="logo">IRON<span>VISION</span> AI</div>
+<div class="contact">Technical Overview<br>ironvision.ai</div>
+</div>
+
+<h2>Architecture Highlights</h2>
+<div class="grid g3">
+<div class="feature-card">
+<h4>Cloud-Native</h4>
+<p>Kubernetes deployment. FastAPI backend (Python). React frontend. MongoDB data layer. Cloudflare edge security.</p>
+</div>
+<div class="feature-card">
+<h4>OSCAL v1.2.1 Native</h4>
+<p>Import/export catalogs, component definitions, and assessment results. FedRAMP and DoD interoperability.</p>
+</div>
+<div class="feature-card">
+<h4>Zero-Trust Security</h4>
+<p>JWT + API key auth. bcrypt passwords. TLS 1.3. SHA-256 key hashing. defusedxml for safe XML parsing.</p>
+</div>
+</div>
+
+<h2>For Federal Agencies</h2>
+<ul class="check-list">
+<li>FedRAMP authorization support with OSCAL import/export</li>
+<li>NIST SP 800-53 Rev 5 with 277 controls fully mapped to SIEM events</li>
+<li>FISMA compliance tracking across all control families</li>
+<li>Automated evidence collection eliminates manual audit preparation</li>
+<li>Machine-readable compliance data exchange via OSCAL v1.2.1</li>
+</ul>
+
+<h2>For Defense Contractors</h2>
+<ul class="check-list">
+<li>CMMC 2.0 Level 2 — all 71 controls with AI assessment</li>
+<li>NIST SP 800-171 — full 108 control coverage for CUI protection</li>
+<li>DevSecOps pipeline integration for continuous compliance verification</li>
+<li>Policy-as-code evaluates STIG compliance against infrastructure configs</li>
+<li>Compliance drift detection catches regressions before DIBCAC assessors</li>
+</ul>
+
+<h2>For Critical Infrastructure</h2>
+<ul class="check-list">
+<li>NERC CIP v7 — all critical infrastructure protection standards</li>
+<li>NERC Order 693 — bulk power system reliability standards</li>
+<li>Real-time SIEM integration with 72% NERC CIP control coverage from events</li>
+<li>NIS2 2023 compliance for EU critical infrastructure requirements</li>
+<li>Dynamic risk scoring provides continuous posture monitoring</li>
+</ul>
+
+<h2>Integration Ecosystem</h2>
+<div class="grid g4">
+<div class="feature-card" style="text-align:center">
+<h4>CI/CD Tools</h4>
+<p>GitHub Actions, GitLab CI, Jenkins, Azure DevOps</p>
+</div>
+<div class="feature-card" style="text-align:center">
+<h4>Security Scanners</h4>
+<p>Semgrep, SonarQube, OWASP ZAP, Trivy, Checkov</p>
+</div>
+<div class="feature-card" style="text-align:center">
+<h4>Cloud Platforms</h4>
+<p>AWS (S3, Lambda, SES), Azure, GCP integration ready</p>
+</div>
+<div class="feature-card" style="text-align:center">
+<h4>Communication</h4>
+<p>Slack webhooks, email notifications, AI Copilot chat</p>
+</div>
+</div>
+
+<div class="cta-bar" style="margin-top:24px">
+<h3>See IronVision AI in Action</h3>
+<p>Request a personalized demo for your compliance requirements — sales@ironvision.ai</p>
+</div>
+
+<div class="footer">&copy; 2026 IronVision AI — Enterprise GRC Platform. All rights reserved.</div>
+</div>
+
+</body>
+</html>

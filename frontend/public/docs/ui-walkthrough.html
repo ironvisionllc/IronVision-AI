@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IronVision AI — UI Walkthrough Guide</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,sans-serif;color:#1e293b;line-height:1.8;background:#fff;max-width:900px;margin:0 auto;padding:40px}
+h1{font-size:2rem;font-weight:800;color:#0a3540;border-bottom:3px solid #2597B2;padding-bottom:12px;margin-bottom:8px}
+h2{font-size:1.4rem;font-weight:700;color:#0a3540;margin:36px 0 12px;padding-left:12px;border-left:4px solid #2597B2}
+h3{font-size:1.05rem;font-weight:600;color:#134e5e;margin:20px 0 8px}
+p{margin-bottom:14px;color:#475569}
+.meta{color:#94a3b8;font-size:0.85rem;margin-bottom:28px}
+.step{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin:16px 0}
+.step-num{display:inline-block;width:32px;height:32px;background:#2597B2;color:#fff;border-radius:50%;text-align:center;line-height:32px;font-weight:700;font-size:0.85rem;margin-right:12px}
+.step h4{display:inline;font-size:1rem;font-weight:600;color:#0a3540}
+.step p{margin-top:8px;margin-bottom:0}
+.tip{background:#ecfdf5;border-left:4px solid #059669;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:0.88rem}
+.tip strong{color:#065f46}
+.nav-ref{display:inline-block;background:#dbeafe;color:#1e40af;padding:2px 10px;border-radius:4px;font-size:0.8rem;font-weight:600;font-family:monospace}
+ol{margin:8px 0 16px 24px}
+li{margin-bottom:8px;color:#475569}
+hr{border:none;border-top:1px solid #e2e8f0;margin:32px 0}
+@media print{body{padding:20px;font-size:10pt}.step{break-inside:avoid}h2{break-after:avoid}}
+</style>
+</head>
+<body>
+
+<h1>IronVision AI — UI Walkthrough Guide</h1>
+<p class="meta">Complete feature guide | Version 2.0 | April 2026</p>
+
+<h2>1. Getting Started</h2>
+<div class="step">
+<span class="step-num">1</span><h4>Login</h4>
+<p>Navigate to the login page. Use the <strong>Quick Demo Access</strong> buttons (DemoAdmin or DemoUser) for immediate access, or enter your email and password. The DemoAdmin account has full CRUD permissions; DemoUser is read-only.</p>
+</div>
+<div class="step">
+<span class="step-num">2</span><h4>Dashboard</h4>
+<p>After login, you land on the <strong>Command Center Dashboard</strong>. It shows 5 customizable widgets: Framework Coverage, Risk Heatmap, Compliance Trend, Control Effectiveness, Overdue Tasks, Upcoming events, and Quick Actions. Toggle widget visibility and reorder them using the settings icon.</p>
+</div>
+
+<h2>2. Compliance Frameworks</h2>
+<p>Navigate via <span class="nav-ref">Sidebar > Frameworks</span></p>
+<div class="step">
+<span class="step-num">3</span><h4>Framework Grid</h4>
+<p>View all 14 compliance frameworks as cards showing name, control count, and effectiveness score. Use <strong>Organize</strong> to reorder or hide frameworks. Click <strong>View Details</strong> to enter the Framework Workspace.</p>
+</div>
+<div class="step">
+<span class="step-num">4</span><h4>Framework Workspace</h4>
+<p>The workspace shows all controls for a framework with compliance status (Compliant / Partial / Non-Compliant / Not Assessed). Features include:</p>
+<ol>
+<li><strong>AI Assess All</strong> — GPT-5.2 analyzes SIEM data and policies to auto-assess all controls</li>
+<li><strong>Expand a control</strong> — View SIEM evidence, notes, policy suggestions, and implementation guidance</li>
+<li><strong>Link Document</strong> — Attach any document from your library to a control</li>
+<li><strong>AI Coverage Analysis</strong> — Analyze how well a linked document covers a control's requirements</li>
+<li><strong>Search & filter</strong> — By status, category, or text search</li>
+</ol>
+</div>
+
+<h2>3. Action Bar — Advanced Features</h2>
+<p>The Frameworks page header contains 7 action buttons:</p>
+
+<div class="step">
+<span class="step-num">5</span><h4>Evidence Collection</h4>
+<p>Click <strong>Evidence Collection</strong> to open the automated evidence engine. Click <strong>Run Collection</strong> to auto-gather evidence from 5 sources: SIEM snapshots, pipeline scan reports, approved policy documents, compliance assessments, and ingested checklist mappings. View artifacts, check per-framework coverage, and track evidence freshness.</p>
+</div>
+
+<div class="step">
+<span class="step-num">6</span><h4>Policy-as-Code</h4>
+<p>Click <strong>Policy-as-Code</strong> to evaluate infrastructure configs against 8 built-in compliance rules. Paste a JSON config (Terraform output, K8s manifest, etc.) and click <strong>Run Policy Evaluation</strong>. Results show violations with severity, mapped framework controls, and remediation. Tabs: Evaluate Config, Policy Rules, Drift Detection, History.</p>
+</div>
+
+<div class="step">
+<span class="step-num">7</span><h4>Risk Scoring</h4>
+<p>Click <strong>Risk Scoring</strong> for the dynamic risk dashboard. See your org-wide risk score (0-100) computed from 5 weighted factors. View active alerts (SIEM events, pipeline failures, non-compliant controls), per-framework risk scores, and risk trend history.</p>
+</div>
+
+<div class="step">
+<span class="step-num">8</span><h4>DevSecOps Pipeline</h4>
+<p>Click <strong>DevSecOps Pipeline</strong> to manage CI/CD compliance integration. Generate API keys for your CI/CD tools (GitHub Actions, GitLab CI, Jenkins). View pipeline run history with risk scores and gate results (Pass/Warn/Fail). Click a run to see individual findings with CWE/CVE references.</p>
+</div>
+
+<div class="step">
+<span class="step-num">9</span><h4>Ingestion Layer</h4>
+<p>Click <strong>Ingestion Layer</strong> to upload external compliance checklists. Supported formats: STIG (XML), CIS (YAML/CSV), PCI DSS (JSON), OSCAL (JSON), and generic questionnaires. After upload, click <strong>AI Auto-Map</strong> to map ingested controls to existing frameworks. View the Control Graph, Framework Overlaps, and SIEM Status tabs.</p>
+</div>
+
+<h2>4. Policy Center</h2>
+<p>Navigate via <span class="nav-ref">Sidebar > Policies</span></p>
+
+<div class="step">
+<span class="step-num">10</span><h4>Policy Templates (Tab 1)</h4>
+<p>Browse 10 pre-built templates. Click a template to view details, answer the Org Questionnaire, and generate AI-powered policy content. Generated policies support <strong>Version Control</strong> (snapshots, diff, restore) and <strong>Approval Workflow</strong> (Draft → Under Review → Approved).</p>
+</div>
+
+<div class="step">
+<span class="step-num">11</span><h4>Upload & Map (Tab 2)</h4>
+<p>Three upload modes: <strong>Map to Framework</strong> (select frameworks + upload), <strong>General Upload</strong> (no framework), <strong>Create Document</strong> (built-in text editor). Supports PDF, DOCX, TXT, MD, and more.</p>
+</div>
+
+<div class="step">
+<span class="step-num">12</span><h4>Document Library (Tab 3)</h4>
+<p>Unified view of all policies, uploaded docs, and created documents. Click any document to view details, edit tags, manage approval status. Filters: Search, Type, Status, Category.</p>
+</div>
+
+<h2>5. Other Features</h2>
+
+<div class="step">
+<span class="step-num">13</span><h4>SIEM Dashboard</h4>
+<p>Navigate via <span class="nav-ref">Sidebar > SIEM</span>. View live security events with a simulated SIEM feed covering 7 categories. Start the simulator to generate realistic events. View event details and framework control mappings.</p>
+</div>
+
+<div class="step">
+<span class="step-num">14</span><h4>Compliance Copilot</h4>
+<p>Click the AI assistant button (bottom-right) to ask compliance questions in natural language. Powered by GPT-5.2, it can explain controls, suggest policies, and provide implementation guidance.</p>
+</div>
+
+<div class="step">
+<span class="step-num">15</span><h4>Command Palette</h4>
+<p>Press <strong>Cmd+K</strong> (or Ctrl+K) to open the Command Palette. Quickly navigate to any page, search frameworks, or trigger actions.</p>
+</div>
+
+<div class="tip"><strong>Pro Tip:</strong> For the best compliance workflow, start with the SIEM simulator (to generate events), then run AI Assess All on your frameworks, then use Evidence Collection to auto-gather everything for your audit.</div>
+
+<hr>
+<p style="text-align:center;color:#94a3b8;font-size:0.8rem">&copy; 2026 IronVision AI. All rights reserved.</p>
+
+</body>
+</html>

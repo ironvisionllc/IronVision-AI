@@ -40,6 +40,7 @@ from routes.oscal import router as oscal_router
 from routes.pipeline import router as pipeline_router
 from routes.risk_scoring import router as risk_scoring_router
 from routes.policy_engine import router as policy_engine_router
+from routes.evidence_collection import router as evidence_collection_router
 
 # Create the main app
 app = FastAPI()
@@ -80,6 +81,7 @@ api_router.include_router(oscal_router)
 api_router.include_router(pipeline_router)
 api_router.include_router(risk_scoring_router)
 api_router.include_router(policy_engine_router)
+api_router.include_router(evidence_collection_router)
 
 app.include_router(api_router)
 

@@ -1,0 +1,127 @@
+{
+  "summary": "Iteration 17: Automated Evidence Collection feature and Documentation pages testing complete. All 19 backend tests passed (100%). All frontend UI tests passed. Features verified: Evidence collection from 5 sources (SIEM, pipeline, policies, assessments, checklists), artifacts list with expandable details, coverage analysis per framework, stats dashboard, collection run history. All 5 documentation HTML pages accessible and rendering correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Framework Workspace",
+        "issues": ["Console warning: 'Invalid prop x-file-name supplied to React.Fragment' - Minor React warning, doesn't affect functionality (same as previous iterations)."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_evidence_collection.py",
+    "/app/test_reports/pytest/pytest_evidence_collection.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_evidence_collection.py"
+  ],
+  "success_rate": {
+    "backend": "100% (19/19 tests passed)",
+    "frontend": "100% (all UI tests passed)"
+  },
+  "test_credentials": {
+    "admin": "demo-admin@grc.com / DemoAdmin123!"
+  },
+  "seed_data_creation": "Evidence artifacts created via POST /api/evidence-collection/collect during testing. 22 artifacts collected from 5 sources.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 17 tested Automated Evidence Collection feature. Key endpoints: (1) POST /api/evidence-collection/collect - runs automated collection from 5 sources: siem_snapshot, pipeline_report, policy_document, compliance_assessment, checklist_mapping. Returns total collected, by_type breakdown, run_id. (2) GET /api/evidence-collection/artifacts - lists all artifacts with id, evidence_type, title, description, source, collected_at, control_ids, freshness. (3) GET /api/evidence-collection/artifacts/{id} - artifact detail. (4) DELETE /api/evidence-collection/artifacts/{id} - delete artifact. (5) GET /api/evidence-collection/coverage - per-framework coverage analysis with covered/uncovered/fresh/stale counts and coverage_pct. (6) GET /api/evidence-collection/stats - total_artifacts, by_type, fresh, stale, last_collection. (7) GET /api/evidence-collection/runs - collection run history. Frontend: Evidence Collection button on Frameworks page opens AutomatedEvidenceCollection component with 3 tabs (Overview/Artifacts/Coverage), stats cards, Run Collection button. Artifacts list shows expandable items with control IDs. Coverage tab shows per-framework coverage bars. Documentation: 5 HTML pages at /docs/*.html - marketing.html, security-architecture.html, ui-walkthrough.html, pitch-deck.html, brochure.html - all accessible (200 status) and rendering correctly.",
+  "features_tested": {
+    "evidence_collection_api": {
+      "collect": "PASS - POST /api/evidence-collection/collect returns message, total, by_type, run_id",
+      "list_artifacts": "PASS - GET /api/evidence-collection/artifacts returns list with id, evidence_type, title, description, source, collected_at, control_ids, freshness",
+      "get_artifact_detail": "PASS - GET /api/evidence-collection/artifacts/{id} returns full artifact detail",
+      "get_artifact_not_found": "PASS - Returns 404 for non-existent artifact",
+      "delete_artifact": "PASS - DELETE /api/evidence-collection/artifacts/{id} removes artifact",
+      "delete_artifact_not_found": "PASS - Returns 404 for non-existent artifact",
+      "coverage": "PASS - GET /api/evidence-collection/coverage returns frameworks array with coverage_pct, summary with total_controls, covered, coverage_pct",
+      "stats": "PASS - GET /api/evidence-collection/stats returns total_artifacts, by_type, fresh, stale, last_collection",
+      "runs": "PASS - GET /api/evidence-collection/runs returns collection run history"
+    },
+    "evidence_collection_auth": {
+      "collect_unauthorized": "PASS - Returns 401/403 without auth",
+      "artifacts_unauthorized": "PASS - Returns 401/403 without auth",
+      "coverage_unauthorized": "PASS - Returns 401/403 without auth",
+      "stats_unauthorized": "PASS - Returns 401/403 without auth",
+      "runs_unauthorized": "PASS - Returns 401/403 without auth"
+    },
+    "documentation_pages": {
+      "marketing": "PASS - /docs/marketing.html returns 200, title: 'IronVision AI — Compliance at Machine Speed'",
+      "security_architecture": "PASS - /docs/security-architecture.html returns 200, title: 'IronVision AI — Security Architecture Document'",
+      "ui_walkthrough": "PASS - /docs/ui-walkthrough.html returns 200, title: 'IronVision AI — UI Walkthrough Guide'",
+      "pitch_deck": "PASS - /docs/pitch-deck.html returns 200, title: 'IronVision AI — Executive Pitch Deck'",
+      "brochure": "PASS - /docs/brochure.html returns 200, title: 'IronVision AI — Product Brochure'"
+    },
+    "frontend_ui": {
+      "evidence_collection_button": "PASS - Evidence Collection button present on Frameworks page",
+      "evidence_collection_view": "PASS - Opens with title 'Automated Evidence Collection'",
+      "stats_cards": "PASS - 4 stats cards: Total Artifacts, Fresh (30d), Stale, By Type",
+      "tabs": "PASS - 3 tabs: Overview, Artifacts, Coverage",
+      "run_collection_button": "PASS - Run Collection button triggers collection",
+      "overview_tab": "PASS - Shows 5 evidence sources with counts",
+      "artifacts_tab": "PASS - Lists artifacts with expandable details showing source, collected_at, control_ids",
+      "coverage_tab": "PASS - Shows overall coverage % and per-framework coverage bars",
+      "back_button": "PASS - Returns to Frameworks page"
+    }
+  },
+  "backend_tests": {
+    "TestEvidenceCollectionCollect": {
+      "test_run_collection": "PASS"
+    },
+    "TestEvidenceCollectionArtifacts": {
+      "test_list_artifacts": "PASS"
+    },
+    "TestEvidenceCollectionArtifactDetail": {
+      "test_get_artifact_detail": "PASS",
+      "test_get_artifact_not_found": "PASS"
+    },
+    "TestEvidenceCollectionCoverage": {
+      "test_get_coverage": "PASS"
+    },
+    "TestEvidenceCollectionStats": {
+      "test_get_stats": "PASS"
+    },
+    "TestEvidenceCollectionRuns": {
+      "test_get_runs": "PASS"
+    },
+    "TestEvidenceCollectionDelete": {
+      "test_delete_artifact": "PASS",
+      "test_delete_artifact_not_found": "PASS"
+    },
+    "TestDocumentationPages": {
+      "test_marketing_page": "PASS",
+      "test_security_architecture_page": "PASS",
+      "test_ui_walkthrough_page": "PASS",
+      "test_pitch_deck_page": "PASS",
+      "test_brochure_page": "PASS"
+    },
+    "TestEvidenceCollectionUnauthorized": {
+      "test_collect_unauthorized": "PASS",
+      "test_artifacts_unauthorized": "PASS",
+      "test_coverage_unauthorized": "PASS",
+      "test_stats_unauthorized": "PASS",
+      "test_runs_unauthorized": "PASS"
+    }
+  },
+  "evidence_collection_data": {
+    "total_artifacts": 22,
+    "fresh": 22,
+    "stale": 0,
+    "by_type": {
+      "assessment": 7,
+      "checklist_mapping": 2,
+      "siem_snapshot": 7,
+      "policy_document": 5,
+      "pipeline_report": 1
+    },
+    "overall_coverage": "23.5% (226 covered / 962 total controls)"
+  }
+}
