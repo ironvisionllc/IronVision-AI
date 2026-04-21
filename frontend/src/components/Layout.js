@@ -21,7 +21,8 @@ import {
   Gear,
   Eye,
   Plugs,
-  MagnifyingGlass
+  MagnifyingGlass,
+  BookOpen
 } from "@phosphor-icons/react";
 
 const SIDEBAR_NAV = [
@@ -40,6 +41,7 @@ const SIDEBAR_NAV = [
   { section: "OPERATIONS" },
   { name: "Tasks", href: "/tasks", icon: ListChecks },
   { name: "Integrations", href: "/integrations", icon: Plugs },
+  { name: "Documentation", href: "/documentation", icon: BookOpen },
   { name: "Settings", href: "/settings", icon: Gear },
 ];
 

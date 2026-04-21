@@ -16,6 +16,7 @@ import TasksPage from "@/pages/TasksPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import SIEMPage from "@/pages/SIEMPage";
+import DocumentationPage from "@/pages/DocumentationPage";
 import ComplianceCopilot from "@/components/ComplianceCopilot";
 import CommandPalette from "@/components/CommandPalette";
 import "@/index.css";
@@ -90,6 +91,7 @@ function App() {
           <Route path="/tasks" element={user ? <TasksPage /> : <Navigate to="/login" />} />
           <Route path="/integrations" element={user ? <IntegrationsPage /> : <Navigate to="/login" />} />
           <Route path="/siem" element={user ? <SIEMPage /> : <Navigate to="/login" />} />
+          <Route path="/documentation" element={user ? <DocumentationPage /> : <Navigate to="/login" />} />
           <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/login" />} />
           {/* Redirects from old routes */}
           <Route path="/policy-library" element={<Navigate to="/policies?tab=library" />} />
