@@ -111,16 +111,29 @@ hr{border:none;border-top:1px solid #e2e8f0;margin:32px 0}
 </div>
 
 <div class="step">
-<span class="step-num">14</span><h4>Compliance Copilot</h4>
+<span class="step-num">14</span><h4>Tenable VM Integration</h4>
+<p>Navigate via <span class="nav-ref">Sidebar > Integrations > Tenable VM > Open Dashboard</span>. Four tabs: Dashboard, Vulnerabilities, Compliance Checks, POA&M, and Settings.</p>
+<ol>
+<li><strong>Settings</strong> — Enter your Tenable.io access_key and secret_key, or use "Load Demo Data" for a simulated dataset (10 vulns + 12 compliance checks)</li>
+<li><strong>Sync Now</strong> — Pull vulnerability and compliance data from Tenable (or demo mode)</li>
+<li><strong>Auto-Assess NIST Controls</strong> — Click to auto-update 26+ NIST 800-53 controls based on scan findings. Open vulns flag SI-2/RA-5 as Non-Compliant. Fixed vulns restore Compliant status with proof.</li>
+<li><strong>Generate Remediation Policies</strong> — AI (GPT-5.2) generates formal policy documents for each critical finding area (Vulnerability Remediation, MFA Enforcement, etc.) with 6 sections each</li>
+<li><strong>Generate POA&M</strong> — Creates Plan of Action & Milestones entries with severity-based timelines: Critical = 15 days (P1), High = 30 days (P2), Medium = 90 days (P3)</li>
+<li><strong>POA&M Tab</strong> — Track all entries with status management: Open → In Progress → Completed / Delayed</li>
+</ol>
+</div>
+
+<div class="step">
+<span class="step-num">15</span><h4>Compliance Copilot</h4>
 <p>Click the AI assistant button (bottom-right) to ask compliance questions in natural language. Powered by GPT-5.2, it can explain controls, suggest policies, and provide implementation guidance.</p>
 </div>
 
 <div class="step">
-<span class="step-num">15</span><h4>Command Palette</h4>
+<span class="step-num">16</span><h4>Command Palette</h4>
 <p>Press <strong>Cmd+K</strong> (or Ctrl+K) to open the Command Palette. Quickly navigate to any page, search frameworks, or trigger actions.</p>
 </div>
 
-<div class="tip"><strong>Pro Tip:</strong> For the best compliance workflow, start with the SIEM simulator (to generate events), then run AI Assess All on your frameworks, then use Evidence Collection to auto-gather everything for your audit.</div>
+<div class="tip"><strong>Pro Tip:</strong> For the ultimate compliance automation workflow: (1) Sync Tenable data, (2) Auto-Assess NIST controls, (3) Generate POA&M for non-compliant items, (4) Generate remediation policies, (5) Run Evidence Collection to gather everything, (6) Export OSCAL assessment results for your auditor.</div>
 
 <hr>
 <p style="text-align:center;color:#94a3b8;font-size:0.8rem">&copy; 2026 IronVision AI. All rights reserved.</p>

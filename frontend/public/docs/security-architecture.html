@@ -140,7 +140,21 @@ li{margin-bottom:6px;color:#475569}
 
 <h2>5. Integration Security</h2>
 
-<h3>5.1 OSCAL Compliance</h3>
+<h3>5.1 Tenable VM Integration</h3>
+<p>IronVision connects to Tenable.io (Tenable Vulnerability Management) via the pyTenable SDK for automated vulnerability and compliance data ingestion.</p>
+<ul>
+<li><strong>Authentication:</strong> Tenable access_key and secret_key stored encrypted in MongoDB, masked in API responses</li>
+<li><strong>Export Methodology:</strong> Asynchronous Export API (Initiate → Check Status → Download) to avoid system overload</li>
+<li><strong>Delta Pulls:</strong> Stores last sync timestamp — subsequent syncs only pull new/changed data using <code>filters.since</code></li>
+<li><strong>Data Scope:</strong> Vulnerability exports filter severity=[medium, high, critical], state=[open, reopened, fixed]. Compliance exports pull all configuration audit results.</li>
+<li><strong>Control Mapping:</strong> Findings auto-map to NIST 800-53 controls: vulns → SI-2/RA-5/CM-6, compliance checks → IA-2/IA-5/SC-28/AU-2/etc. via keyword matching</li>
+<li><strong>Auto-Assessment:</strong> Tenable data directly updates framework control compliance status with scan evidence</li>
+<li><strong>POA&M Generation:</strong> Non-compliant findings auto-generate Plan of Action & Milestones with severity-based timelines</li>
+<li><strong>AI Policy Generation:</strong> Critical findings trigger GPT-5.2 remediation policy generation with formal sections</li>
+<li><strong>Demo Mode:</strong> Simulated data available when no Tenable API keys are configured</li>
+</ul>
+
+<h3>5.2 OSCAL Compliance</h3>
 <p>IronVision natively supports OSCAL v1.2.1 — the NIST standard for machine-readable compliance. This enables:</p>
 <ul>
 <li>Interoperability with FedRAMP authorization packages</li>
@@ -148,7 +162,10 @@ li{margin-bottom:6px;color:#475569}
 <li>Automated assessment result generation for auditors</li>
 </ul>
 
-<h3>5.2 CI/CD Pipeline Security</h3>
+<h3>5.2 OSCAL Compliance</h3>
+<p>IronVision natively supports OSCAL v1.2.1 — the NIST standard for machine-readable compliance. This enables:</p>
+
+<h3>5.3 CI/CD Pipeline Security</h3>
 <div class="callout"><strong>Compliance Gate Model:</strong> The pipeline webhook receives scan findings and evaluates them against configurable thresholds. Three policy levels (strict/default/permissive) ensure appropriate gates for different environments.</div>
 
 <h3>5.3 LLM Integration Security</h3>
