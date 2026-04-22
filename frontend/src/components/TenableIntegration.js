@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import {
   CaretLeft, ArrowsClockwise, ShieldCheck, Warning, CheckCircle,
   XCircle, Lightning, Bug, Key, Eye, EyeSlash, Plugs, CaretRight,
-  Trash, Desktop, ChartBar, GitBranch
+  Trash, Desktop, ChartBar, GitBranch, FileText, ListChecks, Clock
 } from "@phosphor-icons/react";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
@@ -24,12 +24,18 @@ const STATE_COLORS = {
 };
 
 const TenableIntegration = ({ onBack }) => {
-  const [tab, setTab] = useState("dashboard"); // dashboard | vulns | compliance | settings
+  const [tab, setTab] = useState("dashboard"); // dashboard | vulns | compliance | poam | settings
   const [settings, setSettings] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [findings, setFindings] = useState([]);
+  const [poamEntries, setPoamEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [assessing, setAssessing] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generatingPoam, setGeneratingPoam] = useState(false);
+  const [lastAssessResult, setLastAssessResult] = useState(null);
+  const [lastPolicyResult, setLastPolicyResult] = useState(null);
 
   // Settings form
   const [accessKey, setAccessKey] = useState("");
@@ -61,6 +67,15 @@ const TenableIntegration = ({ onBack }) => {
     }
   }, []);
 
+  const fetchPoam = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/tenable/poam`);
+      setPoamEntries(res.data);
+    } catch {
+      toast.error("Failed to load POA&M");
+    }
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
@@ -73,8 +88,58 @@ const TenableIntegration = ({ onBack }) => {
   useEffect(() => {
     if (tab === "vulns") fetchFindings("vulnerability");
     if (tab === "compliance") fetchFindings("compliance");
+    if (tab === "poam") fetchPoam();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  const autoAssess = async () => {
+    setAssessing(true);
+    try {
+      const res = await axios.post(`${API}/tenable/auto-assess`);
+      toast.success(res.data.message);
+      setLastAssessResult(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Auto-assess failed");
+    } finally {
+      setAssessing(false);
+    }
+  };
+
+  const generatePolicies = async () => {
+    setGenerating(true);
+    try {
+      const res = await axios.post(`${API}/tenable/generate-policies`);
+      toast.success(res.data.message);
+      setLastPolicyResult(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Policy generation failed");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const generatePoam = async () => {
+    setGeneratingPoam(true);
+    try {
+      const res = await axios.post(`${API}/tenable/generate-poam`);
+      toast.success(res.data.message);
+      if (tab === "poam") fetchPoam();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "POA&M generation failed");
+    } finally {
+      setGeneratingPoam(false);
+    }
+  };
+
+  const updatePoamStatus = async (entryId, newStatus) => {
+    try {
+      await axios.put(`${API}/tenable/poam/${entryId}/status`, { status: newStatus });
+      toast.success(`POA&M updated to ${newStatus}`);
+      fetchPoam();
+    } catch {
+      toast.error("Failed to update");
+    }
+  };
 
   const saveSettings = async () => {
     if (!accessKey || !secretKey) return toast.error("Both keys required");
@@ -154,12 +219,63 @@ const TenableIntegration = ({ onBack }) => {
         </div>
       </div>
 
+      {/* Action Bar */}
+      {d.total_findings > 0 && tab === "dashboard" && (
+        <div className="flex gap-2 mb-6 flex-wrap" data-testid="action-bar">
+          <Button onClick={autoAssess} disabled={assessing} variant="outline" size="sm" className="h-9 text-xs border-blue-200 text-blue-700 hover:bg-blue-50" data-testid="auto-assess-btn">
+            {assessing ? <><ArrowsClockwise size={14} className="animate-spin mr-1.5" /> Assessing...</> : <><ShieldCheck size={14} className="mr-1.5" /> Auto-Assess NIST Controls</>}
+          </Button>
+          <Button onClick={generatePolicies} disabled={generating} variant="outline" size="sm" className="h-9 text-xs border-purple-200 text-purple-700 hover:bg-purple-50" data-testid="generate-policies-btn">
+            {generating ? <><ArrowsClockwise size={14} className="animate-spin mr-1.5" /> Generating...</> : <><FileText size={14} className="mr-1.5" /> Generate Remediation Policies</>}
+          </Button>
+          <Button onClick={generatePoam} disabled={generatingPoam} variant="outline" size="sm" className="h-9 text-xs border-amber-200 text-amber-700 hover:bg-amber-50" data-testid="generate-poam-btn">
+            {generatingPoam ? <><ArrowsClockwise size={14} className="animate-spin mr-1.5" /> Creating...</> : <><ListChecks size={14} className="mr-1.5" /> Generate POA&M</>}
+          </Button>
+        </div>
+      )}
+
+      {/* Assessment Result */}
+      {lastAssessResult && tab === "dashboard" && (
+        <div className="iv-card p-4 mb-4 border-l-4 border-blue-500 bg-blue-50/50 dark:bg-blue-900/10" data-testid="assess-result">
+          <div className="flex items-center gap-2 mb-2">
+            <ShieldCheck size={18} weight="fill" className="text-blue-600" />
+            <span className="text-sm font-semibold text-blue-700">{lastAssessResult.message}</span>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {lastAssessResult.assessments?.slice(0, 8).map(a => (
+              <span key={a.control_id} className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${a.status === "compliant" ? "bg-emerald-100 text-emerald-700" : a.status === "non_compliant" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+                {a.control_id}: {a.status.replace("_", " ")}
+              </span>
+            ))}
+            {lastAssessResult.assessments?.length > 8 && <span className="text-xs text-gray-400">+{lastAssessResult.assessments.length - 8} more</span>}
+          </div>
+        </div>
+      )}
+
+      {/* Policy Result */}
+      {lastPolicyResult && lastPolicyResult.policies?.length > 0 && tab === "dashboard" && (
+        <div className="iv-card p-4 mb-4 border-l-4 border-purple-500 bg-purple-50/50 dark:bg-purple-900/10" data-testid="policy-result">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText size={18} weight="fill" className="text-purple-600" />
+            <span className="text-sm font-semibold text-purple-700">{lastPolicyResult.message}</span>
+          </div>
+          <div className="space-y-1">
+            {lastPolicyResult.policies.map(p => (
+              <div key={p.id} className="text-xs text-gray-600 flex items-center gap-2">
+                <CheckCircle size={12} className="text-purple-500" /> {p.title} ({p.sections_count} sections)
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-1 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg w-fit" data-testid="tenable-tabs">
         {[
           { key: "dashboard", label: "Dashboard", icon: ChartBar },
           { key: "vulns", label: "Vulnerabilities", icon: Bug },
           { key: "compliance", label: "Compliance Checks", icon: ShieldCheck },
+          { key: "poam", label: "POA&M", icon: ListChecks },
           { key: "settings", label: "Settings", icon: Key },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${tab === t.key ? "bg-white dark:bg-gray-900 text-[#00b388] shadow-sm" : "text-gray-500 hover:text-gray-700"}`} data-testid={`tab-${t.key}`}>
@@ -320,6 +436,79 @@ const TenableIntegration = ({ onBack }) => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+
+      {/* POA&M Tab */}
+      {tab === "poam" && (
+        <div data-testid="poam-tab">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Plan of Action & Milestones</h3>
+            <Button onClick={generatePoam} disabled={generatingPoam} variant="outline" size="sm" data-testid="poam-generate-btn">
+              {generatingPoam ? <ArrowsClockwise size={14} className="animate-spin mr-1.5" /> : <ListChecks size={14} className="mr-1.5" />}
+              Generate POA&M
+            </Button>
+          </div>
+          {poamEntries.length === 0 ? (
+            <div className="iv-card p-12 text-center">
+              <ListChecks size={48} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No POA&M Entries</h3>
+              <p className="text-sm text-gray-500 mb-4">Click "Generate POA&M" to create entries from non-compliant Tenable findings</p>
+            </div>
+          ) : (
+            <>
+              {/* POA&M Stats */}
+              <div className="grid grid-cols-4 gap-3 mb-4">
+                <div className="iv-card p-3 text-center"><div className="text-xl font-bold text-gray-900 dark:text-gray-100">{poamEntries.length}</div><div className="text-[10px] text-gray-500">Total</div></div>
+                <div className="iv-card p-3 text-center"><div className="text-xl font-bold text-red-600">{poamEntries.filter(e => e.status === "open").length}</div><div className="text-[10px] text-gray-500">Open</div></div>
+                <div className="iv-card p-3 text-center"><div className="text-xl font-bold text-amber-600">{poamEntries.filter(e => e.status === "in_progress").length}</div><div className="text-[10px] text-gray-500">In Progress</div></div>
+                <div className="iv-card p-3 text-center"><div className="text-xl font-bold text-emerald-600">{poamEntries.filter(e => e.status === "completed").length}</div><div className="text-[10px] text-gray-500">Completed</div></div>
+              </div>
+              <div className="space-y-2">
+                {poamEntries.map(entry => (
+                  <div key={entry.id} className="iv-card p-4" data-testid={`poam-${entry.id}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-mono font-bold text-[#00b388]">{entry.poam_id}</span>
+                      <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${SEV_COLORS[entry.severity] || "bg-gray-100 text-gray-600"}`}>{(entry.severity || "").toUpperCase()}</span>
+                      <span className="text-[10px] font-bold text-gray-500">{entry.priority}</span>
+                      <span className={`ml-auto px-2 py-0.5 text-[10px] font-medium rounded-full ${
+                        entry.status === "completed" ? "bg-emerald-50 text-emerald-600" :
+                        entry.status === "in_progress" ? "bg-amber-50 text-amber-600" :
+                        entry.status === "delayed" ? "bg-red-50 text-red-600" :
+                        "bg-gray-50 text-gray-600"
+                      }`}>{entry.status?.replace("_", " ").toUpperCase()}</span>
+                    </div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{entry.title}</h4>
+                    <p className="text-xs text-gray-500 mt-1">{entry.description}</p>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                      <span className="flex items-center gap-1"><Desktop size={12} /> {entry.asset}</span>
+                      <span className="flex items-center gap-1"><Clock size={12} /> Due: {new Date(entry.scheduled_completion).toLocaleDateString()}</span>
+                      <span>{entry.milestone_days}d timeline</span>
+                      {entry.cves?.length > 0 && <span className="text-red-500 font-mono">{entry.cves.join(", ")}</span>}
+                    </div>
+                    <div className="flex gap-1 mt-2 flex-wrap">
+                      {entry.control_ids?.map(c => (
+                        <span key={c} className="text-[9px] px-1.5 py-0.5 bg-[#00b388]/10 text-[#00b388] rounded font-medium">{c}</span>
+                      ))}
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500 italic">{entry.remediation_plan}</div>
+                    {entry.status !== "completed" && (
+                      <div className="flex gap-2 mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+                        {entry.status === "open" && (
+                          <button onClick={() => updatePoamStatus(entry.id, "in_progress")} className="text-xs text-amber-600 font-medium hover:underline" data-testid={`poam-progress-${entry.id}`}>Mark In Progress</button>
+                        )}
+                        <button onClick={() => updatePoamStatus(entry.id, "completed")} className="text-xs text-emerald-600 font-medium hover:underline" data-testid={`poam-complete-${entry.id}`}>Mark Completed</button>
+                        {entry.status !== "delayed" && (
+                          <button onClick={() => updatePoamStatus(entry.id, "delayed")} className="text-xs text-red-500 font-medium hover:underline ml-auto">Mark Delayed</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 

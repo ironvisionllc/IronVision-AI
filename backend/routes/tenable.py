@@ -583,3 +583,411 @@ async def get_sync_history(current_user: Dict = Depends(get_current_user)):
         {"organization_id": org_id}, {"_id": 0}
     ).sort("created_at", -1).to_list(50)
     return runs
+
+
+# ─── Auto-Assess Controls from Tenable ─────────────────
+
+@router.post("/auto-assess")
+async def auto_assess_controls_from_tenable(current_user: Dict = Depends(get_current_user)):
+    """Auto-update NIST 800-53 control compliance status based on Tenable findings."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    now = datetime.now(timezone.utc).isoformat()
+
+    findings = await db.tenable_findings.find(
+        {"organization_id": org_id}, {"_id": 0}
+    ).to_list(2000)
+
+    if not findings:
+        raise HTTPException(400, "No Tenable findings found. Run a sync first.")
+
+    # Get the NIST 800-53 framework
+    fw = await db.frameworks.find_one({"name": {"$regex": "800-53", "$options": "i"}}, {"_id": 0})
+    if not fw:
+        fw = await db.frameworks.find_one({"name": {"$regex": "NIST", "$options": "i"}}, {"_id": 0})
+    if not fw:
+        raise HTTPException(404, "No NIST framework found")
+
+    fw_id = fw["id"]
+
+    # Build control → findings map
+    control_findings = {}
+    for f in findings:
+        for cid in f.get("control_ids", []):
+            control_findings.setdefault(cid, []).append(f)
+
+    updated = 0
+    assessments = []
+
+    for cid, ctrl_findings in control_findings.items():
+        # Check if this control exists in the framework
+        ctrl = await db.controls.find_one(
+            {"framework_id": fw_id, "control_id": cid}, {"_id": 0}
+        )
+        if not ctrl:
+            continue
+
+        # Determine compliance status from findings
+        has_non_compliant = any(f.get("compliance_status") == "non_compliant" for f in ctrl_findings)
+        has_partial = any(f.get("compliance_status") == "partial" for f in ctrl_findings)
+        all_compliant = all(f.get("compliance_status") == "compliant" for f in ctrl_findings)
+
+        if has_non_compliant:
+            status = "non_compliant"
+        elif has_partial:
+            status = "partial"
+        elif all_compliant:
+            status = "compliant"
+        else:
+            status = "partial"
+
+        # Build assessment reason
+        vuln_findings = [f for f in ctrl_findings if f.get("finding_type") == "vulnerability"]
+        comp_findings = [f for f in ctrl_findings if f.get("finding_type") == "compliance"]
+        reasons = []
+        if vuln_findings:
+            open_vulns = [f for f in vuln_findings if f.get("state") in ("open", "reopened")]
+            fixed_vulns = [f for f in vuln_findings if f.get("state") == "fixed"]
+            if open_vulns:
+                reasons.append(f"{len(open_vulns)} open vulnerabilities detected by Tenable scan")
+            if fixed_vulns:
+                reasons.append(f"{len(fixed_vulns)} vulnerabilities remediated (verified by scan)")
+        if comp_findings:
+            passed = [f for f in comp_findings if f.get("status") == "PASSED"]
+            failed = [f for f in comp_findings if f.get("status") == "FAILED"]
+            if failed:
+                reasons.append(f"{len(failed)} compliance checks failed: " + ", ".join(f.get("title", "")[:50] for f in failed[:3]))
+            if passed:
+                reasons.append(f"{len(passed)} compliance checks passed")
+
+        assessment_text = " | ".join(reasons) if reasons else f"Tenable assessment: {status}"
+
+        # Update control_compliance
+        existing = await db.control_compliance.find_one(
+            {"organization_id": org_id, "framework_id": fw_id, "control_id": cid}
+        )
+        if existing and existing.get("is_user_override"):
+            continue  # Don't override user manual assessments
+
+        await db.control_compliance.update_one(
+            {"organization_id": org_id, "framework_id": fw_id, "control_id": cid},
+            {"$set": {
+                "status": status,
+                "ai_assessment": f"[Tenable VM] {assessment_text}",
+                "is_user_override": False,
+                "updated_at": now,
+                "updated_by": "tenable-auto-assess",
+                "tenable_evidence": {
+                    "vuln_count": len(vuln_findings),
+                    "compliance_count": len(comp_findings),
+                    "open_vulns": len([f for f in vuln_findings if f.get("state") in ("open", "reopened")]),
+                    "fixed_vulns": len([f for f in vuln_findings if f.get("state") == "fixed"]),
+                    "compliance_passed": len([f for f in comp_findings if f.get("status") == "PASSED"]),
+                    "compliance_failed": len([f for f in comp_findings if f.get("status") == "FAILED"]),
+                },
+            },
+             "$setOnInsert": {
+                 "organization_id": org_id,
+                 "framework_id": fw_id,
+                 "control_id": cid,
+                 "notes": "",
+                 "policy_suggestion": "",
+                 "created_at": now,
+             }},
+            upsert=True,
+        )
+        updated += 1
+        assessments.append({
+            "control_id": cid,
+            "status": status,
+            "reason": assessment_text,
+            "evidence_count": len(ctrl_findings),
+        })
+
+    return {
+        "message": f"Auto-assessed {updated} NIST 800-53 controls from Tenable findings",
+        "framework": fw["name"],
+        "framework_id": fw_id,
+        "controls_updated": updated,
+        "assessments": assessments,
+    }
+
+
+# ─── Auto-Generate Policies from Tenable ─────────────────
+
+@router.post("/generate-policies")
+async def generate_policies_from_tenable(current_user: Dict = Depends(get_current_user)):
+    """AI-generate remediation policies based on critical Tenable findings."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Get non-compliant findings grouped by category
+    findings = await db.tenable_findings.find(
+        {"organization_id": org_id, "compliance_status": "non_compliant"}, {"_id": 0}
+    ).to_list(500)
+
+    if not findings:
+        return {"message": "No non-compliant findings to generate policies for", "policies": []}
+
+    # Group findings by control area
+    vuln_findings = [f for f in findings if f.get("finding_type") == "vulnerability"]
+    comp_findings = [f for f in findings if f.get("finding_type") == "compliance"]
+
+    policies_generated = []
+
+    # Generate vulnerability remediation policy
+    if vuln_findings:
+        critical_vulns = [f for f in vuln_findings if f.get("severity") == "critical" and f.get("state") in ("open", "reopened")]
+        high_vulns = [f for f in vuln_findings if f.get("severity") == "high" and f.get("state") in ("open", "reopened")]
+
+        if critical_vulns or high_vulns:
+            vuln_summary = []
+            for v in (critical_vulns + high_vulns)[:10]:
+                cves = ", ".join(v.get("cves", [])[:3]) if v.get("cves") else "N/A"
+                vuln_summary.append(f"- [{v.get('severity','').upper()}] {v.get('title','')} (CVE: {cves}) on {v.get('asset_hostname','unknown')}")
+
+            policy = await _generate_policy_with_ai(
+                org_id=org_id,
+                title="Vulnerability Remediation Policy — Tenable Scan Findings",
+                context=f"Based on Tenable VM scan results, {len(critical_vulns)} critical and {len(high_vulns)} high severity vulnerabilities were found:\n" + "\n".join(vuln_summary),
+                control_ids=["SI-2", "RA-5", "CM-6", "SA-11"],
+                policy_type="vulnerability_remediation",
+                now=now,
+                user_id=current_user["id"],
+            )
+            if policy:
+                policies_generated.append(policy)
+
+    # Generate policies for failed compliance checks
+    if comp_findings:
+        # Group by control area
+        check_groups = {}
+        for c in comp_findings:
+            if c.get("status") == "FAILED":
+                for ctrl in c.get("control_ids", ["CM-6"]):
+                    check_groups.setdefault(ctrl, []).append(c)
+
+        # Generate a policy for each major control area with failures
+        for ctrl_id, checks in list(check_groups.items())[:5]:
+            check_summary = []
+            for ch in checks[:5]:
+                check_summary.append(f"- FAILED: {ch.get('title','')} | Expected: {ch.get('expected_value','')} | Actual: {ch.get('actual_value','')}")
+
+            ctrl_title_map = {
+                "IA-2": "Multi-Factor Authentication Enforcement",
+                "IA-5": "Password Management and Authenticator Standards",
+                "SC-7": "Network Boundary Protection",
+                "SC-8": "Transmission Confidentiality and Integrity",
+                "SC-28": "Data-at-Rest Encryption",
+                "AC-3": "Access Enforcement",
+                "AC-6": "Least Privilege",
+                "AC-7": "Account Lockout",
+                "AC-17": "Remote Access",
+                "AU-2": "Audit Event Logging",
+                "SI-3": "Malware Protection",
+                "CM-2": "Baseline Configuration",
+                "CM-6": "Configuration Settings",
+                "CP-9": "System Backup",
+            }
+            policy_title = ctrl_title_map.get(ctrl_id, f"Compliance Remediation — {ctrl_id}")
+
+            policy = await _generate_policy_with_ai(
+                org_id=org_id,
+                title=f"{policy_title} Policy — Tenable Compliance Findings",
+                context=f"Tenable compliance audit found {len(checks)} failed check(s) for NIST control {ctrl_id}:\n" + "\n".join(check_summary),
+                control_ids=[ctrl_id],
+                policy_type="compliance_remediation",
+                now=now,
+                user_id=current_user["id"],
+            )
+            if policy:
+                policies_generated.append(policy)
+
+    return {
+        "message": f"Generated {len(policies_generated)} remediation policies from Tenable findings",
+        "policies": policies_generated,
+    }
+
+
+async def _generate_policy_with_ai(org_id: str, title: str, context: str, control_ids: list, policy_type: str, now: str, user_id: str) -> dict:
+    """Generate a policy document using GPT-5.2."""
+    import os
+    import re
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+        api_key = os.environ.get("EMERGENT_LLM_KEY")
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"tenable-policy-{uuid.uuid4()}",
+            system_message="You are a compliance policy writer for federal agencies. Generate formal, actionable security policies based on vulnerability scan and compliance audit findings. Policies must be suitable for NIST 800-53 RMF compliance packages."
+        ).with_model("openai", "gpt-5.2")
+
+        prompt = f"""Generate a formal security policy document based on these Tenable scan findings.
+
+Title: {title}
+NIST Controls: {', '.join(control_ids)}
+Findings:
+{context}
+
+Generate a policy with these sections as a JSON array of objects with "heading" and "content" keys:
+1. Purpose - Why this policy exists (reference the specific findings)
+2. Scope - What systems/assets this applies to  
+3. Policy Statements - 3-5 specific, enforceable policy statements
+4. Remediation Requirements - Specific steps and timelines to address findings
+5. Compliance Verification - How compliance with this policy will be verified
+6. Roles and Responsibilities - Who is responsible for implementation
+
+Return ONLY valid JSON array: [{{"heading": "Purpose", "content": "..."}}]"""
+
+        response = await chat.send_message(UserMessage(text=prompt))
+        response_text = response if isinstance(response, str) else str(response)
+
+        json_match = re.search(r'\[[\s\S]*\]', response_text)
+        if json_match:
+            sections = json.loads(json_match.group())
+        else:
+            sections = [{"heading": "Policy", "content": response_text[:2000]}]
+
+        # Store as a generated policy
+        policy_doc = {
+            "id": str(uuid.uuid4()),
+            "organization_id": org_id,
+            "title": title,
+            "sections": sections,
+            "status": "draft",
+            "source": f"tenable-{policy_type}",
+            "control_ids": control_ids,
+            "tenable_generated": True,
+            "created_at": now,
+            "created_by": user_id,
+        }
+        await db.generated_templates.insert_one(policy_doc)
+        del policy_doc["_id"]
+
+        return {
+            "id": policy_doc["id"],
+            "title": title,
+            "sections_count": len(sections),
+            "control_ids": control_ids,
+            "status": "draft",
+        }
+
+    except Exception as e:
+        logger.error(f"Policy generation failed: {e}")
+        return None
+
+
+# ─── POA&M Generation ─────────────────────────────────────
+
+SEVERITY_TIMELINES = {
+    "critical": {"days": 15, "priority": "P1"},
+    "high": {"days": 30, "priority": "P2"},
+    "medium": {"days": 90, "priority": "P3"},
+}
+
+
+@router.post("/generate-poam")
+async def generate_poam_from_tenable(current_user: Dict = Depends(get_current_user)):
+    """Generate Plan of Action & Milestones (POA&M) entries from non-compliant Tenable findings."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+
+    findings = await db.tenable_findings.find(
+        {"organization_id": org_id, "compliance_status": "non_compliant"}, {"_id": 0}
+    ).to_list(500)
+
+    if not findings:
+        return {"message": "No non-compliant findings to create POA&M entries for", "entries": []}
+
+    entries_created = []
+
+    for f in findings:
+        finding_type = f.get("finding_type", "")
+        title = f.get("title", "Unknown Finding")
+        severity = f.get("severity", "medium")
+
+        # Determine timeline
+        timeline = SEVERITY_TIMELINES.get(severity, SEVERITY_TIMELINES["medium"])
+        due_date = (now + timedelta(days=timeline["days"])).isoformat()
+
+        if finding_type == "vulnerability":
+            weakness = f"Vulnerability: {title}"
+            cves = ", ".join(f.get("cves", [])[:3]) if f.get("cves") else "N/A"
+            description = f"Tenable scan identified {severity} vulnerability on {f.get('asset_hostname', 'unknown')}. CVE(s): {cves}. State: {f.get('state', 'open')}."
+            remediation = f"Apply vendor patch or update to remediate {title}. Verify remediation via follow-up Tenable scan."
+        else:
+            weakness = f"Compliance Failure: {title}"
+            description = f"Tenable compliance check failed. Expected: {f.get('expected_value', 'N/A')}. Actual: {f.get('actual_value', 'N/A')}. Asset: {f.get('asset_hostname', 'unknown')}."
+            remediation = f"Remediate configuration to meet expected value ({f.get('expected_value', '')}) and verify with follow-up audit scan."
+
+        # Check for existing POA&M entry
+        existing = await db.poam_entries.find_one({
+            "organization_id": org_id,
+            "title": title,
+            "status": {"$ne": "completed"},
+        })
+        if existing:
+            continue
+
+        poam_entry = {
+            "id": str(uuid.uuid4()),
+            "organization_id": org_id,
+            "poam_id": f"POAM-{str(uuid.uuid4())[:8].upper()}",
+            "title": title,
+            "weakness": weakness,
+            "description": description,
+            "severity": severity,
+            "priority": timeline["priority"],
+            "control_ids": f.get("control_ids", []),
+            "asset": f.get("asset_hostname", ""),
+            "source": "tenable",
+            "finding_type": finding_type,
+            "remediation_plan": remediation,
+            "scheduled_completion": due_date,
+            "milestone_days": timeline["days"],
+            "status": "open",
+            "cves": f.get("cves", []),
+            "created_at": now_iso,
+            "created_by": current_user["id"],
+        }
+        await db.poam_entries.insert_one(poam_entry)
+        del poam_entry["_id"]
+        entries_created.append(poam_entry)
+
+    return {
+        "message": f"Created {len(entries_created)} POA&M entries from Tenable findings",
+        "total": len(entries_created),
+        "entries": entries_created,
+    }
+
+
+@router.get("/poam")
+async def list_poam_entries(current_user: Dict = Depends(get_current_user)):
+    """List all POA&M entries."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    entries = await db.poam_entries.find(
+        {"organization_id": org_id}, {"_id": 0}
+    ).sort("created_at", -1).to_list(500)
+    return entries
+
+
+@router.put("/poam/{entry_id}/status")
+async def update_poam_status(entry_id: str, data: dict, current_user: Dict = Depends(get_current_user)):
+    """Update POA&M entry status."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    new_status = data.get("status", "")
+    if new_status not in ("open", "in_progress", "completed", "delayed"):
+        raise HTTPException(400, "Invalid status")
+
+    update = {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}
+    if new_status == "completed":
+        update["completed_at"] = datetime.now(timezone.utc).isoformat()
+
+    result = await db.poam_entries.update_one(
+        {"id": entry_id, "organization_id": org_id},
+        {"$set": update}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(404, "POA&M entry not found")
+    return {"message": f"POA&M entry updated to {new_status}"}
