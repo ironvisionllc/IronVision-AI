@@ -1,0 +1,387 @@
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  CaretLeft, ArrowsClockwise, ShieldCheck, Warning, CheckCircle,
+  XCircle, Lightning, Bug, Key, Eye, EyeSlash, Plugs, CaretRight,
+  Trash, Desktop, ChartBar, GitBranch
+} from "@phosphor-icons/react";
+
+const API = process.env.REACT_APP_BACKEND_URL + "/api";
+
+const SEV_COLORS = {
+  critical: "bg-red-600 text-white",
+  high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+};
+
+const STATE_COLORS = {
+  open: "text-red-600 bg-red-50",
+  reopened: "text-orange-600 bg-orange-50",
+  fixed: "text-emerald-600 bg-emerald-50",
+};
+
+const TenableIntegration = ({ onBack }) => {
+  const [tab, setTab] = useState("dashboard"); // dashboard | vulns | compliance | settings
+  const [settings, setSettings] = useState(null);
+  const [dashboard, setDashboard] = useState(null);
+  const [findings, setFindings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  // Settings form
+  const [accessKey, setAccessKey] = useState("");
+  const [secretKey, setSecretKey] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/tenable/settings`);
+      setSettings(res.data);
+    } catch { /* ignore */ }
+  }, []);
+
+  const fetchDashboard = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/tenable/dashboard`);
+      setDashboard(res.data);
+    } catch { /* ignore */ }
+  }, []);
+
+  const fetchFindings = useCallback(async (type) => {
+    try {
+      const params = type ? `?finding_type=${type}` : "";
+      const res = await axios.get(`${API}/tenable/findings${params}`);
+      setFindings(res.data);
+    } catch {
+      toast.error("Failed to load findings");
+    }
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([fetchSettings(), fetchDashboard()]);
+      setLoading(false);
+    };
+    init();
+  }, [fetchSettings, fetchDashboard]);
+
+  useEffect(() => {
+    if (tab === "vulns") fetchFindings("vulnerability");
+    if (tab === "compliance") fetchFindings("compliance");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const saveSettings = async () => {
+    if (!accessKey || !secretKey) return toast.error("Both keys required");
+    setSaving(true);
+    try {
+      await axios.post(`${API}/tenable/settings`, { access_key: accessKey, secret_key: secretKey });
+      toast.success("Tenable credentials saved");
+      setAccessKey("");
+      setSecretKey("");
+      fetchSettings();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeSettings = async () => {
+    if (!window.confirm("Remove Tenable credentials?")) return;
+    try {
+      await axios.delete(`${API}/tenable/settings`);
+      toast.success("Credentials removed");
+      setSettings({ configured: false });
+    } catch {
+      toast.error("Failed to remove");
+    }
+  };
+
+  const runSync = async (mode = "auto") => {
+    setSyncing(true);
+    try {
+      const res = await axios.post(`${API}/tenable/sync`, { mode });
+      toast.success(res.data.message);
+      await fetchDashboard();
+      if (tab === "vulns") fetchFindings("vulnerability");
+      if (tab === "compliance") fetchFindings("compliance");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  if (loading) return <div className="text-center py-16 text-gray-400"><ArrowsClockwise size={32} className="mx-auto animate-spin mb-3" />Loading Tenable data...</div>;
+
+  const d = dashboard || {};
+  const v = d.vulnerabilities || {};
+  const c = d.compliance || {};
+
+  return (
+    <div data-testid="tenable-integration">
+      {onBack && (
+        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#2597B2] mb-6 transition-colors" data-testid="back-btn">
+          <CaretLeft size={14} weight="bold" /> Back to Integrations
+        </button>
+      )}
+
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#00b388] rounded-lg flex items-center justify-center">
+              <ShieldCheck size={22} className="text-white" weight="fill" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Tenable VM Integration</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Vulnerability and compliance data mapped to NIST 800-53 controls</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setTab("settings")} data-testid="settings-btn">
+            <Key size={15} className="mr-1.5" /> Settings
+          </Button>
+          <Button onClick={() => runSync("auto")} disabled={syncing} className="bg-[#00b388] hover:bg-[#009973]" data-testid="sync-btn">
+            {syncing ? <><ArrowsClockwise size={16} className="animate-spin mr-2" /> Syncing...</> : <><ArrowsClockwise size={16} className="mr-2" /> Sync Now</>}
+          </Button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg w-fit" data-testid="tenable-tabs">
+        {[
+          { key: "dashboard", label: "Dashboard", icon: ChartBar },
+          { key: "vulns", label: "Vulnerabilities", icon: Bug },
+          { key: "compliance", label: "Compliance Checks", icon: ShieldCheck },
+          { key: "settings", label: "Settings", icon: Key },
+        ].map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${tab === t.key ? "bg-white dark:bg-gray-900 text-[#00b388] shadow-sm" : "text-gray-500 hover:text-gray-700"}`} data-testid={`tab-${t.key}`}>
+            <t.icon size={15} weight={tab === t.key ? "fill" : "regular"} /> {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Dashboard Tab */}
+      {tab === "dashboard" && (
+        <div data-testid="tenable-dashboard">
+          {d.total_findings === 0 ? (
+            <div className="iv-card p-12 text-center">
+              <Plugs size={48} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Tenable Data Yet</h3>
+              <p className="text-sm text-gray-500 mb-4">Click "Sync Now" to pull vulnerability and compliance data{settings?.configured ? " from Tenable.io" : " (demo mode)"}</p>
+              <Button onClick={() => runSync("demo")} disabled={syncing} className="bg-[#00b388] hover:bg-[#009973]" data-testid="demo-sync-btn">
+                <ArrowsClockwise size={16} className="mr-2" /> Load Demo Data
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Stats Row */}
+              <div className="grid grid-cols-5 gap-3 mb-6">
+                <div className="iv-card p-4" data-testid="stat-total"><div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{d.total_findings}</div><div className="text-xs text-gray-500">Total Findings</div></div>
+                <div className="iv-card p-4" data-testid="stat-vulns"><div className="text-2xl font-bold text-red-600">{v.open_critical || 0}</div><div className="text-xs text-gray-500">Open Critical Vulns</div></div>
+                <div className="iv-card p-4" data-testid="stat-compliance"><div className="text-2xl font-bold text-emerald-600">{c.pass_rate || 0}%</div><div className="text-xs text-gray-500">Compliance Pass Rate</div></div>
+                <div className="iv-card p-4" data-testid="stat-controls"><div className="text-2xl font-bold text-[#00b388]">{d.controls_impacted || 0}</div><div className="text-xs text-gray-500">Controls Impacted</div></div>
+                <div className="iv-card p-4" data-testid="stat-assets"><div className="text-2xl font-bold text-purple-600">{d.assets_scanned || 0}</div><div className="text-xs text-gray-500">Assets Scanned</div></div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                {/* Vulnerability Breakdown */}
+                <div className="iv-card p-5">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Vulnerabilities</h3>
+                  <div className="space-y-3">
+                    {["critical", "high", "medium"].map(sev => (
+                      <div key={sev} className="flex items-center gap-3">
+                        <span className={`px-2 py-0.5 text-xs font-semibold rounded ${SEV_COLORS[sev]} w-16 text-center`}>{sev.toUpperCase()}</span>
+                        <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden relative">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${(v.by_severity?.[sev] || 0) / Math.max(v.total || 1, 1) * 100}%`, backgroundColor: sev === "critical" ? "#dc2626" : sev === "high" ? "#ea580c" : "#d97706" }} />
+                          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">{v.by_severity?.[sev] || 0}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-4 mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500">
+                    <span className="text-red-500 font-medium">{v.by_state?.open || 0} Open</span>
+                    <span className="text-orange-500 font-medium">{v.by_state?.reopened || 0} Reopened</span>
+                    <span className="text-emerald-500 font-medium">{v.by_state?.fixed || 0} Fixed</span>
+                  </div>
+                </div>
+
+                {/* Compliance Breakdown */}
+                <div className="iv-card p-5">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Compliance Checks</h3>
+                  <div className="flex items-center gap-6">
+                    <div className="relative w-24 h-24">
+                      <svg viewBox="0 0 100 100" className="w-full h-full">
+                        <circle cx="50" cy="50" r="42" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+                        <circle cx="50" cy="50" r="42" fill="none" stroke="#059669" strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(c.pass_rate || 0) / 100 * 264} 264`} transform="rotate(-90 50 50)" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center text-lg font-bold text-emerald-600">{c.pass_rate || 0}%</div>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2"><CheckCircle size={16} weight="fill" className="text-emerald-500" /> <span className="text-sm font-medium">{c.passed || 0} Passed</span></div>
+                      <div className="flex items-center gap-2"><XCircle size={16} weight="fill" className="text-red-500" /> <span className="text-sm font-medium">{c.failed || 0} Failed</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Control Impact */}
+              {d.control_impact && Object.keys(d.control_impact).length > 0 && (
+                <div className="iv-card p-5 mb-6">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">NIST Control Impact (Top Affected)</h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    {Object.entries(d.control_impact).slice(0, 12).map(([ctrl, counts]) => (
+                      <div key={ctrl} className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                        <span className="text-xs font-mono font-bold text-[#00b388]">{ctrl}</span>
+                        <span className="ml-auto text-[10px]">
+                          {counts.non_compliant > 0 && <span className="text-red-500 font-medium mr-1">{counts.non_compliant}F</span>}
+                          {counts.compliant > 0 && <span className="text-emerald-500 font-medium">{counts.compliant}P</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Assets */}
+              {d.assets?.length > 0 && (
+                <div className="iv-card p-5">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Scanned Assets ({d.assets_scanned})</h3>
+                  <div className="flex gap-2 flex-wrap">
+                    {d.assets.map(a => (
+                      <span key={a} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300">
+                        <Desktop size={14} className="text-gray-400" /> {a}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Vulns Tab */}
+      {tab === "vulns" && (
+        <div className="space-y-2" data-testid="vulns-list">
+          {findings.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">No vulnerabilities found. Run a sync first.</div>
+          ) : findings.map(f => (
+            <div key={f.id} className="iv-card p-4" data-testid={`vuln-${f.id}`}>
+              <div className="flex items-center gap-3">
+                <span className={`px-1.5 py-0.5 text-[10px] font-semibold rounded ${SEV_COLORS[f.severity] || SEV_COLORS.medium}`}>{(f.severity || "").toUpperCase()}</span>
+                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full ${STATE_COLORS[f.state] || ""}`}>{(f.state || "").toUpperCase()}</span>
+                <span className="text-xs text-gray-400 font-mono">Plugin #{f.tenable_plugin_id}</span>
+              </div>
+              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">{f.title}</h4>
+              <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                <span className="flex items-center gap-1"><Desktop size={12} /> {f.asset_hostname}</span>
+                {f.cves?.length > 0 && <span className="text-red-500 font-mono">{f.cves.join(", ")}</span>}
+                <span className={f.compliance_status === "compliant" ? "text-emerald-600" : "text-red-600"}>{f.compliance_status}</span>
+              </div>
+              <div className="flex gap-1 mt-2 flex-wrap">
+                {f.control_ids?.map(c => (
+                  <span key={c} className="text-[9px] px-1.5 py-0.5 bg-[#00b388]/10 text-[#00b388] rounded font-medium">{c}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Compliance Tab */}
+      {tab === "compliance" && (
+        <div className="space-y-2" data-testid="compliance-list">
+          {findings.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">No compliance checks found. Run a sync first.</div>
+          ) : findings.map(f => (
+            <div key={f.id} className="iv-card p-4" data-testid={`check-${f.id}`}>
+              <div className="flex items-center gap-2">
+                {f.status === "PASSED" ? <CheckCircle size={18} weight="fill" className="text-emerald-500" /> : <XCircle size={18} weight="fill" className="text-red-500" />}
+                <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 flex-1">{f.title}</h4>
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${f.status === "PASSED" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>{f.status}</span>
+              </div>
+              <div className="flex gap-6 mt-2 text-xs">
+                <span className="text-gray-500">Expected: <span className="font-medium text-gray-700 dark:text-gray-300">{f.expected_value}</span></span>
+                <span className="text-gray-500">Actual: <span className={`font-medium ${f.status === "PASSED" ? "text-emerald-600" : "text-red-600"}`}>{f.actual_value}</span></span>
+                <span className="text-gray-500 flex items-center gap-1"><Desktop size={12} /> {f.asset_hostname}</span>
+              </div>
+              <div className="flex gap-1 mt-2 flex-wrap">
+                {f.control_ids?.map(c => (
+                  <span key={c} className="text-[9px] px-1.5 py-0.5 bg-[#00b388]/10 text-[#00b388] rounded font-medium">{c}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Settings Tab */}
+      {tab === "settings" && (
+        <div className="max-w-xl" data-testid="tenable-settings">
+          <div className="iv-card p-6 mb-6">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Tenable.io API Credentials</h3>
+            {settings?.configured && (
+              <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg flex items-center gap-2">
+                <CheckCircle size={16} weight="fill" className="text-emerald-500" />
+                <span className="text-sm text-emerald-700">Connected — Key: {settings.access_key_masked}</span>
+                <button onClick={removeSettings} className="ml-auto text-xs text-red-500 hover:text-red-600 font-medium">Disconnect</button>
+              </div>
+            )}
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Access Key</label>
+                <Input value={accessKey} onChange={e => setAccessKey(e.target.value)} placeholder="Enter Tenable access key" data-testid="access-key-input" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">Secret Key</label>
+                <div className="relative">
+                  <Input type={showSecret ? "text" : "password"} value={secretKey} onChange={e => setSecretKey(e.target.value)} placeholder="Enter Tenable secret key" data-testid="secret-key-input" />
+                  <button onClick={() => setShowSecret(!showSecret)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showSecret ? <EyeSlash size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <Button onClick={saveSettings} disabled={saving} className="w-full bg-[#00b388] hover:bg-[#009973]" data-testid="save-settings-btn">
+                {saving ? "Saving..." : "Save Credentials"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="iv-card p-5">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Demo Mode</h3>
+            <p className="text-xs text-gray-500 mb-3">Load simulated Tenable data (10 vulnerabilities + 12 compliance checks) mapped to NIST controls. No API keys required.</p>
+            <Button variant="outline" onClick={() => runSync("demo")} disabled={syncing} data-testid="demo-sync-btn">
+              <ArrowsClockwise size={14} className="mr-1.5" /> Load Demo Data
+            </Button>
+          </div>
+
+          {/* Sync History */}
+          {d.sync_history?.length > 0 && (
+            <div className="iv-card p-5 mt-6">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Sync History</h3>
+              <div className="space-y-2">
+                {d.sync_history.map(run => (
+                  <div key={run.id} className="flex items-center gap-3 text-xs text-gray-500 py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${run.mode === "live" ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-600"}`}>{run.mode}</span>
+                    <span>{run.vulns_processed} vulns, {run.compliance_processed} checks</span>
+                    <span className="ml-auto">{new Date(run.created_at).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TenableIntegration;

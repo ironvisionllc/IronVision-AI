@@ -23,9 +23,22 @@ import {
   Trash,
   Clock,
   Warning,
+  Bug,
 } from "@phosphor-icons/react";
+import TenableIntegration from "@/components/TenableIntegration";
 
 const INTEGRATIONS = [
+  {
+    id: "tenable",
+    name: "Tenable VM",
+    description: "Vulnerability and compliance data from Tenable.io mapped to NIST 800-53 controls",
+    icon: Bug,
+    category: "Vulnerability Management",
+    status: "available",
+    color: "#00b388",
+    configurable: true,
+    hasFullView: true,
+  },
   {
     id: "slack",
     name: "Slack",
@@ -84,6 +97,7 @@ const INTEGRATIONS = [
 ];
 
 const IntegrationsPage = () => {
+  const [showTenable, setShowTenable] = useState(false);
   const [slackConfig, setSlackConfig] = useState(null);
   const [slackDialogOpen, setSlackDialogOpen] = useState(false);
   const [slackLoading, setSlackLoading] = useState(false);
@@ -174,6 +188,14 @@ const IntegrationsPage = () => {
   const categories = [...new Set(INTEGRATIONS.map(i => i.category))];
   const isSlackConnected = slackConfig?.configured;
 
+  if (showTenable) {
+    return (
+      <Layout>
+        <TenableIntegration onBack={() => setShowTenable(false)} />
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div data-testid="integrations-page">
@@ -227,6 +249,21 @@ const IntegrationsPage = () => {
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">{integration.description}</p>
 
+                    {integration.id === "tenable" && (
+                      <div className="flex items-center gap-2 mt-auto">
+                        <Button
+                          size="sm"
+                          className="text-xs h-8"
+                          style={{ backgroundColor: "#00b388" }}
+                          onClick={() => setShowTenable(true)}
+                          data-testid="tenable-open-btn"
+                        >
+                          <Gear size={14} className="mr-1" />
+                          Open Dashboard
+                        </Button>
+                      </div>
+                    )}
+
                     {integration.id === "slack" && (
                       <div className="flex items-center gap-2 mt-auto">
                         <Button
@@ -263,7 +300,7 @@ const IntegrationsPage = () => {
                       </div>
                     )}
 
-                    {integration.id !== "slack" && !isComingSoon && (
+                    {integration.id !== "slack" && integration.id !== "tenable" && !isComingSoon && (
                       <Button variant="outline" size="sm" className="text-xs h-8 mt-auto" disabled>
                         Configure <ArrowSquareOut size={12} className="ml-1" />
                       </Button>

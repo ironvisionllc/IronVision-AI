@@ -1,0 +1,165 @@
+{
+  "summary": "Iteration 18: Tenable VM Integration testing complete. All 32 backend tests passed (100%). All frontend UI tests passed. Features verified: Settings management (save/get/delete API credentials), Demo mode sync (10 vulns + 12 compliance checks), Dashboard with stats/vuln breakdown/compliance donut/NIST control impact/assets, Findings list with filters, Control evidence endpoint, Sync history. Frontend: Tenable card on Integrations page, 4-tab dashboard (Dashboard/Vulnerabilities/Compliance Checks/Settings), all UI elements functional.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tenable_integration.py",
+    "/app/test_reports/pytest/pytest_tenable_integration.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_tenable_integration.py"
+  ],
+  "success_rate": {
+    "backend": "100% (32/32 tests passed)",
+    "frontend": "100% (all UI tests passed)"
+  },
+  "test_credentials": {
+    "admin": "demo-admin@grc.com / DemoAdmin123!"
+  },
+  "seed_data_creation": "Demo data loaded via POST /api/tenable/sync with mode=demo. 10 vulnerabilities and 12 compliance checks mapped to 34 NIST controls.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 18 tested Tenable VM Integration. Key endpoints: (1) POST /api/tenable/settings - save Tenable.io API credentials (access_key, secret_key). (2) GET /api/tenable/settings - returns configured status, masked access_key, last_sync. (3) DELETE /api/tenable/settings - removes credentials. (4) POST /api/tenable/sync - syncs data with mode=demo|auto|live. Demo mode loads 10 vulns + 12 compliance checks. Auto uses demo if no keys configured. Live requires valid Tenable.io keys. (5) GET /api/tenable/dashboard - returns total_findings, vulnerabilities (total, by_severity, by_state, open_critical), compliance (total, passed, failed, pass_rate), controls_impacted, control_impact dict, assets_scanned, assets list, sync_history. (6) GET /api/tenable/findings - list findings with optional filters: finding_type (vulnerability|compliance), severity (critical|high|medium), status. (7) GET /api/tenable/control-evidence/{control_id} - returns evidence for specific NIST control with vulnerabilities, compliance_checks, summary. (8) GET /api/tenable/sync-history - list of sync runs. Frontend: Tenable card on Integrations page (data-testid='tenable-open-btn'), TenableIntegration component with 4 tabs (data-testid='tab-dashboard|vulns|compliance|settings'), stats cards, vuln severity bars, compliance donut, NIST control impact grid, assets list, settings form with API key inputs.",
+  "features_tested": {
+    "tenable_settings_api": {
+      "get_settings_initial": "PASS - Returns configured status",
+      "save_settings": "PASS - Saves access_key and secret_key",
+      "get_settings_masked": "PASS - Returns masked access_key",
+      "delete_settings": "PASS - Removes credentials"
+    },
+    "tenable_sync_api": {
+      "sync_demo_mode": "PASS - Loads 10 vulns + 12 compliance checks",
+      "sync_auto_mode_no_keys": "PASS - Falls back to demo mode",
+      "sync_live_mode_no_keys": "PASS - Returns 400 error"
+    },
+    "tenable_dashboard_api": {
+      "dashboard_structure": "PASS - Returns all expected fields",
+      "vuln_stats": "PASS - by_severity, by_state, open_critical",
+      "compliance_stats": "PASS - passed, failed, pass_rate",
+      "control_impact": "PASS - Dict with compliant/non_compliant counts",
+      "assets": "PASS - List of scanned assets"
+    },
+    "tenable_findings_api": {
+      "list_all_findings": "PASS - Returns 22 findings",
+      "filter_vulnerabilities": "PASS - Returns 10 vulns",
+      "filter_compliance": "PASS - Returns 12 compliance checks",
+      "filter_by_severity": "PASS - Filters by severity",
+      "vuln_has_cves": "PASS - CVE references present",
+      "vuln_has_asset_info": "PASS - Asset hostname present"
+    },
+    "tenable_control_evidence_api": {
+      "control_evidence_si2": "PASS - Returns vuln evidence for SI-2",
+      "control_evidence_ra5": "PASS - Returns evidence for RA-5",
+      "control_evidence_ia5": "PASS - Returns compliance evidence for IA-5",
+      "control_evidence_summary": "PASS - Summary with vuln_open/fixed, compliance_passed/failed",
+      "control_evidence_empty": "PASS - Returns empty for unknown control"
+    },
+    "tenable_sync_history_api": {
+      "sync_history": "PASS - Returns list of sync runs",
+      "sync_history_unauthorized": "PASS - Returns 401/403 without auth"
+    },
+    "tenable_nist_mappings": {
+      "critical_vuln_maps_to_si2_ra5_cm6": "PASS - Critical vulns map correctly",
+      "fixed_vuln_is_compliant": "PASS - Fixed vulns marked compliant",
+      "compliance_check_keyword_mapping": "PASS - Password->IA-5, MFA->IA-2, Audit->AU-*"
+    },
+    "tenable_auth": {
+      "settings_unauthorized": "PASS - Returns 401/403",
+      "sync_unauthorized": "PASS - Returns 401/403",
+      "dashboard_unauthorized": "PASS - Returns 401/403",
+      "findings_unauthorized": "PASS - Returns 401/403"
+    },
+    "frontend_ui": {
+      "integrations_page": "PASS - Tenable VM card visible",
+      "tenable_open_btn": "PASS - Opens Tenable dashboard",
+      "tenable_tabs": "PASS - 4 tabs: Dashboard, Vulnerabilities, Compliance Checks, Settings",
+      "dashboard_stats": "PASS - 5 stats cards: Total Findings (22), Open Critical Vulns (2), Compliance Pass Rate (66.7%), Controls Impacted (34), Assets Scanned (14)",
+      "vuln_severity_bars": "PASS - Critical (3), High (4), Medium (3)",
+      "compliance_donut": "PASS - 8 Passed, 4 Failed",
+      "nist_control_impact": "PASS - Grid showing SI-2, RA-5, CM-6, etc.",
+      "assets_list": "PASS - 14 assets displayed",
+      "vulnerabilities_tab": "PASS - 10 vuln items with severity, state, CVEs, asset, controls",
+      "compliance_tab": "PASS - 12 compliance checks with PASSED/FAILED, expected/actual, controls",
+      "settings_tab": "PASS - API key inputs, Save button, Demo Mode button, Sync History",
+      "sync_now_btn": "PASS - Button present",
+      "back_btn": "PASS - Returns to Integrations page"
+    }
+  },
+  "backend_tests": {
+    "TestTenableAuth": {
+      "test_settings_unauthorized": "PASS",
+      "test_sync_unauthorized": "PASS",
+      "test_dashboard_unauthorized": "PASS",
+      "test_findings_unauthorized": "PASS"
+    },
+    "TestTenableSettings": {
+      "test_get_settings_initial": "PASS",
+      "test_save_settings": "PASS",
+      "test_get_settings_masked": "PASS",
+      "test_delete_settings": "PASS"
+    },
+    "TestTenableDemoSync": {
+      "test_sync_demo_mode": "PASS",
+      "test_sync_auto_mode_no_keys": "PASS",
+      "test_sync_live_mode_no_keys_fails": "PASS"
+    },
+    "TestTenableDashboard": {
+      "test_dashboard_structure": "PASS",
+      "test_dashboard_vuln_stats": "PASS",
+      "test_dashboard_compliance_stats": "PASS",
+      "test_dashboard_control_impact": "PASS",
+      "test_dashboard_assets": "PASS"
+    },
+    "TestTenableFindings": {
+      "test_list_all_findings": "PASS",
+      "test_filter_vulnerabilities": "PASS",
+      "test_filter_compliance": "PASS",
+      "test_filter_by_severity": "PASS",
+      "test_vuln_has_cves": "PASS",
+      "test_vuln_has_asset_info": "PASS"
+    },
+    "TestTenableControlEvidence": {
+      "test_control_evidence_si2": "PASS",
+      "test_control_evidence_ra5": "PASS",
+      "test_control_evidence_ia5": "PASS",
+      "test_control_evidence_summary": "PASS",
+      "test_control_evidence_empty": "PASS"
+    },
+    "TestTenableSyncHistory": {
+      "test_sync_history": "PASS",
+      "test_sync_history_unauthorized": "PASS"
+    },
+    "TestTenableNISTMappings": {
+      "test_critical_vuln_maps_to_si2_ra5_cm6": "PASS",
+      "test_fixed_vuln_is_compliant": "PASS",
+      "test_compliance_check_keyword_mapping": "PASS"
+    }
+  },
+  "demo_data_summary": {
+    "vulnerabilities": {
+      "total": 10,
+      "critical": 3,
+      "high": 4,
+      "medium": 3,
+      "open": 7,
+      "fixed": 3
+    },
+    "compliance_checks": {
+      "total": 12,
+      "passed": 8,
+      "failed": 4,
+      "pass_rate": "66.7%"
+    },
+    "controls_impacted": 34,
+    "assets_scanned": 14
+  }
+}
