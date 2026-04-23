@@ -4,182 +4,172 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IronVision AI — Executive Pitch Deck</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#fff;color:#1e293b;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @page{size:landscape;margin:0}
-body{font-family:'Inter',-apple-system,sans-serif;background:#0f172a;color:#fff}
-.slide{width:100vw;height:100vh;display:flex;flex-direction:column;justify-content:center;padding:60px 80px;position:relative;overflow:hidden;page-break-after:always}
-.slide::before{content:'';position:absolute;top:0;right:0;width:400px;height:400px;background:radial-gradient(circle,rgba(37,151,178,0.15) 0%,transparent 70%);pointer-events:none}
-.slide-dark{background:linear-gradient(135deg,#0a3540 0%,#0f172a 100%)}
-.slide-light{background:#fff;color:#0a3540}
-.slide-accent{background:linear-gradient(135deg,#2597B2 0%,#1B839F 100%)}
-.slide-num{position:absolute;bottom:30px;right:40px;font-size:0.75rem;opacity:0.4;font-weight:600}
-.logo-line{position:absolute;top:30px;left:40px;font-size:0.85rem;font-weight:700;opacity:0.5;letter-spacing:0.05em}
-h1{font-size:3.2rem;font-weight:800;letter-spacing:-0.03em;line-height:1.1;margin-bottom:20px}
-h2{font-size:2.2rem;font-weight:700;line-height:1.2;margin-bottom:16px}
-h3{font-size:1.3rem;font-weight:600;margin-bottom:12px}
-.tagline{font-size:1.4rem;opacity:0.8;font-weight:300;margin-bottom:24px}
-.small{font-size:0.95rem;opacity:0.7;line-height:1.7;max-width:600px}
-.pill{display:inline-block;background:rgba(37,151,178,0.3);border:1px solid rgba(37,151,178,0.5);padding:6px 20px;border-radius:99px;font-size:0.8rem;font-weight:600;margin-bottom:20px}
-.grid{display:grid;gap:24px;width:100%}
+.slide{width:100%;min-height:100vh;padding:56px 72px;position:relative;page-break-after:always;page-break-inside:avoid}
+.slide-dark{background:#0a3540;color:#fff}
+.slide-white{background:#fff;color:#0a3540}
+.slide-accent{background:#2597B2;color:#fff}
+.slide-num{position:absolute;bottom:24px;right:36px;font-size:0.7rem;opacity:0.4;font-weight:600}
+.logo-line{position:absolute;top:24px;left:36px;font-size:0.75rem;font-weight:700;opacity:0.4;letter-spacing:0.05em}
+h1{font-size:2.8rem;font-weight:800;letter-spacing:-0.03em;line-height:1.1;margin-bottom:16px}
+h2{font-size:1.8rem;font-weight:700;line-height:1.2;margin-bottom:12px}
+h3{font-size:1.1rem;font-weight:600;margin-bottom:8px}
+.tagline{font-size:1.2rem;opacity:0.8;font-weight:300;margin-bottom:20px}
+.small{font-size:0.88rem;opacity:0.7;line-height:1.7;max-width:580px}
+.pill{display:inline-block;border:1.5px solid #2597B2;color:#2597B2;padding:4px 16px;border-radius:99px;font-size:0.7rem;font-weight:700;margin-bottom:16px}
+.slide-dark .pill{color:#7dd3fc;border-color:rgba(37,151,178,0.6)}
+.slide-accent .pill{color:#fff;border-color:rgba(255,255,255,0.5)}
+.grid{display:grid;gap:16px;width:100%}
 .g2{grid-template-columns:1fr 1fr}
 .g3{grid-template-columns:1fr 1fr 1fr}
 .g4{grid-template-columns:1fr 1fr 1fr 1fr}
-.box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px}
-.box-light{background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:28px;color:#0a3540}
-.box h4{font-size:1rem;font-weight:700;margin-bottom:8px}
-.box p,.box-light p{font-size:0.85rem;opacity:0.75;line-height:1.6}
-.box-light h4{font-size:1rem;font-weight:700;margin-bottom:8px;color:#0a3540}
-.big-num{font-size:3rem;font-weight:800;color:#2597B2;margin-bottom:4px}
-.metric-label{font-size:0.8rem;opacity:0.6}
-.check{color:#2597B2;margin-right:8px}
+.g5{grid-template-columns:repeat(5,1fr)}
+.box{border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:20px;break-inside:avoid}
+.box-solid{border:1.5px solid #e2e8f0;border-radius:12px;padding:20px;break-inside:avoid}
+.box h4,.box-solid h4{font-size:0.88rem;font-weight:700;margin-bottom:6px}
+.box p,.box-solid p{font-size:0.78rem;opacity:0.75;line-height:1.55}
+.big-num{font-size:2.4rem;font-weight:800;color:#2597B2;margin-bottom:2px}
+.slide-dark .big-num,.slide-accent .big-num{color:#fff}
+.metric-label{font-size:0.72rem;opacity:0.5}
+.check{color:#2597B2;font-weight:700;margin-right:6px}
+.slide-dark .check{color:#7dd3fc}
 ul{list-style:none;padding:0}
-ul li{padding:8px 0;font-size:0.95rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+ul li{padding:6px 0;font-size:0.88rem;border-bottom:1px solid rgba(255,255,255,0.08)}
 ul li:last-child{border:none}
-.slide-light ul li{border-color:rgba(0,0,0,0.06);color:#475569}
-.cta-box{background:rgba(37,151,178,0.15);border:2px solid #2597B2;border-radius:20px;padding:40px;text-align:center;margin-top:20px}
-@media print{.slide{height:auto;min-height:100vh;padding:40px 60px}body{background:#fff}h1,h2,h3{color:#0a3540}.slide-dark{background:#fff;color:#0a3540}.slide-accent{background:#2597B2}}
+.slide-white ul li{border-color:rgba(0,0,0,0.06);color:#475569}
+.cta-box{border:2px solid #2597B2;border-radius:16px;padding:32px;text-align:center;margin-top:16px}
+@media print{
+  .slide{min-height:auto;height:auto;padding:36px 48px;page-break-after:always}
+  .slide-dark{background:#0a3540 !important;color:#fff !important}
+  .slide-accent{background:#2597B2 !important;color:#fff !important}
+  .box{border-color:rgba(255,255,255,0.2)}
+}
 </style>
 </head>
 <body>
 
-<!-- SLIDE 1: Title -->
-<div class="slide slide-dark">
+<!-- SLIDE 1 -->
+<div class="slide slide-dark" style="display:flex;flex-direction:column;justify-content:center">
 <div class="logo-line">IRONVISION AI</div>
 <div class="pill">ENTERPRISE GRC PLATFORM</div>
 <h1>Compliance at<br>Machine Speed</h1>
 <p class="tagline">The autonomous GRC command center for<br>federal, defense, and critical infrastructure compliance.</p>
-<p class="small">AI-powered governance, real-time risk scoring, DevSecOps integration,<br>OSCAL-native compliance-as-code, and automated evidence collection.</p>
+<p class="small">AI-powered governance, real-time risk scoring, Tenable VM integration,<br>DevSecOps pipeline, OSCAL compliance-as-code, and automated POA&amp;M generation.</p>
 <div class="slide-num">01</div>
 </div>
 
-<!-- SLIDE 2: Problem -->
-<div class="slide slide-dark">
+<!-- SLIDE 2 -->
+<div class="slide slide-dark" style="display:flex;flex-direction:column;justify-content:center">
 <div class="logo-line">IRONVISION AI</div>
 <h2>The Compliance Problem</h2>
-<div class="grid g2" style="margin-top:24px">
+<div class="grid g2" style="margin-top:20px">
 <div>
 <ul>
-<li><span class="check">></span> Manual compliance mapping takes <strong>thousands of hours</strong></li>
-<li><span class="check">></span> Evidence collection is <strong>reactive</strong>, not continuous</li>
-<li><span class="check">></span> DevSecOps teams lack <strong>compliance visibility</strong> in CI/CD</li>
-<li><span class="check">></span> Risk assessments are <strong>point-in-time snapshots</strong>, not real-time</li>
-<li><span class="check">></span> OSCAL adoption requires <strong>specialized tooling</strong> most lack</li>
-<li><span class="check">></span> Framework overlaps create <strong>duplicated effort</strong> across audits</li>
+<li><span class="check">&gt;</span> Manual compliance mapping takes <strong>thousands of hours</strong></li>
+<li><span class="check">&gt;</span> Evidence collection is <strong>reactive</strong>, not continuous</li>
+<li><span class="check">&gt;</span> Vulnerability scans are <strong>disconnected</strong> from compliance controls</li>
+<li><span class="check">&gt;</span> Risk assessments are <strong>point-in-time snapshots</strong></li>
+<li><span class="check">&gt;</span> OSCAL adoption requires <strong>specialized tooling</strong></li>
+<li><span class="check">&gt;</span> POA&amp;M management is <strong>manual and error-prone</strong></li>
 </ul>
 </div>
-<div style="text-align:center;padding-top:20px">
+<div style="text-align:center;padding-top:16px">
 <div class="big-num">73%</div>
 <p class="metric-label">of organizations fail their first compliance audit</p>
-<div class="big-num" style="margin-top:24px">6-12 mo</div>
+<div class="big-num" style="margin-top:20px">6-12 mo</div>
 <p class="metric-label">average time to achieve FedRAMP authorization</p>
 </div>
 </div>
 <div class="slide-num">02</div>
 </div>
 
-<!-- SLIDE 3: Solution Overview -->
-<div class="slide slide-accent">
-<div class="logo-line" style="color:rgba(255,255,255,0.5)">IRONVISION AI</div>
-<h2 style="color:#fff">IronVision AI: The Solution</h2>
-<p style="opacity:0.9;font-size:1.05rem;margin-bottom:28px">A unified GRC engine that replaces spreadsheets, manual assessments,<br>and siloed compliance tools with an AI-powered command center.</p>
+<!-- SLIDE 3 -->
+<div class="slide slide-accent" style="display:flex;flex-direction:column;justify-content:center">
+<div class="logo-line" style="color:rgba(255,255,255,0.4)">IRONVISION AI</div>
+<h2>IronVision AI: The Solution</h2>
+<p style="opacity:0.9;font-size:0.95rem;margin-bottom:24px">A unified GRC engine that replaces spreadsheets, manual assessments,<br>and siloed compliance tools with an AI-powered command center.</p>
 <div class="grid g4">
-<div class="box"><div class="big-num" style="color:#fff">14</div><h4>Frameworks</h4><p>NIST, CMMC, ISO, SOC 2, HIPAA, NERC CIP, GDPR, NIS2, StateRAMP, and more</p></div>
-<div class="box"><div class="big-num" style="color:#fff">962</div><h4>Controls</h4><p>All controls mapped to SIEM events with AI-powered compliance assessment</p></div>
-<div class="box"><div class="big-num" style="color:#fff">6</div><h4>AI Engines</h4><p>GPT-5.2 for assessment, mapping, policy generation, remediation, coverage analysis, and copilot</p></div>
-<div class="box"><div class="big-num" style="color:#fff">10</div><h4>Core Pillars</h4><p>From Tenable integration to POA&M generation, every compliance function unified</p></div>
+<div class="box"><div class="big-num">14</div><h4>Frameworks</h4><p>NIST, CMMC, ISO, SOC 2, HIPAA, NERC CIP, GDPR, NIS2, StateRAMP</p></div>
+<div class="box"><div class="big-num">962</div><h4>Controls</h4><p>All mapped to SIEM events with AI-powered assessment</p></div>
+<div class="box"><div class="big-num">6</div><h4>AI Engines</h4><p>Assessment, mapping, policy generation, remediation, coverage, copilot</p></div>
+<div class="box"><div class="big-num">10</div><h4>Core Pillars</h4><p>Tenable to POA&amp;M — every compliance function unified</p></div>
 </div>
 <div class="slide-num">03</div>
 </div>
 
-<!-- SLIDE 4: 8 Pillars -->
-<div class="slide slide-dark">
+<!-- SLIDE 4 -->
+<div class="slide slide-dark" style="display:flex;flex-direction:column;justify-content:center">
 <div class="logo-line">IRONVISION AI</div>
-<h2>8 Core Pillars</h2>
-<div class="grid g4" style="margin-top:20px">
-<div class="box"><h4>1. AI Control Mapping</h4><p>GPT-5.2 assesses 962 controls against SIEM telemetry and policies</p></div>
-<div class="box"><h4>2. Universal Ingestion</h4><p>STIG, CIS, PCI, OSCAL — unified control graph with auto-mapping</p></div>
-<div class="box"><h4>3. DevSecOps Pipeline</h4><p>CI/CD compliance gate. SAST/DAST/SCA scan results as evidence</p></div>
-<div class="box"><h4>4. Dynamic Risk Scoring</h4><p>5-factor model: SIEM + compliance + pipeline + ingestion + policy</p></div>
-<div class="box"><h4>5. Policy-as-Code</h4><p>8 built-in rules. Evaluate configs. Map violations to controls</p></div>
-<div class="box"><h4>6. Drift Detection</h4><p>Baseline snapshots. Detect improved vs degraded compliance changes</p></div>
-<div class="box"><h4>7. Evidence Collection</h4><p>Auto-gather from 6 sources incl. Tenable. Track freshness per framework</p></div>
-<div class="box"><h4>8. OSCAL Native</h4><p>v1.2.1 import/export. FedRAMP interoperable. Machine-readable compliance</p></div>
-<div class="box"><h4>9. Tenable VM</h4><p>Auto-assess NIST controls from Tenable scans. AI remediation policies</p></div>
-<div class="box"><h4>10. Automated POA&M</h4><p>Severity-based milestones. Critical: 15d, High: 30d, Medium: 90d</p></div>
+<h2>10 Core Pillars</h2>
+<div class="grid g5" style="margin-top:16px">
+<div class="box"><h4>1. AI Mapping</h4><p>GPT-5.2 assesses 962 controls against SIEM + Tenable data</p></div>
+<div class="box"><h4>2. Ingestion</h4><p>STIG, CIS, PCI, OSCAL — unified control graph</p></div>
+<div class="box"><h4>3. Pipeline</h4><p>CI/CD compliance gate for SAST/DAST/SCA</p></div>
+<div class="box"><h4>4. Risk Scoring</h4><p>5-factor model with trend tracking and alerts</p></div>
+<div class="box"><h4>5. Policy-as-Code</h4><p>8 rules. Evaluate configs. Map violations</p></div>
+<div class="box"><h4>6. Drift Detection</h4><p>Baseline snapshots. Improved vs degraded</p></div>
+<div class="box"><h4>7. Evidence</h4><p>Auto-gather from 6 sources. Track freshness</p></div>
+<div class="box"><h4>8. OSCAL</h4><p>v1.2.1 import/export. FedRAMP ready</p></div>
+<div class="box"><h4>9. Tenable VM</h4><p>Auto-assess NIST controls. AI remediation</p></div>
+<div class="box"><h4>10. POA&amp;M</h4><p>Severity timelines. Full lifecycle tracking</p></div>
 </div>
 <div class="slide-num">04</div>
 </div>
 
-<!-- SLIDE 5: DevSecOps -->
-<div class="slide slide-light">
+<!-- SLIDE 5 -->
+<div class="slide slide-white" style="display:flex;flex-direction:column;justify-content:center">
 <div class="logo-line" style="color:#0a3540">IRONVISION AI</div>
-<h2>DevSecOps Integration</h2>
-<div class="grid g2" style="margin-top:20px">
+<h2>Tenable VM + Automated Compliance</h2>
+<div class="grid g2" style="margin-top:16px">
 <div>
-<h3 style="color:#2597B2">CI/CD Compliance Gate</h3>
+<h3 style="color:#2597B2">The Full Loop</h3>
 <ul>
-<li><span class="check">></span> Webhook API receives scan results from any CI/CD tool</li>
-<li><span class="check">></span> Three gate policies: Strict, Default, Permissive</li>
-<li><span class="check">></span> Automatic risk scoring per pipeline run</li>
-<li><span class="check">></span> Findings mapped to compliance framework controls</li>
-<li><span class="check">></span> API keys with usage tracking and revocation</li>
+<li><span class="check">&gt;</span> Sync vulnerability and compliance data from Tenable.io</li>
+<li><span class="check">&gt;</span> Auto-assess 26+ NIST 800-53 controls from scan evidence</li>
+<li><span class="check">&gt;</span> AI generates formal remediation policies (GPT-5.2)</li>
+<li><span class="check">&gt;</span> Auto-create POA&amp;M with severity-based timelines</li>
+<li><span class="check">&gt;</span> Fixed vulns automatically restore Compliant status</li>
+<li><span class="check">&gt;</span> Delta pulls — only sync new/changed data</li>
 </ul>
 </div>
 <div>
-<div class="box-light">
-<h4>Supported Scan Types</h4>
-<ul>
-<li><span class="check">></span> SAST — Static Application Security Testing</li>
-<li><span class="check">></span> DAST — Dynamic Application Security Testing</li>
-<li><span class="check">></span> SCA — Software Composition Analysis</li>
-<li><span class="check">></span> Container scanning</li>
-<li><span class="check">></span> Infrastructure as Code (IaC)</li>
-<li><span class="check">></span> Secret detection</li>
-</ul>
-</div>
+<div class="box-solid"><h4>Severity Timelines</h4>
+<p><strong>Critical (P1):</strong> 15-day remediation window<br><strong>High (P2):</strong> 30-day remediation window<br><strong>Medium (P3):</strong> 90-day remediation window</p></div>
+<div class="box-solid" style="margin-top:12px"><h4>Control Mapping</h4>
+<p>Vulnerabilities &rarr; SI-2, RA-5, CM-6<br>MFA checks &rarr; IA-2, IA-2(1)<br>Encryption &rarr; SC-28, SC-13<br>Logging &rarr; AU-2, AU-12</p></div>
 </div>
 </div>
 <div class="slide-num">05</div>
 </div>
 
-<!-- SLIDE 6: OSCAL + FedRAMP -->
-<div class="slide slide-dark">
-<div class="logo-line">IRONVISION AI</div>
-<h2>OSCAL Native — FedRAMP Ready</h2>
-<p style="opacity:0.7;margin-bottom:24px">First-class support for the NIST Open Security Controls Assessment Language (v1.2.1)</p>
+<!-- SLIDE 6 -->
+<div class="slide slide-white" style="display:flex;flex-direction:column;justify-content:center">
+<div class="logo-line" style="color:#0a3540">IRONVISION AI</div>
+<h2>Target Market</h2>
 <div class="grid g3" style="margin-top:16px">
-<div class="box"><h4>Import</h4><p>OSCAL catalogs, component definitions, and assessment results. Feeds directly into the unified control graph.</p></div>
-<div class="box"><h4>Export</h4><p>Generate OSCAL catalog JSON from any framework. Export compliance assessments as OSCAL assessment results for auditors.</p></div>
-<div class="box"><h4>Interoperate</h4><p>Exchange machine-readable compliance data with FedRAMP, DoD, and partner systems. Eliminate manual translation.</p></div>
+<div class="box-solid"><h4>Federal Agencies</h4><p>FedRAMP, FISMA, NIST 800-53. OSCAL-native for machine-to-machine authorization packages. Automated POA&amp;M generation.</p></div>
+<div class="box-solid"><h4>Defense Contractors</h4><p>CMMC 2.0, CUI protection. Tenable integration provides automated evidence. AI generates remediation policies.</p></div>
+<div class="box-solid"><h4>Critical Infrastructure</h4><p>NERC CIP/693, NIS2. SIEM + Tenable integration for real-time grid security compliance monitoring.</p></div>
 </div>
 <div class="slide-num">06</div>
 </div>
 
-<!-- SLIDE 7: Target Market -->
-<div class="slide slide-light">
-<div class="logo-line" style="color:#0a3540">IRONVISION AI</div>
-<h2>Target Market</h2>
-<div class="grid g3" style="margin-top:20px">
-<div class="box-light"><h4>Federal Agencies</h4><p>FedRAMP, FISMA, NIST 800-53/171 compliance. OSCAL-native for machine-to-machine authorization packages.</p></div>
-<div class="box-light"><h4>Defense Contractors</h4><p>CMMC 2.0, ITAR, CUI protection. Automated evidence collection for DIBCAC assessments.</p></div>
-<div class="box-light"><h4>Critical Infrastructure</h4><p>NERC CIP/693, NIS2. SIEM integration for real-time grid security compliance monitoring.</p></div>
-</div>
-<div class="slide-num">07</div>
-</div>
-
-<!-- SLIDE 8: CTA -->
-<div class="slide slide-dark" style="text-align:center">
+<!-- SLIDE 7 -->
+<div class="slide slide-dark" style="display:flex;flex-direction:column;justify-content:center;text-align:center">
 <div class="logo-line">IRONVISION AI</div>
 <div class="pill">NEXT STEPS</div>
 <h1>Ready to Transform<br>Your GRC Operations?</h1>
-<p style="opacity:0.7;font-size:1.1rem;margin-bottom:32px">Schedule a live demo to see IronVision AI automate your compliance workflow.</p>
-<div class="cta-box" style="max-width:500px;margin:0 auto">
+<p style="opacity:0.7;font-size:1rem;margin-bottom:28px">Schedule a live demo to see IronVision AI automate your compliance workflow.</p>
+<div class="cta-box" style="max-width:480px;margin:0 auto">
 <h3>Contact Us</h3>
 <p style="opacity:0.8">sales@ironvision.ai</p>
-<p style="opacity:0.8;margin-top:8px">Schedule a demo at ironvision.ai/demo</p>
+<p style="opacity:0.8;margin-top:6px">ironvision.ai/demo</p>
 </div>
-<p style="margin-top:40px;opacity:0.4;font-size:0.85rem">IronVision AI — Compliance at Machine Speed</p>
-<div class="slide-num">08</div>
+<p style="margin-top:32px;opacity:0.35;font-size:0.8rem">IronVision AI — Compliance at Machine Speed</p>
+<div class="slide-num">07</div>
 </div>
 
 </body>
