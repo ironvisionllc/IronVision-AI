@@ -42,6 +42,11 @@ from routes.risk_scoring import router as risk_scoring_router
 from routes.policy_engine import router as policy_engine_router
 from routes.evidence_collection import router as evidence_collection_router
 from routes.tenable import router as tenable_router
+from routes.remediation import router as remediation_router
+from routes.rbac import router as rbac_router
+from routes.interrogation import router as interrogation_router
+from routes.forecasting import router as forecasting_router
+from routes.tprm import router as tprm_router
 
 # Create the main app
 app = FastAPI()
@@ -84,6 +89,11 @@ api_router.include_router(risk_scoring_router)
 api_router.include_router(policy_engine_router)
 api_router.include_router(evidence_collection_router)
 api_router.include_router(tenable_router)
+api_router.include_router(remediation_router)
+api_router.include_router(rbac_router)
+api_router.include_router(interrogation_router)
+api_router.include_router(forecasting_router)
+api_router.include_router(tprm_router)
 
 app.include_router(api_router)
 

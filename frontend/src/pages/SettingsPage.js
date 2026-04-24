@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { User, Users, Building, Bell, Shield, Gear } from "@phosphor-icons/react";
+import { User, Users, Building, Bell, Shield, Gear, Crown } from "@phosphor-icons/react";
+import RBACManager from "@/components/RBACManager";
 
 const SettingsPage = () => {
   const { user } = useContext(AuthContext);
@@ -26,7 +27,7 @@ const SettingsPage = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 mb-8">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7 mb-8">
             <TabsTrigger value="profile" className="flex items-center space-x-2">
               <User size={16} weight="duotone" />
               <span>Profile</span>
@@ -56,6 +57,10 @@ const SettingsPage = () => {
                 <TabsTrigger value="system" className="flex items-center space-x-2">
                   <Gear size={16} weight="duotone" />
                   <span>System</span>
+                </TabsTrigger>
+                <TabsTrigger value="rbac" className="flex items-center space-x-2" data-testid="rbac-tab">
+                  <Crown size={16} weight="duotone" />
+                  <span>Roles</span>
                 </TabsTrigger>
               </>
             )}
@@ -89,6 +94,9 @@ const SettingsPage = () => {
 
               <TabsContent value="system">
                 <SystemSettings />
+              </TabsContent>
+              <TabsContent value="rbac">
+                <RBACManager />
               </TabsContent>
             </>
           )}

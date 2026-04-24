@@ -391,3 +391,194 @@ async def export_assessment_as_oscal(framework_id: str, current_user: Dict = Dep
     }
 
     return oscal_ar
+
+
+@router.get("/export/ssp")
+async def export_system_security_plan(current_user: Dict = Depends(get_current_user)):
+    """Export entire compliance workspace as OSCAL System Security Plan (SSP) draft."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Get organization info
+    org = await db.organizations.find_one({"id": org_id}, {"_id": 0}) if org_id else None
+    org_name = org.get("name", "Organization") if org else "Organization"
+
+    # 1. Gather all framework compliance data
+    frameworks = await db.frameworks.find({"type": "standard"}, {"_id": 0}).to_list(100)
+    all_controls = await db.controls.find({}, {"_id": 0}).to_list(10000)
+    all_compliance = await db.control_compliance.find({"organization_id": org_id}, {"_id": 0}).to_list(10000)
+
+    compliance_map = {}
+    for c in all_compliance:
+        compliance_map[f"{c['framework_id']}:{c['control_id']}"] = c
+
+    # 2. Build implemented requirements
+    implemented_requirements = []
+    for ctrl in all_controls:
+        key = f"{ctrl['framework_id']}:{ctrl['control_id']}"
+        comp = compliance_map.get(key, {})
+        status = comp.get("status", "not_assessed")
+
+        status_map = {"compliant": "implemented", "partial": "partially-implemented",
+                      "non_compliant": "planned", "not_assessed": "alternative"}
+
+        impl_req = {
+            "uuid": str(uuid.uuid4()),
+            "control-id": ctrl["control_id"],
+            "props": [
+                {"name": "implementation-status", "value": status_map.get(status, "alternative")},
+            ],
+            "statements": [{
+                "statement-id": f"{ctrl['control_id']}_stmt",
+                "uuid": str(uuid.uuid4()),
+                "prose": comp.get("ai_assessment", ctrl.get("description", f"Implementation of {ctrl['control_id']}"))[:500],
+            }],
+        }
+        implemented_requirements.append(impl_req)
+
+    # 3. Gather policies as components
+    policies = await db.generated_templates.find(
+        {"organization_id": org_id, "status": "approved"}, {"_id": 0}
+    ).to_list(100)
+
+    components = []
+    for pol in policies:
+        comp = {
+            "uuid": str(uuid.uuid4()),
+            "type": "policy",
+            "title": pol.get("title", "Untitled Policy"),
+            "description": f"Approved policy document — {len(pol.get('sections', []))} sections",
+            "status": {"state": "operational"},
+            "props": [
+                {"name": "policy-id", "value": pol.get("id", "")},
+                {"name": "approval-status", "value": "approved"},
+            ],
+        }
+        components.append(comp)
+
+    # 4. Gather evidence artifacts
+    evidence = await db.evidence_artifacts.find(
+        {"organization_id": org_id}, {"_id": 0}
+    ).to_list(500)
+
+    back_matter_resources = []
+    for ev in evidence:
+        res = {
+            "uuid": str(uuid.uuid4()),
+            "title": ev.get("title", "Evidence"),
+            "description": ev.get("description", ""),
+            "props": [
+                {"name": "evidence-type", "value": ev.get("evidence_type", "")},
+                {"name": "source", "value": ev.get("source", "")},
+                {"name": "collected-at", "value": ev.get("collected_at", "")},
+                {"name": "freshness", "value": ev.get("freshness", "")},
+            ],
+        }
+        back_matter_resources.append(res)
+
+    # 5. Gather POA&M entries
+    poam_entries = await db.poam_entries.find(
+        {"organization_id": org_id}, {"_id": 0}
+    ).to_list(500)
+
+    poam_items = []
+    for pe in poam_entries:
+        item = {
+            "uuid": str(uuid.uuid4()),
+            "title": pe.get("title", ""),
+            "description": pe.get("description", ""),
+            "props": [
+                {"name": "poam-id", "value": pe.get("poam_id", "")},
+                {"name": "severity", "value": pe.get("severity", "")},
+                {"name": "priority", "value": pe.get("priority", "")},
+                {"name": "status", "value": pe.get("status", "open")},
+                {"name": "scheduled-completion", "value": pe.get("scheduled_completion", "")},
+            ],
+        }
+        poam_items.append(item)
+
+    # 6. Assemble OSCAL SSP
+    ssp = {
+        "system-security-plan": {
+            "uuid": str(uuid.uuid4()),
+            "metadata": {
+                "title": f"{org_name} — System Security Plan",
+                "version": "1.0-draft",
+                "oscal-version": "1.2.1",
+                "published": now,
+                "last-modified": now,
+                "props": [
+                    {"name": "generated-by", "value": "IronVision AI GRC Platform"},
+                    {"name": "generation-date", "value": now},
+                ],
+                "roles": [
+                    {"id": "system-owner", "title": "System Owner"},
+                    {"id": "authorizing-official", "title": "Authorizing Official"},
+                    {"id": "information-system-security-officer", "title": "ISSO"},
+                ],
+            },
+            "import-profile": {
+                "href": "#nist-800-53-profile",
+                "remarks": "Imports NIST SP 800-53 Rev 5 controls"
+            },
+            "system-characteristics": {
+                "system-name": f"{org_name} Information System",
+                "system-id": {"identifier-type": "https://ironvision.ai", "id": org_id or str(uuid.uuid4())},
+                "description": f"System Security Plan generated by IronVision AI for {org_name}. Covers {len(frameworks)} compliance frameworks with {len(all_controls)} total controls.",
+                "security-sensitivity-level": "moderate",
+                "system-information": {
+                    "information-types": [{
+                        "uuid": str(uuid.uuid4()),
+                        "title": "Compliance and Governance Data",
+                        "description": "GRC platform data including compliance assessments, policies, evidence, and risk scores",
+                        "categorizations": [{
+                            "system": "https://doi.org/10.6028/NIST.SP.800-60v2r1",
+                            "information-type-ids": ["C.3.5.8"]
+                        }],
+                        "confidentiality-impact": {"base": "moderate"},
+                        "integrity-impact": {"base": "moderate"},
+                        "availability-impact": {"base": "low"},
+                    }]
+                },
+                "security-impact-level": {
+                    "security-objective-confidentiality": "moderate",
+                    "security-objective-integrity": "moderate",
+                    "security-objective-availability": "low",
+                },
+                "status": {"state": "operational"},
+                "props": [
+                    {"name": "total-frameworks", "value": str(len(frameworks))},
+                    {"name": "total-controls", "value": str(len(all_controls))},
+                    {"name": "total-policies", "value": str(len(policies))},
+                    {"name": "total-evidence", "value": str(len(evidence))},
+                    {"name": "total-poam-items", "value": str(len(poam_entries))},
+                ],
+            },
+            "system-implementation": {
+                "components": components,
+                "remarks": f"System includes {len(components)} approved policy documents as operational components.",
+            },
+            "control-implementation": {
+                "description": f"Control implementation details for {len(implemented_requirements)} controls across {len(frameworks)} frameworks.",
+                "implemented-requirements": implemented_requirements[:500],
+            },
+            "back-matter": {
+                "resources": back_matter_resources[:200],
+            },
+        }
+    }
+
+    # Add POA&M as separate section
+    if poam_items:
+        ssp["plan-of-action-and-milestones"] = {
+            "uuid": str(uuid.uuid4()),
+            "metadata": {
+                "title": f"{org_name} — Plan of Action and Milestones",
+                "version": "1.0",
+                "oscal-version": "1.2.1",
+                "last-modified": now,
+            },
+            "poam-items": poam_items,
+        }
+
+    return ssp

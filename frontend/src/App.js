@@ -11,7 +11,7 @@ import FrameworkHub from "@/pages/FrameworkHub";
 import PolicyHub from "@/pages/PolicyHub";
 import ComplianceHub from "@/pages/ComplianceHub";
 import RisksPage from "@/pages/RisksPage";
-import VendorsPage from "@/pages/VendorsPage";
+import TPRMPage from "@/pages/TPRMPage";
 import TasksPage from "@/pages/TasksPage";
 import IntegrationsPage from "@/pages/IntegrationsPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -87,7 +87,7 @@ function App() {
           <Route path="/policies" element={user ? <PolicyHub /> : <Navigate to="/login" />} />
           <Route path="/compliance" element={user ? <ComplianceHub /> : <Navigate to="/login" />} />
           <Route path="/risks" element={user ? <RisksPage /> : <Navigate to="/login" />} />
-          <Route path="/vendors" element={user ? <VendorsPage /> : <Navigate to="/login" />} />
+          <Route path="/vendors" element={user ? <TPRMPage /> : <Navigate to="/login" />} />
           <Route path="/tasks" element={user ? <TasksPage /> : <Navigate to="/login" />} />
           <Route path="/integrations" element={user ? <IntegrationsPage /> : <Navigate to="/login" />} />
           <Route path="/siem" element={user ? <SIEMPage /> : <Navigate to="/login" />} />
