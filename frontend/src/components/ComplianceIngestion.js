@@ -33,7 +33,7 @@ const SEV_COLORS = {
   low: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
 };
 
-const ComplianceIngestion = ({ onBack }) => {
+const ComplianceIngestion = () => {
   const [view, setView] = useState("list"); // list | detail | upload
   const [checklists, setChecklists] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -405,11 +405,6 @@ const ComplianceIngestion = ({ onBack }) => {
   // ─── LIST VIEW ──────────────
   return (
     <div data-testid="ingestion-list-view">
-      {onBack && (
-        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#2597B2] mb-6 transition-colors" data-testid="back-btn">
-          <CaretLeft size={14} weight="bold" /> Back to Frameworks
-        </button>
-      )}
 
       <div className="flex items-center justify-between mb-8">
         <div>

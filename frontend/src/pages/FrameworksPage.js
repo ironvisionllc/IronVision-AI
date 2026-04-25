@@ -7,13 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Files, ListBullets, MagnifyingGlass, CaretRight, Gauge, GearSix, Eye, EyeSlash, CaretUp, CaretDown, DotsSixVertical, Upload, GitBranch, ChartBar, Code, CloudArrowDown } from "@phosphor-icons/react";
+import { Plus, Files, ListBullets, MagnifyingGlass, CaretRight, Gauge, GearSix, Eye, EyeSlash, CaretUp, CaretDown, DotsSixVertical } from "@phosphor-icons/react";
 import FrameworkWorkspace from "@/components/FrameworkWorkspace";
-import ComplianceIngestion from "@/components/ComplianceIngestion";
-import DevSecOpsPipeline from "@/components/DevSecOpsPipeline";
-import RiskScoringDashboard from "@/components/RiskScoringDashboard";
-import PolicyEngineView from "@/components/PolicyEngineView";
-import AutomatedEvidenceCollection from "@/components/AutomatedEvidenceCollection";
 
 const SCORE_COLORS = {
   excellent: { text: "#059669", bg: "#D1FAE5" },
@@ -46,11 +41,6 @@ const FrameworksPage = ({ embedded = false }) => {
   // Detail view state
   const [detailFramework, setDetailFramework] = useState(null);
   const [showOrganize, setShowOrganize] = useState(false);
-  const [showIngestion, setShowIngestion] = useState(false);
-  const [showPipeline, setShowPipeline] = useState(false);
-  const [showRiskScoring, setShowRiskScoring] = useState(false);
-  const [showPolicyEngine, setShowPolicyEngine] = useState(false);
-  const [showEvidence, setShowEvidence] = useState(false);
   const [fwPrefs, setFwPrefs] = useState(null); // { order: [...ids], hidden: [...ids] }
 
   // Effectiveness scores
@@ -165,51 +155,6 @@ const FrameworksPage = ({ embedded = false }) => {
     );
   }
 
-  // Show Ingestion Layer
-  if (showIngestion) {
-    return (
-      <Wrap>
-        <ComplianceIngestion onBack={() => setShowIngestion(false)} />
-      </Wrap>
-    );
-  }
-
-  // Show DevSecOps Pipeline
-  if (showPipeline) {
-    return (
-      <Wrap>
-        <DevSecOpsPipeline onBack={() => setShowPipeline(false)} />
-      </Wrap>
-    );
-  }
-
-  // Show Risk Scoring
-  if (showRiskScoring) {
-    return (
-      <Wrap>
-        <RiskScoringDashboard onBack={() => setShowRiskScoring(false)} />
-      </Wrap>
-    );
-  }
-
-  // Show Policy Engine
-  if (showPolicyEngine) {
-    return (
-      <Wrap>
-        <PolicyEngineView onBack={() => setShowPolicyEngine(false)} />
-      </Wrap>
-    );
-  }
-
-  // Show Evidence Collection
-  if (showEvidence) {
-    return (
-      <Wrap>
-        <AutomatedEvidenceCollection onBack={() => setShowEvidence(false)} />
-      </Wrap>
-    );
-  }
-
   // Grid view
   return (
     <Wrap>
@@ -220,21 +165,6 @@ const FrameworksPage = ({ embedded = false }) => {
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Manage compliance frameworks for your organization</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setShowEvidence(true)} data-testid="open-evidence-btn">
-              <CloudArrowDown size={14} className="mr-1.5" /> Evidence Collection
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setShowPolicyEngine(true)} data-testid="open-policy-engine-btn">
-              <Code size={14} className="mr-1.5" /> Policy-as-Code
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setShowRiskScoring(true)} data-testid="open-risk-scoring-btn">
-              <ChartBar size={14} className="mr-1.5" /> Risk Scoring
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setShowPipeline(true)} data-testid="open-pipeline-btn">
-              <GitBranch size={14} className="mr-1.5" /> DevSecOps Pipeline
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setShowIngestion(true)} data-testid="open-ingestion-btn">
-              <Upload size={14} className="mr-1.5" /> Ingestion Layer
-            </Button>
             <Button variant="outline" size="sm" className="h-9 text-xs" onClick={() => setShowOrganize(!showOrganize)} data-testid="organize-frameworks-btn">
               <GearSix size={14} className="mr-1.5" /> Organize
             </Button>

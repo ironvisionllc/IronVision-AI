@@ -33,7 +33,7 @@ const FACTOR_ICONS = {
   policy: FileText,
 };
 
-const RiskScoringDashboard = ({ onBack }) => {
+const RiskScoringDashboard = () => {
   const [orgScore, setOrgScore] = useState(null);
   const [fwScores, setFwScores] = useState([]);
   const [alerts, setAlerts] = useState([]);
@@ -84,11 +84,6 @@ const RiskScoringDashboard = ({ onBack }) => {
 
   return (
     <div data-testid="risk-scoring-dashboard">
-      {onBack && (
-        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#2597B2] mb-6 transition-colors" data-testid="back-btn">
-          <CaretLeft size={14} weight="bold" /> Back
-        </button>
-      )}
 
       <div className="flex items-center justify-between mb-8">
         <div>

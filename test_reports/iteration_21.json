@@ -1,0 +1,25 @@
+{
+  "summary": "Frontend-only smoke test of UI navigation restructure (sidebar 5-section grouping + 6 standalone routes extracted from FrameworksPage). All targets PASS. Login (demo-admin), sidebar headers, 15 nav data-testids, all 17 routes (6 new + 11 existing), legacy redirects (/policy-library, /audits), no extracted-feature tabs left in FrameworksPage, active-state highlighting, and logout — every check green. Zero JS page errors observed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_21.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Layout.js SIDEBAR_NAV uses idx as React key for section rows (line 138). If sections were ever reordered dynamically, this could cause reconciliation issues. Currently static, so low priority.",
+    "App.js does not register a 404/catch-all <Route path='*'> — any unknown path silently renders nothing. Consider adding a NotFound route or fallback Navigate.",
+    "Layout.js fetchTrialStatus & fetchUnreadCount swallow errors with empty try/catch — fine for resilience but masks real backend issues during dev.",
+    "Active-state matcher uses location.pathname.startsWith(item.href + '/'). For href='/risks' there is no nested children, but for /policies vs /policy-engine the exact-match guard (===) prevents false positives — verified PASS during test."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100% (24/24 checks passed)"},
+  "test_credentials": "demo-admin@grc.com / DemoAdmin123! — works via [data-testid=demo-admin-login-button] one-click and via form (login-submit-button).",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Login page exposes data-testids: demo-admin-login-button, demo-user-login-button, login-submit-button, login-logo. The 'Sign in' submit button text is lowercase 'i' — use [data-testid=login-submit-button] not get_by_role(name='Sign In', exact=True). Sidebar nav items: data-testid=`nav-${href.slice(1)}` (e.g., nav-ingestion). Section headers (COMMAND CENTER, GOVERNANCE, SECURITY, RISK & COMPLIANCE, OPERATIONS) are non-interactive <p> tags inside [data-testid=sidebar-nav]. Logout uses [data-testid=logout-button] in sidebar bottom. All 6 new pages render: /ingestion, /pipeline, /tenable, /risk-scoring, /evidence, /policy-engine. Legacy redirects /policy-library→/policies?tab=library and /audits→/compliance?tab=audits work. Backend was not retested per main agent's instructions (stable across iterations 14–20).",
+  "rca_of_the_issue": "n/a — no issues found. Restructure is clean."
+}

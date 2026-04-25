@@ -24,7 +24,7 @@ const FRESHNESS_CONFIG = {
   stale: { label: "Stale", color: "text-red-600 bg-red-50 dark:bg-red-900/20" },
 };
 
-const AutomatedEvidenceCollection = ({ onBack }) => {
+const AutomatedEvidenceCollection = () => {
   const [tab, setTab] = useState("dashboard"); // dashboard | artifacts | coverage
   const [stats, setStats] = useState(null);
   const [artifacts, setArtifacts] = useState([]);
@@ -106,11 +106,6 @@ const AutomatedEvidenceCollection = ({ onBack }) => {
 
   return (
     <div data-testid="evidence-collection-view">
-      {onBack && (
-        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#2597B2] mb-6 transition-colors" data-testid="back-btn">
-          <CaretLeft size={14} weight="bold" /> Back
-        </button>
-      )}
 
       <div className="flex items-center justify-between mb-8">
         <div>

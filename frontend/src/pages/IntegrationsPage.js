@@ -25,7 +25,6 @@ import {
   Warning,
   Bug,
 } from "@phosphor-icons/react";
-import TenableIntegration from "@/components/TenableIntegration";
 
 const INTEGRATIONS = [
   {
@@ -97,7 +96,6 @@ const INTEGRATIONS = [
 ];
 
 const IntegrationsPage = () => {
-  const [showTenable, setShowTenable] = useState(false);
   const [slackConfig, setSlackConfig] = useState(null);
   const [slackDialogOpen, setSlackDialogOpen] = useState(false);
   const [slackLoading, setSlackLoading] = useState(false);
@@ -188,14 +186,6 @@ const IntegrationsPage = () => {
   const categories = [...new Set(INTEGRATIONS.map(i => i.category))];
   const isSlackConnected = slackConfig?.configured;
 
-  if (showTenable) {
-    return (
-      <Layout>
-        <TenableIntegration onBack={() => setShowTenable(false)} />
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
       <div data-testid="integrations-page">
@@ -255,7 +245,7 @@ const IntegrationsPage = () => {
                           size="sm"
                           className="text-xs h-8"
                           style={{ backgroundColor: "#00b388" }}
-                          onClick={() => setShowTenable(true)}
+                          onClick={() => window.location.href = "/tenable"}
                           data-testid="tenable-open-btn"
                         >
                           <Gear size={14} className="mr-1" />

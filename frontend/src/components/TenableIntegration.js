@@ -23,7 +23,7 @@ const STATE_COLORS = {
   fixed: "text-emerald-600 bg-emerald-50",
 };
 
-const TenableIntegration = ({ onBack }) => {
+const TenableIntegration = () => {
   const [tab, setTab] = useState("dashboard"); // dashboard | vulns | compliance | poam | settings
   const [settings, setSettings] = useState(null);
   const [dashboard, setDashboard] = useState(null);
@@ -191,11 +191,6 @@ const TenableIntegration = ({ onBack }) => {
 
   return (
     <div data-testid="tenable-integration">
-      {onBack && (
-        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#2597B2] mb-6 transition-colors" data-testid="back-btn">
-          <CaretLeft size={14} weight="bold" /> Back to Integrations
-        </button>
-      )}
 
       <div className="flex items-center justify-between mb-8">
         <div>

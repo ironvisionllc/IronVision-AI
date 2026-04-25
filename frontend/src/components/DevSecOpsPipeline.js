@@ -29,7 +29,7 @@ const SEV_COLORS = {
   info: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
 };
 
-const DevSecOpsPipeline = ({ onBack }) => {
+const DevSecOpsPipeline = () => {
   const [view, setView] = useState("dashboard"); // dashboard | run-detail | api-keys
   const [runs, setRuns] = useState([]);
   const [stats, setStats] = useState(null);
@@ -315,11 +315,6 @@ curl -X POST ${API}/pipeline/gate \\
   // ─── DASHBOARD VIEW ──────────────
   return (
     <div data-testid="pipeline-dashboard">
-      {onBack && (
-        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#2597B2] mb-6 transition-colors" data-testid="back-btn">
-          <CaretLeft size={14} weight="bold" /> Back
-        </button>
-      )}
 
       <div className="flex items-center justify-between mb-8">
         <div>

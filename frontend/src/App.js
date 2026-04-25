@@ -17,6 +17,12 @@ import IntegrationsPage from "@/pages/IntegrationsPage";
 import SettingsPage from "@/pages/SettingsPage";
 import SIEMPage from "@/pages/SIEMPage";
 import DocumentationPage from "@/pages/DocumentationPage";
+import IngestionPage from "@/pages/IngestionPage";
+import PipelinePage from "@/pages/PipelinePage";
+import RiskScoringPage from "@/pages/RiskScoringPage";
+import PolicyEnginePage from "@/pages/PolicyEnginePage";
+import EvidencePage from "@/pages/EvidencePage";
+import TenablePage from "@/pages/TenablePage";
 import ComplianceCopilot from "@/components/ComplianceCopilot";
 import CommandPalette from "@/components/CommandPalette";
 import "@/index.css";
@@ -91,6 +97,12 @@ function App() {
           <Route path="/tasks" element={user ? <TasksPage /> : <Navigate to="/login" />} />
           <Route path="/integrations" element={user ? <IntegrationsPage /> : <Navigate to="/login" />} />
           <Route path="/siem" element={user ? <SIEMPage /> : <Navigate to="/login" />} />
+          <Route path="/ingestion" element={user ? <IngestionPage /> : <Navigate to="/login" />} />
+          <Route path="/pipeline" element={user ? <PipelinePage /> : <Navigate to="/login" />} />
+          <Route path="/risk-scoring" element={user ? <RiskScoringPage /> : <Navigate to="/login" />} />
+          <Route path="/policy-engine" element={user ? <PolicyEnginePage /> : <Navigate to="/login" />} />
+          <Route path="/evidence" element={user ? <EvidencePage /> : <Navigate to="/login" />} />
+          <Route path="/tenable" element={user ? <TenablePage /> : <Navigate to="/login" />} />
           <Route path="/documentation" element={user ? <DocumentationPage /> : <Navigate to="/login" />} />
           <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/login" />} />
           {/* Redirects from old routes */}
@@ -99,7 +111,6 @@ function App() {
           <Route path="/mappings" element={<Navigate to="/policies?tab=mappings" />} />
           <Route path="/cross-framework" element={<Navigate to="/policies?tab=cross-framework" />} />
           <Route path="/audits" element={<Navigate to="/compliance?tab=audits" />} />
-          <Route path="/evidence" element={<Navigate to="/compliance?tab=evidence" />} />
           <Route path="/analytics" element={<Navigate to="/dashboard" />} />
           <Route path="/activity" element={<Navigate to="/dashboard" />} />
           <Route path="/training" element={<Navigate to="/dashboard" />} />
