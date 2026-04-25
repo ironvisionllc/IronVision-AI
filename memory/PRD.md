@@ -19,6 +19,7 @@ Enterprise GRC platform — "Compliance at Machine Speed" — with 10 core pilla
 - [x] **Predictive Risk Forecasting** (trend analysis, pipeline failure patterns, POA&M deadlines, SIEM volume)
 - [x] **Third-Party Risk Management (TPRM)** (vendor registry, 15-question questionnaire, weighted risk scoring, data access multiplier)
 - [x] Documentation Suite (marketing, security architecture, UI walkthrough, pitch deck, brochure)
+- [x] **UX Navigation Restructure** (Feb 2026) — Sidebar grouped into 5 sections: COMMAND CENTER, GOVERNANCE, SECURITY, RISK & COMPLIANCE, OPERATIONS. Extracted 6 features out of FrameworksPage into standalone routes: `/ingestion`, `/pipeline`, `/tenable`, `/risk-scoring`, `/evidence`, `/policy-engine`. Validated via testing_agent_v3_fork (iteration_21: 24/24 frontend checks PASS, 0 issues).
 
 ## Architecture
 ```
@@ -35,5 +36,8 @@ External: AWS S3/Lambda/SES, Emergent LLM Key (GPT-5.2), Tenable.io
 ## Backlog
 - Compliance Report Export (PDF/DOCX)
 - Compliance Calendar
+- Coverage Gap Report (aggregate low/no-coverage controls + recommend policies)
 - CrowdStrike/Qualys multi-scanner integration
 - GitHub Actions / GitLab CI templates
+- 404 catch-all route in App.js (per code-review note)
+- App.js route registration is growing — consider grouped route config / lazy imports
