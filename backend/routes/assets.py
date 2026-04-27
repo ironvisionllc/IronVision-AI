@@ -162,7 +162,16 @@ async def get_asset_stats(current_user: Dict = Depends(get_current_user)):
         by_criticality[c] = by_criticality.get(c, 0) + 1
         e = a.get("environment", "unknown")
         by_environment[e] = by_environment.get(e, 0) + 1
-        os_name = (a.get("operating_system") or "Unknown").split(" ")[0] or "Unknown"
+        os_full = (a.get("operating_system") or "").strip()
+        if not os_full:
+            os_name = "Unknown"
+        else:
+            # Take first 2 tokens for friendly family ("Amazon Linux", "Red Hat", "Ubuntu 22.04")
+            tokens = os_full.split(" ")
+            if len(tokens) >= 2 and tokens[0] in ("Red", "Amazon", "Alpine", "Kali", "Oracle"):
+                os_name = " ".join(tokens[:2])
+            else:
+                os_name = tokens[0]
         by_os[os_name] = by_os.get(os_name, 0) + 1
         st = a.get("system_type", "server")
         by_system_type[st] = by_system_type.get(st, 0) + 1
