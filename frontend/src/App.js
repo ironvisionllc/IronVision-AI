@@ -23,6 +23,8 @@ import RiskScoringPage from "@/pages/RiskScoringPage";
 import PolicyEnginePage from "@/pages/PolicyEnginePage";
 import EvidencePage from "@/pages/EvidencePage";
 import TenablePage from "@/pages/TenablePage";
+import AssetsPage from "@/pages/AssetsPage";
+import AssetDetailPage from "@/pages/AssetDetailPage";
 import ComplianceCopilot from "@/components/ComplianceCopilot";
 import CommandPalette from "@/components/CommandPalette";
 import "@/index.css";
@@ -103,6 +105,8 @@ function App() {
           <Route path="/policy-engine" element={user ? <PolicyEnginePage /> : <Navigate to="/login" />} />
           <Route path="/evidence" element={user ? <EvidencePage /> : <Navigate to="/login" />} />
           <Route path="/tenable" element={user ? <TenablePage /> : <Navigate to="/login" />} />
+          <Route path="/assets" element={user ? <AssetsPage /> : <Navigate to="/login" />} />
+          <Route path="/assets/:assetId" element={user ? <AssetDetailPage /> : <Navigate to="/login" />} />
           <Route path="/documentation" element={user ? <DocumentationPage /> : <Navigate to="/login" />} />
           <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/login" />} />
           {/* Redirects from old routes */}

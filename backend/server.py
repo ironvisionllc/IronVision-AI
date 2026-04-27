@@ -47,6 +47,7 @@ from routes.rbac import router as rbac_router
 from routes.interrogation import router as interrogation_router
 from routes.forecasting import router as forecasting_router
 from routes.tprm import router as tprm_router
+from routes.assets import router as assets_router
 
 # Create the main app
 app = FastAPI()
@@ -94,6 +95,7 @@ api_router.include_router(rbac_router)
 api_router.include_router(interrogation_router)
 api_router.include_router(forecasting_router)
 api_router.include_router(tprm_router)
+api_router.include_router(assets_router)
 
 app.include_router(api_router)
 

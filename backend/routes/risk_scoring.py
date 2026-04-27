@@ -70,9 +70,12 @@ async def get_org_risk_score(current_user: Dict = Depends(get_current_user)):
     # 5. Policy Coverage Factor
     policy_score = await _calc_policy_risk(org_id)
 
+    # 6. Asset-Weighted Vulnerability Factor (criticality multiplier)
+    asset_score, top_risky_assets = await _calc_asset_weighted_risk(org_id)
+
     # Weighted aggregate (normalize to 0-100)
-    raw = (siem_score * 0.25 + compliance_score * 0.25 + pipeline_score * 0.20 +
-           ingestion_score * 0.15 + policy_score * 0.15)
+    raw = (siem_score * 0.20 + compliance_score * 0.20 + pipeline_score * 0.15 +
+           ingestion_score * 0.10 + policy_score * 0.10 + asset_score * 0.25)
     org_score = min(100, max(0, raw))
     risk_level = get_risk_level(org_score)
 
@@ -88,6 +91,7 @@ async def get_org_risk_score(current_user: Dict = Depends(get_current_user)):
             "pipeline": round(pipeline_score, 1),
             "ingestion": round(ingestion_score, 1),
             "policy": round(policy_score, 1),
+            "asset": round(asset_score, 1),
         },
         "timestamp": now,
     })
@@ -98,12 +102,14 @@ async def get_org_risk_score(current_user: Dict = Depends(get_current_user)):
         "label": risk_level["label"],
         "color": risk_level["color"],
         "factors": {
-            "siem": {"score": round(siem_score, 1), "weight": 0.25, "label": "SIEM Events"},
-            "compliance": {"score": round(compliance_score, 1), "weight": 0.25, "label": "Compliance Status"},
-            "pipeline": {"score": round(pipeline_score, 1), "weight": 0.20, "label": "Pipeline Security"},
-            "ingestion": {"score": round(ingestion_score, 1), "weight": 0.15, "label": "Checklist Coverage"},
-            "policy": {"score": round(policy_score, 1), "weight": 0.15, "label": "Policy Coverage"},
+            "siem": {"score": round(siem_score, 1), "weight": 0.20, "label": "SIEM Events"},
+            "compliance": {"score": round(compliance_score, 1), "weight": 0.20, "label": "Compliance Status"},
+            "pipeline": {"score": round(pipeline_score, 1), "weight": 0.15, "label": "Pipeline Security"},
+            "ingestion": {"score": round(ingestion_score, 1), "weight": 0.10, "label": "Checklist Coverage"},
+            "policy": {"score": round(policy_score, 1), "weight": 0.10, "label": "Policy Coverage"},
+            "asset": {"score": round(asset_score, 1), "weight": 0.25, "label": "Asset Risk (Criticality-Weighted)"},
         },
+        "top_risky_assets": top_risky_assets,
         "timestamp": now,
     }
 
@@ -368,3 +374,106 @@ async def _calc_policy_risk(org_id: str) -> float:
 
     gap_pct = (total_controls - mapped_controls) / total_controls * 100
     return min(100, gap_pct * 0.8)
+
+
+# Severity → base risk points
+ASSET_SEVERITY_POINTS = {"critical": 25, "high": 12, "medium": 4}
+
+# Criticality → multiplier (option 2b: Crown Jewels carry more weight than dev boxes)
+ASSET_CRITICALITY_MULTIPLIER = {"critical": 2.0, "high": 1.5, "medium": 1.0, "low": 0.5}
+
+
+async def _calc_asset_weighted_risk(org_id: str):
+    """
+    Calculate vulnerability risk weighted by asset criticality.
+    Returns (org_asset_score 0-100, top 5 risky assets).
+    A critical CVE on a Crown Jewel asset = 2× weight; on a dev box = 0.5×.
+    """
+    # Pull all open vuln findings
+    findings = await db.tenable_findings.find(
+        {
+            "organization_id": org_id,
+            "finding_type": "vulnerability",
+            "state": {"$in": ["open", "reopened"]},
+        },
+        {"_id": 0},
+    ).to_list(5000)
+
+    if not findings:
+        return 0, []
+
+    # Build hostname→criticality map from assets collection
+    assets = await db.assets.find(
+        {"organization_id": org_id}, {"_id": 0, "id": 1, "hostname": 1, "asset_uuid": 1, "criticality": 1, "owner": 1, "environment": 1}
+    ).to_list(5000)
+
+    crit_by_uuid = {a.get("asset_uuid"): a for a in assets if a.get("asset_uuid")}
+    crit_by_host = {a.get("hostname"): a for a in assets if a.get("hostname")}
+
+    asset_risk_scores = {}  # asset_id → {score, hostname, vulns}
+
+    for f in findings:
+        sev = f.get("severity", "medium")
+        base = ASSET_SEVERITY_POINTS.get(sev, ASSET_SEVERITY_POINTS["medium"])
+
+        # Match asset
+        a = crit_by_uuid.get(f.get("asset_uuid")) or crit_by_host.get(f.get("asset_hostname"))
+        criticality = (a or {}).get("criticality", "medium")
+        multiplier = ASSET_CRITICALITY_MULTIPLIER.get(criticality, 1.0)
+        weighted_pts = base * multiplier
+
+        if a:
+            key = a["id"]
+            bucket = asset_risk_scores.setdefault(key, {
+                "asset_id": a["id"],
+                "hostname": a.get("hostname", ""),
+                "criticality": criticality,
+                "owner": a.get("owner", ""),
+                "environment": a.get("environment", ""),
+                "score": 0.0,
+                "open_vulns": 0,
+                "critical_vulns": 0,
+            })
+        else:
+            # No asset record yet — synthesize a placeholder bucket keyed by hostname
+            host = f.get("asset_hostname", "unknown")
+            bucket = asset_risk_scores.setdefault(f"_unmanaged_{host}", {
+                "asset_id": None,
+                "hostname": host,
+                "criticality": "medium",
+                "owner": "",
+                "environment": "unknown",
+                "score": 0.0,
+                "open_vulns": 0,
+                "critical_vulns": 0,
+            })
+
+        bucket["score"] += weighted_pts
+        bucket["open_vulns"] += 1
+        if sev == "critical":
+            bucket["critical_vulns"] += 1
+
+    # Org score: total weighted risk / total assets, normalized to 0-100
+    total_weighted = sum(b["score"] for b in asset_risk_scores.values())
+    asset_count = max(len(asset_risk_scores), 1)
+    org_score = min(100, (total_weighted / asset_count) * 1.5)
+
+    # Top 5 risky assets
+    top = sorted(asset_risk_scores.values(), key=lambda x: -x["score"])[:5]
+    for t in top:
+        t["score"] = round(t["score"], 1)
+
+    return org_score, top
+
+
+@router.get("/asset-risk")
+async def get_asset_risk_breakdown(current_user: Dict = Depends(get_current_user)):
+    """Per-asset risk breakdown (criticality-weighted)."""
+    org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
+    score, top = await _calc_asset_weighted_risk(org_id)
+    return {
+        "asset_risk_score": round(score, 1),
+        "top_risky_assets": top,
+        "criticality_multipliers": ASSET_CRITICALITY_MULTIPLIER,
+        "severity_base_points": ASSET_SEVERITY_POINTS,
+    }

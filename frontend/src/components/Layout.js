@@ -29,7 +29,8 @@ import {
   CloudArrowDown,
   Upload,
   Bug,
-  Buildings
+  Buildings,
+  HardDrives
 } from "@phosphor-icons/react";
 
 const SIDEBAR_NAV = [
@@ -41,6 +42,7 @@ const SIDEBAR_NAV = [
   { name: "Compliance Ingestion", href: "/ingestion", icon: Upload },
   { section: "SECURITY" },
   { name: "SIEM", href: "/siem", icon: Eye },
+  { name: "Asset Inventory", href: "/assets", icon: HardDrives },
   { name: "DevSecOps Pipeline", href: "/pipeline", icon: GitBranch },
   { name: "Tenable VM", href: "/tenable", icon: Bug },
   { section: "RISK & COMPLIANCE" },

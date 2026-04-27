@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 22 — Asset Inventory + criticality-weighted Risk Scoring. Backend: 14/14 pytest green (auth, /api/assets stats/list/CRUD/validation/backfill-idempotent, /api/risk-scoring/org-score 6 factors with asset weight=0.25, /api/risk-scoring/asset-risk with multipliers {critical:2.0,high:1.5,medium:1.0,low:0.5}, top_risky_assets ranking verified: api-gateway-01=58 critical > db-server-01=48 critical > web-server-01=37.5 high > cache-01=12 medium > lb-01=6). Frontend: login, nav-assets sidebar, /assets page with 5 stat cards + filters + table (all data-testids present), detail page with hardware/software/metadata/open-vulns sections, edit flow persists criticality change. Tenable page had a CRITICAL runtime error (ReferenceError: assetMap is not defined) — FIXED inline (missing useState declaration); after fix 10 vuln-asset-link-* + 12 comp-asset-link-* render and navigate to /assets/:id. Existing routes /dashboard, /risks, /risk-scoring, /policies all load.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "TenableIntegration.js", "issue": "ReferenceError: assetMap is not defined — setAssetMap called on line 85 but `const [assetMap, setAssetMap] = useState({})` was never declared. Crashed entire Vulnerabilities + Compliance tabs with red error overlay. FIXED by testing agent (added useState declaration at top of component).", "selector": "[data-testid=tab-vulns], [data-testid=tab-compliance]", "priority": "CRITICAL (fixed)"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration22_asset_inventory.py",
+    "/app/test_reports/pytest/pytest_iteration22_asset_inventory.xml"
+  ],
+  "action_items": [
+    "Verify the assetMap useState fix in TenableIntegration.js is retained (added between lines 39-40). Main agent: consider adding an ESLint rule (`no-undef` / react/no-undef-state) to catch similar missing-useState issues pre-merge.",
+    "Minor: /tenable sync was called 3+ times during iteration 22 so total_assets=14 (not 7) due to extra hostnames (dc-01, idp-01, siem-01, jump-01, ws-fleet, backup-01, all-servers) from DEMO_ASSET_INVENTORY seed + earlier compliance/vuln records. This is expected behaviour — upsert is idempotent per hostname.",
+    "Optional: add a top-level React Error Boundary around TenableIntegration to prevent full-page crash if a similar undeclared-state bug slips through."
+  ],
+  "critical_code_review_comments": [
+    "TenableIntegration.js had an undeclared state variable (assetMap) — classic copy/paste miss. Root cause: feature added state-setter call without the paired useState tuple. Low-cost safeguard: enable `react/jsx-no-undef` + CI lint step.",
+    "assets.py `create_asset` returns the created doc after calling `doc.pop('_id', None)` but `insert_one` mutates the dict to inject an ObjectId — the pop is correctly placed AFTER insert_one. Good.",
+    "assets.py `upsert_asset_from_tenable` never overwrites manual fields (criticality, owner, environment, tags, notes) on subsequent syncs — verified correct by test.",
+    "risk_scoring._calc_asset_weighted_risk normalizes org_score = min(100, total_weighted/asset_count * 1.5). Normalization divisor uses asset_count of risky-assets only, not total-assets. This produces a score that doesn't decrease as more clean assets are added to inventory — intentional? If meant to be 'risk density across fleet', divisor should be total assets. Flagging for product decision.",
+    "assets.py /stats computes `by_os` by splitting on space and taking first token — 'Amazon Linux 2023' becomes 'Amazon' and 'RedHat Enterprise Linux 9.2' becomes 'RedHat'. Fine for charts but may surprise users — consider keeping full OS family name.",
+    "assets.py list_assets filter `has_open_vulns=False` boolean query — FastAPI query bool parsing is finicky; clients must pass `?has_open_vulns=false`. Works but undocumented.",
+    "No pagination on `/api/assets` (limit 2000) — fine for demo but will bite at scale."
+  ],
+  "updated_files": [
+    "/app/frontend/src/components/TenableIntegration.js (added `const [assetMap, setAssetMap] = useState({});` — 1-line fix for ReferenceError)",
+    "/app/backend/tests/test_iteration22_asset_inventory.py (new)"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100% (after 1-line assetMap fix; all testids + flows verified)"},
+  "test_credentials": "demo-admin@grc.com / DemoAdmin123! — worked via [data-testid=demo-admin-login-button]",
+  "seed_data_creation": "POST /api/tenable/sync {mode:'demo'} seeded 14 assets (7 original from DEMO_ASSET_INVENTORY + 7 compliance-only hosts from findings). Criticality distribution: 2 critical, 4 high, 8 medium.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "POST /api/tenable/sync requires JSON body `{mode: 'demo'|'live'|'auto'}`, NOT query params (returns 422). The Tenable /tenable page now has data-testids: tab-dashboard, tab-vulns, tab-compliance, tab-poam, tab-settings, vulns-list, vuln-asset-link-{id}, comp-asset-link-{id}. assetMap state is now properly declared (fixed iter 22). Asset detail page uses native <select> for edit-criticality and edit-environment — playwright select_option works directly. Demo org after sync ends with 14 assets; criticality multiplier ranking api-gateway-01 > db-server-01 > web-server-01 > cache-01 > lb-01 holds. For POST /api/assets body, hostname is required, criticality ∈ {low,medium,high,critical}, environment ∈ {production,staging,development,test,dr,unknown}.",
+  "rca_of_the_issue": "Single critical bug: TenableIntegration.js L85 called setAssetMap(map) without a corresponding `useState` tuple (commit oversight when wrapping hostnames in <Link>). Fixed by adding `const [assetMap, setAssetMap] = useState({});` alongside other state hooks. Re-validated: vulns + compliance tabs now render asset links and click-through to /assets/:id works. No further defects."
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ const TenableIntegration = () => {
   const [generatingPoam, setGeneratingPoam] = useState(false);
   const [lastAssessResult, setLastAssessResult] = useState(null);
   const [lastPolicyResult, setLastPolicyResult] = useState(null);
+  const [assetMap, setAssetMap] = useState({});
 
   // Settings form
   const [accessKey, setAccessKey] = useState("");
@@ -76,14 +78,23 @@ const TenableIntegration = () => {
     }
   }, []);
 
+  const fetchAssetMap = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/assets`);
+      const map = {};
+      res.data.forEach(a => { if (a.hostname) map[a.hostname] = a.id; });
+      setAssetMap(map);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await Promise.all([fetchSettings(), fetchDashboard()]);
+      await Promise.all([fetchSettings(), fetchDashboard(), fetchAssetMap()]);
       setLoading(false);
     };
     init();
-  }, [fetchSettings, fetchDashboard]);
+  }, [fetchSettings, fetchDashboard, fetchAssetMap]);
 
   useEffect(() => {
     if (tab === "vulns") fetchFindings("vulnerability");
@@ -393,7 +404,13 @@ const TenableIntegration = () => {
               </div>
               <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">{f.title}</h4>
               <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                <span className="flex items-center gap-1"><Desktop size={12} /> {f.asset_hostname}</span>
+                {assetMap[f.asset_hostname] ? (
+                  <Link to={`/assets/${assetMap[f.asset_hostname]}`} className="flex items-center gap-1 text-[#1B839F] hover:underline font-medium" data-testid={`vuln-asset-link-${f.id}`}>
+                    <Desktop size={12} /> {f.asset_hostname}
+                  </Link>
+                ) : (
+                  <span className="flex items-center gap-1"><Desktop size={12} /> {f.asset_hostname}</span>
+                )}
                 {f.cves?.length > 0 && <span className="text-red-500 font-mono">{f.cves.join(", ")}</span>}
                 <span className={f.compliance_status === "compliant" ? "text-emerald-600" : "text-red-600"}>{f.compliance_status}</span>
               </div>
@@ -422,7 +439,13 @@ const TenableIntegration = () => {
               <div className="flex gap-6 mt-2 text-xs">
                 <span className="text-gray-500">Expected: <span className="font-medium text-gray-700 dark:text-gray-300">{f.expected_value}</span></span>
                 <span className="text-gray-500">Actual: <span className={`font-medium ${f.status === "PASSED" ? "text-emerald-600" : "text-red-600"}`}>{f.actual_value}</span></span>
-                <span className="text-gray-500 flex items-center gap-1"><Desktop size={12} /> {f.asset_hostname}</span>
+                {assetMap[f.asset_hostname] ? (
+                  <Link to={`/assets/${assetMap[f.asset_hostname]}`} className="flex items-center gap-1 text-[#1B839F] hover:underline font-medium" data-testid={`comp-asset-link-${f.id}`}>
+                    <Desktop size={12} /> {f.asset_hostname}
+                  </Link>
+                ) : (
+                  <span className="text-gray-500 flex items-center gap-1"><Desktop size={12} /> {f.asset_hostname}</span>
+                )}
               </div>
               <div className="flex gap-1 mt-2 flex-wrap">
                 {f.control_ids?.map(c => (

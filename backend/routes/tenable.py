@@ -18,6 +18,7 @@ import asyncio
 
 from database import db
 from utils import get_current_user
+from routes.assets import upsert_asset_from_tenable
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tenable", tags=["tenable"])
@@ -287,6 +288,24 @@ async def _process_vulnerability(org_id: str, vuln: dict, now: str, mapped_contr
         upsert=True,
     )
 
+    # Asset inventory upsert (hardware/software extraction from Tenable asset metadata)
+    asset_extra = {}
+    asset_meta = vuln.get("asset", {}) or {}
+    if asset_meta.get("operating_system"):
+        os_list = asset_meta["operating_system"]
+        asset_extra["operating_system"] = os_list[0] if isinstance(os_list, list) and os_list else str(os_list)
+    if asset_meta.get("ipv4"):
+        asset_extra["ip_addresses"] = asset_meta["ipv4"] if isinstance(asset_meta["ipv4"], list) else [asset_meta["ipv4"]]
+    if asset_meta.get("mac_address"):
+        asset_extra["mac_addresses"] = asset_meta["mac_address"] if isinstance(asset_meta["mac_address"], list) else [asset_meta["mac_address"]]
+    if asset_meta.get("fqdn"):
+        fqdn = asset_meta["fqdn"]
+        asset_extra["fqdn"] = fqdn[0] if isinstance(fqdn, list) and fqdn else str(fqdn)
+    if asset_meta.get("system_type"):
+        asset_extra["system_type"] = str(asset_meta["system_type"]).lower().replace(" ", "-")
+
+    await upsert_asset_from_tenable(org_id, asset_uuid, asset_hostname, now, asset_extra)
+
     mapped_controls.update(mapping["controls"])
 
 
@@ -323,6 +342,11 @@ async def _process_compliance_check(org_id: str, check: dict, now: str, mapped_c
         {"$set": finding_doc},
         upsert=True,
     )
+
+    # Asset inventory upsert
+    if asset_uuid or check.get("asset", {}).get("hostname"):
+        hostname = check.get("asset", {}).get("hostname", "") or asset_uuid[:12]
+        await upsert_asset_from_tenable(org_id, asset_uuid, hostname, now)
 
     mapped_controls.update(control_ids)
 
@@ -370,9 +394,196 @@ DEMO_COMPLIANCE = [
 ]
 
 
+# Demo asset hardware/software inventory (matches DEMO_VULNS asset_id values)
+DEMO_ASSET_INVENTORY = {
+    "a1b2c3d4": {
+        "hostname": "web-server-01",
+        "fqdn": "web-server-01.corp.local",
+        "ip_addresses": ["10.0.1.21", "172.16.1.21"],
+        "mac_addresses": ["00:1A:2B:3C:4D:5E"],
+        "operating_system": "Ubuntu 22.04.3 LTS",
+        "os_version": "22.04.3",
+        "system_type": "server",
+        "installed_software": [
+            {"name": "Apache HTTP Server", "version": "2.4.57"},
+            {"name": "OpenSSL", "version": "3.0.2"},
+            {"name": "PHP", "version": "8.1.2"},
+            {"name": "jQuery", "version": "3.4.1"},
+            {"name": "WordPress", "version": "6.4.2"},
+        ],
+        "services": [{"name": "apache2", "port": 443, "protocol": "tcp"}, {"name": "apache2", "port": 80, "protocol": "tcp"}],
+        "open_ports": [22, 80, 443],
+        "default_criticality": "high",
+        "default_environment": "production",
+    },
+    "e5f6a7b8": {
+        "hostname": "api-gateway-01",
+        "fqdn": "api-gateway-01.corp.local",
+        "ip_addresses": ["10.0.1.45"],
+        "mac_addresses": ["00:1A:2B:3C:4D:5F"],
+        "operating_system": "Amazon Linux 2023",
+        "os_version": "2023.3",
+        "system_type": "server",
+        "installed_software": [
+            {"name": "OpenSSL", "version": "3.1.2"},
+            {"name": "Python", "version": "3.11.5"},
+            {"name": "Kong Gateway", "version": "3.4.1"},
+            {"name": "nginx", "version": "1.24.0"},
+        ],
+        "services": [{"name": "kong", "port": 8000, "protocol": "tcp"}, {"name": "kong-admin", "port": 8001, "protocol": "tcp"}],
+        "open_ports": [22, 8000, 8001, 8443],
+        "default_criticality": "critical",
+        "default_environment": "production",
+    },
+    "c9d0e1f2": {
+        "hostname": "db-server-01",
+        "fqdn": "db-server-01.corp.local",
+        "ip_addresses": ["10.0.2.10"],
+        "mac_addresses": ["00:1A:2B:3C:4D:60"],
+        "operating_system": "Red Hat Enterprise Linux 9.2",
+        "os_version": "9.2",
+        "system_type": "server",
+        "installed_software": [
+            {"name": "PostgreSQL", "version": "15.3"},
+            {"name": "Linux Kernel", "version": "5.14.0-284"},
+            {"name": "Redis", "version": "7.0.12"},
+        ],
+        "services": [{"name": "postgresql", "port": 5432, "protocol": "tcp"}],
+        "open_ports": [22, 5432],
+        "default_criticality": "critical",
+        "default_environment": "production",
+    },
+    "d3e4f5a6": {
+        "hostname": "app-server-01",
+        "fqdn": "app-server-01.corp.local",
+        "ip_addresses": ["10.0.1.55"],
+        "mac_addresses": ["00:1A:2B:3C:4D:61"],
+        "operating_system": "Ubuntu 22.04.3 LTS",
+        "os_version": "22.04.3",
+        "system_type": "server",
+        "installed_software": [
+            {"name": "Node.js", "version": "20.10.0"},
+            {"name": "npm", "version": "10.2.3"},
+            {"name": "PM2", "version": "5.3.0"},
+        ],
+        "services": [{"name": "node-app", "port": 3000, "protocol": "tcp"}],
+        "open_ports": [22, 3000],
+        "default_criticality": "high",
+        "default_environment": "production",
+    },
+    "b7c8d9e0": {
+        "hostname": "lb-01",
+        "fqdn": "lb-01.corp.local",
+        "ip_addresses": ["10.0.0.10", "203.0.113.5"],
+        "mac_addresses": ["00:1A:2B:3C:4D:62"],
+        "operating_system": "Debian 12",
+        "os_version": "12.2",
+        "system_type": "network-device",
+        "installed_software": [
+            {"name": "nginx", "version": "1.25.3"},
+            {"name": "HAProxy", "version": "2.8.3"},
+        ],
+        "services": [{"name": "nginx", "port": 443, "protocol": "tcp"}],
+        "open_ports": [80, 443],
+        "default_criticality": "high",
+        "default_environment": "production",
+    },
+    "f1a2b3c4": {
+        "hostname": "k8s-node-01",
+        "fqdn": "k8s-node-01.corp.local",
+        "ip_addresses": ["10.0.3.15"],
+        "mac_addresses": ["00:1A:2B:3C:4D:63"],
+        "operating_system": "Ubuntu 22.04.3 LTS",
+        "os_version": "22.04.3",
+        "system_type": "server",
+        "installed_software": [
+            {"name": "Docker Engine", "version": "24.0.7"},
+            {"name": "kubelet", "version": "1.28.4"},
+            {"name": "containerd", "version": "1.7.8"},
+        ],
+        "services": [{"name": "kubelet", "port": 10250, "protocol": "tcp"}],
+        "open_ports": [22, 10250, 30000, 32767],
+        "default_criticality": "high",
+        "default_environment": "production",
+    },
+    "d5e6f7a8": {
+        "hostname": "cache-01",
+        "fqdn": "cache-01.corp.local",
+        "ip_addresses": ["10.0.2.20"],
+        "mac_addresses": ["00:1A:2B:3C:4D:64"],
+        "operating_system": "Alpine Linux 3.18",
+        "os_version": "3.18.4",
+        "system_type": "server",
+        "installed_software": [
+            {"name": "Redis", "version": "7.2.3"},
+        ],
+        "services": [{"name": "redis", "port": 6379, "protocol": "tcp"}],
+        "open_ports": [22, 6379],
+        "default_criticality": "medium",
+        "default_environment": "production",
+    },
+}
+
+
+async def _seed_demo_assets(org_id: str, now: str):
+    """Seed demo assets with realistic hardware/software inventory (idempotent)."""
+    for asset_uuid, info in DEMO_ASSET_INVENTORY.items():
+        existing = await db.assets.find_one(
+            {"organization_id": org_id, "asset_uuid": asset_uuid}, {"_id": 0}
+        )
+        if existing:
+            # Update Tenable-discovered fields only; preserve user metadata
+            await db.assets.update_one(
+                {"id": existing["id"]},
+                {"$set": {
+                    "hostname": info["hostname"],
+                    "fqdn": info["fqdn"],
+                    "ip_addresses": info["ip_addresses"],
+                    "mac_addresses": info["mac_addresses"],
+                    "operating_system": info["operating_system"],
+                    "os_version": info["os_version"],
+                    "system_type": info["system_type"],
+                    "installed_software": info["installed_software"],
+                    "services": info["services"],
+                    "open_ports": info["open_ports"],
+                    "last_seen": now,
+                }},
+            )
+            continue
+
+        await db.assets.insert_one({
+            "id": str(uuid.uuid4()),
+            "organization_id": org_id,
+            "asset_uuid": asset_uuid,
+            "hostname": info["hostname"],
+            "fqdn": info["fqdn"],
+            "ip_addresses": info["ip_addresses"],
+            "mac_addresses": info["mac_addresses"],
+            "operating_system": info["operating_system"],
+            "os_version": info["os_version"],
+            "system_type": info["system_type"],
+            "installed_software": info["installed_software"],
+            "services": info["services"],
+            "open_ports": info["open_ports"],
+            "criticality": info["default_criticality"],
+            "environment": info["default_environment"],
+            "owner": "",
+            "tags": ["tenable-discovered"],
+            "notes": "",
+            "sources": ["tenable-demo"],
+            "first_seen": now,
+            "last_seen": now,
+            "created_at": now,
+            "updated_at": now,
+        })
+
+
 async def _sync_demo(org_id: str, now: str, user_id: str) -> dict:
     """Generate demo Tenable data for demonstration purposes."""
     mapped_controls = set()
+
+    # Seed asset inventory FIRST so vulns can link to rich asset records
+    await _seed_demo_assets(org_id, now)
 
     # Process demo vulnerabilities
     for v in DEMO_VULNS:
