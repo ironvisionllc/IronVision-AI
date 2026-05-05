@@ -3,6 +3,7 @@ Policy Builder backend routes.
 Supports questionnaire-based policy creation for NIST 800-53 control families.
 Answers are stored locally; policy generation can invoke IronVision Lambda.
 """
+import asyncio
 import json
 import pathlib
 from fastapi import APIRouter, HTTPException, Depends
@@ -11,7 +12,6 @@ from datetime import datetime, timezone
 from pydantic import BaseModel
 import uuid
 import os
-import json
 
 from database import db
 from utils import get_current_user, guard_demo, log_activity
@@ -238,8 +238,8 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
             }
             cqa_result = await atlas_db.controlquestionanswers.insert_one(cqa_doc)
             cqa_id = cqa_result.inserted_id
-            
-            # Create analysisprogresses record (required by Lambda)
+
+            # Build progress doc + local-update concurrently — saves ~500ms-1s
             progress_doc = {
                 "jobId": job_id,
                 "userId": iv_user_id,
@@ -259,18 +259,18 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
                 "updatedAt": datetime.now(timezone.utc),
                 "__v": 0
             }
-            await atlas_db.analysisprogresses.insert_one(progress_doc)
-            
-            # Update local draft with Atlas references
-            await db.policy_drafts.update_one(
-                {"id": data.draft_id},
-                {"$set": {
-                    "atlas_job_id": job_id,
-                    "atlas_cqa_id": str(cqa_id),
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                }}
+            await asyncio.gather(
+                atlas_db.analysisprogresses.insert_one(progress_doc),
+                db.policy_drafts.update_one(
+                    {"id": data.draft_id},
+                    {"$set": {
+                        "atlas_job_id": job_id,
+                        "atlas_cqa_id": str(cqa_id),
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                ),
             )
-            
+
             atlas_client.close()
             
             # Build answers array in Lambda's expected format
@@ -317,6 +317,7 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
                 InvocationType="Event",
                 Payload=json.dumps(payload).encode(),
             )
+            _ = response  # async invoke, response ignored
             
             await log_activity(org_id, current_user["id"], current_user.get("name", ""), "policy_created", f"Submitted for generation: {draft['policy_name']}")
             return {
@@ -343,3 +344,73 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
     )
     await log_activity(org_id, current_user["id"], current_user.get("name", ""), "policy_created", f"Policy generation requested: {draft['policy_name']}")
     return {"message": "Policy generation submitted", "status": "submitted", "draft_id": data.draft_id}
+
+
+# ── Live Job Status Polling ──────────────────────────────────────────
+@router.get("/policy-builder/jobs/{job_id}/status")
+async def get_generation_job_status(job_id: str, current_user: Dict = Depends(get_current_user)):
+    """
+    Poll the live status of a policy generation job.
+    Reads `analysisprogresses` (live progress) and `createdpolicies` (final result)
+    from IronVision Atlas. Returns:
+      - status: 'generating' | 'completed' | 'failed' | 'unknown'
+      - progress: 0-100
+      - message: human-readable status text
+      - policy_id: Atlas ObjectId (string) of completed policy, if done
+      - policy_name: for display
+    """
+    from motor.motor_asyncio import AsyncIOMotorClient
+
+    atlas_uri = os.environ.get("IRONVISION_MONGO_URI")
+    if not atlas_uri:
+        raise HTTPException(status_code=503, detail="IronVision Atlas not configured")
+
+    atlas_client = AsyncIOMotorClient(atlas_uri)
+    try:
+        atlas_db = atlas_client["ironvision"]
+
+        # Run both lookups in parallel for snappy polling
+        progress_doc, policy_doc = await asyncio.gather(
+            atlas_db.analysisprogresses.find_one({"jobId": job_id}, sort=[("updatedAt", -1)]),
+            atlas_db.createdpolicies.find_one({"generationJobId": job_id}),
+        )
+
+        # Completed: a final policy document exists
+        if policy_doc:
+            return {
+                "status": "completed",
+                "progress": 100,
+                "message": "Policy generation complete",
+                "policy_id": str(policy_doc["_id"]),
+                "policy_name": policy_doc.get("policyName", ""),
+                "framework": policy_doc.get("framework", ""),
+                "control_family": policy_doc.get("controlFamily", ""),
+            }
+
+        # Still in flight: read live progress
+        if progress_doc:
+            raw_status = (progress_doc.get("status") or "").lower()
+            if "fail" in raw_status or "error" in raw_status:
+                return {
+                    "status": "failed",
+                    "progress": progress_doc.get("progress", 0),
+                    "message": progress_doc.get("status", "Generation failed"),
+                    "policy_id": None,
+                }
+            return {
+                "status": "generating",
+                "progress": progress_doc.get("progress", 0),
+                "message": progress_doc.get("status", "Generating policy..."),
+                "policy_id": None,
+            }
+
+        # No record yet — Lambda hasn't picked it up
+        return {
+            "status": "unknown",
+            "progress": 0,
+            "message": "Waiting for generator to pick up the job...",
+            "policy_id": None,
+        }
+    finally:
+        atlas_client.close()
+

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API, AuthContext } from "@/App";
 import Layout from "@/components/Layout";
@@ -9,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   ShieldCheck, CaretRight, CaretLeft, Check, FileText, Plus, Trash,
-  ArrowRight, Pencil, Clock, CheckCircle, FloppyDisk, Lightning
+  ArrowRight, Pencil, Clock, CheckCircle, FloppyDisk, Lightning, XCircle, Eye
 } from "@phosphor-icons/react";
 
 const STEPS = ["framework", "family", "questionnaire", "review"];
@@ -18,6 +19,7 @@ const PolicyBuilderPage = ({ embedded = false }) => {
   const { user } = useContext(AuthContext);
   const isAdmin = user?.roles?.[0]?.role === "admin";
   const Wrap = embedded ? React.Fragment : Layout;
+  const navigate = useNavigate();
   const [step, setStep] = useState("list"); // "list" | "framework" | "family" | "questionnaire" | "review"
   const [drafts, setDrafts] = useState([]);
   const [families, setFamilies] = useState([]);
@@ -30,6 +32,11 @@ const PolicyBuilderPage = ({ embedded = false }) => {
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [questionsLoading, setQuestionsLoading] = useState(false);
+
+  // Live generation progress
+  const [genJobId, setGenJobId] = useState(null);
+  const [genStatus, setGenStatus] = useState(null); // {status, progress, message, policy_id, policy_name}
+  const [genStartedAt, setGenStartedAt] = useState(null);
 
   useEffect(() => { fetchDrafts(); fetchFamilies(); }, []);
 
@@ -113,16 +120,66 @@ const PolicyBuilderPage = ({ embedded = false }) => {
     setGenerating(true);
     try {
       const draftId = currentDraftId;
-      if (!draftId) { toast.error("Please save the draft first"); return; }
+      if (!draftId) { toast.error("Please save the draft first"); setGenerating(false); return; }
       const res = await axios.post(`${API}/policy-builder/generate`, { draft_id: draftId });
-      toast.success(res.data.message || "Policy generation started");
-      fetchDrafts();
-      setStep("list");
+      // Open the live progress modal — DO NOT navigate away
+      if (res.data.job_id) {
+        setGenJobId(res.data.job_id);
+        setGenStatus({ status: "generating", progress: 0, message: "Submitting to AI policy engine..." });
+        setGenStartedAt(Date.now());
+      } else {
+        // Fallback path: no Lambda configured
+        toast.success(res.data.message || "Submitted");
+        fetchDrafts();
+        setStep("list");
+      }
     } catch (err) {
       const msg = err?.response?.data?.detail || "Generation failed";
       toast.error(msg);
     } finally { setGenerating(false); }
   };
+
+  // ── Live polling: while genJobId is set, poll status every 3s ──
+  useEffect(() => {
+    if (!genJobId) return;
+    let cancelled = false;
+    let timer;
+
+    const poll = async () => {
+      try {
+        const r = await axios.get(`${API}/policy-builder/jobs/${genJobId}/status`);
+        if (cancelled) return;
+        setGenStatus(r.data);
+        if (r.data.status === "completed" || r.data.status === "failed") {
+          fetchDrafts();
+          return; // stop polling
+        }
+        timer = setTimeout(poll, 3000);
+      } catch {
+        if (cancelled) return;
+        // transient error — keep retrying with backoff
+        timer = setTimeout(poll, 5000);
+      }
+    };
+
+    poll();
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, [genJobId]);
+
+  const closeProgress = () => {
+    setGenJobId(null);
+    setGenStatus(null);
+    setGenStartedAt(null);
+    fetchDrafts();
+    setStep("list");
+  };
+
+  const viewGeneratedPolicy = () => {
+    closeProgress();
+    navigate("/policies?tab=library");
+  };
+
+  const elapsedSec = genStartedAt ? Math.floor((Date.now() - genStartedAt) / 1000) : 0;
 
   const answeredCount = Object.values(answers).filter(v => v && v.trim()).length;
   const progressPct = questions.length > 0 ? Math.round((answeredCount / questions.length) * 100) : 0;
@@ -130,6 +187,15 @@ const PolicyBuilderPage = ({ embedded = false }) => {
     : answeredCount < 15 ? { label: "Minimal", color: "text-amber-700 bg-amber-50" }
     : answeredCount < 25 ? { label: "Good", color: "text-blue-700 bg-blue-50" }
     : { label: "Excellent", color: "text-green-700 bg-green-50" };
+
+  const progressModal = genJobId && genStatus ? (
+    <GenProgressModal
+      status={genStatus}
+      elapsedSec={elapsedSec}
+      onClose={closeProgress}
+      onView={viewGeneratedPolicy}
+    />
+  ) : null;
 
   // ── List View ────────────────────────────────────────────────
   if (step === "list") {
@@ -208,6 +274,7 @@ const PolicyBuilderPage = ({ embedded = false }) => {
             </div>
           )}
         </div>
+        {progressModal}
       </Wrap>
     );
   }
@@ -243,6 +310,7 @@ const PolicyBuilderPage = ({ embedded = false }) => {
             ))}
           </div>
         </div>
+        {progressModal}
       </Wrap>
     );
   }
@@ -339,6 +407,7 @@ const PolicyBuilderPage = ({ embedded = false }) => {
             </div>
           )}
         </div>
+        {progressModal}
       </Wrap>
     );
   }
