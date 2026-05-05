@@ -5,8 +5,9 @@ Answers are stored locally; policy generation can invoke IronVision Lambda.
 """
 import asyncio
 import json
+import logging
 import pathlib
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
@@ -16,7 +17,40 @@ import os
 from database import db
 from utils import get_current_user, guard_demo, log_activity
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Module-level cached clients (avoid 1-2s cold init per request)
+_lambda_client = None
+_atlas_client = None
+
+
+def _get_lambda_client():
+    """Lazy-initialize boto3 Lambda client once per worker."""
+    global _lambda_client
+    if _lambda_client is None:
+        import boto3
+        from botocore.config import Config
+        _lambda_client = boto3.client(
+            "lambda",
+            region_name=os.environ.get("AWS_REGION", "us-east-1"),
+            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+            config=Config(connect_timeout=5, read_timeout=10, retries={"max_attempts": 2}),
+        )
+    return _lambda_client
+
+
+def _get_atlas_db():
+    """Lazy-initialize Atlas client once per worker."""
+    global _atlas_client
+    if _atlas_client is None:
+        from motor.motor_asyncio import AsyncIOMotorClient
+        atlas_uri = os.environ.get("IRONVISION_MONGO_URI")
+        if not atlas_uri:
+            return None
+        _atlas_client = AsyncIOMotorClient(atlas_uri)
+    return _atlas_client["ironvision"]
 
 CONTROL_FAMILY_NAMES = {
     "AC": "Access Control",
@@ -166,8 +200,48 @@ async def delete_draft(draft_id: str, current_user: Dict = Depends(get_current_u
 
 
 # ── Generate Policy (invoke Lambda or local generation) ──────────────
+
+async def _invoke_lambda_background(lambda_fn: str, payload: dict, job_id: str):
+    """
+    Fire the Lambda invoke in a background task so the HTTP handler can
+    return the job_id to the client immediately (client starts polling).
+    Wraps the sync boto3 call in asyncio.to_thread so the event loop stays free.
+    On failure, write a 'failed' status to analysisprogresses so the polling
+    endpoint reports the error instead of hanging in 'unknown' forever.
+    """
+    try:
+        client = _get_lambda_client()
+        await asyncio.to_thread(
+            client.invoke,
+            FunctionName=lambda_fn,
+            InvocationType="Event",
+            Payload=json.dumps(payload).encode(),
+        )
+        logger.info(f"Lambda invoke dispatched for job {job_id}")
+    except Exception as e:
+        logger.error(f"Lambda invoke failed for job {job_id}: {e}")
+        # Surface the failure to the polling endpoint
+        try:
+            atlas_db = _get_atlas_db()
+            if atlas_db is not None:
+                await atlas_db.analysisprogresses.update_one(
+                    {"jobId": job_id},
+                    {"$set": {
+                        "status": f"Failed to invoke generator: {str(e)[:200]}",
+                        "progress": 0,
+                        "updatedAt": datetime.now(timezone.utc),
+                    }},
+                )
+        except Exception as write_err:
+            logger.error(f"Failed to write failure status for job {job_id}: {write_err}")
+
+
 @router.post("/policy-builder/generate")
-async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(get_current_user)):
+async def generate_policy(
+    data: GenerateRequest,
+    background_tasks: BackgroundTasks,
+    current_user: Dict = Depends(get_current_user),
+):
     guard_demo(current_user)
     org_id = current_user["roles"][0]["organization_id"] if current_user.get("roles") else None
     draft = await db.policy_drafts.find_one({"id": data.draft_id, "organization_id": org_id}, {"_id": 0})
@@ -179,56 +253,49 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
 
     # Try to invoke IronVision's Lambda for generation
     try:
-        import boto3
-        from motor.motor_asyncio import AsyncIOMotorClient
         from bson import ObjectId
         import time
         import random
         import string
-        
+
         lambda_fn = os.environ.get("POLICY_GENERATION_LAMBDA_FUNCTION_NAME")
-        atlas_uri = os.environ.get("IRONVISION_MONGO_URI")
-        
-        if lambda_fn and atlas_uri:
-            # Connect to IronVision Atlas to initialize job records
-            atlas_client = AsyncIOMotorClient(atlas_uri)
-            atlas_db = atlas_client["ironvision"]
-            
+        atlas_db = _get_atlas_db()
+
+        if lambda_fn and atlas_db is not None:
             # Generate job ID in IronVision's format
             timestamp = int(time.time() * 1000)
             random_suffix = ''.join(random.choices(string.hexdigits.lower(), k=8))
             job_id = f"policy_gen_{timestamp}_{random_suffix}"
-            
+
             # Get or create a mapping user ID (use existing IronVision user)
             iv_user = await atlas_db.users.find_one({}, {"_id": 1})
             iv_user_id = iv_user["_id"] if iv_user else ObjectId()
-            
+
             # Get the controlquestions document for this control family
             control_family = draft["control_family"]
             cq_doc = await atlas_db.controlquestions.find_one({"controlFamily": control_family})
             if not cq_doc:
                 raise HTTPException(status_code=400, detail=f"Control family {control_family} not found in IronVision")
-            
+
             cq_id = cq_doc["_id"]
             questions_list = cq_doc.get("questions", [])
-            
+
             # Convert our answers dict to IronVision's format (indexed by question number)
-            # Map our q1, q2... format to 0, 1, 2... format
             formatted_answers = {}
             for key, value in draft["answers"].items():
                 if key.startswith("q"):
-                    idx = int(key[1:]) - 1  # q1 -> 0, q2 -> 1, etc.
+                    idx = int(key[1:]) - 1
                     formatted_answers[str(idx)] = value
                 else:
                     formatted_answers[key] = value
-            
+
             # Create controlquestionanswers record in Atlas
             cqa_doc = {
                 "userId": str(iv_user_id),
                 "policyName": draft["policy_name"],
                 "framework": "NIST 800-53",
                 "controlFamily": control_family,
-                "controlQuestionsId": cq_id,  # Link to questions document
+                "controlQuestionsId": cq_id,
                 "status": "generating",
                 "answers": formatted_answers,
                 "createdAt": datetime.now(timezone.utc),
@@ -271,10 +338,7 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
                 ),
             )
 
-            atlas_client.close()
-            
             # Build answers array in Lambda's expected format
-            # Format: [{question: "...", answer: "..."}]
             answers_array = []
             for i, question_text in enumerate(questions_list):
                 idx_str = str(i)
@@ -283,14 +347,7 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
                         "question": question_text,
                         "answer": formatted_answers[idx_str]
                     })
-            
-            # Now invoke Lambda with the Atlas IDs
-            client = boto3.client(
-                "lambda",
-                region_name=os.environ.get("AWS_REGION", "us-east-1"),
-                aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
-                aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-            )
+
             payload = {
                 "jobId": job_id,
                 "draftId": str(cqa_id),
@@ -312,16 +369,13 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
                     "source": "emergent-platform"
                 }
             }
-            response = client.invoke(
-                FunctionName=lambda_fn,
-                InvocationType="Event",
-                Payload=json.dumps(payload).encode(),
-            )
-            _ = response  # async invoke, response ignored
-            
+
+            # Fire Lambda invoke in background — handler returns IMMEDIATELY with job_id
+            background_tasks.add_task(_invoke_lambda_background, lambda_fn, payload, job_id)
+
             await log_activity(org_id, current_user["id"], current_user.get("name", ""), "policy_created", f"Submitted for generation: {draft['policy_name']}")
             return {
-                "message": "Policy generation started via Lambda",
+                "message": "Policy generation started — poll for progress",
                 "status": "generating",
                 "draft_id": data.draft_id,
                 "job_id": job_id,
@@ -330,9 +384,7 @@ async def generate_policy(data: GenerateRequest, current_user: Dict = Depends(ge
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        print(f"Lambda generation error: {e}")
-        traceback.print_exc()
+        logger.exception(f"Policy generation setup failed: {e}")
         # Revert status on error
         await db.policy_drafts.update_one({"id": data.draft_id}, {"$set": {"status": "draft"}})
         raise HTTPException(status_code=500, detail=f"Policy generation failed: {str(e)}")
@@ -359,58 +411,50 @@ async def get_generation_job_status(job_id: str, current_user: Dict = Depends(ge
       - policy_id: Atlas ObjectId (string) of completed policy, if done
       - policy_name: for display
     """
-    from motor.motor_asyncio import AsyncIOMotorClient
-
-    atlas_uri = os.environ.get("IRONVISION_MONGO_URI")
-    if not atlas_uri:
+    atlas_db = _get_atlas_db()
+    if atlas_db is None:
         raise HTTPException(status_code=503, detail="IronVision Atlas not configured")
 
-    atlas_client = AsyncIOMotorClient(atlas_uri)
-    try:
-        atlas_db = atlas_client["ironvision"]
+    # Run both lookups in parallel for snappy polling
+    progress_doc, policy_doc = await asyncio.gather(
+        atlas_db.analysisprogresses.find_one({"jobId": job_id}, sort=[("updatedAt", -1)]),
+        atlas_db.createdpolicies.find_one({"generationJobId": job_id}),
+    )
 
-        # Run both lookups in parallel for snappy polling
-        progress_doc, policy_doc = await asyncio.gather(
-            atlas_db.analysisprogresses.find_one({"jobId": job_id}, sort=[("updatedAt", -1)]),
-            atlas_db.createdpolicies.find_one({"generationJobId": job_id}),
-        )
+    # Completed: a final policy document exists
+    if policy_doc:
+        return {
+            "status": "completed",
+            "progress": 100,
+            "message": "Policy generation complete",
+            "policy_id": str(policy_doc["_id"]),
+            "policy_name": policy_doc.get("policyName", ""),
+            "framework": policy_doc.get("framework", ""),
+            "control_family": policy_doc.get("controlFamily", ""),
+        }
 
-        # Completed: a final policy document exists
-        if policy_doc:
+    # Still in flight: read live progress
+    if progress_doc:
+        raw_status = (progress_doc.get("status") or "").lower()
+        if "fail" in raw_status or "error" in raw_status:
             return {
-                "status": "completed",
-                "progress": 100,
-                "message": "Policy generation complete",
-                "policy_id": str(policy_doc["_id"]),
-                "policy_name": policy_doc.get("policyName", ""),
-                "framework": policy_doc.get("framework", ""),
-                "control_family": policy_doc.get("controlFamily", ""),
-            }
-
-        # Still in flight: read live progress
-        if progress_doc:
-            raw_status = (progress_doc.get("status") or "").lower()
-            if "fail" in raw_status or "error" in raw_status:
-                return {
-                    "status": "failed",
-                    "progress": progress_doc.get("progress", 0),
-                    "message": progress_doc.get("status", "Generation failed"),
-                    "policy_id": None,
-                }
-            return {
-                "status": "generating",
+                "status": "failed",
                 "progress": progress_doc.get("progress", 0),
-                "message": progress_doc.get("status", "Generating policy..."),
+                "message": progress_doc.get("status", "Generation failed"),
                 "policy_id": None,
             }
-
-        # No record yet — Lambda hasn't picked it up
         return {
-            "status": "unknown",
-            "progress": 0,
-            "message": "Waiting for generator to pick up the job...",
+            "status": "generating",
+            "progress": progress_doc.get("progress", 0),
+            "message": progress_doc.get("status", "Generating policy..."),
             "policy_id": None,
         }
-    finally:
-        atlas_client.close()
+
+    # No record yet — Lambda hasn't picked it up
+    return {
+        "status": "unknown",
+        "progress": 0,
+        "message": "Waiting for generator to pick up the job...",
+        "policy_id": None,
+    }
 
