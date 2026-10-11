@@ -99,3 +99,9 @@ backend/data/
 /samples/uploads/
 frontend/node_modules/.cache/default-development/6.pack
 frontend/node_modules/.cache/default-development/3.pack
+.env
+.env.*
+*.env
+credentials.json
+*.key
+.credentials
