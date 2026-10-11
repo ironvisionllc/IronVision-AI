@@ -1,0 +1,22 @@
+IronVision Demo Agency – Access Control Policy (SYNTHETIC)
+
+1. Purpose
+This policy establishes access control requirements for agency information systems in accordance with NIST SP 800-53 Rev 4.
+
+2. Scope
+Applies to all agency systems, including the Logistics Tracking Platform (LTP). All content is synthetic demo data.
+
+3. Roles
+The policy is maintained by the Office of the CISO. Approving official: TBD
+
+4. Account Management
+Accounts that remain inactive are disabled after 35 days of inactivity. Account reviews occur quarterly.
+
+5. Unsuccessful Logon Attempts
+Systems lock the account after 3 consecutive invalid logon attempts within 15 minutes.
+
+6. Session Lock
+A session lock is initiated after 15 minutes of inactivity and is retained until the user re-authenticates.
+
+7. Review
+This policy is reviewed annually.

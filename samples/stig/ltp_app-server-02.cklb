@@ -1,0 +1,114 @@
+{
+ "title": "SYNTHETIC DEMONSTRATION DATA",
+ "target_data": {
+  "host_name": "app-server-02",
+  "ip_address": "192.0.2.12",
+  "fqdn": "app-server-02.logistics.demo"
+ },
+ "stigs": [
+  {
+   "stig_name": "Demo_Linux_STIG",
+   "display_name": "Demo Linux Server STIG (SYNTHETIC)",
+   "version": "1",
+   "release_info": "Release: 1 Benchmark Date: 01 Jan 2026 (SYNTHETIC)",
+   "rules": [
+    {
+     "group_id": "V-900140",
+     "rule_id": "SV-900140r1_rule",
+     "rule_version": "DEMO-900140",
+     "rule_title": "The operating system must enable FIPS 140-validated cryptography (FIPS mode).",
+     "severity": "high",
+     "status": "not_a_finding",
+     "ccis": [
+      "CCI-002450",
+      "CCI-000366",
+      "CCI-000068"
+     ],
+     "finding_details": "Synthetic result",
+     "comments": ""
+    },
+    {
+     "group_id": "V-900101",
+     "rule_id": "SV-900101r1_rule",
+     "rule_version": "DEMO-900101",
+     "rule_title": "The SSH daemon must not permit direct root logins.",
+     "severity": "medium",
+     "status": "open",
+     "ccis": [
+      "CCI-000366",
+      "CCI-000770"
+     ],
+     "finding_details": "Synthetic result",
+     "comments": ""
+    },
+    {
+     "group_id": "V-900118",
+     "rule_id": "SV-900118r1_rule",
+     "rule_version": "DEMO-900118",
+     "rule_title": "Audit log files must have mode 0600 or less permissive.",
+     "severity": "medium",
+     "status": "open",
+     "ccis": [
+      "CCI-000162",
+      "CCI-000163",
+      "CCI-000164"
+     ],
+     "finding_details": "Synthetic result",
+     "comments": ""
+    },
+    {
+     "group_id": "V-900200",
+     "rule_id": "SV-900200r1_rule",
+     "rule_version": "DEMO-900200",
+     "rule_title": "The system must display the Standard Mandatory Notice and Consent Banner.",
+     "severity": "medium",
+     "status": "not_a_finding",
+     "ccis": [
+      "CCI-000048"
+     ],
+     "finding_details": "Synthetic result",
+     "comments": ""
+    },
+    {
+     "group_id": "V-900210",
+     "rule_id": "SV-900210r1_rule",
+     "rule_version": "DEMO-900210",
+     "rule_title": "The system must limit the number of concurrent sessions.",
+     "severity": "low",
+     "status": "not_a_finding",
+     "ccis": [
+      "CCI-000054"
+     ],
+     "finding_details": "Synthetic result",
+     "comments": ""
+    },
+    {
+     "group_id": "V-900220",
+     "rule_id": "SV-900220r1_rule",
+     "rule_version": "DEMO-900220",
+     "rule_title": "Audit records must contain event type information.",
+     "severity": "medium",
+     "status": "not_a_finding",
+     "ccis": [
+      "CCI-000130"
+     ],
+     "finding_details": "Synthetic result",
+     "comments": ""
+    },
+    {
+     "group_id": "V-900999",
+     "rule_id": "SV-900999r1_rule",
+     "rule_version": "DEMO-900999",
+     "rule_title": "Legacy policy documentation check (CCI has no Rev 5 reference \u2013 expected UNMAPPED).",
+     "severity": "low",
+     "status": "not_a_finding",
+     "ccis": [
+      "CCI-000001"
+     ],
+     "finding_details": "Synthetic result",
+     "comments": ""
+    }
+   ]
+  }
+ ]
+}

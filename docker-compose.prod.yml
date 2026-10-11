@@ -1,0 +1,44 @@
+# Production overlay:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# - dev password sign-in OFF (AUTH_PROVIDERS defaults to oidc), demo seed OFF
+# - TLS terminated by the `edge` nginx (mount your certificate at deploy/tls/{tls.crt,tls.key}); no other service publishes ports
+# - Content/reference data is still loaded by `migrate` (alembic upgrade head + reference seed only)
+x-prod-env: &prod-env
+  APP_ENV: production
+  AUTH_PROVIDERS: ${AUTH_PROVIDERS:-oidc}
+  SEED_DEMO_DATA: "false"
+  TRUST_PROXY_HEADERS: "true"
+  HSTS_ENABLED: "true"
+  CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS to the public https origin}
+  FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
+  OIDC_ISSUER: ${OIDC_ISSUER:?set OIDC_ISSUER}
+  OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:?set OIDC_CLIENT_ID}
+  OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:?set OIDC_REDIRECT_URI}
+  SECRET_STORE_KEY: ${SECRET_STORE_KEY:?set SECRET_STORE_KEY}
+
+services:
+  migrate:
+    environment:
+      <<: *prod-env
+  backend:
+    environment:
+      <<: *prod-env
+    ports: !reset []
+  worker:
+    environment:
+      <<: *prod-env
+  frontend:
+    ports: !reset []
+  minio:
+    ports: !reset []
+  edge:
+    image: nginxinc/nginx-unprivileged:1.27-alpine
+    volumes:
+      - ./deploy/nginx/edge.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/tls:/etc/nginx/tls:ro
+    ports:
+      - "443:8443"
+      - "80:8080"
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="IronVision AI">
+  <title>IronVision AI</title>
+  <!-- Monochrome (white) variant for dark backgrounds. Replace with the official mono vector (same name). -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 4 L54 12 V30 C54 44 44.5 54.5 32 60 C19.5 54.5 10 44 10 30 V12 Z"/>
+    <path d="M36 12.6 L48 17 V30 C48 40.5 41 48.5 32 53 C23 48.5 16 40.5 16 30 V17 L28 12.6"/>
+    <path d="M32 4 V18"/>
+    <path d="M29 44 C25 41 22 36.5 22 30 V22 L32 18 L42 22 V30 C42 36.5 39 41 35 44"/>
+    <path d="M32 53 V37.2"/>
+    <circle cx="32" cy="31" r="6.2"/>
+  </g>
+  <g fill="#FFFFFF" fill-opacity="0.85">
+    <circle cx="32" cy="29.6" r="2.3"/>
+    <path d="M30.7 30.8 H33.3 L34 35.2 H30 Z"/>
+  </g>
+</svg>

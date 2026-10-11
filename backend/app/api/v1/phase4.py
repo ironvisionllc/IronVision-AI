@@ -1,0 +1,487 @@
+import asyncio
+import uuid
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import Response
+from pydantic import BaseModel, Field
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session
+
+from app.api.v1.records import get_system, to_dict
+from app.db import get_db
+from app.models import (ContentUpdate, ContentVersion, ControlAssignment, EmassChange, EmassSyncRun, Evidence, Finding, FindingControlMap, Poam,
+                        PriorityWeight, ScheduledJob, StigRule)
+from app.security.deps import CurrentUser, enforce, get_current_user, require_permission
+from app.services import audit, content_updates as cu, emass, oscal_export as ox, risk, scheduler
+from app.services import workflow as wf
+from app.services.evaluation import evaluate_system
+from app.services.people import attach
+from app.services.storage import get_storage
+
+router = APIRouter(tags=["phase4"])
+
+
+class Justify(BaseModel):
+    justification: str = Field(min_length=10, max_length=5000)
+
+
+# ---------- content updates ----------
+@router.get("/content-updates")
+def content_overview(db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    hist = db.scalars(select(ContentUpdate).where(ContentUpdate.org_id == current.user.org_id).order_by(ContentUpdate.created_at.desc()).limit(50))
+    rows = []
+    for u in hist:
+        d = to_dict(u, ("impact",))
+        to, fr = db.get(ContentVersion, u.to_version_id), db.get(ContentVersion, u.from_version_id) if u.from_version_id else None
+        d.update(to_version=to.version if to else None, from_version=fr.version if fr else None, counts=(u.impact or {}).get("counts"))
+        rows.append(d)
+    return {"types": cu.overview(db), "history": attach(db, attach(db, rows, "applied_by", "applier"), "requested_by", "requester")}
+
+
+@router.post("/content-updates/register")
+def content_register(db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("admin.content.load"))) -> dict:
+    r = cu.register_all(db)
+    audit.record(db, action="content.registered", actor_user_id=current.user.id, actor_email=current.user.email, details=r)
+    db.commit()
+    return r
+
+
+@router.post("/content-versions/{version_id}/preview", status_code=201)
+def content_preview(version_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    u = cu.preview(db, current.user.org_id, current.user, version_id)
+    db.commit()
+    return to_dict(u)
+
+
+@router.get("/content-updates/{update_id}")
+def content_update(update_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    u = db.get(ContentUpdate, update_id)
+    if u is None or u.org_id != current.user.org_id:
+        raise HTTPException(404, "Update not found")
+    return to_dict(u)
+
+
+@router.post("/content-updates/{update_id}/apply")
+def content_apply(update_id: uuid.UUID, body: Justify, db: Session = Depends(get_db),
+                  current: CurrentUser = Depends(require_permission("content.apply"))) -> dict:
+    u = db.get(ContentUpdate, update_id)
+    if u is None or u.org_id != current.user.org_id:
+        raise HTTPException(404, "Update not found")
+    res = cu.apply(db, u, current.user, body.justification)
+    db.commit()
+    return {"status": u.status, "result": res}
+
+
+@router.get("/content-versions/{version_id}/rules")
+def stig_rules(version_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> list[dict]:
+    return [to_dict(r) for r in db.scalars(select(StigRule).where(StigRule.content_version_id == version_id).order_by(StigRule.vuln_id))]
+
+
+# ---------- mappings ----------
+@router.get("/findings/{finding_id}/mappings")
+def finding_mappings(finding_id: uuid.UUID, request: Request, as_of: uuid.UUID | None = None, db: Session = Depends(get_db),
+                     current: CurrentUser = Depends(get_current_user)) -> dict:
+    """Mappings now, or as they stood under a given content version (STIG release or CCI list) – reproducible history."""
+    f = db.get(Finding, finding_id)
+    if f is None:
+        raise HTTPException(404, "Finding not found")
+    enforce(request, current, "system.read", f.system_id)
+    q = select(FindingControlMap).where(FindingControlMap.finding_id == f.id)
+    if as_of:
+        cv = db.get(ContentVersion, as_of)
+        if cv is None:
+            raise HTTPException(404, "Content version not found")
+        if cv.content_type == "stig_benchmark":
+            q = q.where(or_(FindingControlMap.stig_version_id == as_of,
+                            (FindingControlMap.stig_version_id.is_(None)) & (or_(FindingControlMap.valid_to.is_(None), FindingControlMap.superseded_by_version_id != as_of))))
+        else:
+            q = q.where(FindingControlMap.content_version_id == as_of)
+    else:
+        q = q.where(FindingControlMap.valid_to.is_(None))
+    obs = db.execute(select(ContentVersion.version, ContentVersion.id).where(ContentVersion.id == f.content_version_id)).first()
+    return {"finding_id": str(f.id), "as_of": str(as_of) if as_of else None, "current_content_version": obs[0] if obs else None,
+            "mappings": [to_dict(m) for m in db.scalars(q.order_by(FindingControlMap.control_id))]}
+
+
+@router.get("/mapping-review")
+def mapping_review(system_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    enforce(request, current, "system.read", system_id)
+    rows = db.execute(select(FindingControlMap, Finding).join(Finding, Finding.id == FindingControlMap.finding_id)
+                      .where(Finding.system_id == system_id, FindingControlMap.valid_to.is_(None),
+                             or_(FindingControlMap.review_status.in_(("suggested", "needs_review", "unresolved")), FindingControlMap.confidence == "low"))
+                      .order_by(FindingControlMap.created_at.desc())).all()
+    unmapped = db.scalars(select(Finding).where(Finding.system_id == system_id, Finding.mapping_status == "unmapped").limit(100))
+    return {"pending": [{**to_dict(m), "finding_title": f.title, "vuln_id": f.vuln_id or f.plugin_id} for m, f in rows],
+            "unmapped": [{"id": str(f.id), "title": f.title, "vuln_id": f.vuln_id or f.plugin_id, "source_type": f.source_type, "ccis": f.ccis}
+                         for f in unmapped]}
+
+
+class MapReview(BaseModel):
+    action: str = Field(pattern="^(approve|reject)$")
+    justification: str = Field(min_length=10, max_length=2000)
+
+
+@router.post("/mappings/{map_id}/review")
+def review_mapping(map_id: uuid.UUID, body: MapReview, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    m = db.get(FindingControlMap, map_id)
+    if m is None:
+        raise HTTPException(404, "Mapping not found")
+    f = db.get(Finding, m.finding_id)
+    enforce(request, current, "finding.map", f.system_id)
+    before = m.review_status
+    m.review_status = "human_approved" if body.action == "approve" else "rejected"
+    m.justification, m.reviewed_by, m.reviewed_at = body.justification, current.user.id, datetime.now(timezone.utc)
+    if body.action == "reject":
+        m.valid_to = datetime.now(timezone.utc)
+    db.flush()
+    live = db.scalar(select(FindingControlMap.id).where(FindingControlMap.finding_id == f.id, FindingControlMap.valid_to.is_(None),
+                                                        FindingControlMap.review_status != "suggested").limit(1))
+    if f.mapping_status != "dispositioned":
+        f.mapping_status = "mapped" if live else "unmapped"
+    audit.record(db, action=f"mapping.{body.action}d", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="finding_control_map",
+                 entity_id=str(m.id), before={"review_status": before}, after={"review_status": m.review_status, "control_id": m.control_id,
+                                                                            "justification": body.justification})
+    evaluate_system(db, f.system_id)
+    db.commit()
+    return to_dict(m)
+
+
+@router.post("/findings/{finding_id}/suggest-mapping")
+def suggest_mapping(finding_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    from app.models import Control
+    from app.services.ai.service import get_ai_service
+    from app.services.content.loader import active_catalog_id
+    from app.services.rmf import require_ai_use_case
+
+    f = db.get(Finding, finding_id)
+    if f is None:
+        raise HTTPException(404, "Finding not found")
+    enforce(request, current, "finding.map", f.system_id)
+    require_ai_use_case(db, current.user.org_id, "mapping.suggest")
+    svc = get_ai_service()
+    if not svc.configured:
+        raise HTTPException(503, "AI provider not configured")
+    try:
+        r = asyncio.run(svc.run("mapping.suggest", "1.0.0", {"title": f.title, "source": f.source_type, "rule": f.vuln_id or f.plugin_id or "",
+                                                              "cves": ", ".join(f.cves or []) or "none", "ccis": ", ".join(f.ccis or []) or "none"},
+                                current.user.id))
+    except Exception as exc:
+        raise HTTPException(502, f"AI suggestion failed: {str(exc)[:200]}")
+    cat = active_catalog_id(db)
+    valid = {c for (c,) in db.execute(select(Control.control_id).where(Control.catalog_version_id == cat))}
+    made, dropped = [], []
+    for s in r.output.suggestions:
+        cid = s.control_id.lower().replace("(", ".").replace(")", "").strip()
+        if cid not in valid:
+            dropped.append(cid)
+            continue
+        if db.scalar(select(FindingControlMap.id).where(FindingControlMap.finding_id == f.id, FindingControlMap.control_id == cid, FindingControlMap.cci_id == "",
+                                                        FindingControlMap.valid_to.is_(None))):
+            continue
+        m = FindingControlMap(finding_id=f.id, control_id=cid, mapping_source="ai_suggestion", review_status="suggested", confidence=s.confidence,
+                              justification=s.rationale, source=f"AI {r.model} · mapping.suggest@1.0.0 (proposal – needs human approval)",
+                              ai_interaction_id=r.interaction_id, provenance={"prompt": "mapping.suggest@1.0.0"})
+        db.add(m)
+        made.append(cid)
+    audit.record(db, action="mapping.ai_suggested", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="finding",
+                 entity_id=str(f.id), details={"suggested": made, "dropped_invalid": dropped, "interaction_id": str(r.interaction_id)})
+    db.commit()
+    return {"suggested": made, "dropped_invalid": dropped, "interaction_id": str(r.interaction_id)}
+
+
+# ---------- risk scoring ----------
+@router.get("/risk/weights")
+def risk_weights(db: Session = Depends(get_db), _: CurrentUser = Depends(get_current_user)) -> dict:
+    return {"label": risk.LABEL, "formula": "score = Σ weight × factor (each factor 0–1)",
+            "weights": [to_dict(w) for w in db.scalars(select(PriorityWeight).where(PriorityWeight.reason_code.like("rf_%")).order_by(PriorityWeight.reason_code))]}
+
+
+class WeightsIn(BaseModel):
+    weights: dict[str, int]
+
+
+@router.put("/risk/weights")
+def set_weights(body: WeightsIn, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("risk.admin"))) -> dict:
+    before = {}
+    for code, val in body.weights.items():
+        w = db.scalar(select(PriorityWeight).where(PriorityWeight.reason_code == code))
+        if w is None or not code.startswith("rf_") or not 0 <= val <= 100:
+            raise HTTPException(422, f"Unknown weight or out of range: {code}")
+        before[code], w.weight = w.weight, val
+    n = risk.recompute(db)
+    audit.record(db, action="risk.weights.updated", actor_user_id=current.user.id, actor_email=current.user.email, before=before, after=body.weights,
+                 details={"findings_rescored": n})
+    db.commit()
+    return {"findings_rescored": n}
+
+
+@router.get("/findings/{finding_id}/score")
+def finding_score(finding_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    f = db.get(Finding, finding_id)
+    if f is None:
+        raise HTTPException(404, "Finding not found")
+    enforce(request, current, "system.read", f.system_id)
+    return {"score": f.priority_score, "breakdown": f.priority_breakdown, "label": risk.LABEL}
+
+
+# ---------- OSCAL ----------
+@router.get("/systems/{system_id}/oscal")
+def oscal_list(system_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    enforce(request, current, "system.read", system_id)
+    evs = db.scalars(select(Evidence).where(Evidence.system_id == system_id, Evidence.evidence_type == "oscal_export").order_by(Evidence.collected_at.desc()).limit(40))
+    return {"models": list(ox.MODELS), "oscal_version": ox.OSCAL_VERSION, "unsupported": ox.UNSUPPORTED, "limitations": ox.LIMITATIONS,
+            "exports": [{"evidence_id": str(e.id), "file_name": e.file_name, "sha256": e.sha256, "collected_at": e.collected_at.isoformat(),
+                         "model": (e.provenance or {}).get("oscal_model"), "validation": (e.provenance or {}).get("validation"),
+                         "errors": (e.provenance or {}).get("validation_errors")} for e in evs]}
+
+
+@router.post("/systems/{system_id}/oscal/{model}", status_code=201)
+def oscal_export(system_id: uuid.UUID, model: str, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    enforce(request, current, "system.read", system_id)
+    if model not in ox.MODELS:
+        raise HTTPException(422, f"Unsupported OSCAL model {model}. Supported: {', '.join(ox.MODELS)}")
+    res = ox.export(db, get_system(db, system_id), model, current.user.email)
+    db.commit()
+    return res
+
+
+@router.get("/oscal-exports/{evidence_id}/download")
+def oscal_download(evidence_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> Response:
+    e = db.get(Evidence, evidence_id)
+    if e is None or e.evidence_type != "oscal_export":
+        raise HTTPException(404, "Export not found")
+    enforce(request, current, "system.read", e.system_id)
+    return Response(get_storage().get(e.storage_key), media_type="application/json",
+                    headers={"Content-Disposition": f'attachment; filename="{e.file_name}"', "X-Content-SHA256": e.sha256})
+
+
+# ---------- eMASS ----------
+@router.get("/emass/status")
+def emass_status(db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    return emass.status(db, current.user.org_id)
+
+
+class EmassConfigIn(BaseModel):
+    mode: str = Field(pattern="^(mock|read|write|oscal_export_only)$")
+    base_url: str | None = Field(None, max_length=500)
+    api_user_uid: str | None = Field(None, max_length=200)
+    api_key: str | None = Field(None, max_length=500)
+    client_cert_path: str | None = Field(None, max_length=500)
+    app_registration_id: str | None = Field(None, max_length=200)
+
+
+@router.put("/emass/config")
+def emass_config(body: EmassConfigIn, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("emass.admin"))) -> dict:
+    cfg = emass.config(db, current.user.org_id)
+    upd = body.model_dump(exclude={"api_key"})
+    if body.api_key:
+        from app.services.secrets import SecretStore
+        upd["api_key_ciphertext"] = SecretStore().encrypt(body.api_key)
+    emass.save_config(db, current.user.org_id, {**cfg, **upd})
+    audit.record(db, action="emass.config.updated", actor_user_id=current.user.id, actor_email=current.user.email,
+                 after={**body.model_dump(exclude={"api_key"}), "api_key": "set" if body.api_key else "unchanged"})
+    db.commit()
+    return emass.status(db, current.user.org_id)
+
+
+@router.post("/emass/test")
+def emass_test(db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("emass.admin"))) -> dict:
+    r = emass.test_connection(db, current.user.org_id, current.user.email)
+    db.commit()
+    return r
+
+
+class FailSim(BaseModel):
+    mode: str = Field(pattern="^(off|500|timeout|409)$")
+    remaining: int = Field(0, ge=0, le=20)
+
+
+@router.put("/emass/failure-sim")
+def emass_failure_sim(body: FailSim, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("emass.admin"))) -> dict:
+    from app.services.rmf import set_setting
+    if emass.config(db, current.user.org_id)["mode"] != "mock":
+        raise HTTPException(409, "Failure simulation exists only for the MOCK connector")
+    v = set_setting(db, current.user.org_id, "emass_mock_failures", body.model_dump())
+    audit.record(db, action="emass.failure_sim", actor_user_id=current.user.id, actor_email=current.user.email, after=v)
+    db.commit()
+    return v
+
+
+def _change_out(db: Session, rows) -> list[dict]:
+    return attach(db, [to_dict(c) for c in rows], "requested_by", "requester")
+
+
+@router.get("/systems/{system_id}/emass")
+def emass_system(system_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    enforce(request, current, "system.read", system_id)
+    ch = list(db.scalars(select(EmassChange).where(EmassChange.system_id == system_id).order_by(EmassChange.created_at.desc()).limit(200)))
+    runs = db.scalars(select(EmassSyncRun).where(EmassSyncRun.system_id == system_id).order_by(EmassSyncRun.created_at.desc()).limit(50))
+    return {"status": emass.status(db, current.user.org_id), "changes": _change_out(db, ch), "runs": [to_dict(r) for r in runs],
+            "summary": {s: sum(1 for c in ch if c.status == s) for s in ("proposed", "pending_approval", "approved", "pending_retry", "conflict", "failed", "succeeded")}}
+
+
+@router.post("/systems/{system_id}/emass/compare")
+def emass_compare(system_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    enforce(request, current, "emass.queue", system_id)
+    r = emass.compare(db, get_system(db, system_id), current.user.email)
+    db.commit()
+    return r
+
+
+@router.post("/systems/{system_id}/emass/import")
+def emass_import(system_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    enforce(request, current, "emass.queue", system_id)
+    r = emass.import_metadata(db, get_system(db, system_id), current.user.email)
+    db.commit()
+    return r
+
+
+class QueueIn(BaseModel):
+    entity_type: str = Field(pattern="^(poam|control)$")
+    entity_id: str
+
+
+@router.post("/systems/{system_id}/emass/changes", status_code=201)
+def emass_queue(system_id: uuid.UUID, body: QueueIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    enforce(request, current, "emass.queue", system_id)
+    s = get_system(db, system_id)
+    if body.entity_type == "poam":
+        p = db.get(Poam, uuid.UUID(body.entity_id))
+        if p is None or p.system_id != s.id:
+            raise HTTPException(404, "POA&M not found")
+        label, after = f"{p.human_id} {p.weakness[:80]}", {k: str(v) if v is not None else None for k, v in emass._poam_view(p).items()}
+    else:
+        a = db.scalar(select(ControlAssignment).where(ControlAssignment.system_id == s.id, ControlAssignment.control_id == body.entity_id.lower()))
+        if a is None:
+            raise HTTPException(404, "Control not assigned")
+        from app.models import Implementation
+        impl = db.scalar(select(Implementation).where(Implementation.assignment_id == a.id, Implementation.is_current.is_(True)))
+        label, after = f"{a.control_id.upper()} implementation", {"control_id": a.control_id, "implementation_status": a.implementation_status,
+                                                                 "narrative": (impl.narrative if impl else "")[:4000], "responsibility": a.responsibility}
+    if db.scalar(select(EmassChange.id).where(EmassChange.system_id == s.id, EmassChange.entity_id == body.entity_id,
+                                              EmassChange.status.in_(("proposed", "pending_approval", "approved", "pending_retry", "conflict")))):
+        raise HTTPException(409, "An open outbound change already exists for this record")
+    ch = emass.queue_change(db, system=s, entity_type=body.entity_type, entity_id=body.entity_id, label=label, after=after, before=None,
+                            trigger="manual", requester=current.user)
+    if body.entity_type == "poam":
+        p.emass_status = "queued"
+    db.commit()
+    return to_dict(ch)
+
+
+def _change(db: Session, change_id: uuid.UUID, request: Request, current: CurrentUser, perm="emass.queue") -> EmassChange:
+    ch = db.get(EmassChange, change_id)
+    if ch is None or ch.org_id != current.user.org_id:
+        raise HTTPException(404, "Change not found")
+    enforce(request, current, perm, ch.system_id)
+    return ch
+
+
+@router.post("/emass/changes/{change_id}/request-approval")
+def emass_request_approval(change_id: uuid.UUID, body: Justify, request: Request, db: Session = Depends(get_db),
+                           current: CurrentUser = Depends(get_current_user)) -> dict:
+    ch = _change(db, change_id, request, current)
+    req = emass.request_approval(db, ch, current.user, body.justification)
+    db.commit()
+    return {"change": to_dict(ch), "request_id": str(req.id), "human_id": req.human_id}
+
+
+@router.post("/emass/changes/{change_id}/submit")
+def emass_submit(change_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    ch = _change(db, change_id, request, current)
+    if ch.status == "failed":
+        ch.status = "pending_retry"
+    emass.submit(db, ch, current.user.email)
+    db.commit()
+    return to_dict(ch)
+
+
+class ResolveIn(BaseModel):
+    choice: str = Field(pattern="^(keep_local|accept_remote)$")
+    rationale: str = Field(min_length=10, max_length=2000)
+
+
+@router.post("/emass/changes/{change_id}/resolve")
+def emass_resolve(change_id: uuid.UUID, body: ResolveIn, request: Request, db: Session = Depends(get_db),
+                  current: CurrentUser = Depends(get_current_user)) -> dict:
+    ch = _change(db, change_id, request, current)
+    emass.resolve_conflict(db, ch, body.choice, current.user, body.rationale)
+    db.commit()
+    return to_dict(ch)
+
+
+# ---------- scheduler ----------
+@router.get("/scheduled-jobs")
+def scheduled_jobs(db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("admin.health.read"))) -> list[dict]:
+    scheduler.ensure_defaults(db)
+    db.commit()
+    return [to_dict(j) for j in db.scalars(select(ScheduledJob).order_by(ScheduledJob.job_type))]
+
+
+class ScheduleIn(BaseModel):
+    interval_minutes: int = Field(ge=1, le=10080)
+    enabled: bool
+
+
+@router.put("/scheduled-jobs/{job_id}")
+def update_schedule(job_id: uuid.UUID, body: ScheduleIn, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("risk.admin"))) -> dict:
+    j = db.get(ScheduledJob, job_id)
+    if j is None:
+        raise HTTPException(404, "Schedule not found")
+    before = {"interval_minutes": j.interval_minutes, "enabled": j.enabled}
+    j.interval_minutes, j.enabled = body.interval_minutes, body.enabled
+    audit.record(db, action="schedule.updated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="scheduled_job",
+                 entity_id=j.job_type, before=before, after=body.model_dump())
+    db.commit()
+    return to_dict(j)
+
+
+@router.post("/scheduled-jobs/{job_id}/run")
+def run_schedule(job_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("risk.admin"))) -> dict:
+    j = db.get(ScheduledJob, job_id)
+    if j is None:
+        raise HTTPException(404, "Schedule not found")
+    job = scheduler.run_now(db, j, current.user.id)
+    if job is None:
+        raise HTTPException(409, "A job of this type is already queued or running")
+    db.commit()
+    return {"job_id": str(job.id)}
+
+
+# ---------- impact review acknowledgements ----------
+class AckIn(BaseModel):
+    rationale: str = Field(min_length=10, max_length=2000)
+    apply_new_cat: bool = False
+
+
+@router.post("/poams/{poam_id}/content-impact/ack")
+def poam_impact_ack(poam_id: uuid.UUID, body: AckIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    p = db.get(Poam, poam_id)
+    if p is None or not p.content_impact:
+        raise HTTPException(404, "No content impact pending")
+    enforce(request, current, "poam.manage", p.system_id)
+    old = p.cat
+    if body.apply_new_cat and p.content_impact.get("new_cat"):
+        p.cat = p.content_impact["new_cat"]
+        p.severity = {"CAT I": "high", "CAT II": "medium", "CAT III": "low"}.get(p.cat, p.severity)
+    p.content_impact = {**p.content_impact, "status": "reviewed", "reviewed_by": current.user.email, "rationale": body.rationale}
+    wf.history(db, p, current.user, "content_impact_reviewed", old_cat=old, new_cat=p.cat, rationale=body.rationale)
+    evaluate_system(db, p.system_id)
+    db.commit()
+    return {"cat": p.cat, "content_impact": p.content_impact}
+
+
+@router.post("/systems/{system_id}/controls/{control_id}/content-change/ack")
+def control_change_ack(system_id: uuid.UUID, control_id: str, body: Justify, request: Request, db: Session = Depends(get_db),
+                       current: CurrentUser = Depends(get_current_user)) -> dict:
+    enforce(request, current, "system.write", system_id)
+    a = db.scalar(select(ControlAssignment).where(ControlAssignment.system_id == system_id, ControlAssignment.control_id == control_id.lower()))
+    if a is None or not a.content_change:
+        raise HTTPException(404, "No content change pending")
+    a.content_change = {**a.content_change, "acknowledged": True, "by": current.user.email, "justification": body.justification}
+    audit.record(db, action="control.content_change.acknowledged", actor_user_id=current.user.id, actor_email=current.user.email,
+                 entity_type="control_assignment", entity_id=str(a.id), details=a.content_change)
+    evaluate_system(db, system_id)
+    db.commit()
+    return a.content_change

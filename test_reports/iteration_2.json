@@ -1,0 +1,35 @@
+{
+  "summary": "Phase 1 (Core Records & Ingestion) end-to-end verified against live preview. Backend: project suite (45/45 pass via pytest.aegis.ini) + agent suite (12/12 pass, /app/backend/tests_agent/test_phase1_review.py). Agent suite covers: 8-user login (/api/v1/auth/provider -> exactly 8 dev_accounts), 4 seeded systems LTP/MPP/FMDH/TRS listed, LTP metrics.assigned_controls == 291 (moderate + demo-cloud-overlay), new moderate system registered as ISSM via POST /api/v1/systems -> 287 assigned (no overlays), leadership_viewer POST /systems -> 403, GET /systems/{id}/sources returns MOCK/DEMO adapter_mode on non-file connectors with NO secret_ciphertext leaked, duplicate upload loop (/systems/{id}/uploads 202 queued -> poll /ingest-runs/{id}): identical SHA-256 re-upload -> status 'duplicate', content+XML-comment modified copy -> status 'completed', workbench control detail exposes all four separate statuses (implementation_status / assessment_status / monitoring_status / evidence_freshness_status), /systems/{id}/evidence/verify 202 as platform_admin, ISSO /demo/evidence/{id}/collected-at -> 403, /dashboard/leadership 200 for leadership_viewer/ao/issm and 403 for isso, /systems/{id}/assets and /systems/{id}/roles 200 for ISSO. Frontend (Playwright): login page shows exactly 8 dev-user-option-* buttons; isso login lands /controls; /systems lists LTP (291 assigned), MPP (370), FMDH (287), TRS (149), plus the newly registered Agent Moderate (287); LTP detail page shows the '291' control workbench button, asset inventory (15), system-scoped roles table; /evidence-sources shows 6 cards (ACAS/Nessus ok, AWS GovCloud Config MOCK/DEMO ok, Annual Security Awareness Attestation MOCK/DEMO ok, DISA STIG Checklists ok, GitLab DevSecOps Pipeline MOCK/DEMO ok, eMASS MOCK/DEMO disabled) each with Test connection / Run collection / View evidence buttons, Latest ingest table shows the two duplicate-labeled runs and the completed modified-copy run with SHA-256 and controls-touched; /portfolio for ISSO renders red 'Missing permission: portfolio.read' message; for leadership_viewer renders Systems=5/Authorized=3/In assessment=1/Open CAT I=3/Open KEV=1/Evidence fresh=100% KPI tiles + system-risk table + trend chart (8 synthetic / 19 live snapshots). Sidebar phase badges verified: POA&M=P2; Inheritance/Policy Auditor/Reviews/RMF Workflow=P3; Portfolio/Systems/Evidence Sources/Controls/Evidence Ledger/Admin have no badge.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Portfolio trend chart (leadership_viewer)", "issues": ["Console warning from Recharts: 'The width(-1) and height(-1) of chart should be greater than 0' fired twice before container measured. Chart renders correctly afterwards; no visual regression but the warning is noisy. Likely needs a minHeight on the ResponsiveContainer parent."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests_agent/test_phase1_review.py",
+    "/app/test_reports/pytest/phase1_review.xml",
+    "/app/test_reports/pytest/phase1_project.xml",
+    "/app/backend/tests/ (45/45 pass via pytest.aegis.ini)"
+  ],
+  "action_items": [
+    "(Optional/low) Fix Recharts width(-1)/height(-1) warning on Portfolio trend by ensuring the ResponsiveContainer parent has an explicit height/minHeight before first paint.",
+    "(Doc/low) /app/memory/test_credentials.md says 'Portfolio = leadership_viewer/AO/ISSM/admin'. Actual code (app/security/rbac.py) grants portfolio.read ONLY to leadership_viewer, ao, issm (platform_admin does NOT have it and returns 403 'Missing permission: portfolio.read' on /api/v1/dashboard/leadership). Either grant portfolio.read to platform_admin or update the credentials doc to drop 'admin' from the portfolio access list."
+  ],
+  "critical_code_review_comments": [
+    "All Phase 1 acceptance criteria pass. Backend contracts are consistent and well-typed; evidence sources omit secret_ciphertext from responses (credential_set bool only) which satisfies the 'credentials never returned' requirement. Worker-based async ingestion correctly produces three distinct outcomes (queued->completed, duplicate, failed) and the duplicate path reuses the original run_id for finding/observation display. STIG CCI mapping and ACAS KEV mapping provenance both verified via run_detail findings.mappings[].provenance.",
+    "Minor doc drift between /app/memory/test_credentials.md and app/security/rbac.py on portfolio.read for platform_admin — see action item above."
+  ],
+  "updated_files": [
+    "/app/backend/tests_agent/test_phase1_review.py (new - 12 agent integration tests)"
+  ],
+  "success_rate": {"backend": "100% (45/45 project + 12/12 agent = 57/57)", "frontend": "100% of required flows and testids verified"},
+  "test_credentials": "All 8 accounts @aegisrmf.demo with password AegisDemo!2026. See /app/memory/test_credentials.md.",
+  "seed_data_creation": "Created one additional moderate system via POST /api/v1/systems (ISSM token) named 'Agent Moderate {epoch}' to prove the 287-control registration path. Also uploaded a modified copy of /app/samples/stig/ltp_db-server-01.ckl to LTP. Did NOT run /api/v1/admin/demo/reset (left for next iteration or main agent per guidance to run last).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend contract notes for Phase 1 (differs from the review-request shorthand): systems use 'acronym' (not 'short_name'); POST /api/v1/systems body requires baseline_key in {low,moderate,high} plus optional overlay_keys/tailoring/include_privacy; control-assignment count is exposed on GET /systems and GET /systems/{id} as metrics.assigned_controls (no separate /control-assignments endpoint); evidence source list is /systems/{id}/sources with adapter_mode='mock' for non-file connectors and credential_set:bool with secret_ciphertext stripped; upload is POST /systems/{id}/uploads (multipart file + Form 'source_id'), returns 202 with run dict (poll /ingest-runs/{id}); workbench control detail at /systems/{id}/workbench/controls/{control_id} returns implementation_status / assessment_status / monitoring_status / evidence_freshness_status; evidence verify at /systems/{id}/evidence/verify; demo back-date at /demo/evidence/{evidence_id}/collected-at (platform_admin only); portfolio at /dashboard/leadership; admin reset at /admin/demo/reset. Project pytest MUST use `-c pytest.aegis.ini` (uses aegisrmf_test DB). Agent integration tests use default pytest.ini which has `-n 2 --dist loadscope` in addopts; run serial with `-n 0`. REACT_APP_BACKEND_URL=https://aegis-rmf-demo.preview.emergentagent.com .",
+  "rca of the issue": "No functional defects found. Only one noisy frontend warning (Recharts container measured as -1x-1 on first paint of the leadership trend chart) and one minor documentation drift (test_credentials.md over-claims portfolio.read access for platform_admin)."
+}

@@ -1,0 +1,146 @@
+{
+  "project_name": "AegisRMF by IronVision",
+  "tagline": "Intelligent Risk. Continuous Assurance.",
+  "app_type": "dashboard / enterprise compliance workbench",
+  "design_archetype": "Federal Swiss Tech / Precision Compliance Workbench",
+  "color_system": {
+    "theme": "Light theme body with Dark Navy Navigation Sidebar",
+    "background_page": "bg-slate-100",
+    "background_card": "bg-white",
+    "sidebar_background": "bg-[#0A1128]",
+    "sidebar_hover": "hover:bg-[#16234B]",
+    "sidebar_active": "bg-[#1E2E62] text-white border-l-4 border-blue-400",
+    "primary": {
+      "default": "bg-blue-700 text-white hover:bg-blue-800",
+      "hex": "#1D4ED8",
+      "text": "text-blue-700"
+    },
+    "status_colors": {
+      "success": {
+        "badge": "bg-emerald-100 text-emerald-800 border-emerald-300",
+        "icon": "text-emerald-600",
+        "hex": "#16A34A"
+      },
+      "warning": {
+        "badge": "bg-amber-100 text-amber-900 border-amber-300",
+        "icon": "text-amber-600",
+        "hex": "#D97706"
+      },
+      "critical": {
+        "badge": "bg-rose-100 text-rose-800 border-rose-300",
+        "icon": "text-rose-600",
+        "hex": "#DC2626"
+      },
+      "info": {
+        "badge": "bg-sky-100 text-sky-800 border-sky-300",
+        "icon": "text-sky-600",
+        "hex": "#0284C7"
+      }
+    },
+    "synthetic_banner": "bg-amber-500 text-slate-950 font-bold uppercase tracking-wider text-xs shadow-inner"
+  },
+  "typography": {
+    "font_family_primary": "Inter, 'IBM Plex Sans', -apple-system, sans-serif",
+    "font_family_mono": "'JetBrains Mono', 'Fira Code', monospace",
+    "heading_h1": "text-2xl font-bold tracking-tight text-slate-900",
+    "heading_h2": "text-xl font-semibold tracking-tight text-slate-800",
+    "heading_h3": "text-lg font-medium text-slate-800",
+    "body_text": "text-sm text-slate-600 leading-normal",
+    "table_header": "text-xs font-semibold uppercase tracking-wider text-slate-500 bg-slate-50",
+    "table_cell": "text-xs font-normal text-slate-700 font-mono"
+  },
+  "layout_and_structure": {
+    "header": {
+      "style": "bg-slate-900 text-white border-b border-slate-800 px-6 py-3 flex items-center justify-between",
+      "brand_title": "AegisRMF by IronVision",
+      "tagline": "Intelligent Risk. Continuous Assurance.",
+      "user_badge_style": "bg-slate-800 border border-slate-700 px-3 py-1 rounded-full text-xs"
+    },
+    "sidebar": {
+      "width": "w-64",
+      "style": "bg-[#0A1128] text-slate-300 flex flex-col h-full border-r border-slate-800",
+      "system_selector": "Persistent selector block at top with empty state indicator",
+      "nav_items": [
+        {"id": "portfolio", "label": "Portfolio/Leadership", "icon": "LayoutDashboard"},
+        {"id": "systems", "label": "Systems", "icon": "Server"},
+        {"id": "evidence_sources", "label": "Evidence Sources", "icon": "Database"},
+        {"id": "controls", "label": "Controls Catalog", "icon": "ShieldCheck"},
+        {"id": "inheritance", "label": "Inheritance", "icon": "GitFork"},
+        {"id": "policy_auditor", "label": "Policy Auditor", "icon": "FileCheck"},
+        {"id": "poam", "label": "POA&M", "icon": "ListOrdered"},
+        {"id": "reviews", "label": "Reviews", "icon": "ClipboardCheck"},
+        {"id": "evidence_ledger", "label": "Evidence Ledger", "icon": "FileCode"},
+        {"id": "rmf_workflow", "label": "RMF Workflow", "icon": "Workflow"},
+        {"id": "admin", "label": "Admin", "icon": "Settings"}
+      ]
+    },
+    "synthetic_banner": {
+      "text": "SYNTHETIC DEMONSTRATION DATA – NOT FOR CUI/CLASSIFIED/OPERATIONAL DATA",
+      "style": "bg-amber-400 text-slate-950 text-center py-1 px-4 text-xs font-bold tracking-widest uppercase border-b border-amber-500 shadow-sm"
+    }
+  },
+  "pages_and_features": {
+    "login_page": {
+      "dev_auth_notice": "DEVELOPMENT AUTHENTICATION – SIMULATED, NOT CAC/PIV",
+      "demo_accounts": [
+        "system_owner",
+        "isso",
+        "issm",
+        "sca",
+        "ao",
+        "devsecops",
+        "leadership_viewer",
+        "platform_admin"
+      ],
+      "style": "Centered slate-900 gradient background container with dense federal security card styling"
+    },
+    "controls_catalog": {
+      "control_count": "~1,196 NIST 800-53 Rev5 controls and enhancements",
+      "filters": ["ID/Title search", "Control Family filter", "Baseline filter (low/moderate/high/privacy)"],
+      "panels": {
+        "detail_drawer": "Slide-over drawer showing control statement, parameters, guidance, assessment objectives, and mapped CCIs",
+        "content_versions": "Pinned catalog version, baseline versions, CCI list version, SHA-256 hashes, and official source URLs"
+      }
+    },
+    "admin_page": {
+      "health_indicators": ["database", "storage", "worker_heartbeat", "ai_configured"],
+      "ai_smoke_test": "Admin-only test action triggering provider/model/latency check",
+      "audit_events": "Dense table of system audit log events with timestamp, user, action, and outcome",
+      "rbac_demo": "AO-only endpoint button displaying 403 Forbidden vs 200 OK status based on current active user role"
+    },
+    "phase_placeholders": {
+      "message": "Coming in Phase N",
+      "rule": "Honest placeholder state without fake interactive buttons"
+    }
+  },
+  "image_urls": [
+    {
+      "url": "https://images.unsplash.com/photo-1719218245315-991bf011f097?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwzfHxjeWJlcnNlY3VyaXR5JTIwZmVkZXJhbCUyMHNoaWVsZCUyMGNvbXBsaWFuY2UlMjBiYWRnZXxlbnwwfHx8fDE3OTE2NzMwNzF8MA&ixlib=rb-4.1.0&q=85",
+      "category": "seal",
+      "description": "Federal seal emblem badge"
+    },
+    {
+      "url": "https://images.unsplash.com/photo-1641580550451-3a452effc5b7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwyfHxjeWJlcnNlY3VyaXR5JTIwZmVkZXJhbCUyMHNoaWVsZCUyMGNvbXBsaWFuY2UlMjBiYWRnZXxlbnwwfHx8fDE3OTE2NzMwNzF8MA&ixlib=rb-4.1.0&q=85",
+      "category": "security_chip",
+      "description": "Hardware security chip with verified compliance checkmark"
+    },
+    {
+      "url": "https://images.unsplash.com/photo-1751448555253-f39c06e29d82?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxjeWJlcnNlY3VyaXR5JTIwZmVkZXJhbCUyMHNoaWVsZCUyMGNvbXBsaWFuY2UlMjBiYWRnZXxlbnwwfHx8fDE3OTE2NzMwNzF8MA&ixlib=rb-4.1.0&q=85",
+      "category": "dashboard_preview",
+      "description": "Security and privacy compliance dashboard"
+    }
+  ],
+  "testing_and_accessibility": {
+    "data_testid_requirement": "EVERY interactive element (inputs, buttons, select pickers, drawer toggles, table rows, tab triggers) and key data callouts MUST have explicit data-testid attributes in kebab-case (e.g. data-testid=\"login-dev-user-select\", data-testid=\"controls-table-search\", data-testid=\"admin-ai-smoke-test-btn\").",
+    "contrast": "Ensure min 4.5:1 ratio for normal text on white cards, minimum 3:1 for status pills and dark sidebar navigation labels.",
+    "hover_states": "Always set explicit text color on hover alongside background changes."
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the user's color palette: Dark Navy left sidebar, Light gray page background, white cards, blue primary, amber warning, red critical, green success.",
+    "Always maintain the persistent Synthetic Data Banner at top of app layout.",
+    "Ensure all components are stored as JavaScript (.js / .jsx) files as per project structure.",
+    "Populate controls catalog drawer with detailed NIST SP 800-53 Rev5 metadata and CCI mappings.",
+    "Add explicit data-testid attributes to all interactive and key data display elements for testing.",
+    "Use lucide-react icons for UI elements throughout."
+  ]
+}

@@ -1,0 +1,3 @@
+Plugin ID,CVE,CVSS v3.0 Base Score,Risk,Host,Protocol,Port,Name,Synopsis
+187315,CVE-2023-48795,5.9,Medium,198.51.100.21,tcp,22,SSH Terrapin Prefix Truncation Weakness,SYNTHETIC
+19506,,,None,198.51.100.21,tcp,0,Nessus Scan Information,SYNTHETIC

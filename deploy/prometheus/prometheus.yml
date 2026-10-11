@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 30s
+scrape_configs:
+  - job_name: aegisrmf-backend
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ["backend:8001"]

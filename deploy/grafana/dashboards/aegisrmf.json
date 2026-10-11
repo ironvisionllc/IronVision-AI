@@ -1,0 +1,24 @@
+{
+  "uid": "aegisrmf-ops",
+  "title": "AegisRMF – Operations",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    { "id": 1, "type": "timeseries", "title": "API p95 latency (s)", "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum by (le, route) (rate(aegis_http_request_duration_seconds_bucket[5m])))", "legendFormat": "{{route}}" }] },
+    { "id": 2, "type": "timeseries", "title": "HTTP 5xx rate", "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(rate(aegis_http_request_duration_seconds_count{status=~\"5..\"}[5m]))", "legendFormat": "5xx/s" }] },
+    { "id": 3, "type": "timeseries", "title": "Worker job failures", "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (job_type) (increase(aegis_job_failures_total[1h]))", "legendFormat": "{{job_type}}" }] },
+    { "id": 4, "type": "stat", "title": "eMASS outbound queue", "gridPos": { "x": 12, "y": 8, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (status) (aegis_emass_queue_depth)", "legendFormat": "{{status}}" }] },
+    { "id": 5, "type": "stat", "title": "Rate-limited requests (1h)", "gridPos": { "x": 18, "y": 8, "w": 6, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (bucket) (increase(aegis_rate_limited_total[1h]))", "legendFormat": "{{bucket}}" }] }
+  ]
+}

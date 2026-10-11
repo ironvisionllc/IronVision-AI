@@ -1,0 +1,66 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: aegis
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: aegisrmf_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U aegis" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://aegis:ci-only-password@localhost:5432/aegisrmf_test
+      TEST_DATABASE_URL: postgresql+psycopg://aegis:ci-only-password@localhost:5432/aegisrmf_test
+      JWT_SECRET: ci-only-not-a-secret-0123456789abcdef
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_ROOT: /tmp/aegis-storage
+      AI_PROVIDER: none
+      DEMO_USER_PASSWORD: ci-only-demo
+      SAMPLES_DIR: ${{ github.workspace }}/samples
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r requirements.prod.txt pytest httpx pip-audit bandit
+      - run: alembic upgrade head
+      - run: python -m pytest -c pytest.aegis.ini tests -q
+      - run: python -m pytest -c pytest.aegis.ini tests/acceptance -v
+      - run: pip-audit -r requirements.prod.txt
+      - run: bandit -q -r app -lll
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - run: yarn install --frozen-lockfile --ignore-optional
+      - run: npx tsc --noEmit -p .
+      - run: yarn build
+        env: { REACT_APP_BACKEND_URL: "", GENERATE_SOURCEMAP: "false" }
+      - run: yarn audit --groups dependencies --level critical
+
+  images:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env && docker compose config -q
+      - run: docker compose build
+      - uses: aquasecurity/trivy-action@0.28.0
+        with: { image-ref: "aegisrmf-backend", severity: "CRITICAL,HIGH", exit-code: "0", format: table }

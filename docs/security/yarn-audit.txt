@@ -1,0 +1,15 @@
+yarn audit v1.22.22
+warning Resolution field "qs@6.16.0" is incompatible with requested version "qs@~6.15.1"
+warning Resolution field "uuid@11.1.1" is incompatible with requested version "uuid@^8.3.2"
+warning Resolution field "webpack-dev-server@5.2.6" is incompatible with requested version "webpack-dev-server@^4.6.0"
+warning Resolution field "serialize-javascript@7.0.5" is incompatible with requested version "serialize-javascript@^6.0.0"
+warning Resolution field "underscore@1.13.8" is incompatible with requested version "underscore@1.13.6"
+warning Resolution field "serialize-javascript@7.0.5" is incompatible with requested version "serialize-javascript@^4.0.0"
+warning Resolution field "nth-check@2.0.1" is incompatible with requested version "nth-check@^1.0.2"
+warning Resolution field "@tootallnate/once@2.0.1" is incompatible with requested version "@tootallnate/once@1"
+warning Resolution field "@eslint/plugin-kit@0.3.4" is incompatible with requested version "@eslint/plugin-kit@^0.2.7"
+warning Resolution field "qs@6.16.0" is incompatible with requested version "qs@~6.15.1"
+25 vulnerabilities found - Packages audited: 1540
+Severity: 13 Moderate | 12 High
+Done in 0.95s.
+exit=12

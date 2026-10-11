@@ -1,0 +1,198 @@
+name: aegisrmf
+
+x-backend-env: &backend-env
+  APP_ENV: production
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_TTL_MINUTES: ${JWT_TTL_MINUTES:-60}
+  AUTH_PROVIDER: dev_password
+  AUTH_PROVIDERS: ${AUTH_PROVIDERS:-dev_password}
+  SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-30}
+  SESSION_ABSOLUTE_HOURS: ${SESSION_ABSOLUTE_HOURS:-12}
+  RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+  RATE_LIMIT_AUTH: ${RATE_LIMIT_AUTH:-20/60}
+  RATE_LIMIT_UPLOAD: ${RATE_LIMIT_UPLOAD:-30/60}
+  TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-false}
+  MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+  UPLOAD_SCANNER: ${UPLOAD_SCANNER:-none}
+  CLAMAV_HOST: clamav
+  CLAMAV_PORT: "3310"
+  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+  OIDC_ISSUER: ${OIDC_ISSUER:-}
+  OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+  OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+  OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
+  OIDC_SCOPES: ${OIDC_SCOPES:-openid profile email}
+  MTLS_TRUSTED_PROXIES: ${MTLS_TRUSTED_PROXIES:-}
+  SECRET_STORE_BACKEND: ${SECRET_STORE_BACKEND:-env_key}
+  VAULT_ADDR: ${VAULT_ADDR:-}
+  VAULT_TOKEN: ${VAULT_TOKEN:-}
+  VAULT_ROLE_ID: ${VAULT_ROLE_ID:-}
+  VAULT_SECRET_ID: ${VAULT_SECRET_ID:-}
+  DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD}
+  CORS_ORIGINS: ${CORS_ORIGINS}
+  STORAGE_DRIVER: s3
+  S3_ENDPOINT_URL: http://minio:9000
+  S3_BUCKET: ${S3_BUCKET}
+  S3_REGION: ${S3_REGION}
+  S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+  S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+  AI_PROVIDER: ${AI_PROVIDER:-none}
+  AI_MODEL: ${AI_MODEL}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+  OPENAI_COMPAT_BASE_URL: ${OPENAI_COMPAT_BASE_URL}
+  OPENAI_COMPAT_API_KEY: ${OPENAI_COMPAT_API_KEY}
+  CONTENT_DIR: /srv/backend/content
+  CONTENT_FETCH_REMOTE: "false"
+  SECRET_STORE_KEY: ${SECRET_STORE_KEY}
+  SAMPLES_DIR: /samples
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET}
+    entrypoint: ["/bin/sh", "-c", "mc alias set local http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\" && mc mb -p \"local/$$S3_BUCKET\" && echo bucket-ready"]
+    restart: "no"
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["sh", "-c", "alembic upgrade head && python -m app.seed"]
+    volumes:
+      - ./samples:/samples:ro
+    environment:
+      <<: *backend-env
+      SEED_DEMO_DATA: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-env
+      SEED_DEMO_DATA: "false"
+    volumes:
+      - ./samples:/samples:ro
+    ports:
+      - "8001:8001"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    environment:
+      <<: *backend-env
+      WORKER_ID: compose-worker-1
+      SEED_DEMO_DATA: "true"
+    volumes:
+      - ./samples:/samples:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-}
+    ports:
+      - "3000:8080"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # ---- optional profiles: docker compose --profile keycloak|clamav|monitoring up ----
+  keycloak:
+    profiles: ["keycloak"]
+    image: quay.io/keycloak/keycloak:26.0
+    command: ["start-dev", "--import-realm", "--http-port=8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD}
+    volumes:
+      - ./deploy/keycloak/aegisrmf-realm.json:/opt/keycloak/data/import/aegisrmf-realm.json:ro
+    ports:
+      - "8081:8080"
+
+  clamav:
+    profiles: ["clamav"]
+    image: clamav/clamav:1.4
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      retries: 20
+
+  prometheus:
+    profiles: ["monitoring"]
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    profiles: ["monitoring"]
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  pgdata:
+  miniodata:

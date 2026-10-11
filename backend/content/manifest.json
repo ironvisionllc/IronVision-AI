@@ -1,0 +1,118 @@
+{
+ "description": "Pinned official reference content. Files are vendored under content/ so loads work offline; the loader verifies SHA-256 before use.",
+ "oscal": {
+  "repository": "https://github.com/usnistgov/oscal-content",
+  "release_tag": "v1.5.0",
+  "commit": "78650f02ad9321bb7b817846f8fbd4f2bcd620de",
+  "files": [
+   {
+    "key": "sp800-53r5-catalog",
+    "content_type": "oscal_catalog",
+    "path": "oscal/v1.5.0/NIST_SP-800-53_rev5_catalog.json",
+    "source_url": "https://raw.githubusercontent.com/usnistgov/oscal-content/78650f02ad9321bb7b817846f8fbd4f2bcd620de/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json",
+    "sha256": "01f37cf90ea99d92242c936cbfbdebcc338eef1f71454e2acac36cc56e9bc062"
+   },
+   {
+    "key": "sp800-53r5-low",
+    "content_type": "oscal_profile",
+    "baseline_key": "low",
+    "path": "oscal/v1.5.0/NIST_SP-800-53_rev5_LOW-baseline_profile.json",
+    "source_url": "https://raw.githubusercontent.com/usnistgov/oscal-content/78650f02ad9321bb7b817846f8fbd4f2bcd620de/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_LOW-baseline_profile.json",
+    "sha256": "8fd206017c8d718b44bdef612c2ff321a9fd84d97a515c8ec33c4619accbef6e"
+   },
+   {
+    "key": "sp800-53r5-moderate",
+    "content_type": "oscal_profile",
+    "baseline_key": "moderate",
+    "path": "oscal/v1.5.0/NIST_SP-800-53_rev5_MODERATE-baseline_profile.json",
+    "source_url": "https://raw.githubusercontent.com/usnistgov/oscal-content/78650f02ad9321bb7b817846f8fbd4f2bcd620de/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_MODERATE-baseline_profile.json",
+    "sha256": "9030dbf1f13169947eb97eb101b4bd2f00d3c151b100455a923ac75803f00ea1"
+   },
+   {
+    "key": "sp800-53r5-high",
+    "content_type": "oscal_profile",
+    "baseline_key": "high",
+    "path": "oscal/v1.5.0/NIST_SP-800-53_rev5_HIGH-baseline_profile.json",
+    "source_url": "https://raw.githubusercontent.com/usnistgov/oscal-content/78650f02ad9321bb7b817846f8fbd4f2bcd620de/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_HIGH-baseline_profile.json",
+    "sha256": "60576970caef91b2cba56d46e5948b72e3b879434fc2a4840bc4179e5e75cfd7"
+   },
+   {
+    "key": "sp800-53r5-privacy",
+    "content_type": "oscal_profile",
+    "baseline_key": "privacy",
+    "path": "oscal/v1.5.0/NIST_SP-800-53_rev5_PRIVACY-baseline_profile.json",
+    "source_url": "https://raw.githubusercontent.com/usnistgov/oscal-content/78650f02ad9321bb7b817846f8fbd4f2bcd620de/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_PRIVACY-baseline_profile.json",
+    "sha256": "7e650c4397ad633eadeaf510baa523372849b1fa3e18207b6c6b70ed456224f9"
+   }
+  ]
+ },
+ "cci": {
+  "key": "disa-cci-list",
+  "content_type": "cci_list",
+  "title": "DISA Control Correlation Identifier (CCI) List",
+  "path": "cci/U_CCI_List.xml",
+  "sha256": "a9e3850f7f30665170c377839abea2fd94863019e434cb27b3f6b2d5e277f403",
+  "archive_path": "cci/U_CCI_List.zip",
+  "archive_sha256": "077cbb6d2ae5f8fdbaaf416d87a34a8621767cdba490f3283feb0c5c35892700",
+  "source_url": "https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_CCI_List.zip",
+  "archive_member": "U_CCI_List.xml",
+  "rev5_reference_title": "NIST SP 800-53 Revision 5"
+ },
+ "kev": {
+  "key": "cisa-kev",
+  "content_type": "kev_catalog",
+  "title": "CISA Known Exploited Vulnerabilities Catalog",
+  "path": "kev/known_exploited_vulnerabilities.json",
+  "sha256": "fb1621beec7db19d99c1f919dede3d4cc01ad88acd16f79f1592929c4826dfee",
+  "version": "2026.10.08",
+  "source_url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+ },
+ "stig": [
+  {
+   "key": "demo-linux-server",
+   "version": "V1R1",
+   "effective_date": "2026-07-24",
+   "seed_status": "installed",
+   "path": "stig/demo-linux-server/V1R1.json",
+   "sha256": "ac747dfabc9bf843d6a9ac86a81f7b06ce4103b735738358ab4e7ea28d43d094",
+   "title": "Demo OS STIG V1R1 (SYNTHETIC)",
+   "benchmark": "Demo Linux Server STIG (SYNTHETIC)",
+   "source_url": "synthetic://aegisrmf/scripts/generate_stig_content.py"
+  },
+  {
+   "key": "demo-linux-server",
+   "version": "V1R2",
+   "effective_date": "2026-10-23",
+   "seed_status": "available",
+   "path": "stig/demo-linux-server/V1R2.json",
+   "sha256": "64e1ec9529ec4e4a26a2e22630e6b6a4c92bcc047a1aec47c0bff7156e52584c",
+   "title": "Demo OS STIG V1R2 (SYNTHETIC)",
+   "benchmark": "Demo Linux Server STIG (SYNTHETIC)",
+   "source_url": "synthetic://aegisrmf/scripts/generate_stig_content.py"
+  }
+ ],
+ "oscal_schemas": {
+  "repository": "https://github.com/usnistgov/OSCAL",
+  "release_tag": "v1.2.2",
+  "oscal_version": "1.2.2",
+  "dir": "oscal-schemas/v1.2.2",
+  "files": {
+   "oscal_assessment-plan_schema.json": {
+    "sha256": "ba265f05982969142cbc3c6ed6bb99e0880081ceb366c152e44fe7e2b08aa125",
+    "source_url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.2/oscal_assessment-plan_schema.json"
+   },
+   "oscal_assessment-results_schema.json": {
+    "sha256": "d4e1e7e17c6662814882810ad64075266964ee1a575759ce3955302fd74edcd9",
+    "source_url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.2/oscal_assessment-results_schema.json"
+   },
+   "oscal_poam_schema.json": {
+    "sha256": "c8f2ce52b3c71299bb0c9e1cd950d48dc79d9f52920c543ac30b3c3f08c2e152",
+    "source_url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.2/oscal_poam_schema.json"
+   },
+   "oscal_ssp_schema.json": {
+    "sha256": "d7f9bf67101829083472a8f058a5b5ef078e09b3f699ac0c4dbe33a5b0671b6a",
+    "source_url": "https://github.com/usnistgov/OSCAL/releases/download/v1.2.2/oscal_ssp_schema.json"
+   }
+  }
+ }
+}
