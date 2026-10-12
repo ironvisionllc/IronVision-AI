@@ -1,0 +1,26 @@
+# Staging overlay (synthetic demo data only). Use with docker-compose.yml + deploy/digitalocean/docker-compose.do.yml (NOT docker-compose.prod.yml).
+# STATUS: not yet executed on DigitalOcean.
+services:
+  migrate:
+    environment:
+      APP_ENV: staging
+      SEED_DEMO_DATA: "true"            # explicit: staging only; seed refuses the documented demo password
+  worker:
+    environment:
+      APP_ENV: staging
+      SEED_DEMO_DATA: "true"
+  backend:
+    environment:
+      APP_ENV: staging
+      SEED_DEMO_DATA: "false"
+  frontend:
+    build:
+      args:
+        REACT_APP_ENV_LABEL: staging     # persistent "STAGING – SYNTHETIC DATA" banner
+  edge:
+    volumes: !override
+      - ./deploy/digitalocean/nginx/edge-staging.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${DATA_ROOT}/staging/htpasswd:/etc/nginx/htpasswd:ro
+      - ${DATA_ROOT}/staging/allowlist.conf:/etc/nginx/allowlist.conf:ro
+      - ${DATA_ROOT}/certbot/www:/var/www/certbot:ro
+      - ${DATA_ROOT}/letsencrypt:/etc/letsencrypt:ro

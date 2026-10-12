@@ -9,6 +9,7 @@ from app.config import get_settings
 from app.db import SessionLocal
 from app.models import AuthIdentity, ContentVersion, Organization, RoleAssignment, User
 from app.security.passwords import hash_password, verify_password
+from app.check_env import DOCUMENTED_DEMO_PASSWORD
 from app.services import jobs
 
 log = logging.getLogger("aegis.seed")
@@ -57,25 +58,46 @@ def seed_demo(db: Session, password: str) -> Organization:
         if ra is None:
             db.add(RoleAssignment(user_id=user.id, role=role, scope_type="org", scope_id=org.id, source=SEED_SOURCE))
     db.flush()
+    ensure_reference_content(db, org)
+    return org
+
+
+def ensure_reference_content(db: Session, org: Organization | None = None) -> None:
+    """Reference content (NIST/CCI/KEV/STIG) is loaded for every deployment; synthetic Phase 1+ data only with a demo org."""
     has_catalog = db.scalar(select(ContentVersion.id).where(ContentVersion.content_type == "oscal_catalog").limit(1))
     if not has_catalog and not jobs.has_pending(db, jobs.JOB_CONTENT_LOAD):
         jobs.enqueue(db, jobs.JOB_CONTENT_LOAD, {"force": False, "reason": "initial seed"})
         log.info("Enqueued initial reference content load job")
-    elif has_catalog and os.environ.get("SAMPLES_DIR"):
+    elif has_catalog and org is not None and os.environ.get("SAMPLES_DIR"):
         from app.seed_phase1 import seed_phase1
 
         seed_phase1(db, org, os.environ["SAMPLES_DIR"])
-    return org
+
+
+def demo_password() -> str:
+    """STAGING_DEMO_PASSWORD overrides DEMO_USER_PASSWORD; outside development the publicly documented password is refused."""
+    s = get_settings()
+    pw = os.environ.get("STAGING_DEMO_PASSWORD") or s.demo_user_password
+    if not pw:
+        raise RuntimeError("DEMO_USER_PASSWORD (or STAGING_DEMO_PASSWORD) must be set to seed demo users")
+    if s.environment != "development" and pw == DOCUMENTED_DEMO_PASSWORD:
+        raise RuntimeError(f"Refusing to seed demo users with the publicly documented password in APP_ENV={s.environment}")
+    return pw
 
 
 def run() -> None:
+    from app.check_env import production_guard
+
+    production_guard()
     s = get_settings()
-    if not s.demo_user_password:
-        raise RuntimeError("DEMO_USER_PASSWORD must be set to seed demo users")
     with SessionLocal() as db:
-        seed_demo(db, s.demo_user_password)
+        if s.seed_demo_data:
+            seed_demo(db, demo_password())
+            log.info("Demo seed complete")
+        else:
+            ensure_reference_content(db)
+            log.info("SEED_DEMO_DATA is off: reference content only, no demo accounts")
         db.commit()
-    log.info("Demo seed complete")
 
 
 if __name__ == "__main__":

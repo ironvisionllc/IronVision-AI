@@ -1,0 +1,53 @@
+# IronVision AI production edge (nginx official image, envsubst template: only ${APP_DOMAIN} is substituted).
+# STATUS: not yet executed on DigitalOcean.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${APP_DOMAIN};
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name ${APP_DOMAIN};
+    server_tokens off;
+
+    ssl_certificate     /etc/letsencrypt/live/${APP_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${APP_DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+
+    client_max_body_size 60m;            # backend MAX_UPLOAD_MB=50 + multipart overhead
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location = /metrics { return 404; }
+    location /api/v1/metrics { deny all; }   # scrape from the internal docker network instead
+
+    location /api/ {
+        proxy_pass http://backend:8001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;   # overwrite, never append client-supplied values
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-SSL-Client-Verify "";
+        proxy_set_header X-SSL-Client-S-DN "";
+        proxy_set_header X-Client-EDIPI "";
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 300s;          # large scan uploads
+        proxy_read_timeout 300s;          # ingest + AI drafting (AI_TIMEOUT_SECONDS=60) with headroom
+        proxy_request_buffering off;
+    }
+
+    # SPA – frontend nginx already sets CSP (frame-ancestors 'none'), nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy.
+    location / {
+        proxy_pass http://frontend:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}

@@ -7,7 +7,7 @@ import type { AuthProviderInfo } from "@/lib/types";
 import { cn } from "@/lib/format";
 import { ROLE_LABELS } from "@/lib/nav";
 import { SyntheticBanner } from "@/components/shell/SyntheticBanner";
-import { BrandMark, ThemeToggle, Wordmark } from "@/components/shell/Brand";
+import { BrandLockup, BrandMark, ThemeToggle, Wordmark } from "@/components/shell/Brand";
 
 export default function LoginPage() {
   const { user, login } = useAuth();
@@ -51,23 +51,19 @@ export default function LoginPage() {
     <div className="flex h-full flex-col" data-testid="login-page">
       <SyntheticBanner />
       <div className="grid min-h-0 flex-1 lg:grid-cols-[1.05fr_1fr]">
-        <aside className="iv-hero relative hidden flex-col justify-between overflow-hidden px-14 py-12 lg:flex" data-testid="login-hero">
-          <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
-          <div className="relative flex items-center gap-4">
-            <BrandMark variant="mono" className="h-24 w-24" />
-            <div>
-              <div className="text-3xl text-white" data-testid="login-brand"><span className="font-heading font-extrabold tracking-tight">IronVision <span style={{ color: "var(--iv-gold)" }}>AI</span></span></div>
-              <div className="t-label mt-1 !text-[11px]" style={{ color: "var(--iv-brand-200)" }}>Intelligent Risk. Continuous Assurance.</div>
+        <aside className="iv-hero relative hidden flex-col items-center justify-center overflow-hidden px-14 py-12 lg:flex" data-testid="login-hero">
+          <div className="pointer-events-none absolute inset-0 opacity-[0.5]" style={{ backgroundImage: "linear-gradient(var(--iv-hero-grid) 1px, transparent 1px), linear-gradient(90deg, var(--iv-hero-grid) 1px, transparent 1px)", backgroundSize: "44px 44px" }} />
+          <div className="relative flex max-w-md flex-col items-center text-center">
+            <BrandLockup className="w-72" />
+            <div className="mt-5 font-heading text-[2.6rem] font-extrabold leading-none tracking-[0.18em]" data-testid="login-brand" aria-label="IronVision AI">
+              <span className="sr-only">IronVision </span><span className="iv-wordmark-ai">AI</span>
             </div>
-          </div>
-          <div className="relative max-w-lg">
-            <div className="t-label !text-brand-200">Risk Management Framework Workbench</div>
-            <h1 className="t-display mt-4 text-white">Intelligent Risk.<br /><span style={{ color: "var(--iv-brand-200)" }}>Continuous Assurance.</span></h1>
-            <p className="t-body mt-6 text-brand-100/90" style={{ color: "var(--iv-brand-100)" }}>
-              Automation for ISSOs, ISSMs, assessors and authorizing officials — grounded in pinned, hash-verified NIST SP 800-53 Rev 5 and DISA CCI reference content.
+            <h1 className="t-title mt-6 text-slate-900" data-testid="login-tagline">Intelligent Risk. <span className="text-blue-700">Continuous Assurance.</span></h1>
+            <p className="t-caption mt-3 text-slate-600">
+              RMF automation for ISSOs, ISSMs, assessors and authorizing officials — grounded in pinned, hash-verified NIST SP 800-53 Rev 5 and DISA CCI reference content.
             </p>
+            <div className="t-label mt-8 !text-[10px]">Phase 5 · Production Hardening</div>
           </div>
-          <div className="relative text-[11px]" style={{ color: "var(--iv-brand-200)" }}>Phase 5 · Production Hardening</div>
         </aside>
 
         <main className="relative flex items-center justify-center overflow-y-auto px-6 py-10">

@@ -118,3 +118,13 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Part A: SPA security headers on the dev server (craco) and in prod nginx. `/metrics` returns 404 on the SPA (dev, nginx, edge).
 - Tests: backend 85/85, acceptance 12/12, yarn build OK. Screenshots: docs/screenshots/*-{light,dark}.png.
 - Backlog: swap in the official logo vector when supplied, plus a per-page dark-mode polish pass for less-used admin sub-panels.
+
+## 2026-10-12 – Official logo, DigitalOcean handover, Docs Center
+- The logo now comes from the customer's Logo-01.webp via `scripts/build_brand_assets.py`. The header mark and login lockup are served at 1x/2x through srcset, with dark-mode variants. Favicons are regenerated. Screenshots were retaken for login, leadership, controls-workbench-cm6, poam and evidence-ledger in both themes.
+- The demo data reset removed the 5k perf findings. test_credentials.md notes that system IDs change on reset.
+- docs/DIGITALOCEAN_DEPLOYMENT.md covers all 13 sections. Status: documentation only, not yet executed on DigitalOcean. deploy/digitalocean/ holds the compose overlays (prod and staging), nginx edge templates, env templates, systemd units (app, backup timer, certbot renew), backup-offsite.sh and docker-daemon.json for log rotation.
+- scripts/check_env.py now checks env files, and the production guard refuses dev_password or the demo seed. `python -m app.cli create-admin` creates the first admin. STAGING_DEMO_PASSWORD applies to staging. The AI_PROVIDER=emergent setting is refused in staging and production.
+- scripts/verify_no_preview_deps.sh passes for the non-Docker parts; the image checks run on the Droplet with --docker.
+- The in-app Docs Center (/docs-center, /docs-center/:slug) serves an allowlist of docs, with .md download and a zip of all docs.
+- Verification: backend 91 passed, acceptance 12/12, frontend yarn build passed.
+- Backlog: run the Droplet validation checklist (§13), set up CI image builds and a registry, and work through the remaining frontend yarn-audit items.

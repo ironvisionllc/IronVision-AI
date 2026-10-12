@@ -1,7 +1,11 @@
 name: aegisrmf
 
 x-backend-env: &backend-env
-  APP_ENV: production
+  APP_ENV: ${APP_ENV:-development}
+  ALLOW_INSECURE_PRODUCTION: ${ALLOW_INSECURE_PRODUCTION:-false}
+  STAGING_DEMO_PASSWORD: ${STAGING_DEMO_PASSWORD:-}
+  DEV_USER_PICKER: ${DEV_USER_PICKER:-true}
+  DOCS_ROOT: /srv/handover
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
   DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
   JWT_SECRET: ${JWT_SECRET}
@@ -117,6 +121,8 @@ services:
       SEED_DEMO_DATA: "false"
     volumes:
       - ./samples:/samples:ro
+      - ./README.md:/srv/handover/README.md:ro
+      - ./docs:/srv/handover/docs:ro
     ports:
       - "8001:8001"
     depends_on:
@@ -145,6 +151,7 @@ services:
       dockerfile: Dockerfile
       args:
         REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-}
+        REACT_APP_ENV_LABEL: ${REACT_APP_ENV_LABEL:-}
     ports:
       - "3000:8080"
     depends_on:

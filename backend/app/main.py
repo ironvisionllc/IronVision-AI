@@ -18,6 +18,9 @@ log = logging.getLogger("aegis.api")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    from app.check_env import production_guard
+
+    production_guard()
     if settings.seed_demo_data:
         try:
             from app.seed import run as run_seed

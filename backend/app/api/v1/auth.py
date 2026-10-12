@@ -52,7 +52,7 @@ def provider_info(db: Session = Depends(get_db)) -> AuthProviderInfo:
     provider = get_auth_provider()
     accounts: list[DevAccount] = []
     enabled = sessions.enabled_providers()
-    if provider.is_simulated and "dev_password" in enabled:
+    if provider.is_simulated and "dev_password" in enabled and os.environ.get("DEV_USER_PICKER", "true").lower() not in ("0", "false", "no", "off"):
         rows = db.execute(
             select(User.email, User.display_name, RoleAssignment.role)
             .join(AuthIdentity, AuthIdentity.user_id == User.id)

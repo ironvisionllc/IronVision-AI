@@ -11,6 +11,7 @@ if [ ! -x /usr/lib/postgresql/16/bin/postgres ]; then
 fi
 chown -R postgres:postgres /app/data/postgres && chmod 700 /app/data/postgres
 cp /app/deploy/emergent-pod/aegis-supervisor.conf /etc/supervisor/conf.d/aegis.conf
+supervisorctl status >/dev/null 2>&1 || [ $? -ne 4 ] || { supervisord -c /etc/supervisor/supervisord.conf; sleep 8; }  # 4 = no socket (supervisord down)
 supervisorctl reread && supervisorctl update
 supervisorctl stop mongodb || true
 sleep 3

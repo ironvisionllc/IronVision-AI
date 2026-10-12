@@ -6,6 +6,7 @@ x-prod-env: &prod-env
   APP_ENV: production
   AUTH_PROVIDERS: ${AUTH_PROVIDERS:-oidc}
   SEED_DEMO_DATA: "false"
+  DEV_USER_PICKER: "false"
   TRUST_PROXY_HEADERS: "true"
   HSTS_ENABLED: "true"
   CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS to the public https origin}

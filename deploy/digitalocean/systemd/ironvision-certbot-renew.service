@@ -1,0 +1,10 @@
+[Unit]
+Description=Renew Let's Encrypt certificates (webroot) and reload the IronVision edge
+After=ironvision.service
+
+[Service]
+Type=oneshot
+User=ironvision
+WorkingDirectory=/opt/ironvision/app
+Environment=COMPOSE="docker compose -p ironvision --env-file deploy/digitalocean/.env.production -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml"
+ExecStart=/bin/sh -c '$COMPOSE --profile certbot run --rm certbot renew --webroot -w /var/www/certbot --quiet && $COMPOSE exec -T edge nginx -s reload'

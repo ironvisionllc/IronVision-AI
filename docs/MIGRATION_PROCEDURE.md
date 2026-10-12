@@ -1,5 +1,7 @@
 # Schema migration procedure
 
+> Droplet upgrade/rollback commands and the managed-PostgreSQL cutover are in **[DIGITALOCEAN_DEPLOYMENT.md](DIGITALOCEAN_DEPLOYMENT.md)** (§7, §12).
+
 Every schema change is an Alembic revision in `backend/alembic/versions/` (current head **0009**).
 
 ## Authoring

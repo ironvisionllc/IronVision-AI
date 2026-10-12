@@ -1,0 +1,102 @@
+# IronVision AI – DigitalOcean Droplet overlay (STATUS: documentation/config only – not yet executed on DigitalOcean).
+# Production:
+#   docker compose -p ironvision --env-file deploy/digitalocean/.env.production \
+#     -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml up -d --build
+# Staging (separate Droplet recommended):
+#   docker compose -p ironvision-staging --env-file deploy/digitalocean/.env.staging \
+#     -f docker-compose.yml -f deploy/digitalocean/docker-compose.do.yml -f deploy/digitalocean/docker-compose.staging.yml up -d --build
+# Requires Docker Compose >= 2.24 (!reset / !override). Data lives on Block Storage under ${DATA_ROOT}.
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }
+
+x-do-env: &do-env
+  DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}}
+  STORAGE_DRIVER: ${STORAGE_DRIVER:-s3}
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-${MINIO_ROOT_USER}}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-${MINIO_ROOT_PASSWORD}}
+  HSTS_ENABLED: ${HSTS_ENABLED:-true}
+  CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-}
+  OIDC_CLAIM_EMAIL: ${OIDC_CLAIM_EMAIL:-email}
+  OIDC_CLAIM_NAME: ${OIDC_CLAIM_NAME:-name}
+  OIDC_ALLOWED_ALGS: ${OIDC_ALLOWED_ALGS:-RS256,ES256}
+  MTLS_HEADER_VERIFY: ${MTLS_HEADER_VERIFY:-x-ssl-client-verify}
+  MTLS_HEADER_DN: ${MTLS_HEADER_DN:-x-ssl-client-s-dn}
+  MTLS_HEADER_EDIPI: ${MTLS_HEADER_EDIPI:-x-client-edipi}
+  VAULT_NAMESPACE: ${VAULT_NAMESPACE:-}
+  VAULT_KV_MOUNT: ${VAULT_KV_MOUNT:-secret}
+  VAULT_KV_PREFIX: ${VAULT_KV_PREFIX:-aegisrmf}
+  AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-60}
+  WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-2}
+  WORKER_HEARTBEAT_STALE_SECONDS: ${WORKER_HEARTBEAT_STALE_SECONDS:-30}
+  SCHEDULER_TICK_SECONDS: ${SCHEDULER_TICK_SECONDS:-30}
+  TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-true}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    volumes: !override
+      - ${DATA_ROOT:?set DATA_ROOT}/postgres:/var/lib/postgresql/data
+    ports: !override
+      - "127.0.0.1:5432:5432"   # host-side backups only; never public (ufw + DO firewall block 5432)
+    shm_size: 256mb
+    restart: unless-stopped
+    logging: *logging
+
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-04-22T22-12-26Z}
+    volumes: !override
+      - ${DATA_ROOT}/minio:/data
+    ports: !override
+      - "127.0.0.1:9000:9000"   # S3 API for host-side backups
+      - "127.0.0.1:9001:9001"   # console – reach it only through an SSH tunnel
+    restart: unless-stopped
+    logging: *logging
+
+  minio-init:
+    logging: *logging
+
+  migrate:
+    environment:
+      <<: *do-env
+    logging: *logging
+
+  backend:
+    environment:
+      <<: *do-env
+    ports: !reset []
+    logging: *logging
+
+  worker:
+    environment:
+      <<: *do-env
+    logging: *logging
+
+  frontend:
+    ports: !reset []
+    logging: *logging
+
+  edge:
+    image: nginx:1.27-alpine           # root master can read Let's Encrypt keys; workers run as nginx
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN}
+    volumes: !override
+      - ./deploy/digitalocean/nginx/edge.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ${DATA_ROOT}/certbot/www:/var/www/certbot:ro
+      - ${DATA_ROOT}/letsencrypt:/etc/letsencrypt:ro
+    ports: !override
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    logging: *logging
+
+  certbot:                              # docker compose ... run --rm certbot renew --webroot -w /var/www/certbot
+    profiles: ["certbot"]
+    image: certbot/certbot:v2.11.0
+    volumes:
+      - ${DATA_ROOT}/certbot/www:/var/www/certbot
+      - ${DATA_ROOT}/letsencrypt:/etc/letsencrypt

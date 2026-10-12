@@ -1,5 +1,7 @@
 # External validation checkpoint (run outside Emergent)
 
+> DigitalOcean target: follow **[DIGITALOCEAN_DEPLOYMENT.md](DIGITALOCEAN_DEPLOYMENT.md)** and complete its §13 operator checklist. Run `scripts/check_env.py` and `scripts/verify_no_preview_deps.sh --docker` on the Droplet. Not yet executed on DigitalOcean.
+
 This shows that IronVision AI runs on any machine with Docker: clone → `.env` → compose build/up → migrations → seed → login → STIG upload → POA&M → closure approval → leadership metric. No Emergent packages, keys or hosts are needed. **All data is SYNTHETIC.**
 
 ## Prerequisites

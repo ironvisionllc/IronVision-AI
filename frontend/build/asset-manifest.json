@@ -1,0 +1,20 @@
+{
+  "files": {
+    "main.css": "/static/css/main.0b04eb5c.css",
+    "main.js": "/static/js/main.fb776f8b.js",
+    "static/media/logo-lockup-dark-576.png": "/static/media/logo-lockup-dark-576.1926b51e97ecf452bb0e.png",
+    "static/media/logo-lockup-576.png": "/static/media/logo-lockup-576.45c4732fb20ad08ade2f.png",
+    "static/media/logo-mark.png": "/static/media/logo-mark.5920cab3e78a0ea677a6.png",
+    "static/media/logo-lockup-dark-288.png": "/static/media/logo-lockup-dark-288.bcef3d3b3214393bad2e.png",
+    "static/media/logo-lockup-288.png": "/static/media/logo-lockup-288.ea1f9fa6cec80bbc12b4.png",
+    "static/media/logo-mark-dark-80.png": "/static/media/logo-mark-dark-80.9af92324d202420cff14.png",
+    "static/media/logo-mark-80.png": "/static/media/logo-mark-80.b5eb7d7e8b57a80d4dfb.png",
+    "index.html": "/index.html",
+    "main.0b04eb5c.css.map": "/static/css/main.0b04eb5c.css.map",
+    "main.fb776f8b.js.map": "/static/js/main.fb776f8b.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.0b04eb5c.css",
+    "static/js/main.fb776f8b.js"
+  ]
+}

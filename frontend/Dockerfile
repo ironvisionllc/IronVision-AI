@@ -8,7 +8,8 @@ RUN node -e "const fs=require('fs');const p=require('./package.json');for(const 
 COPY . .
 COPY deploy/index.html public/index.html
 ARG REACT_APP_BACKEND_URL=""
-ENV REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL} GENERATE_SOURCEMAP=false INLINE_RUNTIME_CHUNK=false NODE_ENV=production
+ARG REACT_APP_ENV_LABEL=""
+ENV REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL} REACT_APP_ENV_LABEL=${REACT_APP_ENV_LABEL} GENERATE_SOURCEMAP=false INLINE_RUNTIME_CHUNK=false NODE_ENV=production
 RUN yarn build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine

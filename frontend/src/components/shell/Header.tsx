@@ -1,5 +1,5 @@
-import { LogOut, ShieldAlert, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { BookOpen, LogOut, ShieldAlert, Users } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { ROLE_LABELS } from "@/lib/nav";
 import { NotificationBell } from "@/components/common/Workflow";
@@ -53,6 +53,7 @@ export function Header() {
           )}
         </div>
         <NotificationBell />
+        <Link to="/docs-center" className="btn-ghost px-2 py-1.5" data-testid="header-docs-link" aria-label="Handover docs" title="Handover docs"><BookOpen className="h-4 w-4" aria-hidden /></Link>
         <ThemeToggle />
         <button type="button" onClick={switchUser} data-testid="header-switch-user-btn" className="btn-secondary px-2.5 py-1 text-xs">
           <Users className="h-3.5 w-3.5" aria-hidden /> Switch user (dev only)

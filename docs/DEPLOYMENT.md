@@ -1,5 +1,7 @@
 # Deployment
 
+> DigitalOcean Droplet (Ubuntu 24.04 + Docker Compose): see **[DIGITALOCEAN_DEPLOYMENT.md](DIGITALOCEAN_DEPLOYMENT.md)**. Not yet executed on DigitalOcean.
+
 ## 1. Development / evaluation (single host)
 ```bash
 git clone <repo> aegisrmf && cd aegisrmf

@@ -1,0 +1,20 @@
+[Unit]
+Description=IronVision AI (docker compose, production)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/ironvision/app
+Environment=COMPOSE="docker compose -p ironvision --env-file deploy/digitalocean/.env.production -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml"
+ExecStartPre=/usr/bin/python3 scripts/check_env.py deploy/digitalocean/.env.production
+ExecStart=/bin/sh -c '$COMPOSE up -d'
+ExecStop=/bin/sh -c '$COMPOSE stop'
+TimeoutStartSec=600
+User=ironvision
+Group=docker
+
+[Install]
+WantedBy=multi-user.target

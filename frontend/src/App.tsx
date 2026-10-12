@@ -7,6 +7,7 @@ import { NAV_ITEMS } from "@/lib/nav";
 import LoginPage from "@/pages/LoginPage";
 import ControlsPage from "@/pages/ControlsPage";
 import AdminPage from "@/pages/AdminPage";
+import DocsCenterPage from "@/pages/DocsCenterPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import LeadershipPage from "@/pages/LeadershipPage";
 import { RegisterSystemPage, SystemsPage } from "@/pages/SystemsPage";
@@ -57,6 +58,8 @@ function Shell() {
           <Route path="/ingest-runs/:id" element={<IngestRunPage />} />
           <Route path="/evidence-ledger" element={<LedgerPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/docs-center" element={<DocsCenterPage />} />
+          <Route path="/docs-center/:slug" element={<DocsCenterPage />} />
           <Route path="/poam" element={<Navigate to="/poams" replace />} />
           <Route path="/poams" element={<PoamListPage />} />
           <Route path="/poams/:id" element={<PoamDetailPage />} />

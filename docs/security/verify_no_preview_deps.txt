@@ -1,0 +1,16 @@
+(a) backend Python dependencies
+  PASS  requirements.prod.txt has no Emergent packages
+  PASS  backend + worker images install requirements.prod.txt only
+(b) frontend dependencies used by the Docker build
+  PASS  Docker package.json (after Dockerfile strip) has no Emergent packages
+  PASS  deploy/index.html (Docker) has no Emergent scripts
+  PASS  Dockerfile replaces the preview index.html
+(c) built JS bundle
+  PASS  bundle has no Emergent URLs / preview scripts
+  PASS  bundle has no visual-edits/overlay code
+(d) Emergent AI adapter
+  PASS  emergent adapter file present but its library (emergentintegrations) is NOT in requirements.prod.txt
+  PASS  AI_PROVIDER=none never imports the emergent adapter; AI_PROVIDER=emergent is refused when APP_ENV=production
+  SKIP  image inspection (run with --docker on the Droplet)
+
+RESULT: PASS

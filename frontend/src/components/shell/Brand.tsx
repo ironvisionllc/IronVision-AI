@@ -1,17 +1,24 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/format";
-import logo from "@/assets/brand/logo.svg";
-import logoMono from "@/assets/brand/logo-mono.svg";
+import * as brand from "@/assets/brand";
 
 export const PRODUCT_NAME = "IronVision AI";
 export const TAGLINE = "Intelligent Risk. Continuous Assurance.";
 
-/** Uses the single swappable brand files in src/assets/brand/ (logo.svg / logo-mono.svg). */
+/** Official IronVision mark (src/assets/brand). Dark theme uses the white mono variant. */
 export function BrandMark({ className, variant = "auto" }: { className?: string; variant?: "auto" | "color" | "mono" }) {
   const { theme } = useTheme();
   const mono = variant === "mono" || (variant === "auto" && theme === "dark");
-  return <img src={mono ? logoMono : logo} alt={`${PRODUCT_NAME} logo`} className={cn("shrink-0 select-none", className ?? "h-8 w-8")} draggable={false} data-testid="brand-logo" />;
+  const i = mono ? brand.markMono : brand.mark;
+  return <img src={i.src} srcSet={i.srcSet} alt={`${PRODUCT_NAME} logo`} className={cn("shrink-0 select-none object-contain", className ?? "h-8 w-8")} draggable={false} data-testid="brand-logo" />;
+}
+
+/** Official vertical lockup (mark + IRONVISION wordmark), theme-aware. */
+export function BrandLockup({ className }: { className?: string }) {
+  const { theme } = useTheme();
+  const i = theme === "dark" ? brand.lockupDark : brand.lockup;
+  return <img src={i.src} srcSet={i.srcSet} width={288} alt="IronVision" className={cn("select-none object-contain", className)} draggable={false} data-testid="brand-lockup" />;
 }
 
 export function Wordmark({ className }: { className?: string }) {

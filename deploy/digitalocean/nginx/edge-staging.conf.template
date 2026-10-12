@@ -1,0 +1,49 @@
+# IronVision AI STAGING edge: basic auth + optional IP allowlist + noindex. STATUS: not yet executed on DigitalOcean.
+# ${DATA_ROOT}/staging/htpasswd   -> htpasswd -B -c htpasswd <user>   (apache2-utils)
+# ${DATA_ROOT}/staging/allowlist.conf -> lines like "allow 203.0.113.10;" then "deny all;"  (or a single "allow all;")
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${APP_DOMAIN};
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name ${APP_DOMAIN};
+    server_tokens off;
+    ssl_certificate     /etc/letsencrypt/live/${APP_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${APP_DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    client_max_body_size 60m;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Robots-Tag "noindex, nofollow, noarchive" always;
+
+    include /etc/nginx/allowlist.conf;
+    auth_basic "IronVision AI staging";
+    auth_basic_user_file /etc/nginx/htpasswd;
+
+    location /.well-known/acme-challenge/ { auth_basic off; allow all; root /var/www/certbot; }
+    location = /robots.txt { auth_basic off; default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }
+    location = /metrics { return 404; }
+    location /api/v1/metrics { deny all; }
+
+    location /api/ {
+        proxy_pass http://backend:8001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Authorization $http_authorization;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_request_buffering off;
+    }
+    location / {
+        proxy_pass http://frontend:8080;
+        proxy_set_header Host $host;
+    }
+}

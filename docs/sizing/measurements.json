@@ -1,0 +1,54 @@
+{
+ "idle": {
+  "postgres": {
+   "rss_mib": 301,
+   "pss_mib": 301,
+   "procs": 7
+  },
+  "backend": {
+   "rss_mib": 152,
+   "pss_mib": 122,
+   "procs": 3
+  },
+  "worker": {
+   "rss_mib": 160,
+   "pss_mib": 144,
+   "procs": 1
+  },
+  "frontend_build": {
+   "rss_mib": 0,
+   "pss_mib": 0,
+   "procs": 0
+  }
+ },
+ "perf_smoke": {
+  "postgres": {
+   "rss_mib": 975,
+   "pss_mib": 975,
+   "procs": 22
+  },
+  "backend": {
+   "rss_mib": 228,
+   "pss_mib": 198,
+   "procs": 3
+  },
+  "worker": {
+   "rss_mib": 171,
+   "pss_mib": 155,
+   "procs": 1
+  },
+  "frontend_build": {
+   "rss_mib": 0,
+   "pss_mib": 0,
+   "procs": 0
+  },
+  "duration_s": 21.6,
+  "exit": 0,
+  "samples": 42
+ },
+ "measured_at": "2026-10-11T04:48:36Z",
+ "host": {
+  "cpus": 8,
+  "note": "Emergent preview pod (shared host); single uvicorn worker; postgres 16 default config"
+ }
+}

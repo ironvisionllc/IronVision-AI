@@ -105,6 +105,8 @@ def build_provider(name: str) -> AIProvider | None:
         return None
     if name not in ADAPTERS:
         raise ValueError(f"Unknown AI_PROVIDER '{name}'. Options: {', '.join(ADAPTERS)} or none")
+    if name == "emergent" and get_settings().environment in ("staging", "production"):
+        raise ValueError("AI_PROVIDER=emergent is preview-only and is refused in staging/production")
     module = importlib.import_module(ADAPTERS[name])
     return module.Provider(get_settings())
 

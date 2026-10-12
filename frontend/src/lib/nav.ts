@@ -33,7 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
 // Deep-link routes → owning nav item (first match wins).
 const ROUTE_OWNERS: [RegExp, string][] = [
   [/^\/systems\/[^/]+\/controls/, "controls"], [/^\/catalog/, "controls"], [/^\/findings\//, "controls"],
-  [/^\/systems\/[^/]+\/authorization/, "rmf-workflow"], [/^\/ingest-runs\//, "evidence-sources"], [/^\/poams?(\/|$)/, "poam"],
+  [/^\/systems\/[^/]+\/authorization/, "rmf-workflow"], [/^\/docs-center/, "admin"], [/^\/ingest-runs\//, "evidence-sources"], [/^\/poams?(\/|$)/, "poam"],
 ];
 
 export function activeNavId(pathname: string): string | undefined {

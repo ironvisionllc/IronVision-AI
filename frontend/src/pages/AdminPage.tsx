@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+import { BookOpen } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/common/Panel";
 import { HealthPanel } from "@/components/admin/HealthPanel";
@@ -15,7 +17,9 @@ export default function AdminPage() {
   const { can } = useAuth();
   return (
     <div data-testid="admin-page">
-      <PageHeader title="Admin" subtitle="Platform health, AI provider check, RBAC enforcement demo and the audit ledger" />
+      <PageHeader title="Admin" subtitle="Platform health, AI provider check, RBAC enforcement demo and the audit ledger">
+        <Link to="/docs-center/digitalocean" className="btn-outline" data-testid="admin-docs-link"><BookOpen className="h-4 w-4" aria-hidden /> Handover Docs</Link>
+      </PageHeader>
       <div className="grid gap-5">
         <HealthPanel />
         <div className="grid gap-5 xl:grid-cols-2">

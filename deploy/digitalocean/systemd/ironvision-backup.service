@@ -1,0 +1,9 @@
+[Unit]
+Description=IronVision AI nightly backup (+ off-droplet copy)
+After=ironvision.service
+
+[Service]
+Type=oneshot
+User=ironvision
+Environment=REPO=/opt/ironvision/app
+ExecStart=/bin/bash /opt/ironvision/app/deploy/digitalocean/backup-offsite.sh
