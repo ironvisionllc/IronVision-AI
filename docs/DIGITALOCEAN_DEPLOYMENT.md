@@ -73,6 +73,22 @@ python3 scripts/check_env.py $F && scripts/deploy.sh $F    # objectstore-init pr
 
 **Older guide versions (recovery from the MinIO-era files):** remove the `MINIO_*` lines from the env file. Then run `python3 scripts/gen_env_secrets.py $F` and `scripts/deploy.sh $F`. The `MINIO_ROOT_*` names are still read as a fallback for the admin key only.
 
+### 0.2 Troubleshooting: `email: command not found` (or `profile: command not found`)
+**Cause:** a script or wrapper *sourced* the env file (`. "$F"`, `source $F`, `set -a; . ...`). The unquoted `OIDC_SCOPES=openid email profile` then runs `email` as a shell command. Env files are **data**, not shell scripts. Nothing in this repository sources them any more: `deploy.sh` and `backup-offsite.sh` read single keys with `scripts/envget.py`, and a test fails if any script or doc sources an env file.
+
+**Fix** (rewrites safely: quotes values with spaces or shell characters, removes `export `, converts CRLF to LF, strips trailing spaces, comments out duplicates; it writes a timestamped backup first and keeps mode 600):
+```bash
+python3 scripts/check_env.py --fix deploy/digitalocean/.env.production
+python3 scripts/check_env.py deploy/digitalocean/.env.production      # must print RESULT: PASS
+scripts/deploy.sh deploy/digitalocean/.env.production
+```
+- **Quoting rules:**
+  - Wrap any value containing spaces or `$ # ; & | < > ( ) * ` ' " ! ?` in double quotes, e.g. `OIDC_SCOPES="openid profile email"` or `OPENROUTER_APP_NAME="IronVision AI"`.
+  - Use single quotes for values containing `$`, because Docker Compose interpolates `$` inside double quotes.
+  - Docker Compose, the backend (python-dotenv) and `envget.py` all read these values identically, without the quotes.
+- **Reading a value in your own scripts:** use `APP_DOMAIN="$(python3 scripts/envget.py deploy/digitalocean/.env.production APP_DOMAIN)"`, never `. "$F"`.
+- Your own wrapper must not source the env file either. Call `scripts/deploy.sh` and check its exit code.
+
 **Migrating evidence that already sits in a MinIO volume.** Copying MinIO's raw `/data` files is **not safe**: MinIO stores objects in its own `xl.meta` format, not as plain files.
 - **If the old MinIO server is still running**, from an old image you still have locally: point objsync at it as the source.
   ```bash
@@ -387,7 +403,7 @@ AI_MODEL_SUMMARY=                             # summaries
 AI_TEMPERATURE=0.2
 AI_TIMEOUT_SECONDS=60
 OPENROUTER_SITE_URL=https://app.example.gov   # sent as HTTP-Referer
-OPENROUTER_APP_NAME=IronVision AI             # sent as X-Title
+OPENROUTER_APP_NAME="IronVision AI"           # sent as X-Title (quote values with spaces)
 ANTHROPIC_API_KEY=                            # leave empty – never read with openrouter (check_env warns if set)
 ```
 - **Model precedence:** admin model (UI, per organization) > `AI_MODEL_<USE CASE>` > `AI_MODEL`. The admin page shows the effective provider, base URL, model, and whether a key is configured. It never shows the key itself.

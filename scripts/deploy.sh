@@ -44,14 +44,10 @@ trap finish EXIT
 step() { STEP="$1"; HINT="${2:-}"; printf '\n==== [%s] %s\n' "$(date +%H:%M:%S)" "$1"; }
 die() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
 warn() { printf 'WARN: %s\n' "$*" >&2; }
-envget() {
-  local v
-  v="$(grep -E "^[[:space:]]*$1[[:space:]]*=" "$ENV_FILE" | tail -n 1 || true)"
-  v="${v#*=}"
-  v="$(printf '%s' "$v" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-  v="${v#\"}"; v="${v%\"}"; v="${v#\'}"; v="${v%\'}"
-  printf '%s' "$v"
-}
+# env files are data: read single keys, never source them
+# shellcheck source=scripts/lib/envfile.sh
+. scripts/lib/envfile.sh
+envget() { env_get "$ENV_FILE" "$1"; }
 has_profile() { case ",$PROFILES," in *",$1,"*) return 0 ;; esac; return 1; }
 
 # ---------------------------------------------------------------- preflight

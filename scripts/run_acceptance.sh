@@ -2,7 +2,7 @@
 # Runs the acceptance suite (AT-1..AT-12) in a fresh test DB and writes docs/TEST_RESULTS.md.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT/backend"
+cd "$ROOT/backend" || exit 1
 python -m pytest -c pytest.aegis.ini tests/acceptance -v -p no:logging -rA > /tmp/aegis_acceptance.txt 2>&1; ACC=$?
 python -m pytest -c pytest.aegis.ini tests -q -p no:logging > /tmp/aegis_full.txt 2>&1; FULL=$?
 python3 - "$ACC" "$FULL" <<'EOF'

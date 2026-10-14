@@ -195,6 +195,11 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Empty states: NeedSystem CTA, Systems "Register your first system", Evidence Sources "Add a source or upload a scan", Leadership "No systems yet", Workflow ongoing stages "not configured" when no records.
 - Fixed tenant leak: audit log items + category counts now tenant-scoped.
 
+### Env files are data, never sourced (Oct 2026)
+- Customer bug: a wrapper sourced the env file, so the unquoted OIDC_SCOPES value ran `email` as a command. The repo itself sourced an env file in one place, deploy/digitalocean/backup-offsite.sh; it now reads keys through scripts/lib/envfile.sh (env_get / env_export → scripts/envget.py). deploy.sh uses env_get too.
+- backend/app/envfile.py is the one parser, following Compose/dotenv rules. Lint flags unquoted whitespace or shell metacharacters, unbalanced quotes, `export `, CRLF, trailing spaces, duplicate and invalid keys, and `$` inside double quotes. It reports line numbers with a suggested fix and is an error in staging/production. `check_env.py --fix` writes a backup (mode 600) and preserves comments. OIDC scopes now accept space- or comma-separated values and strip quotes.
+- Templates now quote OIDC_SCOPES, DEMO_USER_PASSWORD and OPENROUTER_APP_NAME. Tests cover template lint, parse equivalence across our parser, python-dotenv, envget, env_get and docker compose, and a guard against sourcing (scripts plus code blocks in docs). DO guide §0.2 added.
+
 ### requirements.prod drift guard + OpenRouter (Oct 2026)
 - A production outage was caused by python-multipart missing from requirements.prod.txt. requirements.prod.txt now holds the same pins as requirements.txt (77 packages). 88 packages are left out, each listed with a reason in requirements.prod-exclude.txt: dev tools, the preview AI adapter and its transitive dependencies, and unused template leftovers.
 - scripts/check_requirements.py checks pins, exclusions, import coverage and implicit runtime dependencies; it runs in pytest and CI. app.tools.selfcheck imports every app and worker module; deploy.sh runs it in both images after build, and so do verify_portability and CI. A clean venv with only requirements.prod.txt passed: pip check, selfcheck, uvicorn /health and /ready returned 200, and the worker started.

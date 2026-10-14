@@ -18,10 +18,17 @@ STATE_TTL = 300
 _pending: dict[str, dict] = {}  # state → {verifier, nonce, ts}; single-process. Multi-replica: use a shared store (DEPLOYMENT.md).
 
 
+def scopes(raw: str | None) -> str:
+    """Space- or comma-separated, stray quotes stripped; always includes openid."""
+    parts = [p for p in (raw or "").strip().strip("\"'").replace(",", " ").split() if p.strip("\"'")]
+    parts = [p.strip("\"'") for p in parts] or ["openid", "profile", "email"]
+    return " ".join(parts if "openid" in parts else ["openid", *parts])
+
+
 def cfg() -> dict:
     return {"issuer": os.environ["OIDC_ISSUER"].rstrip("/"), "client_id": os.environ["OIDC_CLIENT_ID"],
             "client_secret": os.environ.get("OIDC_CLIENT_SECRET"), "redirect_uri": os.environ["OIDC_REDIRECT_URI"],
-            "scopes": os.environ.get("OIDC_SCOPES", "openid profile email"), "claim_email": os.environ.get("OIDC_CLAIM_EMAIL", "email"),
+            "scopes": scopes(os.environ.get("OIDC_SCOPES")), "claim_email": os.environ.get("OIDC_CLAIM_EMAIL", "email"),
             "claim_name": os.environ.get("OIDC_CLAIM_NAME", "name"),
             "algs": [a.strip() for a in os.environ.get("OIDC_ALLOWED_ALGS", "RS256,ES256").split(",")]}
 

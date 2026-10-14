@@ -5,10 +5,11 @@
 set -euo pipefail
 REPO="${REPO:-/opt/ironvision/app}"
 ENV_FILE="${ENV_FILE:-$REPO/deploy/digitalocean/.env.production}"
-set -a
-# shellcheck source=/dev/null
-. "$ENV_FILE"
-set +a
+# env files are data – read the keys we need, never source the file
+# shellcheck source=scripts/lib/envfile.sh
+. "$REPO/scripts/lib/envfile.sh"
+env_export "$ENV_FILE" BACKUP_DIR BACKUP_RETENTION_DAYS POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB STORAGE_DRIVER DATA_ROOT \
+  OFFSITE_S3_ENDPOINT_URL OFFSITE_S3_BUCKET OFFSITE_S3_REGION OFFSITE_S3_ACCESS_KEY_ID OFFSITE_S3_SECRET_ACCESS_KEY OFFSITE_S3_ADDRESSING_STYLE
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${BACKUP_DIR:?}/ironvision-$TS"
 mkdir -p "$OUT"

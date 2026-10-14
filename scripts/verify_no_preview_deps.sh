@@ -5,7 +5,7 @@
 # Usage: scripts/verify_no_preview_deps.sh [--docker]     (--docker also inspects built images; run on the Droplet)
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+cd "$ROOT" || exit 1
 FAIL=0; pass() { echo "  PASS  $*"; }; fail() { echo "  FAIL  $*"; FAIL=1; }; skip() { echo "  SKIP  $*"; }
 PAT='emergent|visual-edits|emergentbase'
 
