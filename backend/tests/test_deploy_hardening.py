@@ -5,12 +5,12 @@ from app.check_env import DOCUMENTED_DEMO_PASSWORD, insecure_production, validat
 from tests.conftest import auth
 
 GOOD = {
-    "APP_ENV": "production", "APP_DOMAIN": "app.example.gov", "POSTGRES_DB": "ironvision", "POSTGRES_USER": "ironvision",
+    "APP_ENV": "production", "APP_DOMAIN": "rmf.agency.test", "POSTGRES_DB": "ironvision", "POSTGRES_USER": "ironvision",
     "POSTGRES_PASSWORD": "Zq8x1Lr0Pc4Vn7Kw2Ty5", "S3_ACCESS_KEY_ID": "ironvisionapp", "S3_SECRET_ACCESS_KEY": "Mb3Hs9Qd6Jf1Wr8Ux4Ze", "S3_ADMIN_ACCESS_KEY_ID": "ironvisionadmin", "S3_ADMIN_SECRET_ACCESS_KEY": "Ka7Rt2Wx9Lp4Nc6Vb1Qz", "COMPOSE_PROFILES": "seaweedfs", "STORAGE_DRIVER": "s3",
     "S3_BUCKET": "ironvision-evidence", "S3_REGION": "us-east-1", "JWT_SECRET": "k" * 8 + "Q7m2Rz9Xv4Lp1Ns6Bt3Wy8Hc5Jd0Gf",
-    "SECRET_STORE_KEY": "ZmVybmV0LWtleS1mb3ItdGVzdHMtb25seS0wMTIzNDU=", "CORS_ORIGINS": "https://app.example.gov",
-    "FRONTEND_URL": "https://app.example.gov", "AUTH_PROVIDERS": "oidc", "OIDC_ISSUER": "https://idp.example.gov/realms/x",
-    "OIDC_CLIENT_ID": "ironvision", "OIDC_REDIRECT_URI": "https://app.example.gov/api/v1/auth/oidc/callback", "TRUST_PROXY_HEADERS": "true",
+    "SECRET_STORE_KEY": "ZmVybmV0LWtleS1mb3ItdGVzdHMtb25seS0wMTIzNDU=", "CORS_ORIGINS": "https://rmf.agency.test",
+    "FRONTEND_URL": "https://rmf.agency.test", "AUTH_PROVIDERS": "oidc", "OIDC_ISSUER": "https://idp.agency.test/realms/x",
+    "OIDC_CLIENT_ID": "ironvision", "OIDC_REDIRECT_URI": "https://rmf.agency.test/api/v1/auth/oidc/callback", "TRUST_PROXY_HEADERS": "true",
     "SEED_DEMO_DATA": "false", "AI_PROVIDER": "none",
 }
 

@@ -195,6 +195,12 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Empty states: NeedSystem CTA, Systems "Register your first system", Evidence Sources "Add a source or upload a scan", Leadership "No systems yet", Workflow ongoing stages "not configured" when no records.
 - Fixed tenant leak: audit log items + category counts now tenant-scoped.
 
+### Domain switch + automatic TLS (Oct 2026)
+- `./deploy.sh --set-domain <d> --email <e>` runs scripts/set_domain.py: backup, mode 600, rewrites APP_DOMAIN, FRONTEND_URL, CORS_ORIGINS, OPENROUTER_SITE_URL, OIDC_REDIRECT_URI and LETSENCRYPT_EMAIL, plus every non-secret occurrence of the old or placeholder domain, then prints a diff.
+- scripts/ensure_tls.sh `ensure` runs before the app starts. If the cert is missing, for another domain, expiring within 30 days or from the staging CA, it runs a DNS A-record vs Droplet IPv4 check (--force-tls skips it), stops edge, checks port 80, runs certbot certonly --standalone (honouring LETSENCRYPT_STAGING), and re-checks. It can also install a user-supplied CERT_FULLCHAIN_PATH/CERT_KEY_PATH. `verify` checks the SAN, the Let's Encrypt issuer and https /api/v1/ready.
+- deploy.sh installs and enables the systemd units (paths rendered for the checkout; renew timer and backup timer) when run as root or with --install-systemd; --no-systemd skips this.
+- check_env rejects placeholder domains in staging/prod and warns when LETSENCRYPT_EMAIL is empty. The templates have a TLS block. Docs §3/§4 and README were updated. tests/test_tls_domain.py uses fake docker/openssl/getent/curl.
+
 ### One-command Droplet deploy (Oct 2026)
 - New tracked, executable `./deploy.sh` at the repo root. With no env file, it creates one from the template (mode 600), generates secrets, lists the values the operator must fill, and stops (exit 2). With an existing env file, it runs check_env --fix (backup), then gen_env_secrets, then the placeholder guard, then check_env must PASS, then `exec scripts/deploy.sh`. It refuses git-tracked env files and never sources the env file.
 - scripts/deploy.sh gained `--no-cache` and now ends with `Ready: https://<APP_DOMAIN>`. Quick deploy steps are in README and DO guide §0. tests/test_root_deploy.py runs dry runs against a fake docker.

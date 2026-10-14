@@ -112,6 +112,13 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
     profile = env.get("APP_ENV") or "development"
     if profile not in ("development", "staging", "production"):
         errors.append(f"APP_ENV must be development|staging|production (got {profile!r})")
+    strict = profile in ("staging", "production")
+    if deployed and strict:
+        for k in ("APP_DOMAIN", "FRONTEND_URL", "CORS_ORIGINS"):
+            if any(p in (env.get(k) or "") for p in ("app.example.gov", ".example.com")):
+                errors.append(f"{k} still uses the template placeholder domain – run ./deploy.sh --set-domain <your-domain> --email <you@org>")
+        if not env.get("LETSENCRYPT_EMAIL") and not env.get("CERT_FULLCHAIN_PATH"):
+            warns.append("LETSENCRYPT_EMAIL is empty – deploy.sh cannot obtain a Let's Encrypt certificate (set it or CERT_FULLCHAIN_PATH)")
     for k in REQUIRED + (REQUIRED_DEPLOYED if deployed else []):
         if not env.get(k):
             errors.append(f"{k} is required")

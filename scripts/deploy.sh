@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # IronVision AI – the one supported deploy command (DigitalOcean Droplet or any Docker host).
-#   scripts/deploy.sh [ENV_FILE] [--staging] [--project NAME] [--skip-edge-check] [--no-pull] [--no-cache]
+#   scripts/deploy.sh [ENV_FILE] [--staging] [--project NAME] [--skip-edge-check] [--no-pull] [--no-cache] [--force-tls] [--install-systemd|--no-systemd]
 # ENV_FILE defaults to deploy/digitalocean/.env.production. Stops at the first failure with a non-zero exit;
 # "DEPLOYMENT SUCCEEDED" is printed only after /api/v1/ready answered. Works as root or as a docker-group user.
 set -Eeuo pipefail
@@ -10,6 +10,7 @@ PROJECT=""
 STAGING=0
 SKIP_EDGE=0
 PULL=1
+SYSTEMD=auto
 BUILD_ARGS=()
 READY_TIMEOUT="${READY_TIMEOUT:-240}"
 LEGACY_PROJECT="aegisrmf"
@@ -22,6 +23,9 @@ while [ $# -gt 0 ]; do
     --skip-edge-check) SKIP_EDGE=1 ;;
     --no-pull) PULL=0 ;;
     --no-cache) BUILD_ARGS+=(--no-cache) ;;
+    --force-tls) export FORCE_TLS=1 ;;
+    --install-systemd) SYSTEMD=yes ;;
+    --no-systemd) SYSTEMD=no ;;
     -h|--help) usage; exit 0 ;;
     -*) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
     *) ENV_FILE="$1" ;;
@@ -170,6 +174,10 @@ step "objectstore-init" "read the '[s3-bootstrap] FAIL' line above – it names 
 step "migrate (alembic upgrade head + reference content)" "see the migration output above; database logs: ${DC[*]} logs postgres"
 "${DC[@]}" run --rm --no-deps migrate
 mapfile -t APP < <(grep -vxE 'postgres|seaweedfs|objectstore-init|migrate|certbot' <<<"$SERVICES")
+if grep -qx edge <<<"$SERVICES" && [ "$SKIP_EDGE" -eq 0 ]; then
+  step "TLS certificate for $APP_DOMAIN" "fix the TLS message above (DNS A record, port 80, LETSENCRYPT_EMAIL) – guide §4"
+  scripts/ensure_tls.sh ensure "$ENV_FILE" -- "${DC[@]}"
+fi
 step "start application (${APP[*]})" "logs: ${DC[*]} logs --tail 200 ${APP[*]}"
 "${DC[@]}" up -d --no-deps "${APP[@]}"
 
@@ -187,9 +195,26 @@ for s in "${APP[@]}"; do
   grep -qx "$s" <<<"$RUNNING" || die "service '$s' is not running – logs: ${DC[*]} logs --tail 200 $s"
 done
 if grep -qx edge <<<"$SERVICES" && [ "$SKIP_EDGE" -eq 0 ]; then
-  step "public check https://$APP_DOMAIN/api/v1/ready" "public endpoint failed – check DNS for $APP_DOMAIN, the TLS certificate (guide §4) and the DO firewall; --skip-edge-check only for the first TLS bootstrap"
-  curl -fsS --max-time 15 --retry 10 --retry-delay 3 --retry-all-errors "https://$APP_DOMAIN/api/v1/ready" >/dev/null
-  echo "public endpoint: ready"
+  step "public check https://$APP_DOMAIN (certificate + /api/v1/ready)" "public endpoint failed – check DNS for $APP_DOMAIN, the DO firewall (80/443) and: ${DC[*]} logs edge"
+  scripts/ensure_tls.sh verify "$ENV_FILE"
+fi
+
+# ---------------------------------------------------------------- systemd (start on boot, certificate renewal, backups)
+install_systemd() {
+  local dir="${SYSTEMD_DIR:-/etc/systemd/system}" u
+  command -v systemctl >/dev/null || { warn "systemctl not found – skipping systemd units"; return 0; }
+  for u in deploy/digitalocean/systemd/*.service deploy/digitalocean/systemd/*.timer; do
+    sed -e "s|/opt/ironvision/app|$PWD|g" -e "s|^User=ironvision\$|User=$OPERATOR|" \
+        -e "s|deploy/digitalocean/.env.production|$ENV_FILE|g" "$u" > "$dir/$(basename "$u")"
+    echo "  installed $dir/$(basename "$u")"
+  done
+  systemctl daemon-reload
+  systemctl enable ironvision.service
+  systemctl enable --now ironvision-certbot-renew.timer ironvision-backup.timer
+}
+if [ "$SYSTEMD" = yes ] || { [ "$SYSTEMD" = auto ] && [ "$(id -u)" -eq 0 ] && [ "$STAGING" -eq 0 ]; }; then
+  step "systemd units (start on boot, twice-daily certificate renewal + edge reload, nightly backup)" "systemd install failed – re-run with --no-systemd to skip"
+  install_systemd
 fi
 
 # ---------------------------------------------------------------- summary

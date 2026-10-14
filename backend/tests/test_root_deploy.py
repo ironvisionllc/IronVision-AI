@@ -33,7 +33,11 @@ def sim(tmp_path):
     bindir.mkdir()
     (bindir / "docker").write_text(FAKE_DOCKER)
     (bindir / "docker").chmod(0o755)
-    env = {**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}", "FAKE_LOG": str(tmp_path / "docker.log"), "READY_TIMEOUT": "5"}
+    (bindir / "systemctl").write_text('#!/bin/bash\necho "systemctl $*" >> "$FAKE_LOG"\n')
+    (bindir / "systemctl").chmod(0o755)
+    (tmp_path / "systemd").mkdir()
+    env = {**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}", "FAKE_LOG": str(tmp_path / "docker.log"), "READY_TIMEOUT": "5",
+           "SYSTEMD_DIR": str(tmp_path / "systemd")}
     return tmp_path, env
 
 
@@ -60,7 +64,8 @@ def test_existing_env_with_unquoted_scopes_is_fixed_then_deployed(sim):
     t = (t.replace("app.example.gov", "rmf.agency.test").replace("idp.example.gov", "idp.agency.test")
           .replace('OIDC_SCOPES="openid profile email"', "OIDC_SCOPES=openid email profile")
           .replace("OIDC_CLIENT_SECRET=\n", "OIDC_CLIENT_SECRET=oidc-client-secret-value\n")
-          .replace("DATA_ROOT=/srv/ironvision", f"DATA_ROOT={tmp}/data"))
+          .replace("DATA_ROOT=/srv/ironvision", f"DATA_ROOT={tmp}/data")
+          .replace("LETSENCRYPT_EMAIL=\n", "LETSENCRYPT_EMAIL=k.hill@theironvision.com\n"))
     f.write_text(t)
     r = _run(env, str(f), "--skip-edge-check", "--no-cache")
     out = r.stdout + r.stderr
@@ -71,6 +76,11 @@ def test_existing_env_with_unquoted_scopes_is_fixed_then_deployed(sim):
     assert "command not found" not in out
     log = (tmp / "docker.log").read_text()
     assert "build --no-cache" in log
+    if os.geteuid() == 0:                                       # root → systemd units rendered for this checkout + enabled
+        unit = (tmp / "systemd" / "ironvision-certbot-renew.service").read_text()
+        assert f"WorkingDirectory={ROOT}" in unit and "/opt/ironvision/app" not in unit and "User=root" in unit
+        assert f"--env-file {f}" in unit and "exec -T edge nginx -s reload" in unit
+        assert "systemctl enable --now ironvision-certbot-renew.timer" in log
 
 
 def test_placeholders_block_deploy(sim):
@@ -94,4 +104,4 @@ def test_root_deploy_script_is_safe():
     s = (ROOT / "deploy.sh").read_text()
     assert os.access(ROOT / "deploy.sh", os.X_OK) and "set -euo pipefail" in s
     assert 'cd "$(dirname "${BASH_SOURCE[0]}")"' in s and "/opt/" not in s
-    assert "scripts/envget.py" in s and 'exec scripts/deploy.sh "$F" "$@"' in s
+    assert "scripts/envget.py" in s and 'exec scripts/deploy.sh "$F" "${PASS[@]}"' in s and "scripts/set_domain.py" in s

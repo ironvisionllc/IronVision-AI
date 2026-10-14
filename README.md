@@ -112,9 +112,10 @@ yarn install && yarn start
 cd /opt/ironvision/IronVision-AI
 mv deploy.sh deploy.sh.old 2>/dev/null || true    # an old untracked deploy.sh would block the pull
 git pull
-./deploy.sh                                       # first run creates deploy/digitalocean/.env.production and stops – fill it, run again
+./deploy.sh --set-domain demo.ironvisionai.com --email k.hill@theironvision.com
+# later deploys: ./deploy.sh   (TLS certificate is obtained/renewed automatically)
 ```
-Details: `docs/DIGITALOCEAN_DEPLOYMENT.md` §0 (Quick deploy). The env file lives only on the Droplet; it is git-ignored and never committed.
+Before the first run: DNS A record `demo.ironvisionai.com` → Droplet IPv4 (AAAA if IPv6), optional CAA `0 issue "letsencrypt.org"`, DO firewall 80/443 open. If OIDC values are still placeholders, the first run creates the env file and lists what to fill. Details: `docs/DIGITALOCEAN_DEPLOYMENT.md` §0 (Quick deploy) and §4 (TLS). The env file lives only on the Droplet; it is git-ignored and never committed.
 
 ## Docker Compose
 

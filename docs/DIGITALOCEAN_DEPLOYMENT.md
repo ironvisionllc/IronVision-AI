@@ -30,7 +30,8 @@ Push the repo to GitHub once. Then, on the Droplet, from the repository director
 cd /opt/ironvision/IronVision-AI
 mv deploy.sh deploy.sh.old 2>/dev/null || true    # an old hand-made, untracked deploy.sh would block the pull
 git pull
-./deploy.sh                                       # optional flags: --skip-edge-check (first TLS bootstrap), --no-cache
+./deploy.sh --set-domain demo.ironvisionai.com --email k.hill@theironvision.com   # first time / domain change
+./deploy.sh                                       # later deploys; optional: --no-cache, --force-tls, --no-systemd
 ```
 The repo-root `./deploy.sh` replaces any hand-made wrapper. What it does:
 - **No env file yet:** it creates `deploy/digitalocean/.env.production` from `env.production.template` (mode 600) and generates every secret. It then **stops** (exit 2) and lists the values you must set: `APP_DOMAIN`, `FRONTEND_URL`, `CORS_ORIGINS`, `OIDC_*` when OIDC is enabled, and `OPENAI_COMPAT_API_KEY` + `AI_MODEL` when AI is enabled. Edit the file and run `./deploy.sh` again.
@@ -51,7 +52,7 @@ The repo-root `./deploy.sh` replaces any hand-made wrapper. What it does:
 5. creates the `${DATA_ROOT}` directories with the right owners, whether run as root or as `ironvision`;
 6. runs `config -q` → pull → build → postgres → seaweedfs → `objectstore-init` → migrate → app → readiness check → summary.
 
-`scripts/deploy.sh deploy/digitalocean/.env.staging --staging` deploys staging. `--skip-edge-check` skips the public HTTPS check (first TLS bootstrap only). Any wrapper script must not print "Deployment complete" when a step fails: call `deploy.sh` and check its exit code. **The "Cleaning unused images / Deployment complete" wrapper is not part of this repository.**
+`scripts/deploy.sh deploy/digitalocean/.env.staging --staging` deploys staging. `--skip-edge-check` skips the TLS step and the public HTTPS check (rarely needed now – the certificate is obtained automatically, §4). Any wrapper script must not print "Deployment complete" when a step fails: call `deploy.sh` and check its exit code. **The "Cleaning unused images / Deployment complete" wrapper is not part of this repository.**
 
 ### 0.1 Troubleshooting: `"S3_ACCESS_KEY_ID" variable is not set`, no seaweedfs container, `objectstore-init` exit 1
 **Symptom:**
@@ -80,7 +81,7 @@ nano $F                                        # set APP_DOMAIN, FRONTEND_URL, C
 docker ps -aq --filter label=com.docker.compose.project=aegisrmf | xargs -r docker rm -f   # removes the failed old-project containers; volumes are kept
 docker network rm aegisrmf_default 2>/dev/null || true
 python3 scripts/check_env.py $F                # must print RESULT: PASS
-scripts/deploy.sh $F                           # add --skip-edge-check only if TLS (§4) is not set up yet
+./deploy.sh $F                                 # obtains the TLS certificate automatically (§4)
 ```
 The failed run never finished `migrate`, so the old `aegisrmf_*` volumes hold no evidence. Once the new stack is healthy, remove them with `docker volume rm aegisrmf_pgdata aegisrmf_localobjects aegisrmf_objectstore`.
 
@@ -276,13 +277,15 @@ sudo systemctl daemon-reload && sudo systemctl enable --now ironvision.service i
 
 *Not yet executed on DigitalOcean.*
 
-**DNS** (at your DNS provider or DO Networking → Domains):
+**DNS** (at your DNS provider or DO Networking → Domains), example `demo.ironvisionai.com`:
 | Record | Name | Value |
 |---|---|---|
-| A | `app.example.gov` | Droplet IPv4 (better: a DO Reserved IP) |
-| AAAA | `app.example.gov` | Droplet IPv6 (only if IPv6 is enabled on the Droplet) |
-| A/AAAA | `staging.app.example.gov` | the **staging** Droplet |
-| CAA | `example.gov` | `0 issue "letsencrypt.org"` (plus `0 iodef "mailto:security@example.gov"`) |
+| A | `demo.ironvisionai.com` | Droplet IPv4 (better: a DO Reserved IP) |
+| AAAA | `demo.ironvisionai.com` | Droplet IPv6 (only if IPv6 is enabled on the Droplet) |
+| A/AAAA | `staging.<your-domain>` | the **staging** Droplet |
+| CAA | `ironvisionai.com` | `0 issue "letsencrypt.org"` (plus `0 iodef "mailto:<security contact>"`) |
+
+`./deploy.sh` checks the A record against the Droplet's public IPv4 (DO metadata) before it requests a certificate.
 
 No separate API host is needed: the SPA calls `/api` on the same origin (`REACT_APP_BACKEND_URL` is empty). Only add `api.example.gov` if you deliberately split origins; in that case also extend `CORS_ORIGINS` and the frontend CSP `connect-src`.
 
@@ -303,14 +306,26 @@ The matching ufw rules are in §2.5. **SeaweedFS master UI** (read-only cluster 
 
 *Not yet executed on DigitalOcean.* The DO overlay replaces the generic `deploy/nginx/edge.conf` with `deploy/digitalocean/nginx/edge.conf.template`, which uses the official `nginx:1.27-alpine` image. The image runs envsubst on the template, and only `${APP_DOMAIN}` is substituted.
 
+**Automatic, one command:**
 ```bash
-# first certificate: standalone (port 80 must be free, so before `up`)
-docker run --rm -p 80:80 -v /srv/ironvision/letsencrypt:/etc/letsencrypt certbot/certbot:v2.11.0 certonly --standalone \
-  -d "$APP_DOMAIN" --email you@example.gov --agree-tos --no-eff-email --key-type ecdsa
-$COMPOSE up -d edge
-# renewals: webroot through the running edge, then reload (the timer installed in §2 runs this twice a day)
-$COMPOSE --profile certbot run --rm certbot renew --webroot -w /var/www/certbot --dry-run
+./deploy.sh --set-domain demo.ironvisionai.com --email k.hill@theironvision.com
 ```
+1. **`--set-domain`** (`scripts/set_domain.py`, backup first, mode 600, secrets untouched) sets `APP_DOMAIN`, `FRONTEND_URL`, `CORS_ORIGINS`, `OPENROUTER_SITE_URL`, `OIDC_REDIRECT_URI=https://<domain>/api/v1/auth/oidc/callback` and `LETSENCRYPT_EMAIL`. It also replaces every other occurrence of the old domain or `app.example.gov` in non-secret values, and prints the changed keys.
+2. **TLS step** (`scripts/ensure_tls.sh ensure`, runs before edge starts). It does nothing if `${DATA_ROOT}/letsencrypt/live/<domain>/fullchain.pem` is valid for the domain for more than 30 more days. Otherwise it:
+   - checks that the domain's A record equals this Droplet's IPv4, and stops with *"Create DNS A record demo.ironvisionai.com → <ip>"* if not (`--force-tls` skips this check);
+   - stops edge and checks that port 80 is free;
+   - runs `certbot certonly --standalone --non-interactive --agree-tos -m $LETSENCRYPT_EMAIL --no-eff-email -d <domain> --keep-until-expiring` in the certbot container on port 80 (`--staging` when `LETSENCRYPT_STAGING=true`);
+   - re-checks the result.
+   The edge mounts `${DATA_ROOT}/letsencrypt` read-only and its nginx master runs as root, so no permission changes are needed. TLS settings are inline (no dhparams file).
+3. **Verify** (`ensure_tls.sh verify`): `openssl s_client -connect <domain>:443 -servername <domain>` must show `DNS:<domain>` in the SAN, issued by Let's Encrypt. Then `https://<domain>/api/v1/ready` must answer.
+4. **Renewal:** when `deploy.sh` runs as root (or with `--install-systemd`), it installs the systemd units with this checkout's path, env file and user, and enables `ironvision-certbot-renew.timer`. Twice a day the timer runs `certbot renew --webroot -w /var/www/certbot` through the running edge, then `nginx -s reload`. `--no-systemd` skips the install. Check with `systemctl list-timers ironvision-certbot-renew.timer`.
+5. **Own certificate:** set `CERT_FULLCHAIN_PATH` and `CERT_KEY_PATH` (PEM files on the Droplet). The TLS step checks the hostname and that the key matches, copies them into `${DATA_ROOT}/letsencrypt/live/<domain>/`, and skips Let's Encrypt.
+6. **Test runs:** set `LETSENCRYPT_STAGING=true` to avoid Let's Encrypt rate limits (browsers won't trust the certificate). Set it back to `false` and re-run `./deploy.sh`; the staging certificate is replaced automatically.
+
+Prerequisites:
+- the DNS A record, plus AAAA if you use IPv6;
+- the CAA record `0 issue "letsencrypt.org"` if you use CAA;
+- the DO Cloud Firewall and ufw open on 80 and 443 (§2.5, §3).
 
 What the edge enforces:
 - HTTP → HTTPS redirect and TLS 1.2/1.3.
