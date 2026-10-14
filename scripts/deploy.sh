@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # IronVision AI – the one supported deploy command (DigitalOcean Droplet or any Docker host).
-#   scripts/deploy.sh [ENV_FILE] [--staging] [--project NAME] [--skip-edge-check] [--no-pull]
+#   scripts/deploy.sh [ENV_FILE] [--staging] [--project NAME] [--skip-edge-check] [--no-pull] [--no-cache]
 # ENV_FILE defaults to deploy/digitalocean/.env.production. Stops at the first failure with a non-zero exit;
 # "DEPLOYMENT SUCCEEDED" is printed only after /api/v1/ready answered. Works as root or as a docker-group user.
 set -Eeuo pipefail
@@ -10,6 +10,7 @@ PROJECT=""
 STAGING=0
 SKIP_EDGE=0
 PULL=1
+BUILD_ARGS=()
 READY_TIMEOUT="${READY_TIMEOUT:-240}"
 LEGACY_PROJECT="aegisrmf"
 
@@ -20,6 +21,7 @@ while [ $# -gt 0 ]; do
     --project) PROJECT="${2:?--project needs a name}"; shift ;;
     --skip-edge-check) SKIP_EDGE=1 ;;
     --no-pull) PULL=0 ;;
+    --no-cache) BUILD_ARGS+=(--no-cache) ;;
     -h|--help) usage; exit 0 ;;
     -*) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
     *) ENV_FILE="$1" ;;
@@ -151,7 +153,7 @@ if [ "$PULL" -eq 1 ]; then
   "${DC[@]}" pull --ignore-buildable
 fi
 step "build images" "image build failed – see the build output above"
-"${DC[@]}" build
+"${DC[@]}" build "${BUILD_ARGS[@]}"
 step "image self-check (imports every module, before anything starts)" "an import failed – a package is missing from backend/requirements.prod.txt; run: python3 scripts/check_requirements.py"
 "${DC[@]}" run --rm --no-deps -T backend python -m app.tools.selfcheck
 "${DC[@]}" run --rm --no-deps -T worker python -m app.tools.selfcheck
@@ -197,3 +199,4 @@ printf '\n#### DEPLOYMENT SUCCEEDED in %ss\n' "$(( $(date +%s) - STARTED ))"
 printf '  project   %s\n  env file  %s\n  storage   %s\n  profiles  %s\n  url       https://%s\n' \
   "$PROJECT" "$ENV_FILE" "$MODE" "${PROFILES:-none}" "$APP_DOMAIN"
 printf '  manage    %s ps | logs -f backend | stop\n' "${DC[*]}"
+printf '\nReady: https://%s  (API: https://%s/api/v1/ready)\n' "$(envget APP_DOMAIN)" "$(envget APP_DOMAIN)"

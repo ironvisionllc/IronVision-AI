@@ -24,6 +24,25 @@ MinIO discontinued its community edition. `minio/minio` and `minio/mc` are no lo
 - **Backup/restore/off-site/migration:** `python -m app.tools.objsync` (inside the backend image) copies objects between directories and any S3 endpoint and verifies each one with SHA-256.
 - **Renamed variables:** `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` → `S3_ADMIN_ACCESS_KEY_ID`/`S3_ADMIN_SECRET_ACCESS_KEY`. The old names are still read as a fallback and `check_env` warns. The app identity is `S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY`, which **must differ** from the admin key.
 
+### Quick deploy (one command on the Droplet)
+Push the repo to GitHub once. Then, on the Droplet, from the repository directory (e.g. `/opt/ironvision/IronVision-AI`):
+```bash
+cd /opt/ironvision/IronVision-AI
+mv deploy.sh deploy.sh.old 2>/dev/null || true    # an old hand-made, untracked deploy.sh would block the pull
+git pull
+./deploy.sh                                       # optional flags: --skip-edge-check (first TLS bootstrap), --no-cache
+```
+The repo-root `./deploy.sh` replaces any hand-made wrapper. What it does:
+- **No env file yet:** it creates `deploy/digitalocean/.env.production` from `env.production.template` (mode 600) and generates every secret. It then **stops** (exit 2) and lists the values you must set: `APP_DOMAIN`, `FRONTEND_URL`, `CORS_ORIGINS`, `OIDC_*` when OIDC is enabled, and `OPENAI_COMPAT_API_KEY` + `AI_MODEL` when AI is enabled. Edit the file and run `./deploy.sh` again.
+- **Env file exists:**
+  1. runs `check_env.py --fix`, which writes a backup first and quotes values such as `OIDC_SCOPES=openid email profile`;
+  2. runs `gen_env_secrets.py`, which fills only empty secrets;
+  3. refuses to continue while values are empty or still `example.gov` placeholders;
+  4. requires `check_env.py` to PASS;
+  5. runs `scripts/deploy.sh` (fail-fast, ends with `Ready: https://<APP_DOMAIN>`).
+- It refuses to run if the env file is tracked by git. It never sources the file; it reads values with `scripts/envget.py`.
+- The real env file exists only on the Droplet. It is git-ignored and must never be committed.
+
 **Always deploy with `scripts/deploy.sh`.** It is the one supported deploy command and it stops at the first failure with a non-zero exit. It prints `#### DEPLOYMENT FAILED at step "<step>"` plus a hint, and `#### DEPLOYMENT SUCCEEDED` only after `/api/v1/ready` answers. In order, it:
 1. runs `check_env`;
 2. always uses `docker compose -p ironvision --env-file <file> -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml` plus the storage overlays (`deploy/compose/storage-s3.yml`, and `storage-seaweedfs.yml` for the built-in store);
@@ -74,7 +93,7 @@ python3 scripts/check_env.py $F && scripts/deploy.sh $F    # objectstore-init pr
 **Older guide versions (recovery from the MinIO-era files):** remove the `MINIO_*` lines from the env file. Then run `python3 scripts/gen_env_secrets.py $F` and `scripts/deploy.sh $F`. The `MINIO_ROOT_*` names are still read as a fallback for the admin key only.
 
 ### 0.2 Troubleshooting: `email: command not found` (or `profile: command not found`)
-**Cause:** a script or wrapper *sourced* the env file (`. "$F"`, `source $F`, `set -a; . ...`). The unquoted `OIDC_SCOPES=openid email profile` then runs `email` as a shell command. Env files are **data**, not shell scripts. Nothing in this repository sources them any more: `deploy.sh` and `backup-offsite.sh` read single keys with `scripts/envget.py`, and a test fails if any script or doc sources an env file.
+**Cause:** a script or wrapper *sourced* the env file (ran it with `source` or the shell dot command). The unquoted `OIDC_SCOPES=openid email profile` then runs `email` as a shell command. Env files are **data**, not shell scripts. Nothing in this repository sources them any more: `deploy.sh` and `backup-offsite.sh` read single keys with `scripts/envget.py`, and a test fails if any script or doc sources an env file.
 
 **Fix** (rewrites safely: quotes values with spaces or shell characters, removes `export `, converts CRLF to LF, strips trailing spaces, comments out duplicates; it writes a timestamped backup first and keeps mode 600):
 ```bash
@@ -86,7 +105,7 @@ scripts/deploy.sh deploy/digitalocean/.env.production
   - Wrap any value containing spaces or `$ # ; & | < > ( ) * ` ' " ! ?` in double quotes, e.g. `OIDC_SCOPES="openid profile email"` or `OPENROUTER_APP_NAME="IronVision AI"`.
   - Use single quotes for values containing `$`, because Docker Compose interpolates `$` inside double quotes.
   - Docker Compose, the backend (python-dotenv) and `envget.py` all read these values identically, without the quotes.
-- **Reading a value in your own scripts:** use `APP_DOMAIN="$(python3 scripts/envget.py deploy/digitalocean/.env.production APP_DOMAIN)"`, never `. "$F"`.
+- **Reading a value in your own scripts:** use `APP_DOMAIN="$(python3 scripts/envget.py deploy/digitalocean/.env.production APP_DOMAIN)"` – never source the file.
 - Your own wrapper must not source the env file either. Call `scripts/deploy.sh` and check its exit code.
 
 **Migrating evidence that already sits in a MinIO volume.** Copying MinIO's raw `/data` files is **not safe**: MinIO stores objects in its own `xl.meta` format, not as plain files.

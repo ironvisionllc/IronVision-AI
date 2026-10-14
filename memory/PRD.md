@@ -195,6 +195,10 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Empty states: NeedSystem CTA, Systems "Register your first system", Evidence Sources "Add a source or upload a scan", Leadership "No systems yet", Workflow ongoing stages "not configured" when no records.
 - Fixed tenant leak: audit log items + category counts now tenant-scoped.
 
+### One-command Droplet deploy (Oct 2026)
+- New tracked, executable `./deploy.sh` at the repo root. With no env file, it creates one from the template (mode 600), generates secrets, lists the values the operator must fill, and stops (exit 2). With an existing env file, it runs check_env --fix (backup), then gen_env_secrets, then the placeholder guard, then check_env must PASS, then `exec scripts/deploy.sh`. It refuses git-tracked env files and never sources the env file.
+- scripts/deploy.sh gained `--no-cache` and now ends with `Ready: https://<APP_DOMAIN>`. Quick deploy steps are in README and DO guide §0. tests/test_root_deploy.py runs dry runs against a fake docker.
+
 ### Env files are data, never sourced (Oct 2026)
 - Customer bug: a wrapper sourced the env file, so the unquoted OIDC_SCOPES value ran `email` as a command. The repo itself sourced an env file in one place, deploy/digitalocean/backup-offsite.sh; it now reads keys through scripts/lib/envfile.sh (env_get / env_export → scripts/envget.py). deploy.sh uses env_get too.
 - backend/app/envfile.py is the one parser, following Compose/dotenv rules. Lint flags unquoted whitespace or shell metacharacters, unbalanced quotes, `export `, CRLF, trailing spaces, duplicate and invalid keys, and `$` inside double quotes. It reports line numbers with a suggested fix and is an error in staging/production. `check_env.py --fix` writes a backup (mode 600) and preserves comments. OIDC scopes now accept space- or comma-separated values and strip quotes.

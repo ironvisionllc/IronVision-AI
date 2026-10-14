@@ -107,6 +107,15 @@ cp env.template .env            # REACT_APP_BACKEND_URL=http://localhost:8001
 yarn install && yarn start
 ```
 
+## Quick deploy (DigitalOcean Droplet)
+```bash
+cd /opt/ironvision/IronVision-AI
+mv deploy.sh deploy.sh.old 2>/dev/null || true    # an old untracked deploy.sh would block the pull
+git pull
+./deploy.sh                                       # first run creates deploy/digitalocean/.env.production and stops – fill it, run again
+```
+Details: `docs/DIGITALOCEAN_DEPLOYMENT.md` §0 (Quick deploy). The env file lives only on the Droplet; it is git-ignored and never committed.
+
 ## Docker Compose
 
 ```bash
