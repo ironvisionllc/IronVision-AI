@@ -8,7 +8,7 @@ from app.models import Finding, Poam, System
 from tests.conftest import auth
 
 PUBLIC = {("POST", "/api/v1/auth/login"), ("POST", "/api/v1/auth/refresh"), ("POST", "/api/v1/auth/mtls/login"),
-          ("POST", "/api/v1/auth/logout"), ("POST", "/api/v1/auth/signup")}
+          ("POST", "/api/v1/auth/logout"), ("POST", "/api/v1/auth/signup"), ("POST", "/api/v1/auth/demo-login")}
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 
 
@@ -120,3 +120,16 @@ def test_missing_permission_detail_is_structured(client, token):
     assert d["code"] == "missing_permission" and d["permission"] == "portfolio.read"
     assert {"issm", "ao", "leadership_viewer"} <= set(d["roles"]) and "isso" not in d["roles"]
     assert d["message"] == "Missing permission: portfolio.read"
+
+
+def test_cors_wildcard_refused_and_unknown_origin_gets_no_header(client, monkeypatch):
+    from app.check_env import validate
+    from app.config import _cors_origins
+    errs, _ = validate({"APP_ENV": "development", "CORS_ORIGINS": "*"}, deployed=False)
+    assert any("CORS_ORIGINS='*'" in e for e in errs)
+    monkeypatch.setenv("CORS_ORIGINS", "https://a.example,*")
+    import pytest as _p
+    with _p.raises(RuntimeError):
+        _cors_origins()
+    r = client.get("/api/v1/health", headers={"Origin": "https://evil.example"})
+    assert "access-control-allow-origin" not in {k.lower() for k in r.headers}

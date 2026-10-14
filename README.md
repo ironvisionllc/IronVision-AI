@@ -154,6 +154,7 @@ alembic downgrade -1                                  # roll back one
 ## Demo account, sign-up and sandboxes (synthetic)
 
 - **One shared demo account:** `demo@ironvision.ai`. The password comes from `DEMO_PASSWORD`; the preview default is listed only in `memory/test_credentials.md` and is not shown on the login page.
+  - **"Explore the demo – no sign-up"** on the login page opens it in one click via `POST /api/v1/auth/demo-login` – the server issues a normal session; no password is sent from or shipped in the browser. Gated by `ALLOW_DEMO_LOGIN` (preview/staging only; production refuses it), rate-limited per client IP (`DEMO_LOGIN_RATE_LIMIT`), audited as `auth.demo_login`. It is a **shared** workspace that resets nightly; user management is disabled there.
 - **Self sign-up** ("Create a free sandbox account", only when `ALLOW_SIGNUP=true`). Each new account gets a **private, CLEAN sandbox tenant**, "<org> Sandbox – SYNTHETIC": no systems or records, only reference content, default decision/CAT/match rules and personas. Only `demo@ironvision.ai` is seeded with the 4 synthetic systems. Sample STIG/ACAS/SCAP/SARIF files can be downloaded from the onboarding checklist (`GET /api/v1/sandbox/samples.zip`); nothing is auto-loaded.
 - **Persona mode (sandbox tenants only):** in the header, "Acting as" switches between ISSO, ISSM, SCA, AO, System Owner, DevSecOps, Leadership and Admin personas.
   - Personas are separate synthetic identities, so requester ≠ decider and assessor ≠ implementer are still enforced.

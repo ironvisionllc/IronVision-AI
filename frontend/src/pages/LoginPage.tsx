@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { KeyRound, ShieldAlert } from "lucide-react";
+import { Compass, KeyRound, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api, errorMessage } from "@/lib/api";
 import type { Row } from "@/lib/useApi";
@@ -9,7 +9,7 @@ import { SyntheticBanner } from "@/components/shell/SyntheticBanner";
 import { BrandLockup, BrandMark, ThemeToggle, Wordmark } from "@/components/shell/Brand";
 
 export default function LoginPage() {
-  const { user, login } = useAuth();
+  const { user, login, demoLogin } = useAuth();
   const navigate = useNavigate();
   const [info, setInfo] = useState<AuthProviderInfo | null>(null);
   const [email, setEmail] = useState("");
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [note, setNote] = useState("");
   const pwRef = useRef<HTMLInputElement>(null);
+  const [demoErr, setDemoErr] = useState("");
 
   useEffect(() => {
     api.get<AuthProviderInfo>("/auth/provider").then((r) => setInfo(r.data)).catch(() => setInfo(null));
@@ -39,6 +40,11 @@ export default function LoginPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const demo = async () => {
+    setBusy(true); setDemoErr("");
+    try { await demoLogin(); navigate("/controls", { replace: true }); } catch (err) { setDemoErr(errorMessage(err)); } finally { setBusy(false); }
   };
 
   return (
@@ -86,6 +92,14 @@ export default function LoginPage() {
                 <KeyRound className="h-4 w-4" aria-hidden /> {busy ? "Signing in…" : "Sign in"}
               </button>
             </form>}
+            {mode === "login" && info?.demo_login_enabled && <div className="mt-4 text-center" data-testid="demo-login-block">
+              <div className="mb-3 flex items-center gap-3 text-[11px] uppercase tracking-wide text-slate-400"><span className="h-px flex-1 bg-slate-200" />or<span className="h-px flex-1 bg-slate-200" /></div>
+              <button type="button" disabled={busy} className="btn-secondary w-full justify-center py-2.5" onClick={demo} data-testid="demo-login-btn">
+                <Compass className="h-4 w-4" aria-hidden /> {busy ? "Opening demo…" : "Explore the demo – no sign-up"}
+              </button>
+              <div className="mt-1.5 text-[11px] text-slate-500" data-testid="demo-login-caption">Synthetic data · shared demo workspace · resets nightly</div>
+              {demoErr && <div role="alert" className="mt-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-[13px] text-rose-800" data-testid="demo-login-error">{demoErr}</div>}
+            </div>}
             {info?.signup_enabled && (mode === "signup" ? <><SignupForm onDone={(e) => { setEmail(e); setMode("login"); setNote("Account created – your private sandbox is being prepared. Sign in to continue."); }} />
               <button type="button" className="mt-3 w-full text-center text-[13px] text-blue-800 underline" onClick={() => setMode("login")} data-testid="show-login-btn">I already have an account – sign in</button></>
               : <button type="button" className="mt-4 w-full text-center text-[13px] text-blue-800 underline" onClick={() => setMode("signup")} data-testid="show-signup-btn">New here? Create a free sandbox account</button>)}

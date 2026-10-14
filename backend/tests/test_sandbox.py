@@ -232,3 +232,47 @@ def test_audit_log_and_workflow_are_tenant_scoped_and_honest(client, signup_on):
     stages = {s["stage"]: s["state"] for s in client.get(f"/api/v1/systems/{sid}/rmf-workflow", headers=ha).json()}
     assert all(stages[k] == "not_configured" for k in ("Ongoing: POA&M", "Ongoing: Attestations", "Ongoing: Reviews", "Ongoing: Policy audit"))
     assert stages["7. Monitor"] == "not_configured"
+
+
+def test_demo_login_gated_audited_and_passwordless(client, monkeypatch):
+    from app.config import get_settings
+    from app.services import sandbox as sbx
+    with SessionLocal() as db:
+        sbx.seed_demo_account(db, PW)
+        db.commit()
+        org = db.get(Organization, db.scalar(select(User.org_id).where(User.email == sbx.DEMO_EMAIL)))
+        if org.sandbox_status != "ready":
+            sbx.provision(db, org.id)
+    monkeypatch.delenv("ALLOW_DEMO_LOGIN", raising=False)
+    get_settings.cache_clear()
+    assert client.post("/api/v1/auth/demo-login").status_code == 404
+    assert client.get("/api/v1/auth/provider").json()["demo_login_enabled"] is False
+    monkeypatch.setenv("ALLOW_DEMO_LOGIN", "true")
+    get_settings.cache_clear()
+    try:
+        assert client.get("/api/v1/auth/provider").json()["demo_login_enabled"] is True
+        r = client.post("/api/v1/auth/demo-login")
+        assert r.status_code == 200, r.text
+        assert r.json()["user"]["persona_role"] == "isso"
+        st = client.get("/api/v1/sandbox/status", headers=auth(r.json()["access_token"])).json()
+        assert st["operator"]["email"] == sbx.DEMO_EMAIL and st["is_demo"] is True
+        admin = client.post("/api/v1/sandbox/act-as", json={"role": "platform_admin"}, headers=auth(r.json()["access_token"])).json()
+        inv = client.post("/api/v1/admin/users", json={"email": "x@y.demo", "display_name": "X Y", "role": "isso"}, headers=auth(admin["access_token"]))
+        assert inv.status_code == 403
+        from app.models import AuditEvent
+        with SessionLocal() as db:
+            ev = db.scalar(select(AuditEvent).where(AuditEvent.action == "auth.demo_login", AuditEvent.outcome == "success").order_by(AuditEvent.seq.desc()))
+            assert ev and ev.ip and (ev.details or {}).get("client_ip")
+        monkeypatch.setenv("DEMO_LOGIN_RATE_LIMIT", "1/3600")
+        assert client.post("/api/v1/auth/demo-login").status_code == 429
+    finally:
+        monkeypatch.delenv("ALLOW_DEMO_LOGIN", raising=False)
+        get_settings.cache_clear()
+
+
+def test_check_env_refuses_demo_login_in_production():
+    from app.check_env import validate
+    errs, _ = validate({"APP_ENV": "production", "ALLOW_DEMO_LOGIN": "true"})
+    assert any("ALLOW_DEMO_LOGIN" in e for e in errs)
+    errs, warns = validate({"APP_ENV": "production", "ALLOW_DEMO_LOGIN": "true", "ALLOW_DEMO_LOGIN_IN_PRODUCTION": "true"})
+    assert not any("ALLOW_DEMO_LOGIN" in e for e in errs) and any("ALLOW_DEMO_LOGIN" in w for w in warns)

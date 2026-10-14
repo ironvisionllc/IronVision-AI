@@ -54,6 +54,8 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
     for k in REQUIRED + (REQUIRED_DEPLOYED if deployed else []):
         if not env.get(k):
             errors.append(f"{k} is required")
+    if "*" in [o.strip() for o in (env.get("CORS_ORIGINS") or "").split(",")]:
+        errors.append("CORS_ORIGINS='*' is refused – list explicit origins (credentials are never combined with a wildcard)")
     strict = profile in ("staging", "production")
     if strict:
         for k, n in (("JWT_SECRET", 32), ("POSTGRES_PASSWORD", 16), ("MINIO_ROOT_PASSWORD", 16)):
@@ -80,6 +82,11 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
     errors += insecure_production(env)
     if profile == "production" and _true(env.get("ALLOW_SIGNUP")):
         warns.append("ALLOW_SIGNUP=true in production – public self sign-up creates sandbox tenants; keep it false for production")
+    if profile == "production" and _true(env.get("ALLOW_DEMO_LOGIN")):
+        if _true(env.get("ALLOW_DEMO_LOGIN_IN_PRODUCTION")):
+            warns.append("ALLOW_DEMO_LOGIN=true in production (override set) – anyone can open the shared demo workspace without a password")
+        else:
+            errors.append("ALLOW_DEMO_LOGIN=true is refused in production (passwordless shared demo login); set ALLOW_DEMO_LOGIN_IN_PRODUCTION=true to override")
     if profile == "production" and (env.get("SIGNUP_RATE_LIMIT_EXEMPT_CIDRS") or "").strip():
         warns.append("SIGNUP_RATE_LIMIT_EXEMPT_CIDRS is set in production – listed addresses bypass the sign-up limit; use only for test runners")
     if profile == "production" and _true(env.get("ALLOW_INSECURE_PRODUCTION")):

@@ -584,6 +584,10 @@ def invite(body: InviteIn, db: Session = Depends(get_db), current: CurrentUser =
 
     if body.role not in ROLE_PERMISSIONS:
         raise HTTPException(422, "Unknown role")
+    from app.models import Organization
+    from app.services.sandbox import is_demo
+    if is_demo(db, db.get(Organization, current.user.org_id)):
+        raise HTTPException(403, "User management is disabled in the shared demo workspace")
     if db.scalar(select(User.id).where(User.email == body.email.lower())):
         raise HTTPException(409, "User exists")
     temp = secrets.token_urlsafe(12)

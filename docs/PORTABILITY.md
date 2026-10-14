@@ -12,6 +12,8 @@ Goal: `git clone` → set `.env` → `alembic upgrade head` → `docker compose 
 | 4 | Emergent testing config `backend/pytest.ini` (xdist addopts for Emergent's test agent) | `backend/pytest.ini` | No | Project tests use `pytest -c pytest.aegis.ini`. Delete `pytest.ini` after migration. |
 | 5 | Leftover template keys in `backend/.env` (`MONGO_URL`, `DB_NAME`, `TIGRIS_*`) | `backend/.env` (pod only) | **Not read by any code** | Delete. MongoDB is stopped in the pod and unused. |
 | 6 | `backend/requirements.txt` is a full `pip freeze` of the pod venv (includes Emergent/LiteLLM wheels) | `backend/` | No | Docker uses curated `requirements.prod.txt`. Delete `requirements.txt` or regenerate from a clean venv. |
+| 7 | **Preview ingress CORS headers**: the Emergent ingress adds `access-control-allow-origin: *` (and `allow-headers/methods: *`) to every proxied response; it can't be changed from inside the pod | Kubernetes ingress (outside repo) | No – the app itself sends an exact-origin allowlist (`CORS_ORIGINS`, `*` refused, credentials off) | Disappears on DigitalOcean/Compose: the repo's edge proxy adds no CORS headers. Verify after deploy with `curl -sI -H 'Origin: https://evil.example' https://<host>/api/v1/health` → no `access-control-allow-origin`. |
+
 
 No Emergent auth, storage, database, queue, email or deploy services are used. Auth = `dev_password` (local bcrypt), storage = local/S3, DB = PostgreSQL, queue = PostgreSQL `jobs` table.
 

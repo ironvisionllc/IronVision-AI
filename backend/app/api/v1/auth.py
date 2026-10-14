@@ -76,7 +76,43 @@ def provider_info(db: Session = Depends(get_db)) -> AuthProviderInfo:
         _ = rows
     return AuthProviderInfo(provider=provider.name, label=provider.display_label, is_simulated=provider.is_simulated,
                             dev_accounts=accounts, enabled_providers=enabled, dev_password_enabled="dev_password" in enabled, signup_enabled=get_settings().allow_signup and "dev_password" in enabled,
+                            demo_login_enabled=get_settings().allow_demo_login,
                             oidc_enabled="oidc" in enabled)
+
+
+def demo_login_limit() -> tuple[int, int]:
+    n, _, w = os.environ.get("DEMO_LOGIN_RATE_LIMIT", "30/3600").partition("/")
+    return int(n), int(w or 3600)
+
+
+@router.post("/demo-login", response_model=TokenResponse)
+def demo_login(request: Request, db: Session = Depends(get_db)) -> TokenResponse:
+    """One-click entry to the shared, synthetic demo workspace. No password travels from the browser; gated by ALLOW_DEMO_LOGIN."""
+    from datetime import timedelta
+
+    from sqlalchemy import func
+
+    from app.models import AuditEvent
+    from app.services.sandbox import DEMO_EMAIL
+
+    if not get_settings().allow_demo_login:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Not Found")
+    meta = audit.request_meta(request)
+    limit, window = demo_login_limit()
+    since = datetime.now(timezone.utc) - timedelta(seconds=window)
+    used = db.scalar(select(func.count()).select_from(AuditEvent).where(AuditEvent.action == "auth.demo_login", AuditEvent.outcome == "success",
+                                                                       AuditEvent.ip == meta.get("ip"), AuditEvent.occurred_at > since))
+    if used >= limit:
+        audit.record_now(action="auth.demo_login", outcome="denied", actor_email=DEMO_EMAIL, details={"reason": "rate_limited"}, **meta)
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, f"Too many demo sign-ins from this network ({limit} per {window // 60} min). Try again later.",
+                            headers={"Retry-After": str(window)})
+    user = db.scalar(select(User).where(User.email == DEMO_EMAIL, User.is_active.is_(True)))
+    org = db.get(Organization, user.org_id) if user else None
+    if user is None or org is None or org.sandbox_status != "ready":
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "The demo workspace is being prepared. Try again in a minute.")
+    audit.record(db, action="auth.demo_login", outcome="success", actor_user_id=user.id, actor_email=DEMO_EMAIL, entity_type="user",
+                 entity_id=str(user.id), details={"client_ip": meta.get("ip")}, **meta)
+    return _issue(db, user, "dev_password", request)
 
 
 @router.post("/login", response_model=TokenResponse)

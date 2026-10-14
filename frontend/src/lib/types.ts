@@ -34,6 +34,7 @@ export interface AuthProviderInfo {
   enabled_providers: string[];
   dev_password_enabled: boolean;
   signup_enabled?: boolean;
+  demo_login_enabled?: boolean;
   oidc_enabled: boolean;
 }
 

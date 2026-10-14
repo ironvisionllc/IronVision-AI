@@ -195,6 +195,12 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Empty states: NeedSystem CTA, Systems "Register your first system", Evidence Sources "Add a source or upload a scan", Leadership "No systems yet", Workflow ongoing stages "not configured" when no records.
 - Fixed tenant leak: audit log items + category counts now tenant-scoped.
 
+### CORS review (Oct 2026)
+- `access-control-allow-origin: *` on preview responses is injected by the Emergent ingress (app sends exact-origin only; unknown origins get no header, preflight 400). Preview CORS_ORIGINS now = the preview origin only (old host + localhost removed). `*` refused at startup and by check_env; allow_credentials=false. Documented in SECURITY.md + PORTABILITY.md (#7).
+
+### Demo login (Oct 2026)
+- "Explore the demo – no sign-up" button → POST /api/v1/auth/demo-login (no password from browser), gated by ALLOW_DEMO_LOGIN (404 when off; check_env refuses in production unless ALLOW_DEMO_LOGIN_IN_PRODUCTION), per-IP rate limit DEMO_LOGIN_RATE_LIMIT, audit auth.demo_login; user invites refused in demo tenant; `scripts/check_bundle_secrets.sh` greps src/public/build for demo passwords.
+
 ### Access-denied polish (Oct 2026)
 - 403 missing-permission detail is structured ({code, permission, roles, message}); `AccessDenied` panel shows "Your acting role (X) can't view …" with one-click persona switch buttons in sandboxes, plain "You don't have access" elsewhere. Action errors read "Your role can't do this (needs …, held by …)".
 - useApi refetches after a persona switch (`iv:identity` event).

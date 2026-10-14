@@ -20,6 +20,7 @@ interface AuthState {
   logout: () => Promise<void>;
   can: (permission: string) => boolean;
   actAs: (role: string) => Promise<void>;
+  demoLogin: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -68,6 +69,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
   }, []);
 
+  const demoLogin = useCallback(async () => {
+    const { data } = await api.post<{ access_token: string; refresh_token: string; user: User }>("/auth/demo-login");
+    sessionStorage.setItem(TOKEN_KEY, data.access_token);
+    sessionStorage.setItem(REFRESH_KEY, data.refresh_token);
+    setUser(data.user);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api.post("/auth/logout");
@@ -88,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const can = useCallback((p: string) => !!user && user.permissions.includes(p), [user]);
-  const value = useMemo(() => ({ user, login, logout, can, actAs }), [user, login, logout, can, actAs]);
+  const value = useMemo(() => ({ user, login, demoLogin, logout, can, actAs }), [user, login, demoLogin, logout, can, actAs]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

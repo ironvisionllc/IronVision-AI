@@ -194,7 +194,8 @@ def sandbox_status(db: Session = Depends(get_db), current: CurrentUser = Depends
                               "Delete ALL your systems, evidence, findings, POA&Ms, policies and reviews? Your account and reference content are kept."), "status": org.sandbox_status, "progress": org.sandbox_progress, "org_name": org.name,
             "operator": {"email": real.email, "name": real.display_name}, "acting_role": current.user.persona_role,
             "acting_as": current.user.display_name if current.user.persona_role else None,
-            "personas": [{"role": r, "name": f"{n} ({l})"} for r, n, l in sbx.PERSONAS], "expiry": sbx.expiry_info(org),
+            "personas": [{"role": r, "name": f"{n} ({l})"} for r, n, l in sbx.PERSONAS],
+            "expiry": None if demo else sbx.expiry_info(org),
             "onboarding": [{"key": k, "label": label, "link": link, "done": bool(steps.get(k))} for k, label, link in (ONBOARDING if demo else ONBOARDING_CLEAN)],
             "onboarding_dismissed": bool(steps.get("dismissed")),
             "label": "Sandbox persona mode – simulated identities for demo separation of duties; not acceptable for production SoD"}

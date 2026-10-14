@@ -17,7 +17,8 @@ IronVision AI is **not** FedRAMP-authorized, has **no** ATO, and has **not** bee
 
 ## Web hardening (`app/security/web.py`)
 - Headers on every API response: `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'` (the docs UI gets a relaxed CSP), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `Cache-Control: no-store`, plus HSTS over HTTPS.
-- CORS uses the exact-origin allowlist in `CORS_ORIGINS`.
+- CORS uses the exact-origin allowlist in `CORS_ORIGINS`. `*` is refused (startup error + `check_env`), and `allow_credentials` is false (auth is bearer-token, not cookies), so a wildcard is never combined with credentials. Origins not on the list get no `Access-Control-Allow-Origin` header, and their preflights are rejected (400).
+  - **Preview caveat:** the Emergent preview ingress adds `access-control-allow-origin: *` (plus allow-headers/methods `*`) to every proxied response, on top of what the app sends. This can't be changed from inside the pod. It doesn't expose sessions, because tokens live in `sessionStorage` and are sent as `Authorization` headers; no cookies are used. DigitalOcean / Docker Compose deployments use the repo's Caddy/Nginx edge, which adds no CORS headers, so only the app's allowlist applies there.
 - Rate limits, per client IP: `RATE_LIMIT_AUTH` (20/60 s) and `RATE_LIMIT_UPLOAD` (30/60 s). Rejections return 429 with `Retry-After`. Limits are kept in memory **per process**, so a multi-replica deployment needs a shared limiter at the proxy or in Redis. `X-Forwarded-For` is trusted only when `TRUST_PROXY_HEADERS=true`.
 
 ## Uploads (`app/services/upload_security.py`)
@@ -56,6 +57,7 @@ Report suspected vulnerabilities privately to the IronVision security contact. D
 
 
 ## Sandbox tenants, self sign-up and persona mode (demo feature)
+- One-click demo login (`ALLOW_DEMO_LOGIN`, `POST /api/v1/auth/demo-login`) issues a normal session (same idle/absolute timeouts) for the **shared, synthetic** `demo@ironvision.ai` workspace, which resets nightly. No password is sent from or embedded in the browser. Disabled → 404 and the button is hidden. `check_env` refuses it in production unless `ALLOW_DEMO_LOGIN_IN_PRODUCTION=true` (then warns). Rate-limited per real client IP (`DEMO_LOGIN_RATE_LIMIT`, default 30/hour) and audited (`auth.demo_login`, client IP). The demo account has no password/email-change or self-delete paths, and inviting users is refused in the demo tenant.
 - Self sign-up (`ALLOW_SIGNUP`) is **off in production** (`check_env.py` warns if it is on). It needs local password accounts, is rate-limited per real client IP, has bot checks (trap field + minimum time-to-submit), and enforces password strength (12+ characters, mixed case, digit, symbol). New sign-up tenants start clean (no data); only the demo account is seeded. Login lockout and session rules are unchanged.
 - Each sign-up gets an isolated sandbox tenant. Tenant isolation is covered by `tests/test_sandbox.py`.
 - **Persona mode** (`sandbox_personas=true`) can only be set on sandbox tenants. `/sandbox/act-as` returns 403 for every other tenant.

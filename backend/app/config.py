@@ -21,6 +21,13 @@ def _opt(name: str, default: str | None = None) -> str | None:
     return value if value not in (None, "") else default
 
 
+def _cors_origins() -> list[str]:
+    origins = [o.strip() for o in (_opt("CORS_ORIGINS", "") or "").split(",") if o.strip()]
+    if "*" in origins:
+        raise RuntimeError("CORS_ORIGINS must list explicit origins; '*' is refused")
+    return origins
+
+
 def _bool(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
     if value is None or value == "":
@@ -52,6 +59,7 @@ class Settings:
     seed_demo_data: bool
     demo_user_password: str | None
     allow_signup: bool
+    allow_demo_login: bool
     demo_password: str | None
     worker_poll_seconds: float
     worker_heartbeat_stale_seconds: int
@@ -66,7 +74,7 @@ def get_settings() -> Settings:
         jwt_secret=_req("JWT_SECRET"),
         jwt_ttl_minutes=int(_opt("JWT_TTL_MINUTES", "60")),
         auth_provider=_opt("AUTH_PROVIDER", "dev_password"),
-        cors_origins=[o.strip() for o in (_opt("CORS_ORIGINS", "") or "").split(",") if o.strip()],
+        cors_origins=_cors_origins(),
         storage_driver=_req("STORAGE_DRIVER"),
         storage_local_root=_opt("STORAGE_LOCAL_ROOT"),
         s3_endpoint_url=_opt("S3_ENDPOINT_URL"),
@@ -82,6 +90,7 @@ def get_settings() -> Settings:
         seed_demo_data=_bool("SEED_DEMO_DATA"),
         demo_user_password=_opt("DEMO_USER_PASSWORD"),
         allow_signup=_bool("ALLOW_SIGNUP"),
+        allow_demo_login=_bool("ALLOW_DEMO_LOGIN"),
         demo_password=_opt("DEMO_PASSWORD"),
         worker_poll_seconds=float(_opt("WORKER_POLL_SECONDS", "2")),
         worker_heartbeat_stale_seconds=int(_opt("WORKER_HEARTBEAT_STALE_SECONDS", "30")),

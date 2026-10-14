@@ -59,6 +59,7 @@ class AuthProviderInfo(BaseModel):
     enabled_providers: list[str] = []
     dev_password_enabled: bool = True
     signup_enabled: bool = False
+    demo_login_enabled: bool = False
     oidc_enabled: bool = False
 
 
