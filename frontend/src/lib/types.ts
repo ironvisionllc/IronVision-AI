@@ -15,6 +15,8 @@ export interface User {
   permissions: string[];
   auth_provider: string;
   auth_is_simulated: boolean;
+  persona_role?: string | null;
+  is_sandbox?: boolean;
 }
 
 export interface DevAccount {
@@ -31,6 +33,7 @@ export interface AuthProviderInfo {
   dev_accounts: DevAccount[];
   enabled_providers: string[];
   dev_password_enabled: boolean;
+  signup_enabled?: boolean;
   oidc_enabled: boolean;
 }
 

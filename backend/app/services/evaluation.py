@@ -115,7 +115,49 @@ def statement_map(db: Session, system_id) -> dict:
     return out
 
 
+def mark_superseded(db: Session, system_id) -> None:
+    """Older evidence from the same source + artifact name is 'superseded' (a newer version exists) – never counted as expired."""
+    newest: dict = {}
+    for ev in db.scalars(select(Evidence).where(Evidence.system_id == system_id).order_by(Evidence.collected_at.desc())):
+        k = (ev.source_id, ev.name)
+        if ev.source_id is None or k not in newest:
+            newest[k] = ev.id
+            if ev.state == "superseded":
+                apply_freshness(db, ev)
+        elif ev.state not in ("integrity_mismatch", "signature_invalid"):
+            ev.state = "superseded"
+    db.flush()
+
+
+def config_observations(db: Session, system_id) -> dict:
+    """Observed configuration values vs approved ODPs per control; links the config evidence to the control (EvidenceControl)."""
+    from app.models import ObservedConfigValue, OdpValue
+
+    out: dict = defaultdict(list)
+    odps = {(o.control_id, o.parameter): o for o in db.scalars(select(OdpValue).where(OdpValue.system_id == system_id))}
+    assigns = {a.control_id: a.id for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == system_id))}
+    seen = set()
+    for o in db.scalars(select(ObservedConfigValue).where(ObservedConfigValue.system_id == system_id).order_by(ObservedConfigValue.observed_at.desc())):
+        if (o.control_id, o.parameter) in seen:
+            continue
+        seen.add((o.control_id, o.parameter))
+        odp = odps.get((o.control_id, o.parameter))
+        out[o.control_id].append({"parameter": o.parameter, "observed": o, "odp": odp,
+                                  "mismatch": bool(odp and odp.numeric_value is not None and o.numeric_value != odp.numeric_value)})
+        aid = assigns.get(o.control_id)
+        if aid and o.evidence_id and not db.scalar(select(EvidenceControl.id).where(EvidenceControl.evidence_id == o.evidence_id,
+                                                                                     EvidenceControl.assignment_id == aid)):
+            db.add(EvidenceControl(evidence_id=o.evidence_id, assignment_id=aid))
+    db.flush()
+    return out
+
+
 def evaluate_system(db: Session, system_id) -> None:
+    from app.services.responsibility import apply_to_system, split_missing
+
+    mark_superseded(db, system_id)
+    apply_to_system(db, system_id)
+    cfg = config_observations(db, system_id)
     weights = {w.reason_code: w.weight for w in db.scalars(select(PriorityWeight))}
     stats = defaultdict(lambda: {"open": 0, "pass": 0, "kev": 0, "cat1": 0})
     rows = db.execute(select(FindingControlMap.control_id, Finding.id, Finding.current_state, Finding.is_kev, Finding.cat)
@@ -154,7 +196,9 @@ def evaluate_system(db: Session, system_id) -> None:
     stmts = statement_map(db, system_id)
     for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == system_id)):
         s = stats.get(a.control_id, {"open": 0, "pass": 0, "kev": 0, "cat1": 0})
-        a.monitoring_status = "failing" if s["open"] else "passing" if s["pass"] else ("inherited" if a.responsibility == "inherited" else "no_data")
+        cmis = [c for c in cfg.get(a.control_id, []) if c["mismatch"]]
+        a.monitoring_status = "failing" if s["open"] or cmis else "passing" if s["pass"] or cfg.get(a.control_id) else (
+            "inherited" if a.responsibility == "inherited" else "no_data")
         states = fresh.get(a.id, [])
         stale = [x for x in states if x in STALE]
         if not states:
@@ -178,6 +222,11 @@ def evaluate_system(db: Session, system_id) -> None:
         if a.responsibility != "inherited" and stmts.get(a.id) != "has":
             reasons.append({"code": "missing_implementation_statement", "count": 1, "points": weights.get("missing_implementation_statement", 0),
                             "detail": "draft not yet submitted for review" if stmts.get(a.id) == "draft" else "no statement"})
+        if split_missing(a):
+            reasons.append({"code": "responsibility_split_missing", "points": 0, "detail": "Responsibility split not documented"})
+        if cmis:
+            reasons.append({"code": "failed_technical_checks", "count": len(cmis), "points": weights.get("failed_technical_checks", 0) * len(cmis),
+                            "detail": "observed configuration ≠ approved ODP: " + ", ".join(f"{c['observed'].value} vs {c['odp'].value}" for c in cmis)})
         if a.content_change and not a.content_change.get("acknowledged"):
             reasons.append({"code": "catalog_change", "count": 1, "points": weights.get("catalog_change", 0), "detail": a.content_change.get("note")})
         if a.assessment_status == "not_assessed" and not states and a.responsibility != "inherited":
@@ -206,55 +255,12 @@ OP_WEIGHTS = {"sys_cat1": (5, "Open CAT I finding (CAT from cat_rules)"), "sys_k
 
 
 def system_metrics(db: Session, system: System) -> dict:
-    from app.models import ApprovalRequest, Poam
-
-    sid = system.id
-    assigned = db.scalar(select(func.count()).select_from(ControlAssignment).where(ControlAssignment.system_id == sid))
-    open_q = open_findings_q(sid)
-    ev_total = db.scalar(select(func.count()).select_from(Evidence).where(Evidence.system_id == sid))
-    fq = select(func.count()).select_from(ControlAssignment).where(ControlAssignment.system_id == sid)
-    with_ev = db.scalar(fq.where(ControlAssignment.evidence_freshness_status != "no_evidence"))
-    fresh_ctl = db.scalar(fq.where(ControlAssignment.evidence_freshness_status.in_(FRESH_OK)))
-    stale_ctl = db.scalar(fq.where(ControlAssignment.evidence_freshness_status.in_(STALE + ("partially_stale",))))
-    pq = select(func.count()).select_from(Poam).where(Poam.system_id == sid)
-    active = pq.where(Poam.status.not_in(("closed", "risk_accepted")))
-    today = date.today()
-    exp = system.authorization_expiration
-    m = {
-        "assigned_controls": assigned,
-        "open_findings": db.scalar(open_q),
-        "open_cat1": db.scalar(open_q.where(Finding.cat == "CAT I")),
-        "kev_open": db.scalar(open_q.where(Finding.is_kev.is_(True))),
-        "unmapped_findings": db.scalar(select(func.count()).select_from(Finding).where(Finding.system_id == sid, Finding.mapping_status == "unmapped")),
-        "monitoring_failing": db.scalar(fq.where(ControlAssignment.monitoring_status == "failing")),
-        "evidence_total": ev_total,
-        "controls_with_evidence": with_ev,
-        "controls_fresh": fresh_ctl,
-        "controls_stale": stale_ctl,
-        "evidence_fresh_pct": round(100 * fresh_ctl / with_ev, 1) if with_ev else None,
-        "authorization_status": system.authorization_status,
-        "days_to_expiration": (exp - today).days if exp else None,
-        "open_poams": db.scalar(active),
-        "overdue_poams": db.scalar(active.where(Poam.due_date < today)),
-        "poams_due_30d": db.scalar(active.where(Poam.due_date >= today, Poam.due_date <= today + timedelta(days=30))),
-        "risk_acceptances": db.scalar(pq.where(Poam.status == "risk_accepted")),
-        "pending_risk_decisions": db.scalar(select(func.count()).select_from(ApprovalRequest).where(
-            ApprovalRequest.system_id == sid, ApprovalRequest.status == "pending",
-            ApprovalRequest.request_type.in_(("risk_acceptance", "waiver_extension")))),
-    }
-    weights = {w.reason_code: w.weight for w in db.scalars(select(PriorityWeight).where(PriorityWeight.reason_code.like("sys_%")))}
-    parts = {"sys_cat1": m["open_cat1"], "sys_kev": m["kev_open"], "sys_overdue_poam": m["overdue_poams"],
-             "sys_stale_controls": (stale_ctl or 0) // 5,
-             "sys_auth_expiring": 1 if m["days_to_expiration"] is not None and m["days_to_expiration"] <= 90 else 0,
-             "sys_pending_risk": m["pending_risk_decisions"]}
-    m["op_score_breakdown"] = [{"code": k, "count": v, "weight": weights.get(k, OP_WEIGHTS[k][0]), "points": v * weights.get(k, OP_WEIGHTS[k][0]),
-                                "description": OP_WEIGHTS[k][1]} for k, v in parts.items() if v]
-    m["op_score"] = sum(x["points"] for x in m["op_score_breakdown"])
-    return m
+    from app.services.metrics import system_metrics as _m
+    return _m(db, system)
 
 
 AGG_KEYS = ("open_cat1", "kev_open", "open_findings", "open_poams", "overdue_poams", "risk_acceptances", "pending_risk_decisions",
-            "controls_with_evidence", "controls_fresh")
+            "controls_with_evidence", "controls_fresh", "assigned_controls", "evidence_total", "evidence_items_fresh", "pending_emass_sync")
 
 
 def take_snapshots(db: Session, trigger: str) -> None:
@@ -268,9 +274,11 @@ def take_snapshots(db: Session, trigger: str) -> None:
             for k in AGG_KEYS:
                 agg[k] += m[k] or 0
         if systems:
-            pct = round(100 * agg["controls_fresh"] / agg["controls_with_evidence"], 1) if agg["controls_with_evidence"] else None
+            pct = round(100 * agg["controls_fresh"] / agg["assigned_controls"], 1) if agg["assigned_controls"] else None
             db.add(RiskSnapshot(org_id=org.id, system_id=None, taken_at=ts, trigger=trigger,
-                                metrics={"systems": len(systems), **{k: agg[k] for k in AGG_KEYS}, "evidence_fresh_pct": pct}))
+                                metrics={"systems": len(systems), **{k: agg[k] for k in AGG_KEYS}, "evidence_fresh_pct": pct,
+                                         "control_evidence_coverage_pct": pct,
+                                         "evidence_items_fresh_pct": round(100 * agg["evidence_items_fresh"] / agg["evidence_total"], 1) if agg["evidence_total"] else None}))
     db.flush()
 
 

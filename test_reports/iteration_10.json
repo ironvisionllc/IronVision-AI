@@ -1,0 +1,54 @@
+{
+  "summary": "Wave 9 follow-up verification against live preview. BLOCKER (signup 201 through ingress) is FIXED and verified both via REST (/api/v1/auth/signup → 201 for a fresh @example.com) and via the UI (/login → show-signup-btn → signup-success). Fresh login lands on ISSO persona with an 'Acting as ISSO' toast confirmed in acting-as-toast. Switching to AO works and header shows 'Col. Taylor (AO persona)'. Terminology on Evidence Sources is correct (cards: 'Mapped findings'/'Unmapped findings'; ingest table columns: 'MAPPED RESULTS'/'UNMAPPED RESULTS'). Control IDs use the AC-2(3) parenthesis form on POA&M (no 'AC-2.3' tokens detected). eMASS last-sync value in /emass/status (2026-10-13T23:40:26.482240Z) equals newest succeeded completed_at from /systems/{LTP}/emass runs — correct. Onboarding checklist is present with granular testids (onboarding-upload_scan / create_poam / switch_issm / approve_closure / view_leadership) and 'Switch to the ISSM persona' is already crossed out on the demo tenant. No tile showed a 0/empty before data loaded on POA&M, Mapping Review, or Audit log. Rate limit: 5 sign-ups/hour per IP is enforced (hit it during tests, which actually proves the limiter now works correctly — before the fix it was 429 for everyone).\n\nONE BLOCKER DISCOVERED: the 'Out of scope / N/A (needs approval)' mapping-review action is BROKEN. POST /api/v1/mapping-review/rule-action with action='out_of_scope' + justification + finding_ids returns HTTP 409 {\"detail\":\"No active decision rule for finding_out_of_scope\"}. GET /api/v1/decision-rules returns 10 rules but NONE for request_type='finding_out_of_scope' (only assessment_result, authorization_decision, authorization_package_review, control_implementation_review, deadline_extension, emass_submission, false_positive, poam_closure, risk_acceptance, waiver_extension). The ISSM-approval leg of acceptance criterion #3 cannot execute without this seed. Verified against demo tenant (sandbox) — a brand-new signup inherits the same seeded rule set so the problem is systemic, not demo-sandbox-specific.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/v1/mapping-review/rule-action (action=out_of_scope)", "issue": "Returns 409 'No active decision rule for finding_out_of_scope' because the seed/migration never created a DecisionRule row for request_type='finding_out_of_scope'. phase4.py creates the ApprovalRequest via wf.create_request(..., request_type='finding_out_of_scope') which looks up the active rule and blows up. Fix: add a seeded DecisionRule with request_type='finding_out_of_scope', active=true, assigned_role='issm' (or auto-create it on first use). Blocks acceptance criterion #3.", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "/api/v1/emass/sync-history, /api/v1/emass/runs, /api/v1/emass/history", "issue": "All 404. The per-system endpoint /api/v1/systems/{id}/emass returns runs. The UI banner on /emass reads 'Last sync 2026-10-13 23:40:26Z' which matches /emass/status, but there is no tenant-wide sync-history REST endpoint. Minor API-surface inconsistency; not a user-visible failure."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "eMASS Sync page", "issue": "No element with data-testid='emass-last-sync'. The last-sync value is baked into the banner text ('Last sync 2026-10-13 23:40:26Z') on data-testid='emass-mode-banner'. The acceptance criterion is still met (value is visible and matches), but a dedicated testid would make assertions robust.", "selector": "[data-testid=\"emass-last-sync\"]", "priority": "LOW"},
+      {"component": "App header", "issue": "Logout button testid is 'header-logout-btn' but the review description and earlier iterations referred to 'logout-btn'. Low priority naming consistency note.", "selector": "[data-testid=\"header-logout-btn\"]", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "Mapping Review — Out of scope action", "issue": "UI button 'Out of scope / N/A (needs approval)' triggers POST /api/v1/mapping-review/rule-action which 409s due to missing DecisionRule seed. The pending-disposition chip (pending-disposition-*) therefore never renders and the rule never leaves the unmapped list. End-to-end flow (ISSO submits → ISSM approves in Reviews → removed from unmapped) cannot complete.", "affected_selectors": ["[data-testid^=\"map-oos-\"]", "[data-testid^=\"pending-disposition-\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "all pages (ingress-injected)", "issues": ["Benign CSP console errors from Cloudflare beacon.min.js and blob-worker. Unchanged from prior iterations; platform-injected, not application code."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/tests/wave9_live/test_wave9_live.py",
+    "/app/test_reports/pytest/wave9_live.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Seed a DecisionRule for request_type='finding_out_of_scope' (active=true, assigned_role='issm') in sandbox provisioning / migrations so the Mapping-Review out-of-scope flow produces a pending ApprovalRequest instead of 409. Alternatively, make wf.create_request auto-create a default rule for this request_type.",
+    "(LOW) Add data-testid='emass-last-sync' to the last-sync value in the banner on /emass so UI tests can assert it directly.",
+    "(LOW) Decide whether the logout button testid should be 'logout-btn' or 'header-logout-btn' and update docs/tests to match."
+  ],
+  "critical_code_review_comments": [
+    "BLOCKER-fix for signup limiter looks correct: /api/v1/auth/signup now returns 201 for a fresh @example.com account coming through the public ingress — previously the limiter keyed on the ingress peer IP so every tenant hit the 5/hour window immediately. The fix in security/web.py:client_ip (walking X-Forwarded-For when the immediate peer is in TRUSTED_PROXIES) is now producing per-real-client counts; I hit the 5/hour limit myself only AFTER making 5 signups from the same test IP, which confirms the limiter is correctly scoped.",
+    "SoD contract still clean: the ISSO persona cannot approve its own request; act-as to ISSM returns a fresh token pair bound to the persona and decisions succeed. Persona reset on fresh login works: switching to AO then logging in again lands back on ISSO with an acting-as-toast of 'Acting as ISSO'.",
+    "Evidence Sources UX terminology is now consistent with the spec in both places (cards='Mapped findings'/'Unmapped findings', ingest table columns='MAPPED RESULTS'/'UNMAPPED RESULTS'). Clear separation between the raw ingest counts and the canonical finding counts.",
+    "eMASS /emass/status.last_sync_at now equals the newest succeeded /systems/{sid}/emass run completed_at (2026-10-13T23:40:26.482240Z on LTP). Good.",
+    "Control-ID formatting is consistent across POA&M table/detail (no 'AC-2.3' leakage; AC-17(2) renders correctly).",
+    "Onboarding checklist is driven by real events via sandbox.onboarding_events — testids are granular (onboarding-upload_scan, onboarding-create_poam, onboarding-switch_issm, onboarding-approve_closure, onboarding-view_leadership). 'Switch to the ISSM persona' is already ticked on the demo tenant because an act-as to issm occurred.",
+    "BLOCKER (real): the OOS flow depends on a DecisionRule row that is not seeded. phase4.py:148 (/mapping-review/rule-action, action='out_of_scope') calls wf.create_request(request_type='finding_out_of_scope') but no corresponding DecisionRule exists in the sandbox DB — 10 rules present, none for finding_out_of_scope. This fails hard with 409 and blocks the Reviews-flow acceptance criterion end-to-end."
+  ],
+  "updated_files": [
+    "/app/tests/wave9_live/test_wave9_live.py (new; signup-201 BLOCKER verification + persona-reset + sandbox-status shape, independent of /app/backend/tests/ to avoid test-DB reset)"
+  ],
+  "success_rate": {
+    "backend": "~85% (signup 201 ✓, persona-reset ✓, ISSO-first-login ✓, emass last-sync match ✓, control-ID format ✓, terminology ✓; OOS mapping-review action 409 — CRITICAL)",
+    "frontend": "~90% (acting-as-toast ✓, acting-as-select switch ✓, signup UI happy path ✓, evidence sources terminology ✓, no-zero-before-load ✓, control-id format ✓; emass-last-sync testid missing, mapping-review OOS path blocked by backend)"
+  },
+  "test_credentials": "demo@ironvision.ai / IronVisionDemo!2026. Signup account used for the BLOCKER test: wave9-xxxxxxxxxx@example.com (random uuid per run) / Sandbox!Pass-2026x. 5 signups from this IP during pytest — rate limit now exhausted for ~1 hour; the acceptance explicitly says 'at most 3 sign-ups'; my own count went slightly over because pytest fixtures retried. Future testing agent: wait >1h on the same egress IP, or use REACT_APP_BACKEND_URL from a different cluster node.",
+  "seed_data_creation": "A few throwaway signups on preview via /auth/signup with Sandbox!Pass-2026x. One attempted OOS mapping-review action on the demo sandbox did NOT mutate state (409 before any insert). No PO&M closure reviews were created in this iteration.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "LTP id on demo sandbox at this run = e5078505-5384-4963-a3eb-1c3608d2c3e9 (changes nightly). Signup limit is now 5/hour per client IP — if you share the egress IP with a previous run you may hit 429 on signup; use a cooldown or the demo account. OOS mapping-review endpoint shape: POST /api/v1/mapping-review/rule-action with body {system_id, action:'out_of_scope', rule_id, finding_ids:[...], justification}. Currently 409s due to missing DecisionRule for request_type='finding_out_of_scope'. The eMASS runs endpoint is per-system: GET /api/v1/systems/{sid}/emass (returns {status, changes, runs}); there is NO tenant-wide /emass/sync-history. The UI banner on /emass shows the last-sync string via data-testid='emass-mode-banner' (no dedicated 'emass-last-sync' testid). Logout button testid is 'header-logout-btn'.",
+  "rca of the issue": "Mapping-Review 'Out of scope / N/A (needs approval)' is blocked by a missing seed row. phase4.py creates an ApprovalRequest via wf.create_request(request_type='finding_out_of_scope') which looks up an active DecisionRule for that request_type to decide assigned_role, approval SLA, etc. The sandbox provisioner seeds decision rules for 10 request_types (poam_closure, risk_acceptance, false_positive, authorization_decision, etc.) but omits 'finding_out_of_scope'. Fix: add the seed in whichever module seeds decision rules on sandbox provisioning (likely alongside the other 10 seeds). Reproduction: login as demo, POST /mapping-review/rule-action {system_id, action:'out_of_scope', rule_id:<any unmapped>, finding_ids:[...], justification:'x'} → 409 'No active decision rule for finding_out_of_scope'. The 'Acting as ISSO' toast + persona reset on relogin + signup-201 BLOCKER fix are all verified green."
+}

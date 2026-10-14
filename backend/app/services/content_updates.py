@@ -50,6 +50,18 @@ def _cv(db: Session, **kw) -> ContentVersion:
 
 
 # ---------- registration ----------
+def content_date(d, synthetic: bool):
+    """Content effective/published dates must be ≤ today. Synthetic seed content is dated relative to the current date;
+    a real release with a future date is rejected."""
+    from datetime import date as _date, timedelta as _td
+
+    if d is None or d <= _date.today():
+        return d
+    if synthetic:
+        return _date.today() - _td(days=1)
+    raise ValueError(f"content effective date {d} is in the future")
+
+
 def register_all(db: Session) -> dict:
     return {"stig": register_stig(db), "kev": register_kev(db), "staged": register_staged(db)}
 
@@ -64,7 +76,7 @@ def register_stig(db: Session) -> int:
         installed = e["seed_status"] == "installed" and not db.scalar(
             select(ContentVersion.id).where(ContentVersion.content_type == STIG, ContentVersion.content_key == e["key"], ContentVersion.is_active.is_(True)))
         cv = _cv(db, content_type=STIG, content_key=e["key"], title=doc["title"], version=e["version"], source_url=e["source_url"], sha256=e["sha256"],
-                 file_name=Path(e["path"]).name, effective_date=datetime.fromisoformat(e["effective_date"]).date(), item_count=len(doc["rules"]),
+                 file_name=Path(e["path"]).name, effective_date=content_date(datetime.fromisoformat(e["effective_date"]).date(), True), item_count=len(doc["rules"]),
                  status="installed" if installed else "available", is_active=installed,
                  meta={"benchmark": doc["benchmark"], "path": e["path"], "synthetic": True, "format": doc["format"]}, source="synthetic")
         for r in doc["rules"]:
@@ -91,7 +103,7 @@ def register_kev(db: Session) -> int:
         active = e["installed"] and not db.scalar(select(ContentVersion.id).where(ContentVersion.content_type == "kev_catalog", ContentVersion.is_active.is_(True)))
         _cv(db, content_type="kev_catalog", content_key="cisa-kev", title="CISA Known Exploited Vulnerabilities Catalog", version=doc.get("catalogVersion"),
             source_url=e["source_url"], sha256=e["sha256"], file_name=Path(e["path"]).name, item_count=len(doc.get("vulnerabilities", [])),
-            effective_date=datetime.fromisoformat(doc["dateReleased"][:10]).date() if doc.get("dateReleased") else None,
+            effective_date=content_date(datetime.fromisoformat(doc["dateReleased"][:10]).date(), True) if doc.get("dateReleased") else None,
             status="installed" if active else "available", is_active=active, meta={"path": e["path"]}, source="official")
         n += 1
     return n

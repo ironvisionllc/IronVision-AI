@@ -42,13 +42,15 @@ export function InheritancePage() {
           {data.providers.map((p: Row) => <tr key={p.id} data-testid={`provider-${p.id}`}><td className="td text-[12px] font-medium">{p.name}</td><td className="td text-[12px]">{p.package}<div className="text-[10px] text-slate-500">{p.basis}</div></td>
             <td className="td max-w-[260px] text-[12px]">{p.coverage_text}</td><td className="td font-mono">{p.fully_inherited}</td><td className="td font-mono">{p.shared}</td>
             <td className="td font-mono text-[11px]">{p.last_validated_at ?? "—"}</td><td className="td font-mono text-[11px]">{p.package_expiration ?? "—"}</td><td className="td text-[11px]">{(p.evidence_refs || []).join(", ")}</td>
-            <td className="td">{can("system.write") && <button className="text-[11px] text-blue-800 underline" onClick={() => setProv(p)} data-testid={`edit-provider-${p.id}`}>Edit</button>}</td></tr>)}
+            <td className="td">{can("system.write") && <><button className="text-[11px] text-blue-800 underline" onClick={() => setProv(p)} data-testid={`edit-provider-${p.id}`}>Edit</button>
+              <label className="ml-2 cursor-pointer text-[11px] text-blue-800 underline" data-testid={`crm-import-${p.id}`}>Import CRM CSV<input type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const fd = new FormData(); fd.append("file", f); act(() => api.post(`/providers/${p.id}/responsibility-matrix`, fd), "Responsibility matrix imported"); }} /></label></>}</td></tr>)}
         </Table>
       </Panel>
-      <Panel title="Shared controls – provider vs system responsibility" className="mb-5" testId="shared-panel">
-        <Table head={["Control", "Provider responsibility", "System responsibility", "System part (this system's own evidence)"]}>
-          {data.shared.map((x: Row) => <tr key={x.control_id} data-testid={`shared-${x.control_id}`}><td className="td"><ControlLink systemId={sid} controlId={x.control_id} /></td>
-            <td className="td max-w-[320px] text-[12px]">{x.provider_responsibility ?? "—"}</td><td className="td max-w-[320px] text-[12px]">{x.system_responsibility ?? "—"}</td>
+      <Panel title="Shared & inherited controls – provider vs system responsibility" eyebrow="Seeded text is a synthetic demo responsibility matrix · CSV columns: control_id, responsibility, provider_responsibility, customer_responsibility" className="mb-5" testId="shared-panel">
+        <Table head={["Control", "Type", "Provider responsibility", "System responsibility", "System part (this system's own evidence)"]}>
+          {data.shared.map((x: Row) => <tr key={x.control_id} data-testid={`shared-${x.control_id}`}><td className="td"><ControlLink systemId={sid} controlId={x.control_id} /></td><td className="td text-[11px]">{x.responsibility}</td>
+            {x.split_missing ? <td colSpan={2} className="td text-[12px] text-amber-800" data-testid={`split-missing-${x.control_id}`}>Responsibility split not documented</td> : <>
+            <td className="td max-w-[320px] text-[12px]">{x.provider_responsibility ?? "—"}</td><td className="td max-w-[320px] text-[12px]">{x.system_responsibility ?? "—"}</td></>}
             <td className="td text-[12px]"><S v={x.system_part.monitoring_status} label="monitoring" /> <S v={x.system_part.evidence_freshness_status} /> <span className="font-mono">{x.system_part.open_findings} open</span></td></tr>)}
         </Table>
         <div className="mt-2 text-[11px] text-slate-500">Provider passing never satisfies the system portion.</div>
@@ -123,7 +125,7 @@ export function PolicyAuditorPage() {
         <Table head={["Policy", "Version", "Status", "Owner", "Approved", "Review due", "Analysis", "Proposed / confirmed / dismissed"]}>
           {data.policies.map((p: Row) => <tr key={p.id} data-testid={`policy-row-${p.policy_key}-v${p.version}`} className={cn(p.status === "superseded" && "opacity-60")}>
             <td className="td"><Link className="text-blue-800 hover:underline" to={`/policy-auditor/${p.id}`}>{p.title}</Link>{p.metadata_only && <div className="text-[10px] text-slate-400">metadata only (no document loaded)</div>}</td>
-            <td className="td font-mono">v{p.version}</td><td className="td"><S v={p.status} /></td><td className="td text-[12px]">{p.owner}</td><td className="td font-mono text-[11px]">{p.approval_date ?? "—"}</td>
+            <td className="td font-mono">v{p.version}</td><td className="td"><S v={p.review_status ?? p.status} testId={`policy-review-status-${p.policy_key}-v${p.version}`} /></td><td className="td text-[12px]">{p.owner}</td><td className="td font-mono text-[11px]">{p.approval_date ?? "—"}</td>
             <td className="td font-mono text-[11px]">{p.review_due ?? "—"}</td><td className="td"><S v={p.analysis_status} /></td><td className="td font-mono">{p.proposed} / {p.confirmed} / {p.dismissed}</td></tr>)}
         </Table>
       </Panel>
@@ -150,13 +152,13 @@ export function PolicyDetailPage() {
   return (
     <div data-testid="policy-detail-page">
       <PageHeader title={`${p.title} v${p.version}`} subtitle={`${p.status} · ${p.file_name ?? "metadata only"} · sha256 ${p.sha256?.slice(0, 16) ?? "—"} · ${p.analysis?.ai_note ?? ""}`}>
-        <a className="btn-secondary" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/policies/${id}/parameters.csv`} onClick={async (e) => { e.preventDefault(); const r = await api.get(`/policies/${id}/parameters.csv`, { responseType: "blob" }); const u = URL.createObjectURL(r.data as Blob); const a = document.createElement("a"); a.href = u; a.download = "parameters.csv"; a.click(); }} data-testid="export-params-btn">Export parameter comparison (CSV – OSCAL in Phase 4)</a>
+        <a className="btn-secondary" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/policies/${id}/parameters.csv`} onClick={async (e) => { e.preventDefault(); const r = await api.get(`/policies/${id}/parameters.csv`, { responseType: "blob" }); const u = URL.createObjectURL(r.data as Blob); const a = document.createElement("a"); a.href = u; a.download = "parameters.csv"; a.click(); }} data-testid="export-params-btn">Export parameter comparison (CSV)</a>
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="policy-msg">{msg}</div>}
       <Panel title="Values this policy sets" className="mb-5" testId="policy-values">
-        <Table head={["Control", "Parameter", "Policy value", "Approved ODP", "Observed / enforced", "Evidence age", "Result"]}>
+        <Table head={["Control", "Parameter", "Policy value & exact quote", "Approved ODP", "Observed / enforced", "Evidence age", "Result"]}>
           {data.values.map((v: Row, i: number) => <tr key={i} data-testid={`value-${v.control_id}`}><td className="td"><ControlLink systemId={v.system_id} controlId={v.control_id} /></td><td className="td text-[12px]">{v.parameter}</td>
-            <td className="td font-mono">{v.policy_value}</td><td className="td font-mono">{v.odp_value ?? "—"}</td><td className="td font-mono">{v.observed_value ?? "—"}<div className="text-[10px] text-slate-500">{v.observed_source}</div></td>
+            <td className="td"><span className="font-mono">{v.policy_value}</span>{v.quote && <blockquote className="mt-1 border-l-2 border-slate-300 pl-2 text-[11px] text-slate-700" data-testid={`value-quote-${v.control_id}`}>“{v.quote}”<div className="text-[10px] not-italic text-slate-500">{v.quote_location}{v.quote_status !== "verbatim" ? ` · ${v.quote_status}` : " · verbatim"}</div></blockquote>}</td><td className="td font-mono">{v.odp_value ?? "—"}</td><td className="td font-mono">{v.observed_value ?? "—"}<div className="text-[10px] text-slate-500">{v.observed_source}</div></td>
             <td className="td font-mono text-[11px]">{v.observed_age_days ?? "—"}d</td><td className="td">{v.result ? <S v={v.result === "Match" ? "current" : "failing"} label={v.result} testId={`value-result-${v.control_id}`} /> : "—"}</td></tr>)}
         </Table>
       </Panel>
@@ -164,7 +166,7 @@ export function PolicyDetailPage() {
         <Table head={["Type", "Control", "Description", "Quote", "Origin", "Status", "Actions"]}>
           {data.findings.map((pf: Row) => <tr key={pf.id} data-testid={`pf-${pf.finding_type}-${pf.control_id}`}>
             <td className="td text-[12px]">{TYPES[pf.finding_type]}</td><td className="td">{pf.control_id ? <ControlLink systemId={pf.system_id} controlId={pf.control_id} /> : "—"}</td>
-            <td className="td max-w-[320px] text-[12px]">{pf.description}</td><td className="td max-w-[200px] text-[11px] italic text-slate-600">{pf.quote}</td><td className="td text-[11px]">{pf.origin}</td>
+            <td className="td max-w-[320px] text-[12px]">{pf.description}</td><td className="td max-w-[220px] text-[11px] text-slate-600" data-testid={`pf-quote-${pf.id}`}>{pf.quote ? (pf.quote.startsWith("[paraphrase") ? <span className="text-amber-700">{pf.quote}</span> : <>“{pf.quote}”</>) : "—"}</td><td className="td text-[11px]">{pf.origin}</td>
             <td className="td"><S v={pf.status} />{pf.justification && <div className="text-[10px] text-slate-500">{pf.reviewer_name}: {pf.justification}</div>}</td>
             <td className="td">{can("finding.map") && ["proposed", "in_review"].includes(pf.status) && <div className="flex flex-wrap gap-1">
               <button className="btn-primary px-2 py-0.5 text-[11px]" onClick={() => act(pf, "confirm")} data-testid={`pf-confirm-${pf.id}`}>Confirm</button>
@@ -182,16 +184,24 @@ export function PolicyDetailPage() {
   );
 }
 
+const RMF_STAGES = ["1. Prepare", "2. Categorize", "3. Select", "4. Implement", "5. Assess", "6. Authorize", "7. Monitor",
+  "Ongoing: POA&M", "Ongoing: Attestations", "Ongoing: Reviews", "Ongoing: Policy audit"];
+
 export function RmfWorkflowPage() {
-  const { selectedId: sid } = useSystems();
+  const { selectedId: sid, systems, loaded } = useSystems();
   const { data } = useApi<Row[]>(sid ? `/systems/${sid}/rmf-workflow` : null);
-  if (!sid) return <NeedSystem />;
+  const empty = loaded && systems.length === 0;
+  if (!sid && !empty) return <NeedSystem />;
   const tone: Record<string, string> = { completed: "border-emerald-300", in_progress: "border-sky-300", needs_attention: "border-amber-400", not_configured: "border-slate-300" };
+  const rows = empty ? RMF_STAGES.map((stage) => ({ stage, state: "not_configured", reason: "No system registered yet", link: "/systems/new" })) : data;
   return (
     <div data-testid="rmf-workflow-page">
-      <PageHeader title="RMF Workflow" subtitle="Live stage state derived from this system's records (rules documented in README)." />
+      <PageHeader title="RMF Workflow" subtitle="Live stage state derived from this system's records (rules documented in README).">
+        {empty && <Link to="/systems/new" className="btn-primary" data-testid="rmf-empty-register">Register your first system</Link>}
+      </PageHeader>
+      {empty && <div className="panel mb-4 p-4 text-[13px] text-slate-600" data-testid="rmf-empty">No systems yet – every stage is <b>Not configured</b>. Register a system to start Prepare → Categorize → Select.</div>}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {data?.map((s) => <Link key={s.stage} to={s.link} className={cn("panel card-interactive border-l-4 p-4", tone[s.state])} data-testid={`stage-${s.stage.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase()}`}>
+        {rows?.map((s) => <Link key={s.stage} to={s.link} className={cn("panel card-interactive border-l-4 p-4", tone[s.state])} data-testid={`stage-${s.stage.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase()}`}>
           <div className="flex items-center justify-between"><span className="font-heading font-semibold text-slate-900">{s.stage}</span><S v={s.state} /></div><div className="mt-1 text-[12px] text-slate-600">{s.reason}</div></Link>)}
       </div>
     </div>

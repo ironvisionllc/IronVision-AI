@@ -9,7 +9,7 @@ MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_MB", "50")) * 1024 * 1024
 ZIP_MAX_RATIO, ZIP_MAX_TOTAL, ZIP_MAX_MEMBERS = 100, 200 * 1024 * 1024, 1000
 
 KINDS = {
-    "scan": {".nessus", ".ckl", ".cklb", ".csv"},
+    "scan": {".nessus", ".ckl", ".cklb", ".csv", ".xml", ".sarif", ".json"},
     "policy": {".pdf", ".docx", ".txt"},
     "evidence": {".pdf", ".docx", ".txt", ".png", ".jpg", ".jpeg", ".json", ".csv", ".xml"},
 }
@@ -37,7 +37,7 @@ def _magic_ok(ext: str, data: bytes) -> bool:
         return data.lstrip()[:1] in (b"{", b"[") or head.startswith(b"PK\x03\x04")
     if ext in (".nessus", ".ckl", ".xml"):
         return data.lstrip()[:1] == b"<" or data.startswith(b"\xef\xbb\xbf<")
-    if ext in (".txt", ".csv", ".json"):
+    if ext in (".txt", ".csv", ".json", ".sarif"):
         return b"\x00" not in data[:4096]
     return False
 

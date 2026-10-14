@@ -1,3 +1,4 @@
+import { fmtControl } from "@/lib/format";
 import { ReactNode, useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
@@ -40,7 +41,7 @@ export function ControlDetailDrawer({ controlId, onClose, onNavigate }: Props) {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-sm font-semibold text-blue-800" data-testid="control-detail-id">{detail?.label ?? controlId}</span>
-                {detail?.is_enhancement && <StatusPill tone="info">Enhancement of {detail.parent_control_id?.toUpperCase()}</StatusPill>}
+                {detail?.is_enhancement && <StatusPill tone="info">Enhancement of {fmtControl(detail.parent_control_id)}</StatusPill>}
                 {detail?.is_withdrawn && <StatusPill tone="neutral">Withdrawn</StatusPill>}
                 {detail?.baselines.map((b) => <BaselinePill key={b} baseline={b} />)}
               </div>

@@ -3,6 +3,8 @@ import hashlib
 import io
 import re
 import uuid
+
+from app.services.queue import fmt_control
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException
@@ -66,7 +68,7 @@ def generate_deadline_notifications(db: Session) -> int:
     for p in db.scalars(select(Poam).where(Poam.status.in_(("new", "in_progress")), Poam.due_date <= today + timedelta(days=14))):
         n += send(db, p.owner_id or p.created_by, "poam_deadline", f"{p.human_id} due {p.due_date}", f"/poams/{p.id}", dedupe_key=f"poam:{p.id}:{p.due_date}")
     for a in db.scalars(select(Attestation).where(Attestation.status.in_(("pending", "expired")), Attestation.due_date < today)):
-        n += send(db, a.owner_id, "attestation_overdue", f"Attestation {a.control_id.upper()} v{a.version} overdue", "/inheritance",
+        n += send(db, a.owner_id, "attestation_overdue", f"Attestation {fmt_control(a.control_id)} v{a.version} overdue", "/inheritance",
                   dedupe_key=f"att:{a.id}:overdue")
     for e in db.scalars(select(Evidence).where(Evidence.state == "near_expiration")):
         s = db.get(System, e.system_id)
@@ -122,13 +124,19 @@ def store_evidence(db: Session, system_id, file_name: str, data: bytes, evidence
     if not store.exists(key):
         store.put(key, data, "application/octet-stream")
     st = "manual_attestation" if evidence_type == "attestation" else "manual_upload"
-    src = db.scalar(select(EvidenceSource).where(EvidenceSource.system_id == system_id, EvidenceSource.source_type == st).order_by(EvidenceSource.created_at).limit(1))
+    sq = select(EvidenceSource).where(EvidenceSource.system_id == system_id, EvidenceSource.source_type == st)
+    if st == "manual_attestation":
+        sq = sq.where(EvidenceSource.name == "Manual attestations")
+    src = db.scalar(sq.order_by(EvidenceSource.created_at).limit(1))
     if src is None:
         src = EvidenceSource(id=uuid.uuid4(), system_id=system_id, source_type=st, adapter="file_import", health="ok", config={},
                              name="Manual attestations" if st == "manual_attestation" else "Policy library / manual uploads", source="auto:upload-attribution")
         db.add(src)
         db.flush()
-    ev = Evidence(id=uuid.uuid4(), system_id=system_id, source_id=src.id, name=file_name, evidence_type=evidence_type, file_name=file_name, storage_key=key,
+    from app.services.queue import fmt_control
+
+    name = f"{fmt_control(file_name.split('_attestation')[0])} attestation record" if evidence_type == "attestation" and "_attestation" in file_name else file_name
+    ev = Evidence(id=uuid.uuid4(), system_id=system_id, source_id=src.id, name=name, evidence_type=evidence_type, file_name=file_name, storage_key=key,
                   sha256=sha, size_bytes=len(data), content_type=file_name.rsplit(".", 1)[-1], collected_at=now(), signature_status="unsigned",
                   integrity_status="hash_recorded", source=source_label, provenance={"received_by": actor_email, "sha256_at_receipt": sha})
     db.add(ev)
@@ -176,7 +184,7 @@ def renew_attestation(db: Session, a: Attestation, actor: User) -> Attestation:
     a.status = "superseded" if a.status == "signed" else a.status
     db.add(new)
     db.flush()
-    send(db, a.owner_id, "attestation_overdue", f"Renewal: attest {a.control_id.upper()} v{new.version}", "/inheritance", dedupe_key=f"att:{new.id}:renew")
+    send(db, a.owner_id, "attestation_overdue", f"Renewal: attest {fmt_control(a.control_id)} v{new.version}", "/inheritance", dedupe_key=f"att:{new.id}:renew")
     audit.record(db, action="attestation.renewed", actor_user_id=actor.id, actor_email=actor.email, entity_type="attestation", entity_id=str(new.id),
                  details={"previous_id": str(a.id), "previous_preserved": True})
     return new
@@ -192,7 +200,7 @@ def expire_attestations(db: Session) -> dict:
         if a.evidence_id:
             ev = db.get(Evidence, a.evidence_id)
             ev.state, ev.signature_status = "expired", "attestation_expired"
-        send(db, a.owner_id, "attestation_overdue", f"Attestation {a.control_id.upper()} v{a.version} expired – renew", "/inheritance",
+        send(db, a.owner_id, "attestation_overdue", f"Attestation {fmt_control(a.control_id)} v{a.version} expired – renew", "/inheritance",
              dedupe_key=f"att:{a.id}:expired")
         audit.record(db, action="attestation.expired", actor_email="system", entity_type="attestation", entity_id=str(a.id),
                      details={"expired_on": str(a.expires_at), "signed_record_preserved": True})
@@ -277,17 +285,72 @@ def extract_text(file_name: str, data: bytes) -> str:
     raise HTTPException(422, "Supported policy formats: PDF, DOCX, TXT")
 
 
+def policy_review_status(p: Policy, today: date | None = None) -> str:
+    """Single derivation of policy review status from dates (used by cards, library, detail)."""
+    today = today or date.today()
+    if p.status != "current":
+        return p.status
+    if p.review_due and p.review_due < today:
+        return "review_overdue"
+    if p.review_due and p.review_due <= today + timedelta(days=30):
+        return "review_due_soon"
+    return "current"
+
+
+def sentence_at(text: str, start: int, end: int) -> tuple[int, int]:
+    s = max(text.rfind(".", 0, start), text.rfind("\n", 0, start)) + 1
+    e_dot, e_nl = text.find(".", end), text.find("\n", end)
+    e = min(x for x in (e_dot + 1 if e_dot >= 0 else len(text), e_nl if e_nl >= 0 else len(text)))
+    while s < e and text[s].isspace():
+        s += 1
+    return s, e
+
+
+def locate(text: str, start: int) -> str:
+    """Page / section reference for an offset: nearest preceding heading line (numbered or Title Case) and form-feed page count."""
+    page = text.count("\f", 0, start) + 1
+    head = None
+    for line in reversed(text[:start].splitlines()[-40:]):
+        t = line.strip()
+        if re.match(r"^(\d+(\.\d+)*\.?\s+\S|section\s+\d+|[A-Z][A-Za-z &/-]{3,60}$)", t, re.IGNORECASE):
+            head = t[:80]
+            break
+    return f"p. {page}" + (f", § {head}" if head else "")
+
+
+def verbatim_quote(text: str, quote: str | None) -> dict:
+    """Every stored quote must be an exact substring of the extracted text. Paraphrases are replaced by the best-matching
+    sentence when one is close enough; otherwise they are flagged 'paraphrase – not a quote'."""
+    import difflib
+
+    q = (quote or "").strip().strip('"“”')
+    if not q:
+        return {"quote": None, "quote_status": "none"}
+    i = text.find(q)
+    if i >= 0:
+        s, e = sentence_at(text, i, i + len(q))
+        return {"quote": text[s:e], "start": s, "end": e, "quote_status": "verbatim", "location": locate(text, s)}
+    sents = [(m.start(), m.end()) for m in re.finditer(r"[^.\n]+\.?", text)]
+    best = max(sents, key=lambda se: difflib.SequenceMatcher(None, q.lower(), text[se[0]:se[1]].lower()).ratio(), default=None)
+    if best and difflib.SequenceMatcher(None, q.lower(), text[best[0]:best[1]].lower()).ratio() >= 0.6:
+        s, e = sentence_at(text, best[0], best[1] - 1)
+        return {"quote": text[s:e], "start": s, "end": e, "quote_status": "replaced_with_exact_sentence", "location": locate(text, s), "ai_text": q}
+    return {"quote": q, "quote_status": "paraphrase", "label": "paraphrase – not a quote"}
+
+
 def rule_extract(text: str) -> dict:
     vals = []
     for cid, param, rx, unit in PARAMS:
         m = re.search(rx, text, re.IGNORECASE)
         if m:
             v = next(g for g in m.groups() if g)
-            vals.append({"control_id": cid, "parameter": param, "value": f"{v} {unit}", "numeric_value": float(v), "unit": unit, "quote": m.group(0)[:300]})
+            s, e = sentence_at(text, m.start(), m.end())
+            vals.append({"control_id": cid, "parameter": param, "value": f"{v} {unit}", "numeric_value": float(v), "unit": unit,
+                         "quote": text[s:e], "start": s, "end": e, "quote_status": "verbatim", "location": locate(text, s)})
     low = text.lower()
     missing = [{"control_id": c, "section": label} for c, kw, label in REQUIRED_SECTIONS
                if (kw not in low) or (kw == "official" and re.search(r"official:\s*(tbd|\[?name\]?|_+)?\s*$", low, re.M) and "named official" not in low)]
-    outdated = [{"quote": m.group(0)} for m in re.finditer(r"(?:NIST\s+)?SP\s*800-53\s*(?:Rev(?:ision)?\.?\s*4|r4)", text, re.IGNORECASE)][:3]
+    outdated = [{"quote": text[slice(*sentence_at(text, m.start(), m.end()))]} for m in re.finditer(r"(?:NIST\s+)?SP\s*800-53\s*(?:Rev(?:ision)?\.?\s*4|r4)", text, re.IGNORECASE)][:3]
     return {"values": vals, "missing_sections": missing, "outdated_references": outdated}
 
 
@@ -324,7 +387,9 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
             cid = (s.get("control_id") or "").lower().replace("(", ".").replace(")", "").strip()
             if cid not in known:
                 continue  # unknown control IDs from AI are dropped (validated against catalog)
-            add(finding_type="ai_suggested_needs_validation", control_id=cid, description=s.get("description", "")[:2000], quote=(s.get("quote") or "")[:1000],
+            vq = verbatim_quote(policy.text_content or "", s.get("quote"))
+            qtxt = vq["quote"] if vq["quote_status"] != "paraphrase" else f"[paraphrase – not a quote] {vq['quote']}"
+            add(finding_type="ai_suggested_needs_validation", control_id=cid, description=s.get("description", "")[:2000], quote=(qtxt or "")[:1000],
                 origin="ai", ai_interaction_id=ai_interaction_id)
     policy.analysis_status = "analyzed"
     policy.analysis = {**ex, "ai_used": ai_output is not None, "ai_dropped_unknown_controls": [s.get("control_id") for s in (ai_output or {}).get("findings", [])
@@ -360,6 +425,26 @@ def confirm_policy_finding(db: Session, pf: PolicyFinding, actor: User) -> Findi
 
 
 # ---------- RMF workflow ----------
+MONITOR_RULE = ("Monitor = needs attention when any open KEV, open CAT I, overdue POA&M, stale/expired control evidence or unhealthy source exists; "
+                "completed only when none exist AND ≥80% of assigned controls have current supporting evidence; otherwise in progress.")
+
+
+def _monitor(m: dict, srcs: list, stale_src: int) -> dict:
+    if not srcs:
+        return {"state": "not_configured", "reason": "No evidence sources connected", "link": "/evidence-sources", "rule": MONITOR_RULE}
+    blockers = [f"{m['kev_open']} open KEV" if m["kev_open"] else None, f"{m['open_cat1']} open CAT I" if m["open_cat1"] else None,
+                f"{m['overdue_poams']} overdue POA&M" if m["overdue_poams"] else None,
+                f"{m['controls_stale']} controls with stale/expired evidence" if m["controls_stale"] else None,
+                f"{stale_src} unhealthy sources" if stale_src else None]
+    blockers = [b for b in blockers if b]
+    cov = m["control_evidence_coverage_pct"] or 0
+    facts = (f"controls with current supporting evidence: {m['controls_with_current_evidence']} of {m['assigned_controls']} ({cov}%); "
+             f"collected evidence items within freshness window: {m['evidence_items_fresh_pct']}%")
+    state = "needs_attention" if blockers else ("completed" if cov >= 80 else "in_progress")
+    return {"state": state, "reason": ("; ".join(blockers) + " · " if blockers else "") + facts, "link": "/evidence-sources", "rule": MONITOR_RULE,
+            "blockers": blockers}
+
+
 def workflow_stages(db: Session, s: System) -> list[dict]:
     """Derivation rules (documented in README): each stage reads live records only."""
     from app.services.evaluation import system_metrics
@@ -389,19 +474,25 @@ def workflow_stages(db: Session, s: System) -> list[dict]:
         ("5. Assess", st(ac and assessed == len(ac), assessed > 0, f"{assessed} of {len(ac)} controls assessed by SCA", "/reviews")),
         ("6. Authorize", st(str(s.authorization_status).startswith("Authorized") and (m["days_to_expiration"] or 0) > 0, False,
                             f"{s.authorization_status}; expires {s.authorization_expiration or '—'}", f"/systems/{s.id}/authorization")),
-        ("7. Monitor", {"state": "not_configured", "reason": "No evidence sources connected", "link": "/evidence-sources"} if not srcs else
-         st(stale_src == 0 and (m["evidence_fresh_pct"] or 0) >= 80, True, f"{len(srcs)} sources connected, {stale_src} unhealthy; evidence fresh {m['evidence_fresh_pct']}%",
-            "/evidence-sources")),
+        ("7. Monitor", _monitor(m, srcs, stale_src)),
     ]
     out = [{"stage": k, **v} for k, v in stages]
     att = db.scalar(select(func.count()).select_from(Attestation).where(Attestation.system_id == s.id, Attestation.status.in_(("pending", "expired")),
                                                                           Attestation.due_date < date.today()))
     pend = db.scalar(select(func.count()).select_from(ApprovalRequest).where(ApprovalRequest.system_id == s.id, ApprovalRequest.status == "pending"))
     pols = db.scalar(select(func.count()).select_from(PolicyFinding).where(PolicyFinding.system_id == s.id, PolicyFinding.status == "proposed"))
-    out += [{"stage": "Ongoing: POA&M", **st(m["overdue_poams"] == 0, True, f"{m['open_poams']} open, {m['overdue_poams']} overdue", "/poams")},
-            {"stage": "Ongoing: Attestations", **st(att == 0, True, f"{att} overdue attestations", "/inheritance")},
-            {"stage": "Ongoing: Reviews", **st(pend == 0, True, f"{pend} pending review requests", "/reviews")},
-            {"stage": "Ongoing: Policy audit", **st(pols == 0, True, f"{pols} proposed policy findings awaiting confirmation", "/policy-auditor")}]
+    def nc(reason, link):
+        return {"state": "not_configured", "reason": reason, "link": link}
+    n_poam = db.scalar(select(func.count()).select_from(Poam).where(Poam.system_id == s.id))
+    n_att = db.scalar(select(func.count()).select_from(Attestation).where(Attestation.system_id == s.id))
+    n_req = db.scalar(select(func.count()).select_from(ApprovalRequest).where(ApprovalRequest.system_id == s.id))
+    n_pol = db.scalar(select(func.count()).select_from(PolicyFinding).where(PolicyFinding.system_id == s.id))
+    out += [{"stage": "Ongoing: POA&M", **(st(m["overdue_poams"] == 0, True, f"{m['open_poams']} open, {m['overdue_poams']} overdue", "/poams")
+                                           if n_poam else nc("No POA&Ms yet", "/poams"))},
+            {"stage": "Ongoing: Attestations", **(st(att == 0, True, f"{att} overdue attestations", "/inheritance") if n_att else nc("No attestations yet", "/inheritance"))},
+            {"stage": "Ongoing: Reviews", **(st(pend == 0, True, f"{pend} pending review requests", "/reviews") if n_req else nc("No review requests yet", "/reviews"))},
+            {"stage": "Ongoing: Policy audit", **(st(pols == 0, True, f"{pols} proposed policy findings awaiting confirmation", "/policy-auditor")
+                                                  if n_pol else nc("No policies audited yet", "/policy-auditor"))}]
     return out
 
 

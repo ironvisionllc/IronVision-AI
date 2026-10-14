@@ -22,6 +22,8 @@ DEFAULT_SCHEDULES = [
     ("kev.reevaluate", "KEV re-evaluation of findings", 1440),
     ("emass.retry", "eMASS outbound retry (backoff)", 5),
     ("retention.purge", "Data retention purge (dry-run by default; never audit/legal-hold)", 1440),
+    ("sandbox.expiry", "Sandbox inactivity warnings + purge (sandbox tenants only)", 1440),
+    ("sandbox.demo_reset", "Nightly reset of the shared demo account sandbox", 1440),
 ]
 STALE_MINUTES = 30
 
@@ -37,6 +39,12 @@ def ensure_defaults(db: Session) -> None:
     db.flush()
 
 
+def _retry_due(db: Session) -> bool:
+    from app.models import EmassChange
+
+    return db.scalar(select(EmassChange.id).where(EmassChange.status == "pending_retry").limit(1)) is not None
+
+
 def tick(db: Session) -> list[str]:
     db.execute(update(Job).where(Job.status == "running", Job.locked_at < now() - timedelta(minutes=STALE_MINUTES))
                .values(status="queued", locked_by=None, error="requeued: worker lost (stale lock)"))
@@ -45,6 +53,9 @@ def tick(db: Session) -> list[str]:
         sj.next_run_at = now() + timedelta(minutes=sj.interval_minutes)
         if jobsvc.has_pending(db, sj.job_type):
             sj.last_status = "skipped_already_pending"
+            continue
+        if sj.job_type == "emass.retry" and not _retry_due(db):
+            sj.last_status = "idle_queue_empty"
             continue
         job = jobsvc.enqueue(db, sj.job_type, {"scheduled": True, "schedule_id": str(sj.id)})
         sj.last_job_id, sj.last_enqueued_at, sj.last_status = job.id, now(), "queued"

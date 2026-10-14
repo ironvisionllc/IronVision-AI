@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="2" tests="10" time="35.734" timestamp="2026-10-13T23:20:04.514275+00:00" hostname="agent-env-f1c44bd3-3829-41e9-895b-6f3a0ff15508"><testcase classname="tests.test_wave8_live" name="test_demo_login_and_me" time="8.921"><failure message="AssertionError: assert 'isso.sbx-iro...ision.invalid' == 'demo@ironvision.ai'&#10;  &#10;  - demo@ironvision.ai&#10;  + isso.sbx-ironvision-demo-2ab2ce@persona.ironvision.invalid">backend/tests/test_wave8_live.py:38: in test_demo_login_and_me
+    assert body.get("email") == DEMO_EMAIL
+E   AssertionError: assert 'isso.sbx-iro...ision.invalid' == 'demo@ironvision.ai'
+E     
+E     - demo@ironvision.ai
+E     + isso.sbx-ironvision-demo-2ab2ce@persona.ironvision.invalid</failure></testcase><testcase classname="tests.test_wave8_live" name="test_demo_sandbox_status" time="0.208"><failure message="AssertionError: assert (None is True or 'operated_by' in {'sandbox': True, 'status': 'ready', 'progress': {'pct': 100, 'step': 'ready'}, 'org_name': 'IronVision Demo Sandbox – SYNTHETIC (2ab2ce)', ...} or 'tenant' in {'sandbox': True, 'status': 'ready', 'progress': {'pct': 100, 'step': 'ready'}, 'org_name': 'IronVision Demo Sandbox – SYNTHETIC (2ab2ce)', ...})&#10; +  where None = &lt;built-in method get of dict object at 0xfdc0bd1e21c0&gt;('is_sandbox')&#10; +    where &lt;built-in method get of dict object at 0xfdc0bd1e21c0&gt; = {'sandbox': True, 'status': 'ready', 'progress': {'pct': 100, 'step': 'ready'}, 'org_name': 'IronVision Demo Sandbox – SYNTHETIC (2ab2ce)', ...}.get">backend/tests/test_wave8_live.py:45: in test_demo_sandbox_status
+    assert j.get("is_sandbox") is True or "operated_by" in j or "tenant" in j
+E   AssertionError: assert (None is True or 'operated_by' in {'sandbox': True, 'status': 'ready', 'progress': {'pct': 100, 'step': 'ready'}, 'org_name': 'IronVision Demo Sandbox – SYNTHETIC (2ab2ce)', ...} or 'tenant' in {'sandbox': True, 'status': 'ready', 'progress': {'pct': 100, 'step': 'ready'}, 'org_name': 'IronVision Demo Sandbox – SYNTHETIC (2ab2ce)', ...})
+E    +  where None = &lt;built-in method get of dict object at 0xfdc0bd1e21c0&gt;('is_sandbox')
+E    +    where &lt;built-in method get of dict object at 0xfdc0bd1e21c0&gt; = {'sandbox': True, 'status': 'ready', 'progress': {'pct': 100, 'step': 'ready'}, 'org_name': 'IronVision Demo Sandbox – SYNTHETIC (2ab2ce)', ...}.get</failure></testcase><testcase classname="tests.test_wave8_live" name="test_demo_has_4_systems_with_acronyms" time="0.200" /><testcase classname="tests.test_wave8_live" name="test_signup_weak_password_rejected" time="0.124" /><testcase classname="tests.test_wave8_live" name="test_signup_login_and_provisioning" time="23.660"><failure message="AssertionError: new sandbox should have 4 systems, got []&#10;assert set() &gt;= {'FMDH', 'LTP', 'MPP', 'TRS'}&#10;  &#10;  Extra items in the right set:&#10;  'LTP'&#10;  'TRS'&#10;  'FMDH'&#10;  'MPP'">backend/tests/test_wave8_live.py:95: in test_signup_login_and_provisioning
+    assert set(acronyms) &gt;= {"LTP","MPP","FMDH","TRS"}, f"new sandbox should have 4 systems, got {acronyms}"
+E   AssertionError: new sandbox should have 4 systems, got []
+E   assert set() &gt;= {'FMDH', 'LTP', 'MPP', 'TRS'}
+E     
+E     Extra items in the right set:
+E     'LTP'
+E     'TRS'
+E     'FMDH'
+E     'MPP'</failure></testcase><testcase classname="tests.test_wave8_live" name="test_new_signup_ids_differ_from_demo" time="0.176" /><testcase classname="tests.test_wave8_live" name="test_isso_cannot_approve_own_closure" time="0.438"><skipped type="pytest.skip" message="evidence endpoint returned 404">/app/backend/tests/test_wave8_live.py:130: evidence endpoint returned 404</skipped></testcase><testcase classname="tests.test_wave8_live" name="test_issm_can_approve_via_act_as" time="0.000"><skipped type="pytest.skip" message="no pending review id">/app/backend/tests/test_wave8_live.py:152: no pending review id</skipped></testcase><testcase classname="tests.test_wave8_live" name="test_workflow_monitor_and_291" time="0.453"><failure message="AssertionError: workflow monitor failed: 404&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_wave8_live.py:171: in test_workflow_monitor_and_291
+    assert r.status_code == 200, f"workflow monitor failed: {r.status_code}"
+E   AssertionError: workflow monitor failed: 404
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="tests.test_wave8_live" name="test_emass_sync_page" time="0.489" /></testsuite></testsuites>

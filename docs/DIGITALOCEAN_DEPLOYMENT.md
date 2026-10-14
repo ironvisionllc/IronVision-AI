@@ -367,7 +367,10 @@ python3 scripts/check_env.py deploy/digitalocean/.env.staging
 export SCOMPOSE="docker compose -p ironvision-staging --env-file deploy/digitalocean/.env.staging -f docker-compose.yml -f deploy/digitalocean/docker-compose.do.yml -f deploy/digitalocean/docker-compose.staging.yml"
 $SCOMPOSE up -d --build
 ```
-- **Synthetic data only.** Demo data is seeded only because the staging overlay sets `SEED_DEMO_DATA=true` explicitly. Demo accounts use the generated `STAGING_DEMO_PASSWORD`, and the seed refuses the documented password outside development.
+- **Synthetic data only.** Demo data is seeded only because the staging overlay sets `SEED_DEMO_DATA=true` explicitly.
+  - The single demo account `demo@ironvision.ai` uses the generated `STAGING_DEMO_PASSWORD`.
+  - `ALLOW_SIGNUP=true` lets reviewers create private sandboxes. New sign-ups start **clean** (no systems or records); only `demo@ironvision.ai` is seeded with the 4 synthetic systems. `SANDBOX_INACTIVITY_DAYS` (default 30) purges idle ones.
+  - Production keeps `ALLOW_SIGNUP=false`, `SEED_DEMO_DATA=false` and `DEMO_PASSWORD` empty.
 - **Dev credentials are not public.** `DEV_USER_PICKER=false` hides the account picker, and the edge adds basic auth plus the IP allowlist.
 - The build shows a persistent **"STAGING – SYNTHETIC DATA"** banner (`REACT_APP_ENV_LABEL=staging`).
 - `X-Robots-Tag: noindex` and a `Disallow: /` robots.txt keep it out of search engines.

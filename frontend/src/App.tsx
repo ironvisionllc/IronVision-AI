@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SystemProvider } from "@/context/SystemContext";
 import { AppShell } from "@/components/shell/AppShell";
+import { ProvisioningGate } from "@/components/shell/Sandbox";
 import { NAV_ITEMS } from "@/lib/nav";
 import LoginPage from "@/pages/LoginPage";
 import ControlsPage from "@/pages/ControlsPage";
@@ -37,6 +38,7 @@ function Protected({ children }: { children: ReactElement }) {
     );
   }
   if (user === false) return <Navigate to="/login" replace />;
+  if (user.is_sandbox && !user.persona_role) return <ProvisioningGate />;
   return children;
 }
 

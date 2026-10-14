@@ -78,6 +78,10 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
         if env.get("HSTS_ENABLED", "true").lower() in ("0", "false", "no", "off"):
             warns.append("HSTS_ENABLED is off")
     errors += insecure_production(env)
+    if profile == "production" and _true(env.get("ALLOW_SIGNUP")):
+        warns.append("ALLOW_SIGNUP=true in production – public self sign-up creates sandbox tenants; keep it false for production")
+    if profile == "production" and (env.get("SIGNUP_RATE_LIMIT_EXEMPT_CIDRS") or "").strip():
+        warns.append("SIGNUP_RATE_LIMIT_EXEMPT_CIDRS is set in production – listed addresses bypass the sign-up limit; use only for test runners")
     if profile == "production" and _true(env.get("ALLOW_INSECURE_PRODUCTION")):
         warns.append("ALLOW_INSECURE_PRODUCTION=true – production guards are overridden")
     if profile == "staging":

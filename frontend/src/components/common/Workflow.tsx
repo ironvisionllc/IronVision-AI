@@ -1,29 +1,12 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, X } from "lucide-react";
+import { Bell } from "lucide-react";
 import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { useAuth } from "@/context/AuthContext";
+import { Modal } from "./Modal";
 
-export function Modal({ title, onClose, children, testId, wide }: { title: string; onClose: () => void; children: ReactNode; testId: string; wide?: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    ref.current?.focus();
-    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [onClose]);
-  return (
-    <div className="iv-overlay fixed inset-0 z-50 flex items-start justify-center p-10" data-testid={testId}>
-      <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title}
-        className={`iv-popover animate-fade-up max-h-[85vh] w-full overflow-y-auto p-6 focus:outline-none ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
-        <div className="mb-4 flex items-center justify-between"><h3 className="t-title text-slate-900">{title}</h3>
-          <button className="btn-ghost px-1.5 py-1.5" onClick={onClose} aria-label="Close" data-testid={`${testId}-close`}><X className="h-4 w-4" /></button></div>
-        {children}
-      </div>
-    </div>
-  );
-}
+export { Modal };
 
 export function PoamLink({ id, humanId }: { id: string; humanId: string }) {
   return <Link to={`/poams/${id}`} className="font-mono text-[12px] font-semibold text-blue-800 hover:underline" data-testid={`poam-link-${humanId}`}>{humanId}</Link>;

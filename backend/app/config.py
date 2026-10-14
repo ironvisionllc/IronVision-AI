@@ -51,6 +51,8 @@ class Settings:
     content_fetch_remote: bool
     seed_demo_data: bool
     demo_user_password: str | None
+    allow_signup: bool
+    demo_password: str | None
     worker_poll_seconds: float
     worker_heartbeat_stale_seconds: int
 
@@ -79,6 +81,8 @@ def get_settings() -> Settings:
         content_fetch_remote=_bool("CONTENT_FETCH_REMOTE"),
         seed_demo_data=_bool("SEED_DEMO_DATA"),
         demo_user_password=_opt("DEMO_USER_PASSWORD"),
+        allow_signup=_bool("ALLOW_SIGNUP"),
+        demo_password=_opt("DEMO_PASSWORD"),
         worker_poll_seconds=float(_opt("WORKER_POLL_SECONDS", "2")),
         worker_heartbeat_stale_seconds=int(_opt("WORKER_HEARTBEAT_STALE_SECONDS", "30")),
     )

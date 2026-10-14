@@ -19,6 +19,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   can: (permission: string) => boolean;
+  actAs: (role: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -78,8 +79,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(false);
   }, []);
 
+  const actAs = useCallback(async (role: string) => {
+    const { data } = await api.post<{ access_token: string; refresh_token: string; user: User }>("/sandbox/act-as", { role });
+    sessionStorage.setItem(TOKEN_KEY, data.access_token);
+    sessionStorage.setItem(REFRESH_KEY, data.refresh_token);
+    setUser(data.user);
+    window.dispatchEvent(new Event("iv:identity"));  // useApi hooks refetch as the new persona
+  }, []);
+
   const can = useCallback((p: string) => !!user && user.permissions.includes(p), [user]);
-  const value = useMemo(() => ({ user, login, logout, can }), [user, login, logout, can]);
+  const value = useMemo(() => ({ user, login, logout, can, actAs }), [user, login, logout, can, actAs]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

@@ -57,8 +57,9 @@ def seed_phase2(db: Session, org: Organization) -> None:
     ltp = db.scalar(select(System).where(System.org_id == org.id, System.acronym == "LTP"))
     if ltp is None:
         return
-    so = db.scalar(select(User).where(User.email == "system.owner@aegisrmf.demo"))
-    devsec = db.scalar(select(User).where(User.email == "devsecops@aegisrmf.demo"))
+    from app.seed_phase1 import role_user
+
+    so, devsec = role_user(db, org, "system_owner"), role_user(db, org, "devsecops")
     today = date.today()
     kev = [f for f in _find(db, ltp.id, is_kev=True)][:1]
     fips = _find(db, ltp.id, vuln_id="V-900140")[:1]

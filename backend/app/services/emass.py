@@ -324,7 +324,9 @@ def resolve_conflict(db: Session, ch: EmassChange, choice: str, actor: User, rat
     rec = db.scalar(select(EmassRemoteRecord).where(EmassRemoteRecord.system_id == ch.system_id, EmassRemoteRecord.entity_type == ch.entity_type,
                                                     EmassRemoteRecord.remote_id == ch.remote_id))
     if choice == "keep_local":
-        ch.base_remote_version, ch.before, ch.status = rec.remote_version if rec else None, rec.data if rec else None, "approved"
+        # remote changed since approval: overwriting it needs a fresh ISSM approval under the decision rule
+        ch.base_remote_version, ch.before, ch.status = rec.remote_version if rec else None, rec.data if rec else None, "proposed"
+        ch.approval_request_id, ch.approval_status = None, "not_requested"
     elif choice == "accept_remote":
         if ch.entity_type == "poam" and rec:
             p = db.get(Poam, uuid.UUID(ch.entity_id))

@@ -10,11 +10,12 @@ export interface NavItem {
   icon: LucideIcon;
   phase: number | null;
   summary: string;
+  perm?: string;
 }
 
 // phase: null = available now. Numbers are the tentative delivery phase.
 export const NAV_ITEMS: NavItem[] = [
-  { id: "portfolio", label: "Portfolio / Leadership", path: "/portfolio", icon: LayoutDashboard, phase: null, summary: "Cross-system risk posture, ATO expirations and trend reporting for leadership." },
+  { id: "portfolio", label: "Portfolio / Leadership", path: "/portfolio", icon: LayoutDashboard, phase: null, perm: "portfolio.read", summary: "Cross-system risk posture, ATO expirations and trend reporting for leadership." },
   { id: "systems", label: "Systems", path: "/systems", icon: Server, phase: null, summary: "System registration, categorization (FIPS 199 / SP 800-60) and baseline selection." },
   { id: "evidence-sources", label: "Evidence Sources", path: "/evidence-sources", icon: Database, phase: null, summary: "Connectors for scanners, cloud configuration and ticketing systems that feed evidence." },
   { id: "controls", label: "Controls", path: "/controls", icon: ShieldCheck, phase: null, summary: "" },
@@ -24,8 +25,8 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "reviews", label: "Reviews", path: "/reviews", icon: ClipboardCheck, phase: null, summary: "All review request types, SCA assessments and authorization decisions." },
   { id: "evidence-ledger", label: "Evidence Ledger", path: "/evidence-ledger", icon: FileCode, phase: null, summary: "Tamper-evident, hash-chained ledger of evidence artifacts." },
   { id: "emass", label: "eMASS Sync", path: "/emass", icon: FileCode, phase: null, summary: "" },
-  { id: "mapping-review", label: "Mapping Review", path: "/mapping-review", icon: FileCode, phase: null, summary: "" },
-  { id: "audit-log", label: "Audit Log", path: "/audit-log", icon: FileCode, phase: null, summary: "" },
+  { id: "mapping-review", label: "Mapping Review", path: "/mapping-review", icon: FileCode, phase: null, perm: "system.read", summary: "" },
+  { id: "audit-log", label: "Audit Log", path: "/audit-log", icon: FileCode, phase: null, perm: "audit.read", summary: "" },
   { id: "admin", label: "Admin", path: "/admin", icon: Settings, phase: null, summary: "" },
   { id: "rmf-workflow", label: "RMF Workflow", path: "/rmf-workflow", icon: Workflow, phase: null, summary: "Prepare → Categorize → Select → Implement → Assess → Authorize → Monitor workflow." },
 ];

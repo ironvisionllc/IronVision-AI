@@ -41,6 +41,48 @@ def _rule(env: str, default: str) -> tuple[int, int]:
 
 
 RULES = {"auth": _rule("RATE_LIMIT_AUTH", "20/60"), "upload": _rule("RATE_LIMIT_UPLOAD", "30/60")}
+PRIVATE = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8,169.254.0.0/16,::1/128,fc00::/7"
+
+
+def _trusted() -> list:
+    import ipaddress
+
+    raw = os.environ.get("TRUSTED_PROXIES", "").strip()
+    if not raw and os.environ.get("TRUST_PROXY_HEADERS") == "true":
+        raw = PRIVATE  # legacy flag: trust private-network proxies (edge nginx / ingress) only
+    nets = []
+    for x in raw.split(","):
+        x = x.strip()
+        if x:
+            try:
+                nets.append(ipaddress.ip_network(x, strict=False))
+            except ValueError:
+                nets.append(x)  # exact host name (e.g. a proxy hostname)
+    return nets
+
+
+def _is_trusted(ip: str, nets: list) -> bool:
+    import ipaddress
+
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return ip in [n for n in nets if isinstance(n, str)]
+    return any(not isinstance(n, str) and a.version == n.version and a in n for n in nets)
+
+
+def client_ip(request: Request) -> str:
+    """Real client IP: X-Forwarded-For is honoured only when the immediate peer is a TRUSTED_PROXIES address; the chain is walked
+    right-to-left skipping trusted hops. Otherwise the peer address is used. Shared by login, sign-up, upload and API limiters."""
+    peer = request.client.host if request.client else "?"
+    nets = _trusted()
+    if not nets or not _is_trusted(peer, nets):
+        return peer
+    hops = [h.strip() for h in request.headers.get("x-forwarded-for", "").split(",") if h.strip()]
+    for h in reversed(hops):
+        if not _is_trusted(h, nets):
+            return h
+    return hops[0] if hops else peer
 _hits: dict[tuple[str, str], deque] = defaultdict(deque)
 
 
@@ -58,8 +100,7 @@ def rate_limited(request: Request) -> JSONResponse | None:
     if b is None or os.environ.get("RATE_LIMIT_ENABLED", "true").lower() != "true":
         return None
     limit, window = RULES[b]
-    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() if os.environ.get("TRUST_PROXY_HEADERS") == "true" else ""
-    key = (b, ip or (request.client.host if request.client else "?"))
+    key = (b, client_ip(request))
     q, t = _hits[key], time.monotonic()
     while q and q[0] <= t - window:
         q.popleft()

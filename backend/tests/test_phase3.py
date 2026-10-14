@@ -96,7 +96,8 @@ def test_authorization_decision_ao_only(client, token):
     row = next(s for s in lead["systems"] if s["id"] == sid)
     assert row["authorization_status"] == "Authorized (ATO w/ conditions)" and row["days_to_expiration"] >= 364
     with SessionLocal() as db:
-        den = db.scalars(select(AuditEvent.actor_email).where(AuditEvent.action == "authz.denied", AuditEvent.entity_id == sid)).all()
+        den = db.scalars(select(AuditEvent.actor_email).where(AuditEvent.action == "authz.denied",
+                                                              AuditEvent.entity_id.in_((sid, "authorization.decide")))).all()
         assert {"isso@aegisrmf.demo", "platform.admin@aegisrmf.demo"} <= set(den)
 
 

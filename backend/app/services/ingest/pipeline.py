@@ -12,14 +12,16 @@ from app.models import (Asset, EvidenceSource, Implementation, Cci, CciControlMa
                         EvidenceControl, Finding, FindingControlMap, FindingObservation, IngestRun, OrgMappingRule,
                         StigRuleCci)
 from app.services import audit
-from app.services.ingest.parsers import MAX_BYTES, PARSERS, ParseError, detect_format
+from app.services.ingest.parsers import MAX_BYTES, PARSERS, SOURCE_TYPE, ParseError, detect_format
 from app.services.evaluation import apply_freshness
 from app.services.kev import is_kev
 from app.services.workflow import on_remediation_observed
 from app.services.storage import get_storage
 
-EVIDENCE_TYPE = {"ckl": "stig_checklist", "cklb": "stig_checklist", "nessus_xml": "vulnerability_scan",
-                 "nessus_csv": "vulnerability_scan"}
+EVIDENCE_TYPE = {"ckl": "stig_checklist", "cklb": "stig_checklist", "xccdf": "stig_checklist", "nessus_xml": "vulnerability_scan",
+                 "nessus_csv": "vulnerability_scan", "sarif": "pipeline"}
+SRC_NAMES = {"stig_checklist": "DISA STIG Checklists (uploads)", "acas": "ACAS / Nessus (uploads)", "sarif": "Pipeline SAST / container scans (SARIF uploads)"}
+DEFAULT_DEDUP = {"sarif": ["source_type", "rule_id", "asset", "component"]}
 
 
 def now() -> datetime:
@@ -87,13 +89,12 @@ def derive_cat(rules: dict, src_type: str, rec: dict) -> str | None:
 
 def attribute_source(db: Session, system_id, fmt: str) -> EvidenceSource:
     """Uploads without a source are attributed to the system's file-import source for that artifact type (created if missing)."""
-    st = "stig_checklist" if fmt in ("ckl", "cklb") else "acas"
+    st = SOURCE_TYPE.get(fmt, "acas")
     src = db.scalar(select(EvidenceSource).where(EvidenceSource.system_id == system_id, EvidenceSource.source_type == st)
                     .order_by(EvidenceSource.created_at).limit(1))
     if src is None:
         src = EvidenceSource(id=uuid.uuid4(), system_id=system_id, source_type=st, adapter="file_import", health="ok", config={},
-                             name="DISA STIG Checklists (uploads)" if st == "stig_checklist" else "ACAS / Nessus (uploads)",
-                             source="auto:upload-attribution")
+                             name=SRC_NAMES[st], source="auto:upload-attribution")
         db.add(src)
         db.flush()
     return src
@@ -159,10 +160,12 @@ def _map_stig(db: Session, finding: Finding, rec: dict, ev: Evidence, cci_cv: Co
     return n
 
 
-def _map_acas(db: Session, finding: Finding, rules: list[OrgMappingRule]) -> int:
+def _map_acas(db: Session, finding: Finding, rules: list[OrgMappingRule], cwes: list | None = None) -> int:
     n = 0
     for rule in rules:
         if rule.match.get("requires_cve") and not finding.cves:
+            continue
+        if rule.match.get("cwes") and not set(rule.match["cwes"]) & set(cwes or []):
             continue
         for control_id in rule.control_ids:
             n += 1
@@ -193,11 +196,15 @@ def process_run(db: Session, run_id: uuid.UUID) -> dict:
     except ParseError as exc:
         run.status, run.errors, run.finished_at = "failed", [str(exc)], now()
         return {"failed": True, "error": str(exc)}
-    src_type = "stig_checklist" if run.file_format in ("ckl", "cklb") else "acas"
+    src_type = SOURCE_TYPE.get(run.file_format, "acas")
     rule = db.scalar(select(DedupRule).where(DedupRule.source_type == src_type, DedupRule.is_active.is_(True))
                      .order_by(DedupRule.version.desc()))
+    if rule is None and src_type in DEFAULT_DEDUP:
+        rule = DedupRule(source_type=src_type, version=1, fields=DEFAULT_DEDUP[src_type], description="SARIF: rule + asset/image + file location")
+        db.add(rule)
+        db.flush()
     cci_cv = db.scalar(select(ContentVersion).where(ContentVersion.content_type == "cci_list", ContentVersion.is_active.is_(True)))
-    org_rules = list(db.scalars(select(OrgMappingRule).where(OrgMappingRule.source_type == "acas", OrgMappingRule.is_active.is_(True),
+    org_rules = list(db.scalars(select(OrgMappingRule).where(OrgMappingRule.source_type == src_type, OrgMappingRule.is_active.is_(True),
                                                              OrgMappingRule.review_status == "human_approved")))
     cat_rules = active_cat_rules(db, run.system_id)
     stig_versions = {cv.meta.get("benchmark"): cv.id for cv in db.scalars(select(ContentVersion).where(
@@ -235,7 +242,7 @@ def process_run(db: Session, run_id: uuid.UUID) -> dict:
         f.content_version_id = stig_cv or f.content_version_id
         db.add(FindingObservation(finding_id=f.id, ingest_run_id=run.id, evidence_id=ev.id, observed_status=rec["status"],
                                   observed_at=observed, raw=rec["raw"], content_version_id=stig_cv))
-        n = _map_stig(db, f, rec, ev, cci_cv) if src_type == "stig_checklist" else _map_acas(db, f, org_rules)
+        n = _map_stig(db, f, rec, ev, cci_cv) if src_type == "stig_checklist" else _map_acas(db, f, org_rules, rec["raw"].get("cwes"))
         db.flush()
         has_map = db.scalar(select(func.count()).select_from(FindingControlMap).where(FindingControlMap.finding_id == f.id)) > 0
         if f.mapping_status != "dispositioned":

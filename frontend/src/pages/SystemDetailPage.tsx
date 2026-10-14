@@ -1,3 +1,4 @@
+import { fmtControl } from "@/lib/format";
 import { FormEvent, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -47,7 +48,7 @@ export default function SystemDetailPage() {
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel title="Overview" testId="system-overview">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[13px]">{fields.map(([k, v]) => <div key={k} className="flex justify-between gap-2 border-b border-slate-100 py-1"><dt className="text-slate-500">{k}</dt><dd className="text-right text-slate-800">{String(v ?? "—")}</dd></div>)}</dl>
-          {s.tailoring.length > 0 && <div className="mt-3 text-[12px]"><div className="eyebrow">Tailoring</div>{s.tailoring.map((t: Row) => <div key={t.id}>{t.action} {t.control_id.toUpperCase()} – {t.justification}</div>)}</div>}
+          {s.tailoring.length > 0 && <div className="mt-3 text-[12px]"><div className="eyebrow">Tailoring</div>{s.tailoring.map((t: Row) => <div key={t.id}>{t.action} {fmtControl(t.control_id)} – {t.justification}</div>)}</div>}
         </Panel>
         <Panel title="System-scoped roles" testId="system-roles-panel">
           <Table head={["User", "Role", "Scope", ""]}>
@@ -65,7 +66,7 @@ export default function SystemDetailPage() {
           )}
         </Panel>
       </div>
-      <Panel title={`Asset inventory (${assets.data?.length ?? 0})`} className="mt-5" testId="assets-panel"
+      <Panel title={`Asset inventory (${assets.data ? assets.data.length : "…"})`} className="mt-5" testId="assets-panel"
         actions={can("system.write") && <button className="btn-secondary" onClick={() => setAsset({})} data-testid="add-asset-btn">Add asset</button>}>
         {asset && (
           <form onSubmit={saveAsset} className="mb-4 grid grid-cols-5 gap-2 rounded border border-slate-200 bg-slate-50 p-3" data-testid="asset-form">

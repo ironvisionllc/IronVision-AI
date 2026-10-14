@@ -29,7 +29,11 @@ def detect_format(file_name: str, data: bytes) -> str:
         return "cklb"
     if name.endswith(".csv") and "Plugin ID" in head:
         return "nessus_csv"
-    raise ParseError("Unsupported file: expected .nessus, Nessus CSV export, .ckl or .cklb")
+    if name.endswith(".sarif") or (name.endswith(".json") and '"runs"' in head and "sarif" in head.lower()):
+        return "sarif"
+    if name.endswith(".xml") and ("TestResult" in data[:2_000_000].decode("utf-8", "ignore") or "asset-report-collection" in head):
+        return "xccdf"
+    raise ParseError("Unsupported file: expected .nessus, Nessus CSV export, .ckl, .cklb, XCCDF results / SCAP ARF (.xml) or SARIF (.sarif/.json)")
 
 
 def _safe_xml(data: bytes) -> ET.Element:
@@ -135,4 +139,85 @@ def parse_nessus_csv(data: bytes) -> list[dict]:
     return list(merged.values())
 
 
-PARSERS = {"ckl": parse_ckl, "cklb": parse_cklb, "nessus_xml": parse_nessus_xml, "nessus_csv": parse_nessus_csv}
+XCCDF_RESULT = {"pass": "pass", "fail": "open", "notapplicable": "not_applicable", "fixed": "pass"}
+CCI_SYSTEMS = ("http://cyber.mil/cci", "http://iase.disa.mil/cci")
+
+
+def _ln(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def parse_xccdf(data: bytes) -> list[dict]:
+    """XCCDF 1.1/1.2 results (standalone or inside a SCAP ARF report). rule-result idref → Rule (title, severity, CCI idents)."""
+    root = _safe_xml(data)
+    rules, groups = {}, {}
+    bench = ver = None
+    for el in root.iter():
+        n = _ln(el.tag)
+        if n == "Benchmark" and bench is None:
+            bench = el.get("id")
+            ver = next((c.text for c in el if _ln(c.tag) == "version"), None)
+        elif n == "Group":
+            for r in el:
+                if _ln(r.tag) == "Rule":
+                    groups[r.get("id")] = el.get("id")
+        elif n == "Rule":
+            rules[el.get("id")] = {"title": next((c.text for c in el if _ln(c.tag) == "title"), None), "severity": el.get("severity"),
+                                   "ccis": [c.text for c in el if _ln(c.tag) == "ident" and c.get("system") in CCI_SYSTEMS]}
+    out = []
+    for tr in (e for e in root.iter() if _ln(e.tag) == "TestResult"):
+        host = next((c.text for c in tr if _ln(c.tag) == "target"), None)
+        ip = next((c.text for c in tr if _ln(c.tag) == "target-address"), None)
+        bench = bench or (next((c.get("href") for c in tr if _ln(c.tag) == "benchmark"), None))
+        for rr in (c for c in tr if _ln(c.tag) == "rule-result"):
+            rid = rr.get("idref")
+            res = next((c.text for c in rr if _ln(c.tag) == "result"), "") or ""
+            meta = rules.get(rid, {})
+            ccis = meta.get("ccis") or [c.text for c in rr if _ln(c.tag) == "ident" and c.get("system") in CCI_SYSTEMS]
+            rec = _stig_record(host, ip, bench, ver, {"rule_id": rid, "vuln_id": groups.get(rid) or rid, "title": meta.get("title") or rid,
+                                                      "severity": rr.get("severity") or meta.get("severity"), "status": "", "ccis": ccis,
+                                                      "finding_details": f"XCCDF result: {res}"})
+            rec["status"] = XCCDF_RESULT.get(res.strip().lower(), "not_reviewed")
+            out.append(rec)
+    if not out:
+        raise ParseError("No XCCDF TestResult/rule-result elements found")
+    return out
+
+
+SARIF_LEVEL = {"error": "high", "warning": "medium", "note": "low", "none": "info"}
+
+
+def parse_sarif(data: bytes) -> list[dict]:
+    """SARIF 2.1.0 (pipeline SAST / container scanners). CWE taken from rule tags/properties; mapping via a versioned org rule."""
+    import re
+
+    try:
+        doc = json.loads(data)
+    except json.JSONDecodeError as exc:
+        raise ParseError(f"Malformed JSON: {exc}") from exc
+    out = []
+    for run in doc.get("runs", []):
+        drv = (run.get("tool") or {}).get("driver") or {}
+        host = (run.get("properties") or {}).get("host") or (run.get("properties") or {}).get("image") or drv.get("name") or "pipeline"
+        rmeta = {}
+        for r in drv.get("rules", []):
+            tags = " ".join((r.get("properties") or {}).get("tags", []) + [str((r.get("properties") or {}).get("cwe", ""))])
+            rmeta[r.get("id")] = {"title": (r.get("shortDescription") or {}).get("text") or r.get("name"),
+                                  "cwes": sorted({f"CWE-{m}" for m in re.findall(r"cwe[-/:]?(\d+)", tags, re.IGNORECASE)})}
+        for res in run.get("results", []):
+            rid = res.get("ruleId") or (res.get("rule") or {}).get("id")
+            meta = rmeta.get(rid, {"title": rid, "cwes": []})
+            loc = ((res.get("locations") or [{}])[0].get("physicalLocation") or {}).get("artifactLocation", {}).get("uri")
+            sev = SARIF_LEVEL.get(res.get("level", "warning"), "medium")
+            status = "pass" if res.get("kind") == "pass" else "open"
+            out.append({"source_type": "sarif", "host": host, "ip": None, "plugin_id": None, "rule_id": rid, "vuln_id": rid, "benchmark": drv.get("name"),
+                        "benchmark_version": drv.get("version"), "title": meta["title"] or (res.get("message") or {}).get("text", rid),
+                        "severity": sev, "cat": None, "status": status, "ccis": [], "cves": [c for c in re.findall(r"CVE-\d{4}-\d+", json.dumps(res))],
+                        "port": None, "protocol": None, "component": loc,
+                        "raw": {"cwes": meta["cwes"], "message": ((res.get("message") or {}).get("text") or "")[:1000], "tool": drv.get("name")}})
+    return out
+
+
+PARSERS = {"ckl": parse_ckl, "cklb": parse_cklb, "nessus_xml": parse_nessus_xml, "nessus_csv": parse_nessus_csv, "xccdf": parse_xccdf,
+           "sarif": parse_sarif}
+SOURCE_TYPE = {"ckl": "stig_checklist", "cklb": "stig_checklist", "xccdf": "stig_checklist", "sarif": "sarif"}

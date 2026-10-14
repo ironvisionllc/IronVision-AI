@@ -80,7 +80,10 @@ def recompute(db: Session, system_id=None) -> int:
         if f.asset_id:
             a = assets.get(f.asset_id) or assets.setdefault(f.asset_id, db.get(Asset, f.asset_id))
         ev = db.get(Evidence, f.latest_evidence_id) if f.latest_evidence_id else None
-        f.priority_score, f.priority_breakdown = score(db, f, w, s, a, ev)
+        if f.current_state in ("pass", "not_applicable") or f.disposition in ("informational", "out_of_scope", "false_positive"):
+            f.priority_score, f.priority_breakdown = 0.0, [{"code": "not_open", "points": 0, "note": "passing/not-applicable results are evidence, not open findings"}]
+        else:
+            f.priority_score, f.priority_breakdown = score(db, f, w, s, a, ev)
         n += 1
     db.flush()
     return n

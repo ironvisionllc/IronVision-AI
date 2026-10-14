@@ -29,7 +29,9 @@ def seed_phase3(db: Session, org: Organization, samples_dir: str) -> None:
     if ltp is None or db.scalar(select(Policy.id).where(Policy.org_id == org.id).limit(1)):
         return
     today = date.today()
-    owner = db.scalar(select(User).where(User.email == "system.owner@aegisrmf.demo"))
+    from app.seed_phase1 import role_user
+
+    owner = role_user(db, org, "system_owner")
     prov = db.scalar(select(CommonControlProvider).where(CommonControlProvider.org_id == org.id).limit(1))
     if prov is None:
         prov = CommonControlProvider(org_id=org.id, name="IronVision GovCloud Platform", source="seed")

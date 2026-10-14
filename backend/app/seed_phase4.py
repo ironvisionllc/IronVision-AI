@@ -1,11 +1,11 @@
 """Phase 4 synthetic seed: content versions (Demo OS STIG V1R1 installed, V1R2 available; pinned KEV), observation content
 version backfill, risk weights, job schedules, and the MOCK eMASS remote store for LTP. Idempotent."""
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
-from app.models import (ContentVersion, EmassRemoteRecord, Finding, FindingControlMap, FindingObservation, Organization, Poam, PriorityWeight,
+from app.models import (ContentVersion, EmassChange, EmassRemoteRecord, EmassSyncRun, Finding, FindingControlMap, FindingObservation, Organization, Poam, PriorityWeight,
                         System)
 from app.services import content_updates as cu
 from app.services import scheduler
@@ -44,6 +44,13 @@ def seed_phase4(db: Session, org: Organization) -> None:
                 data.update(status="Ongoing", due_date=str(p.due_date + timedelta(days=30)) if p.due_date else None)
             db.add(EmassRemoteRecord(system_id=ltp.id, entity_type="poam", remote_id=rid, data=data, remote_version=2 if p.seq == 22 else 1))
             p.emass_remote_id, p.emass_status = rid, "out_of_sync" if p.seq == 22 else "synced"
+            ts = datetime.now(timezone.utc)
+            db.add(EmassChange(org_id=org.id, system_id=ltp.id, entity_type="poam", entity_id=str(p.id), entity_label=p.human_id, remote_id=rid,
+                               operation="create", after=data, trigger="seed: initial synthetic eMASS load", status="succeeded", final_status="succeeded",
+                               approval_status="approved", submitted_at=ts, attempts=1, response={"status": 200, "remote_id": rid, "remote_version": 1, "mock": True},
+                               history=[{"at": ts.isoformat(), "event": "submitted", "note": "SYNTHETIC seed sync history"}]))
+            db.add(EmassSyncRun(org_id=org.id, system_id=ltp.id, kind="submit", mode="mock", status="succeeded", actor_email="seed",
+                                summary={"remote_id": rid, "seed": True}))
         db.add(EmassRemoteRecord(system_id=ltp.id, entity_type="poam", remote_id="EM-POAM-6999",
                                  data={"weakness": "Legacy remote-only POA&M (exists only in mock eMASS)", "status": "Ongoing", "SYNTHETIC_MOCK": True}))
     db.flush()

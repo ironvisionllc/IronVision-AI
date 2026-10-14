@@ -128,3 +128,88 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - The in-app Docs Center (/docs-center, /docs-center/:slug) serves an allowlist of docs, with .md download and a zip of all docs.
 - Verification: backend 91 passed, acceptance 12/12, frontend yarn build passed.
 - Backlog: run the Droplet validation checklist (§13), set up CI image builds and a registry, and work through the remaining frontend yarn-audit items.
+
+## 2026-10-13 – ISSO usability round (Waves 1–7) + Wave 8 sandboxes
+- W1: one metrics service (`app/services/metrics.py`) now feeds Controls, Workflow, POA&M, eMASS, Sources and Leadership.
+  - Each screen labels both "controls with current supporting evidence N of M" and "collected evidence items within freshness window %".
+  - Monitor stage is rule-based: KEV / CAT I / overdue / stale evidence → needs attention.
+  - eMASS state is derived from queue and sync history; seed writes real sync history.
+  - Pending = not sent + out of sync + queued + failed/retrying.
+  - Source cards show Results vs Findings (failed).
+- W2: queue lanes (needs action / due soon / backlog by family), mixing control, POA&M, attestation, policy, review and milestone items, with a Mine/All toggle. POA&M list sorts by risk by default.
+- W3: control "Policy & parameters" section. ODP-filled control statements. Config evidence is linked to its control, and a config mismatch now marks monitoring as failing. Policy quotes are verbatim with offsets and location. Policy review status is derived from dates.
+- W4: passing results excluded and scored 0. Unmapped findings grouped by rule with a host list. Map manually (multiple controls) / out of scope / informational. AI suggest is shown only when AI is configured.
+- W5: AI status reports a reason. Template draft engine (`impl-template-1.0.0`). Author shows "System (seed)". Stale-evidence banner only on non-empty statements.
+- W6: CRM responsibility matrix (migration 0010, synthetic matrix by family, CSV import). Missing splits are flagged.
+- W7:
+  - loading states;
+  - "Linked: P-xxxx" on findings already on a POA&M;
+  - `fmtControl` AC-2(3) ID format;
+  - human-readable history;
+  - attestation evidence naming plus a 365-day window;
+  - Superseded evidence state;
+  - no future content dates;
+  - non-overlapping decision rules with a validator;
+  - audit log shows human actions by default;
+  - eMASS retry idles when the queue is empty;
+  - nav entries hidden by permission;
+  - XCCDF/ARF and SARIF parsers with samples;
+  - responsive sidebar.
+- W8 (migration 0011):
+  - single demo account demo@ironvision.ai (`DEMO_PASSWORD`);
+  - self sign-up (`ALLOW_SIGNUP`, honeypot, per-IP limit, password rules);
+  - private sandbox tenants provisioned by the seed pipeline as job `sandbox.provision`;
+  - persona identities with "Acting as" switcher, SoD per persona, and `operated_by` on every audit event;
+  - reset sandbox, inactivity purge job, nightly demo reset;
+  - onboarding checklist.
+  - The 8 role users exist only as test fixtures.
+- Verification: backend 132 passed; acceptance 12/12; yarn build OK.
+- Backlog:
+  - Out-of-scope dispositions are applied directly; they do not yet go through a decision-rule approver.
+  - Day-23/29 expiry warnings are in-app notifications only, no email.
+  - Onboarding steps other than "switch to ISSM" are marked done when their link is clicked, not when the action is completed.
+
+## 2026-10-13 – Follow-up round
+- Shared `client_ip()` for the sign-up, login and upload limiters and audit: X-Forwarded-For is trusted only when the peer is in `TRUSTED_PROXIES` (CIDRs or hostnames). The preview trusts the private ingress ranges.
+  - `SIGNUP_RATE_LIMIT` (default 5/3600) is counted from recorded sign-up audit events per real client IP.
+  - The old preview counter is cleared.
+- Out of scope / N/A now creates a `finding_out_of_scope` review (default rule: ISSM decides) and only applies on approval. The pending state shows in Mapping Review and Reviews.
+- Control-ID formatter is used everywhere, including backend notifications and exports. Added the guard `yarn check:control-ids` (`frontend/scripts/check-control-ids.js`).
+- Loading placeholders replace 0 counts on several tiles and panels.
+- Onboarding ticks come from real audit events after the sandbox is ready.
+- A fresh login always acts as ISSO and shows an "Acting as ISSO" toast.
+- Source card labels changed to "Mapped findings", ingest table to "Mapped results".
+- eMASS last sync = max of succeeded sync-history rows.
+- Verification: backend 136 passed, acceptance 12/12, build OK.
+
+### Sign-up rejection fix (Oct 2026)
+- Root cause: honeypot field named `website` was autofilled by the customer's browser (audit reason=honeypot ×2). Replaced with off-screen `iv_hp_fax_only` (autocomplete off, password-manager ignore attrs, tabindex -1, aria-hidden) + signed form token with SIGNUP_MIN_SECONDS (default 2).
+- Specific messages for password/duplicate/rate limit (minutes remaining); bot rejections generic but audited with reason + XFF chain; only successful sign-ups count toward the limit.
+- Preview TRUSTED_PROXIES now includes Cloudflare ranges + the edge LB 35.186.245.91, so the real client IP is used (was shared edge IP for all users). Edge IP removed from SIGNUP_RATE_LIMIT_EXEMPT_CIDRS.
+
+### Clean sign-up workspaces (Oct 2026)
+- Only demo@ironvision.ai is seeded (4 systems). New sign-ups provision CLEAN (`seed_tenant_config`: decision/CAT/match/dedup/weight rules, reference content, personas).
+- "Clear my workspace" (non-demo) vs "Reset demo data" (demo; nightly). Confirm modal. Audit `sandbox.workspace_cleared`.
+- 18 existing sign-up tenants converted (audit `sandbox.converted_to_clean`, accounts kept, incl. k.hill).
+- Clean onboarding: Register system → Add source/upload (+ samples.zip download, allowlisted, no auto-load) → Create POA&M → ISSM approve closure → View Leadership; ticks from audit events only (manual link-click ticks removed).
+- Empty states: NeedSystem CTA, Systems "Register your first system", Evidence Sources "Add a source or upload a scan", Leadership "No systems yet", Workflow ongoing stages "not configured" when no records.
+- Fixed tenant leak: audit log items + category counts now tenant-scoped.
+
+### Access-denied polish (Oct 2026)
+- 403 missing-permission detail is structured ({code, permission, roles, message}); `AccessDenied` panel shows "Your acting role (X) can't view …" with one-click persona switch buttons in sandboxes, plain "You don't have access" elsewhere. Action errors read "Your role can't do this (needs …, held by …)".
+- useApi refetches after a persona switch (`iv:identity` event).
+- RMF Workflow with zero systems shows all 11 stages "Not configured" + "Register your first system" CTA. Onboarding "View Leadership" carries the role-switch hint.
+
+
+### Security fix round (Oct 2026)
+- Direct finding disposition endpoint now routes through decision-rule approval (all disposition types); informational rule-action likewise.
+- Route authorization guard: all mutating routes declare permission dependencies; automated enumeration test.
+- Workflow bypasses closed: POA&M PATCH status during review / later due date; assessment needs `assessment.perform`; authorization decision needs `authorization.decide`; attestation sign needs `evidence.submit`; eMASS keep_local needs re-approval.
+- `SIGNUP_RATE_LIMIT_EXEMPT_CIDRS` (preview: loopback + 2 test-pod /32s). Demo sandbox reset.
+- Verification: backend 143 passed, acceptance 12/12, build OK.
+
+### UI fix round (Oct 2026)
+- Modal focus-steal regression fixed (focus on mount only; Esc uses latest onClose via ref). Modal moved to `components/common/Modal.tsx`; Jest test `Modal.test.tsx` types per keystroke and asserts focus + full value (fails on the old code).
+- Onboarding checklist refetches /sandbox/status after any successful write (debounced global `iv:mutated` event), on window focus and on route change.
+- Browser self-run: Add to POA&M, Request closure, Map manually, Register system, Create account all keep full typed text; checklist ticked "Create a POA&M" without reload.
+

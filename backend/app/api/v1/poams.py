@@ -10,7 +10,7 @@ from app.api.v1.records import get_system, to_dict, visible_systems
 from app.db import get_db
 from app.models import (ApprovalRequest, Asset, ControlAssignment, EmassChange, Evidence, Finding, Poam, PoamFinding, PoamHistory, PoamMatchRule,
                         PoamMilestone, System, User)
-from app.security.deps import CurrentUser, enforce, get_current_user
+from app.security.deps import CurrentUser, enforce, get_current_user, require_body_permission, require_object_permission
 from app.services import emass
 from app.services import audit
 from app.services.people import attach
@@ -31,34 +31,34 @@ def _poam(db, request, current, poam_id: str, perm="system.read") -> Poam:
 
 
 def _row(db, p: Poam) -> dict:
+    from app.services.queue import score_poam
+
     ms = list(db.scalars(select(PoamMilestone).where(PoamMilestone.poam_id == p.id)))
     owner = db.get(User, p.owner_id) if p.owner_id else None
     assets = [a for (a,) in db.execute(select(Asset.name).where(Asset.id.in_([uuid.UUID(x) for x in p.asset_ids or []])))]
+    from app.services.metrics import emass_states
+
+    em = emass_states(db, [p])[p.id]
     q = db.scalar(select(EmassChange.status).where(EmassChange.entity_type == "poam", EmassChange.entity_id == str(p.id))
                   .order_by(EmassChange.created_at.desc()).limit(1))
-    return {**to_dict(p), "display_status": wf.display_status(p), "emass_queue_status": q, "owner_name": owner.display_name if owner else None,
+    return {**to_dict(p), "display_status": wf.display_status(p), "emass_queue_status": q, "emass": em,
+            "emass_status": em["state"], "emass_remote_id": em["remote_id"], "system_acronym": db.get(System, p.system_id).acronym,
+            "system_name": db.get(System, p.system_id).name, "risk_score": score_poam(p)[0], "risk_breakdown": score_poam(p)[1], "owner_name": owner.display_name if owner else None,
             "asset_names": assets, "milestones_done": sum(m.status == "completed" for m in ms), "milestones_total": len(ms),
             "finding_count": db.scalar(select(func.count()).select_from(PoamFinding).where(PoamFinding.poam_id == p.id))}
 
 
 def summary(db, system_ids) -> dict:
-    today = date.today()
-    q = select(func.count()).select_from(Poam).where(Poam.system_id.in_(system_ids))
-    act = q.where(Poam.status.in_(wf.ACTIVE_POAM))
-    return {"open": db.scalar(act), "overdue": db.scalar(act.where(Poam.status.in_(("new", "in_progress")), Poam.due_date < today)),
-            "due_30d": db.scalar(act.where(Poam.due_date >= today, Poam.due_date <= date.fromordinal(today.toordinal() + 30))),
-            "pending_issm_review": db.scalar(select(func.count()).select_from(ApprovalRequest).where(
-                ApprovalRequest.system_id.in_(system_ids), ApprovalRequest.status == "pending", ApprovalRequest.assigned_role == "issm",
-                ApprovalRequest.poam_id.is_not(None))),
-            "cat1": db.scalar(act.where(Poam.cat == "CAT I")),
-            "pending_emass_sync": db.scalar(select(func.count()).select_from(EmassChange).where(
-                EmassChange.system_id.in_(system_ids), EmassChange.entity_type == "poam", EmassChange.status.in_(emass.OPEN_STATES))),
-            "emass_note": emass.status(db, db.get(System, system_ids[0]).org_id)["mode_label"] if system_ids else None}
+    from app.services.metrics import poam_summary
+
+    out = poam_summary(db, system_ids)
+    out["emass_note"] = emass.status(db, db.get(System, system_ids[0]).org_id)["mode_label"] if system_ids else None
+    return out
 
 
 @router.get("/poams")
 def list_poams(request: Request, system_id: uuid.UUID | None = None, q: str | None = None, status: str | None = None,
-               severity: str | None = None, sort: str = "human_id", desc: bool = False, page: int = 1, page_size: int = 25,
+               severity: str | None = None, sort: str = "risk", desc: bool = False, page: int = 1, page_size: int = 25,
                db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
     ids = [system_id] if system_id else [s.id for s in visible_systems(db, current)]
     if system_id:
@@ -79,10 +79,17 @@ def list_poams(request: Request, system_id: uuid.UUID | None = None, q: str | No
     if severity:
         base = base.where(Poam.severity == severity)
     total = db.scalar(select(func.count()).select_from(base.subquery()))
-    col = SORTS.get(sort, Poam.seq)
-    page_size = max(1, min(page_size, 100))
-    items = db.scalars(base.order_by(col.desc().nulls_last() if desc else col.asc().nulls_last()).offset((max(page, 1) - 1) * page_size).limit(page_size))
-    return {"items": [_row(db, p) for p in items], "total": total, "page": page, "page_size": page_size, "summary": summary(db, ids)}
+    page_size, off = max(1, min(page_size, 100)), (max(page, 1) - 1) * max(1, min(page_size, 100))
+    if sort == "risk":
+        from app.services.queue import SEV_RANK, score_poam
+
+        allp = list(db.scalars(base))
+        allp.sort(key=lambda p: (-score_poam(p)[0], SEV_RANK.get(p.cat or p.severity or "", 9), p.due_date or date.max, p.seq), reverse=desc)
+        items = allp[off:off + page_size]
+    else:
+        col = SORTS.get(sort, Poam.seq)
+        items = db.scalars(base.order_by(col.desc().nulls_last() if desc else col.asc().nulls_last()).offset(off).limit(page_size))
+    return {"items": [_row(db, p) for p in items], "total": total, "page": page, "page_size": page_size, "summary": summary(db, ids), "sort": sort}
 
 
 class PoamIn(BaseModel):
@@ -109,7 +116,7 @@ class PoamCreate(PoamIn):
 
 
 @router.post("/poams", status_code=201)
-def create(body: PoamCreate, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def create(body: PoamCreate, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_body_permission("poam.manage"))) -> dict:
     enforce(request, current, "poam.manage", body.system_id)
     system = get_system(db, body.system_id)
     findings = [f for f in (db.get(Finding, i) for i in body.finding_ids) if f and f.system_id == system.id]
@@ -158,7 +165,7 @@ class LinkIn(BaseModel):
 
 
 @router.post("/poams/{poam_id}/findings")
-def link(poam_id: str, body: LinkIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def link(poam_id: str, body: LinkIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("poam.manage", "Poam", "poam_id"))) -> dict:
     p = _poam(db, request, current, poam_id, "poam.manage")
     f = db.get(Finding, body.finding_id)
     if f is None or f.system_id != p.system_id:
@@ -200,11 +207,15 @@ def detail(poam_id: str, request: Request, db: Session = Depends(get_db), curren
 
 
 @router.patch("/poams/{poam_id}")
-def update(poam_id: str, body: PoamIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def update(poam_id: str, body: PoamIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("poam.manage", "Poam", "poam_id"))) -> dict:
     p = _poam(db, request, current, poam_id, "poam.manage")
     if p.status in ("closed", "risk_accepted"):
         raise HTTPException(409, f"POA&M is {p.status}")
     changes = body.model_dump(exclude_unset=True)
+    if "status" in changes and p.status in ("closure_review", "risk_acceptance_review"):
+        raise HTTPException(409, f"{p.human_id} is in {p.status.replace('_', ' ')}; status changes only through the pending review decision")
+    if "due_date" in changes and p.due_date and changes["due_date"] and changes["due_date"] > p.due_date:
+        raise HTTPException(409, "Moving the due date later requires a deadline extension or waiver request")
     before = {k: str(getattr(p, k)) for k in changes}
     for k, v in changes.items():
         setattr(p, k, [c.lower() for c in v] if k == "control_ids" else v)
@@ -225,7 +236,7 @@ class MilestoneIn(BaseModel):
 
 
 @router.post("/poams/{poam_id}/milestones", status_code=201)
-def add_milestone(poam_id: str, body: MilestoneIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def add_milestone(poam_id: str, body: MilestoneIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("poam.manage", "Poam", "poam_id"))) -> dict:
     p = _poam(db, request, current, poam_id, "poam.manage")
     if not body.title:
         raise HTTPException(422, "title required")
@@ -240,7 +251,7 @@ def add_milestone(poam_id: str, body: MilestoneIn, request: Request, db: Session
 
 @router.patch("/poam-milestones/{milestone_id}")
 def update_milestone(milestone_id: uuid.UUID, body: MilestoneIn, request: Request, db: Session = Depends(get_db),
-                     current: CurrentUser = Depends(get_current_user)) -> dict:
+                     current: CurrentUser = Depends(require_object_permission("poam.manage", "PoamMilestone", "milestone_id"))) -> dict:
     from datetime import datetime, timezone
 
     m = db.get(PoamMilestone, milestone_id)
@@ -273,7 +284,7 @@ def _open_request(db, p: Poam, t: str):
 
 
 @router.post("/poams/{poam_id}/request-closure", status_code=201)
-def request_closure(poam_id: str, body: ClosureIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def request_closure(poam_id: str, body: ClosureIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("poam.manage", "Poam", "poam_id"))) -> dict:
     p = _poam(db, request, current, poam_id, "poam.manage")
     if p.status not in ("new", "in_progress", "closure_eligible"):
         raise HTTPException(409, f"Cannot request closure while {p.status}")
@@ -292,7 +303,7 @@ def request_closure(poam_id: str, body: ClosureIn, request: Request, db: Session
 
 
 @router.post("/poams/{poam_id}/request-risk-acceptance", status_code=201)
-def request_risk(poam_id: str, body: RiskIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def request_risk(poam_id: str, body: RiskIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("poam.manage", "Poam", "poam_id"))) -> dict:
     p = _poam(db, request, current, poam_id, "poam.manage")
     if not body.expiration or body.expiration <= date.today():
         raise HTTPException(422, "Risk acceptance requires a future expiration date")
@@ -308,7 +319,7 @@ def request_risk(poam_id: str, body: RiskIn, request: Request, db: Session = Dep
 
 
 @router.post("/poams/{poam_id}/request-extension", status_code=201)
-def request_extension(poam_id: str, body: RiskIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def request_extension(poam_id: str, body: RiskIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("poam.manage", "Poam", "poam_id"))) -> dict:
     p = _poam(db, request, current, poam_id, "poam.manage")
     if not body.new_due_date or (p.due_date and body.new_due_date <= p.due_date):
         raise HTTPException(422, "Extension requires a new due date later than the current one")

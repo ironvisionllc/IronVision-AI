@@ -46,6 +46,12 @@ class Organization(CoreMixin, ProvenanceMixin, Base):
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    is_sandbox: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    sandbox_personas: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    owner_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    last_activity_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sandbox_status: Mapped[str | None] = mapped_column(String(30))
+    sandbox_progress: Mapped[dict | None] = mapped_column(JSONB)
 
 
 class User(CoreMixin, ProvenanceMixin, Base):
@@ -56,6 +62,10 @@ class User(CoreMixin, ProvenanceMixin, Base):
     title: Mapped[str | None] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    persona_role: Mapped[str | None] = mapped_column(String(50))
+    operator_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    acting_role: Mapped[str | None] = mapped_column(String(50))
+    onboarding: Mapped[dict | None] = mapped_column(JSONB)
 
 
 class AuthIdentity(CoreMixin, Base):
@@ -362,6 +372,9 @@ class ProviderControl(CoreMixin, Base):
     provider_id: Mapped[uuid.UUID] = _fk("common_control_providers.id")
     control_id: Mapped[str] = mapped_column(String(50), nullable=False)
     responsibility: Mapped[str] = mapped_column(String(20), nullable=False)
+    provider_responsibility: Mapped[str | None] = mapped_column(Text)
+    system_responsibility: Mapped[str | None] = mapped_column(Text)
+    matrix_source: Mapped[str | None] = mapped_column(String(255))
 
 
 class ControlAssignment(CoreMixin, Base):

@@ -18,6 +18,7 @@ class CurrentUser:
     user: User
     assignments: list[RoleAssignment]
     auth_provider: str
+    operator: User | None = None
 
     @property
     def roles(self) -> list[str]:
@@ -42,7 +43,23 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Current
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found or inactive")
     assignments = list(db.scalars(select(RoleAssignment).where(RoleAssignment.user_id == user.id)))
     request.state.sid = payload["sid"]
-    return CurrentUser(user=user, assignments=assignments, auth_provider=(payload.get("amr") or ["unknown"])[0])
+    operator = None
+    if payload.get("op"):
+        operator = db.get(User, uuid.UUID(payload["op"]))
+        if operator is None or not operator.is_active or user.operator_id != operator.id:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Persona session is no longer valid")
+    holder = audit.operator_var.get()
+    if holder is not None:
+        holder["email"] = operator.email if operator else None
+    from app.models import Organization
+    org = db.get(Organization, user.org_id)
+    if org is not None and org.is_sandbox:
+        from datetime import datetime, timedelta, timezone
+        t = datetime.now(timezone.utc)
+        if not org.last_activity_at or t - org.last_activity_at > timedelta(minutes=10):
+            org.last_activity_at = t
+            db.commit()
+    return CurrentUser(user=user, assignments=assignments, auth_provider=(payload.get("amr") or ["unknown"])[0], operator=operator)
 
 
 def _parse_uuid(value: str | None) -> uuid.UUID | None:
@@ -73,7 +90,11 @@ def enforce(request: Request, current: CurrentUser, permission: str, system_id: 
                      "system_id": str(system_id) if system_id else None},
             **audit.request_meta(request),
         )
-        raise HTTPException(status.HTTP_403_FORBIDDEN, f"Missing permission: {permission}")
+        from app.security.rbac import ROLE_PERMISSIONS, ROLES
+
+        raise HTTPException(status.HTTP_403_FORBIDDEN, {
+            "code": "missing_permission", "permission": permission, "message": f"Missing permission: {permission}",
+            "roles": [r for r in ROLES if permission in ROLE_PERMISSIONS.get(r, set())]})
 
 
 def require_permission(permission: str, system_id_param: str = "system_id"):
@@ -84,4 +105,61 @@ def require_permission(permission: str, system_id_param: str = "system_id"):
         enforce(request, current, permission, _parse_uuid(raw))
         return current
 
+    dependency.permission = permission
     return dependency
+
+
+def _object_system(model_name: str, raw: str | None, org_id) -> uuid.UUID:
+    """System that owns the addressed object (tenant-scoped; 404 when missing or in another tenant)."""
+    from app.db import SessionLocal
+    from app import models
+
+    model = getattr(models, model_name)
+    with SessionLocal() as db:
+        if model_name == "Poam" and raw and raw.upper().startswith("P-"):
+            obj = db.scalar(select(model).where(model.human_id == raw.upper(), model.org_id == org_id))
+        else:
+            obj = db.get(model, _parse_uuid(raw)) if raw else None
+        if model_name == "PoamMilestone" and obj is not None:
+            obj = db.get(models.Poam, obj.poam_id)
+        elif model_name == "FindingControlMap" and obj is not None:
+            obj = db.get(models.Finding, obj.finding_id)
+        if obj is None or getattr(obj, "org_id", org_id) != org_id and getattr(obj, "org_id", None) is not None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
+        return obj.system_id
+
+
+def require_object_permission(permission: str, model_name: str, param: str):
+    """Dependency factory for object routes (/findings/{id}, /poams/{id} …): enforce `permission` on the object's system."""
+
+    def dependency(request: Request, current: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+        enforce(request, current, permission, _object_system(model_name, request.path_params.get(param), current.user.org_id))
+        return current
+
+    dependency.permission = permission
+    return dependency
+
+
+def require_body_permission(permission: str, field: str = "system_id"):
+    """Dependency factory for routes whose target system is in the JSON body."""
+
+    async def dependency(request: Request, current: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+        try:
+            raw = (await request.json()).get(field)
+        except Exception:
+            raw = None
+        if not raw:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"{field} is required")
+        enforce(request, current, permission, _parse_uuid(str(raw)))
+        return current
+
+    dependency.permission = permission
+    return dependency
+
+
+def self_scoped(current: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    """Marker dependency: the route only mutates the caller's own records (notifications, prefs, own sandbox)."""
+    return current
+
+
+self_scoped.self_scoped = True

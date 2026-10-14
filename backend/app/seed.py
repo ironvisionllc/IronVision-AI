@@ -74,6 +74,13 @@ def ensure_reference_content(db: Session, org: Organization | None = None) -> No
         seed_phase1(db, org, os.environ["SAMPLES_DIR"])
 
 
+def retire_role_accounts(db: Session) -> None:
+    """The 8 per-role demo accounts are pytest/acceptance fixtures only; deactivate any left in a demo/prod database."""
+    for u in db.scalars(select(User).where(User.email.like(f"%@{DEMO_DOMAIN}"), User.is_active.is_(True))):
+        u.is_active = False
+    db.flush()
+
+
 def demo_password() -> str:
     """STAGING_DEMO_PASSWORD overrides DEMO_USER_PASSWORD; outside development the publicly documented password is refused."""
     s = get_settings()
@@ -92,8 +99,16 @@ def run() -> None:
     s = get_settings()
     with SessionLocal() as db:
         if s.seed_demo_data:
-            seed_demo(db, demo_password())
-            log.info("Demo seed complete")
+            from app.services import sandbox as sbx
+
+            ensure_reference_content(db)
+            pw = os.environ.get("STAGING_DEMO_PASSWORD") or s.demo_password or demo_password()
+            org = sbx.seed_demo_account(db, pw)
+            db.commit()
+            if org.sandbox_status != "ready" and db.scalar(select(ContentVersion.id).where(ContentVersion.content_type == "oscal_catalog").limit(1)):
+                sbx.provision(db, org.id)
+            retire_role_accounts(db)
+            log.info("Demo seed complete (single demo account %s with a private sandbox)", sbx.DEMO_EMAIL)
         else:
             ensure_reference_content(db)
             log.info("SEED_DEMO_DATA is off: reference content only, no demo accounts")

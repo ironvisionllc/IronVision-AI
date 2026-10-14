@@ -2,19 +2,20 @@ import csv
 import io
 import json
 import uuid
+from app.services.queue import fmt_control
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import String, func, literal, or_, select, true
 from sqlalchemy.orm import Session
 
 from app.api.v1.records import get_system, to_dict, visible_systems
 from app.db import get_db
 from app.models import (ApprovalRequest, Assessment, Attestation, AuditEvent, AuthorizationDecision, CommonControlProvider, ControlAssignment,
                         DecisionRule, NotificationPref, ObservedConfigValue, OdpValue, Policy, PolicyFinding, RoleAssignment, System, User)
-from app.security.deps import CurrentUser, enforce, get_current_user, require_permission
+from app.security.deps import CurrentUser, enforce, get_current_user, require_object_permission, require_permission, self_scoped
 from app.services import audit, jobs as jobsvc
 from app.services import rmf
 from app.services import workflow as wf
@@ -44,9 +45,12 @@ def inheritance(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
     org = get_system(db, system_id).org_id
     providers = [{**to_dict(p), "fully_inherited": provs.get(p.id, {}).get("inherited", 0), "shared": provs.get(p.id, {}).get("shared", 0)}
                  for p in db.scalars(select(CommonControlProvider).where(CommonControlProvider.org_id == org))]
+    from app.services.responsibility import SYNTHETIC_LABEL, split_missing
+
     shared = []
-    for a in (x for x in ac if x.responsibility == "shared"):
-        shared.append({"control_id": a.control_id, "provider_id": str(a.provider_id) if a.provider_id else None,
+    for a in sorted((x for x in ac if x.responsibility in ("shared", "inherited")), key=lambda x: (x.responsibility != "shared", x.control_id)):
+        shared.append({"control_id": a.control_id, "provider_id": str(a.provider_id) if a.provider_id else None, "responsibility": a.responsibility,
+                       "split_missing": split_missing(a), "matrix_label": SYNTHETIC_LABEL,
                        "provider_responsibility": a.provider_responsibility_text, "system_responsibility": a.system_responsibility_text,
                        "system_part": {"monitoring_status": a.monitoring_status, "evidence_freshness_status": a.evidence_freshness_status,
                                        "open_findings": (a.evaluation or {}).get("open_findings", 0)},
@@ -60,6 +64,31 @@ def inheritance(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
                       "attestation_due_30d": sum(1 for a in atts if a.status == "pending" and a.due_date and today <= a.due_date <= today + timedelta(days=30)),
                       "note": "Inherited/shared/system-owned are mutually exclusive and sum to assigned. Manual attestation OVERLAPS them."},
             "providers": providers, "shared": shared, "attestations": att_rows}
+
+
+@router.post("/providers/{provider_id}/responsibility-matrix")
+async def import_crm(provider_id: uuid.UUID, file: UploadFile = File(...), db: Session = Depends(get_db),
+                     current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+    """Import a customer responsibility matrix (CRM) CSV for a provider package; fills missing system assignment text."""
+    from app.models import System
+    from app.services.responsibility import apply_to_system, import_csv
+
+    p = db.get(CommonControlProvider, provider_id)
+    if p is None or p.org_id != current.user.org_id:
+        raise HTTPException(404, "Provider not found")
+    data = await file.read()
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(413, "CRM CSV too large (max 5 MB)")
+    try:
+        r = import_csv(db, p.id, data, f"CRM import: {file.filename}")
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise HTTPException(422, str(exc)) from exc
+    for sid in db.scalars(select(System.id).where(System.org_id == p.org_id)):
+        apply_to_system(db, sid)
+    audit.record(db, action="provider.crm_imported", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="provider",
+                 entity_id=str(p.id), details={**r, "file": file.filename})
+    db.commit()
+    return r
 
 
 class ProviderIn(BaseModel):
@@ -133,7 +162,7 @@ def _att(db, request, current, att_id, perm="system.read") -> Attestation:
 
 @router.post("/attestations/{att_id}/evidence")
 async def attestation_evidence(att_id: uuid.UUID, request: Request, file: UploadFile = File(...), db: Session = Depends(get_db),
-                               current: CurrentUser = Depends(get_current_user)) -> dict:
+                               current: CurrentUser = Depends(require_object_permission("evidence.submit", "Attestation", "att_id"))) -> dict:
     a = _att(db, request, current, att_id, "evidence.submit")
     data = await file.read()
     _vet(file.filename or "upload", data, "evidence")
@@ -146,7 +175,7 @@ async def attestation_evidence(att_id: uuid.UUID, request: Request, file: Upload
 
 
 @router.post("/attestations/{att_id}/attest")
-def attest(att_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def attest(att_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("evidence.submit", "Attestation", "att_id"))) -> dict:
     a = rmf.sign_attestation(db, _att(db, request, current, att_id), current.user)
     evaluate_system(db, a.system_id)
     take_snapshots(db, trigger="attestation.signed")
@@ -155,16 +184,16 @@ def attest(att_id: uuid.UUID, request: Request, db: Session = Depends(get_db), c
 
 
 @router.post("/attestations/{att_id}/renew", status_code=201)
-def renew(att_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def renew(att_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("evidence.submit", "Attestation", "att_id"))) -> dict:
     new = rmf.renew_attestation(db, _att(db, request, current, att_id, "evidence.submit"), current.user)
     db.commit()
     return to_dict(new)
 
 
 @router.post("/attestations/{att_id}/remind")
-def remind(att_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def remind(att_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("poam.manage", "Attestation", "att_id"))) -> dict:
     a = _att(db, request, current, att_id, "poam.manage")
-    sent = rmf.send(db, a.owner_id, "attestation_overdue", f"Reminder: attest {a.control_id.upper()} (due {a.due_date})", "/inheritance",
+    sent = rmf.send(db, a.owner_id, "attestation_overdue", f"Reminder: attest {fmt_control(a.control_id)} (due {a.due_date})", "/inheritance",
                     f"Sent by {current.user.display_name}")
     audit.record(db, action="attestation.reminder_sent", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="attestation", entity_id=str(a.id))
     db.commit()
@@ -206,7 +235,7 @@ class AssessmentIn(BaseModel):
 
 @router.post("/systems/{system_id}/controls/{control_id}/assessments", status_code=201)
 def assess(system_id: uuid.UUID, control_id: str, body: AssessmentIn, db: Session = Depends(get_db),
-           current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+           current: CurrentUser = Depends(require_permission("assessment.perform"))) -> dict:
     if bad := [m for m in body.methods if m not in ("examine", "interview", "test")]:
         raise HTTPException(422, f"Unknown methods: {bad}")
     s = get_system(db, system_id)
@@ -262,7 +291,7 @@ class AuthDecisionIn(BaseModel):
 
 
 @router.post("/systems/{system_id}/authorization-decision")
-def authorization_decision(system_id: uuid.UUID, body: AuthDecisionIn, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def authorization_decision(system_id: uuid.UUID, body: AuthDecisionIn, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("authorization.decide"))) -> dict:
     s = get_system(db, system_id)
     rule = wf.rule_for(db, s.org_id, "authorization_decision")
     role = rule.steps[0]["role"]
@@ -307,6 +336,10 @@ def edit_rule(request_type: str, body: RuleIn, db: Session = Depends(get_db), cu
                        description=f"Edited by {current.user.email}")
     db.add(new)
     db.flush()
+    errs = wf.validate_rules(list(db.scalars(select(DecisionRule).where(DecisionRule.org_id == old.org_id))))
+    if errs:
+        db.rollback()
+        raise HTTPException(422, "; ".join(errs))
     audit.record(db, action="decision_rule.updated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="decision_rule",
                  entity_id=str(new.id), before={"version": old.version, "steps": old.steps}, after={"version": new.version, "steps": new.steps})
     db.commit()
@@ -316,7 +349,9 @@ def edit_rule(request_type: str, body: RuleIn, db: Session = Depends(get_db), cu
 # ---------- policy auditor ----------
 def _policy_out(db, p: Policy) -> dict:
     q = select(func.count()).select_from(PolicyFinding).where(PolicyFinding.policy_id == p.id)
-    return {**to_dict(p, ("text_content",)), "proposed": db.scalar(q.where(PolicyFinding.status == "proposed")),
+    from app.services.rmf import policy_review_status
+
+    return {**to_dict(p, ("text_content",)), "review_status": policy_review_status(p), "proposed": db.scalar(q.where(PolicyFinding.status == "proposed")),
             "confirmed": db.scalar(q.where(PolicyFinding.status == "confirmed")), "dismissed": db.scalar(q.where(PolicyFinding.status == "dismissed"))}
 
 
@@ -330,7 +365,7 @@ def list_policies(db: Session = Depends(get_db), current: CurrentUser = Depends(
     missing = db.scalar(select(func.count()).select_from(PolicyFinding).where(PolicyFinding.system_id.in_(sys_ids), PolicyFinding.status != "dismissed",
                                                                              PolicyFinding.finding_type == "missing_policy_requirement"))
     return {"cards": {"total": len(cur), "audited": sum(1 for p in cur if p.analysis_status == "analyzed"), "requirements_without_coverage": missing,
-                      "disagreements": disagreements, "overdue_reviews": sum(1 for p in cur if p.review_due and p.review_due < date.today())},
+                      "disagreements": disagreements, "overdue_reviews": sum(1 for p in cur if rmf.policy_review_status(p) == "review_overdue")},
             "policies": [_policy_out(db, p) for p in pols]}
 
 
@@ -382,7 +417,9 @@ def policy_detail(policy_id: uuid.UUID, db: Session = Depends(get_db), current: 
                            "odp_value": odp.value if odp else None, "observed_value": obs.value if obs else None,
                            "observed_age_days": (datetime.now(obs.observed_at.tzinfo) - obs.observed_at).days if obs else None,
                            "observed_source": obs.source if obs else None,
-                           "result": None if not obs else ("Match" if obs.numeric_value == v["numeric_value"] else "Mismatch")})
+                           "result": None if not obs else ("Match" if obs.numeric_value == v["numeric_value"] else "Mismatch"),
+                           "quote": v.get("quote"), "quote_location": v.get("location"), "quote_status": v.get("quote_status", "unvalidated"),
+                           "quote_offsets": [v.get("start"), v.get("end")]})
     versions = [to_dict(x, ("text_content",)) for x in db.scalars(select(Policy).where(Policy.org_id == p.org_id, Policy.policy_key == p.policy_key)
                                                                    .order_by(Policy.version.desc()))]
     return {"policy": _policy_out(db, p), "findings": fs, "values": values, "versions": versions, "text_preview": (p.text_content or "")[:4000]}
@@ -395,7 +432,7 @@ class PFDecision(BaseModel):
 
 @router.post("/policy-findings/{pf_id}/{action}")
 def policy_finding_action(pf_id: uuid.UUID, action: str, body: PFDecision, request: Request, db: Session = Depends(get_db),
-                          current: CurrentUser = Depends(get_current_user)) -> dict:
+                          current: CurrentUser = Depends(require_object_permission("finding.map", "PolicyFinding", "pf_id"))) -> dict:
     pf = db.get(PolicyFinding, pf_id)
     if pf is None:
         raise HTTPException(404, "Policy finding not found")
@@ -462,7 +499,7 @@ class PrefIn(BaseModel):
 
 
 @router.put("/notification-prefs")
-def set_pref(body: PrefIn, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def set_pref(body: PrefIn, db: Session = Depends(get_db), current: CurrentUser = Depends(self_scoped)) -> dict:
     if body.kind not in rmf.NOTIFICATION_KINDS:
         raise HTTPException(422, "Unknown notification kind")
     p = db.scalar(select(NotificationPref).where(NotificationPref.user_id == current.user.id, NotificationPref.kind == body.kind))
@@ -495,8 +532,15 @@ def _audit_q(db, actor, action, entity_type, outcome, date_from, date_to):
 @router.get("/audit-log")
 def audit_log(actor: str | None = None, action: str | None = None, entity_type: str | None = None, outcome: str | None = None,
               date_from: date | None = None, date_to: date | None = None, page: int = 1, page_size: int = 50, fmt: str | None = None,
-              db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("audit.read"))):
-    q = _audit_q(db, actor, action, entity_type, outcome, date_from, date_to)
+              include_system: bool = False,
+              db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("audit.read"))):
+    from app.models import Organization
+    org = db.get(Organization, current.user.org_id)
+    tenant_users = select(User.id).where(User.org_id == org.id)
+    tenant_entities = select(System.id.cast(String)).where(System.org_id == org.id).union(select(literal(str(org.id))))
+    mine = AuditEvent.actor_user_id.in_(tenant_users)
+    sys_ev = AuditEvent.actor_user_id.is_(None) & (AuditEvent.entity_id.in_(tenant_entities) if org.is_sandbox else true())
+    q = _audit_q(db, actor, action, entity_type, outcome, date_from, date_to).where(mine | sys_ev)  # tenant-scoped
     if fmt in ("csv", "json"):
         rows = [to_dict(e) for e in db.scalars(q.order_by(AuditEvent.seq.desc()).limit(10000))]
         if fmt == "json":
@@ -508,12 +552,17 @@ def audit_log(actor: str | None = None, action: str | None = None, entity_type: 
         for r in rows:
             w.writerow([r.get(c) for c in cols])
         return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": 'attachment; filename="audit.csv"'})
+    if not include_system:
+        q = q.where(AuditEvent.actor_user_id.is_not(None))
     total = db.scalar(select(func.count()).select_from(q.subquery()))
     page_size = max(1, min(page_size, 200))
     items = [to_dict(e) for e in db.scalars(q.order_by(AuditEvent.seq.desc()).offset((max(page, 1) - 1) * page_size).limit(page_size))]
     attach(db, items, "actor_user_id", "actor")
     from sqlalchemy import text as sqltext
-    cats = dict(db.execute(sqltext("SELECT split_part(action, '.', 1), count(*) FROM audit_events GROUP BY 1")).all())
+    _ = sqltext
+    cq = q.subquery()
+    cat = func.split_part(cq.c.action, ".", 1)
+    cats = dict(db.execute(select(cat, func.count()).group_by(cat)).all())
     return {"items": items, "total": total, "page": page, "page_size": page_size, "categories": cats, "chain": audit.verify_chain(db)}
 
 
@@ -607,7 +656,7 @@ def ai_settings(db: Session = Depends(get_db), current: CurrentUser = Depends(re
 
     svc = get_ai_service()
     s = rmf.get_setting(db, current.user.org_id, "ai", rmf.AI_DEFAULTS)
-    return {**s, "provider": svc.provider.name if svc.configured else "none", "model": svc.provider.model if svc.configured else None,
+    return {**s, "effective": svc.describe(), "provider": svc.provider.name if svc.configured else "none", "model": svc.provider.model if svc.configured else None,
             "endpoint": "configured via environment (AI_PROVIDER / base URL)", "human_approval_required": True,
             "human_approval_locked": True, "provider_note": "Provider/model/endpoint are environment-configured; change .env and restart"}
 

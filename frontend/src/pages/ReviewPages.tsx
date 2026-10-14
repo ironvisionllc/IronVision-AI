@@ -120,7 +120,8 @@ export function FindingPage() {
       <PageHeader title={`${f.vuln_id ?? f.plugin_id ?? f.rule_id} · ${f.title}`} subtitle={`${f.source_type} · ${f.cat ?? f.severity} · first seen ${fmtDate(f.first_seen_at)} · last seen ${fmtDate(f.last_seen_at)}`}>
         <S v={f.current_state} testId="finding-state" />{f.remediation_status && <S v={f.remediation_status} label="remediation" />}{f.disposition && <S v={f.disposition} />}
         {f.current_state === "open" && <AddToPoamButton findingId={f.id} onDone={reload} />}
-        {can("finding.map") && !f.disposition && <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={fp} data-testid="request-false-positive-btn">Request false positive</button>}
+        {f.current_state !== "open" && <span className="text-[11px] text-slate-500" data-testid="finding-passing-note">Passing / not-applicable result – evidence of compliance, not an open finding</span>}
+        {can("finding.map") && !f.disposition && f.current_state === "open" && <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={fp} data-testid="request-false-positive-btn">Request false positive</button>}
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" data-testid="finding-msg">{msg}</div>}
       <div className="grid gap-5 xl:grid-cols-2">

@@ -124,7 +124,9 @@ docker compose up -d --build
 | `TEST_DATABASE_URL` | tests | Disposable database, wiped by pytest |
 | `JWT_SECRET`, `JWT_TTL_MINUTES` | backend | App session token signing / lifetime |
 | `AUTH_PROVIDER` | backend | `dev_password` (only provider in Phase 0) |
-| `SEED_DEMO_DATA`, `DEMO_USER_PASSWORD` | backend, migrate | Idempotent synthetic seed on startup |
+| `SEED_DEMO_DATA`, `DEMO_PASSWORD` | backend, migrate | Idempotent synthetic seed: demo@ironvision.ai + its private sandbox |
+| `ALLOW_SIGNUP`, `SANDBOX_INACTIVITY_DAYS` | backend, worker | Public self sign-up (false in production) and sandbox inactivity purge |
+| `DEMO_USER_PASSWORD` | tests | Password of the pytest/acceptance fixture role users |
 | `CORS_ORIGINS` | backend | Comma-separated browser origins |
 | `STORAGE_DRIVER` | backend, worker | `local` or `s3` (required) |
 | `STORAGE_LOCAL_ROOT` | local driver | Filesystem root |
@@ -149,10 +151,19 @@ alembic downgrade -1                                  # roll back one
 ```
 `0001_phase0_initial_schema` creates: organizations, users, auth_identities, login_attempts, role_assignments, systems, assets, catalog_versions, controls, control_objectives, baselines, baseline_controls, ccis, cci_control_map, audit_events (+ append-only trigger), ai_interactions, jobs, worker_heartbeats, notifications. Every table has a UUID `id` (`gen_random_uuid()`, core PG13+), `created_at`, `updated_at`; reference/business tables carry `source` + `provenance` JSONB.
 
-## Demo accounts (DEV ONLY, synthetic)
+## Demo account, sign-up and sandboxes (synthetic)
 
-All use password `AegisDemo!2026` (set via `DEMO_USER_PASSWORD`; change it for any shared environment):
-`system.owner@`, `isso@`, `issm@`, `sca@`, `ao@`, `devsecops@`, `leadership.viewer@`, `platform.admin@` — all `@aegisrmf.demo`, roles assigned at org scope in “IronVision Demo Tenant – SYNTHETIC”. Phase 1 seed also grants system-scoped roles (ISSO/ISSM/AO/System Owner on all 4 demo systems; DevSecOps has ISSO on TRS only).
+- **One shared demo account:** `demo@ironvision.ai`. The password comes from `DEMO_PASSWORD`; the preview default is listed only in `memory/test_credentials.md` and is not shown on the login page.
+- **Self sign-up** ("Create a free sandbox account", only when `ALLOW_SIGNUP=true`). Each new account gets a **private, CLEAN sandbox tenant**, "<org> Sandbox – SYNTHETIC": no systems or records, only reference content, default decision/CAT/match rules and personas. Only `demo@ironvision.ai` is seeded with the 4 synthetic systems. Sample STIG/ACAS/SCAP/SARIF files can be downloaded from the onboarding checklist (`GET /api/v1/sandbox/samples.zip`); nothing is auto-loaded.
+- **Persona mode (sandbox tenants only):** in the header, "Acting as" switches between ISSO, ISSM, SCA, AO, System Owner, DevSecOps, Leadership and Admin personas.
+  - Personas are separate synthetic identities, so requester ≠ decider and assessor ≠ implementer are still enforced.
+  - Every audit event records `operated_by` = the real user.
+  - **This is a demo feature and is not acceptable as production separation of duties.**
+- **Sandbox lifecycle:**
+  - Normal accounts: "Clear my workspace" deletes all their records (account and reference content kept; audited `sandbox.workspace_cleared`).
+  - Demo account: "Reset demo data" re-seeds the 4 systems; it also resets nightly.
+  - Sandboxes inactive for `SANDBOX_INACTIVITY_DAYS` (30) are purged, with warnings shown in the app.
+- The 8 per-role accounts (`*@aegisrmf.demo`) now exist **only as pytest/acceptance fixtures** in the test database.
 
 ## Key API endpoints
 
@@ -213,15 +224,15 @@ Tests: `cd backend && pytest -c pytest.aegis.ini tests` (45 tests incl. `tests/t
 ### Phase 2 demo script (password for all: see `memory/test_credentials.md`)
 E2E sample files: `samples/e2e/` (regenerate: `python scripts/generate_e2e_samples.py`).
 
-1. **ISSM** `issm@aegisrmf.demo` → Systems → Register system → name "E2E Demo", moderate → Register (287 controls).
-2. **ISSO** `isso@aegisrmf.demo` → select "E2E Demo" in sidebar → Evidence Sources → Upload `e2e-web-01.ckl`, then `e2e_scan.nessus`. The STIG/ACAS source cards appear automatically. Open the ingest run (the host is flagged as an unmatched asset because it is not in inventory yet).
+1. Sign in as `demo@ironvision.ai` (or create an account), switch **Acting as → ISSM** → Systems → Register system → name "E2E Demo", moderate → Register (287 controls).
+2. **Acting as → ISSO** → select "E2E Demo" in sidebar → Evidence Sources → Upload `e2e-web-01.ckl`, then `e2e_scan.nessus`. The STIG/ACAS source cards appear automatically. Open the ingest run (the host is flagged as an unmatched asset because it is not in inventory yet).
 3. Controls → queue: CM-6 / RA-5 / SC-13 now have failing checks. Open **SC-13** → Open findings → V-900140 → **Add to POA&M** → set due date → Create POA&M (P-0032).
 4. Ingest run page → V-900140 → **Add to POA&M** again → the modal offers **Link to existing P-0032** (no duplicate).
 5. Upload `e2e-web-01_remediated.ckl` → POA&M page shows **closure eligible** (banner; not closed) and the bell shows a notification.
 6. POA&M → **Request closure** → tick the remediated checklist as closure evidence → submit (R-000x routed to ISSM). As ISSO, open the review: "You requested this; you cannot decide it."
 7. Switch user → **ISSM** → Reviews → ISSM tab → open request → rationale → **Record approval (simulated signature – not CAC/PIV)**. The POA&M is Closed (actual completion = today), the finding's remediation is closed, and the control is re-evaluated.
-8. Switch user → **Leadership** `leadership.viewer@aegisrmf.demo` → Portfolio: CAT I and overdue counts reflect the closure; the trend gains a new live snapshot. Audit trail: Admin → Audit (platform admin).
-9. KEV path: as ISSO on "E2E Demo", RA-5 → Log4Shell finding → Add to POA&M → Request risk acceptance → ISSM **Endorse** → AO `ao@aegisrmf.demo` decides (an ISSO calling the AO step directly gets 403). Uploading `e2e_scan_remediated.nessus` makes it closure eligible → closure → ISSM approves.
+8. **Acting as → Leadership** → Portfolio: CAT I and overdue counts reflect the closure; the trend gains a new live snapshot. Audit trail: Admin → Audit (platform admin).
+9. KEV path: as ISSO on "E2E Demo", RA-5 → Log4Shell finding → Add to POA&M → Request risk acceptance → ISSM **Endorse** → **Acting as → AO** decides (an ISSO calling the AO step directly gets 403). Uploading `e2e_scan_remediated.nessus` makes it closure eligible → closure → ISSM approves.
 10. AI: as ISSO on LTP → Controls → **CM-6** → Implementation statement → **Generate draft** (label "AI DRAFT – not reviewed", citations link to the ledger) → edit → **Save draft version** → **Request review** → ISSM approves in Reviews → it becomes the "Current approved" statement.
 
 Tests: `pytest -c pytest.aegis.ini tests` → 54 tests (incl. `tests/test_phase2.py`: reconciliation, partial freshness, POA&M dedupe-link, closure flow + self-approval 403, ISSO cannot act as AO, false positive, AI citation stripping, cross-screen consistency).

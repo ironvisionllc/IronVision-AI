@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {"driver": {"name": "DemoSAST (SYNTHETIC)", "version": "1.0.0", "rules": [
+        {"id": "DEMO-SQLI-001", "shortDescription": {"text": "SQL query built from user input (SYNTHETIC)"}, "properties": {"tags": ["security", "external/cwe/cwe-89"]}},
+        {"id": "DEMO-XSS-002", "shortDescription": {"text": "Unescaped output in template (SYNTHETIC)"}, "properties": {"tags": ["security", "external/cwe/cwe-79"]}},
+        {"id": "DEMO-STYLE-003", "shortDescription": {"text": "Unused variable (SYNTHETIC, no CWE)"}, "properties": {"tags": ["maintainability"]}}
+      ]}},
+      "properties": {"host": "ltp-app-01", "note": "SYNTHETIC pipeline scan for demo/testing only"},
+      "results": [
+        {"ruleId": "DEMO-SQLI-001", "level": "error", "message": {"text": "User input flows into SQL string."}, "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/orders/repo.py"}}}]},
+        {"ruleId": "DEMO-XSS-002", "level": "warning", "message": {"text": "Template renders unescaped value."}, "locations": [{"physicalLocation": {"artifactLocation": {"uri": "web/templates/order.html"}}}]},
+        {"ruleId": "DEMO-STYLE-003", "level": "note", "message": {"text": "Unused variable tmp."}, "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/util.py"}}}]}
+      ]
+    }
+  ]
+}

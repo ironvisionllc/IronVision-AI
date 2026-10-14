@@ -29,6 +29,11 @@ export function SystemsPage() {
               <td className="td font-mono">{s.metrics.assigned_controls}</td><td className="td font-mono">{s.metrics.open_findings}</td>
             </tr>
           ))}
+          {data && data.length === 0 && <tr><td className="td py-8 text-center" colSpan={8} data-testid="systems-empty">
+            <div className="t-title text-slate-900">Register your first system</div>
+            <p className="mt-1 text-[13px] text-slate-600">Your workspace is empty. Register a system to pick its baseline, then add evidence sources or upload scans.</p>
+            {can("system.register") && <Link to="/systems/new" className="btn-primary mt-3 inline-flex" data-testid="systems-empty-register"><Plus className="h-4 w-4" />Register system</Link>}
+          </td></tr>}
         </Table>
       </Panel>
     </div>

@@ -27,6 +27,11 @@ Each upload is checked against an extension allowlist per upload kind, magic byt
 - RBAC is scoped to the system or org. Denials are audited (`authz.denied`).
 - Every query is filtered by the caller's organization. `test_tenant_isolation` checks that a tenant-B user gets 403/404 or empty results for tenant-A systems, POA&Ms, findings, search, and audit.
 - Separation of duties: no self-approval, ISSO cannot accept risk, AO-only decisions, SCA independence.
+- Every mutating route (POST/PUT/PATCH/DELETE) declares a permission dependency: `require_permission`, `require_object_permission` (system resolved from the addressed object, 404 across tenants) or `require_body_permission`, or `self_scoped` for the caller's own records. `tests/test_route_authz.py` enumerates the router and fails on any route without one; only login/refresh/mTLS login/logout/signup are public.
+- Finding dispositions (false positive, not applicable, out of scope, informational, no control mapping) always create a review under the active decision rule; nothing changes until approved. POA&M status cannot change while a closure/risk review is pending, and later due dates need an extension/waiver request. eMASS "keep local" conflict resolution needs a fresh ISSM approval.
+- Sign-up bot checks: an off-screen trap field with an unusual name (`iv_hp_fax_only`, autocomplete off, excluded from password managers/tab order/a11y tree) plus a signed form token from `GET /auth/signup/start` enforcing `SIGNUP_MIN_SECONDS` (default 2). Bot rejections show a generic "reload and try again"; every rejection is audited (`auth.signup` denied, `details.reason`, peer + X-Forwarded-For chain). User-fixable cases (password rules, duplicate email, rate limit with minutes remaining) get specific messages. Only successful sign-ups count toward the limit.
+- Behind a CDN/load balancer, list every proxy hop in `TRUSTED_PROXIES` (e.g. Cloudflare ranges + the LB address) so the real client IP is used; otherwise all users share the edge address.
+- `SIGNUP_RATE_LIMIT_EXEMPT_CIDRS` (empty by default) exempts exact test-runner addresses from the sign-up limit; `check_env` warns if set in production.
 
 ## Secrets and encryption
 - `SECRET_STORE_BACKEND=env_key`: Fernet (AES-128-CBC + HMAC-SHA256) with `SECRET_STORE_KEY`. Used for connector credentials such as eMASS.
@@ -48,3 +53,14 @@ The audit log is append-only and hash-chained. The retention job refuses to purg
 
 ## Reporting
 Report suspected vulnerabilities privately to the IronVision security contact. Do not open public issues.
+
+
+## Sandbox tenants, self sign-up and persona mode (demo feature)
+- Self sign-up (`ALLOW_SIGNUP`) is **off in production** (`check_env.py` warns if it is on). It needs local password accounts, is rate-limited per real client IP, has bot checks (trap field + minimum time-to-submit), and enforces password strength (12+ characters, mixed case, digit, symbol). New sign-up tenants start clean (no data); only the demo account is seeded. Login lockout and session rules are unchanged.
+- Each sign-up gets an isolated sandbox tenant. Tenant isolation is covered by `tests/test_sandbox.py`.
+- **Persona mode** (`sandbox_personas=true`) can only be set on sandbox tenants. `/sandbox/act-as` returns 403 for every other tenant.
+  - Actions run as synthetic persona identities, so requester ≠ decider and SCA ≠ implementer are enforced.
+  - Every audit event records `operated_by` = the real user.
+  - Persona approvals are labelled "simulated signature – not CAC/PIV · sandbox persona".
+  - **One human holds all personas, so this is NOT acceptable separation of duties for production.** Production tenants keep strict real-identity SoD and real role assignments.
+- Sandbox data is purged after `SANDBOX_INACTIVITY_DAYS` without activity: tenant rows, evidence objects and accounts. A platform audit record keeps only the tenant id and counts. Purge never applies to non-sandbox tenants.

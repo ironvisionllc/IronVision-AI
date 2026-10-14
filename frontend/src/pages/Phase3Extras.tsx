@@ -7,6 +7,7 @@ import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { S, Table } from "@/components/common/Bits";
+import { AccessDenied } from "@/components/common/AccessDenied";
 import { fmtDate } from "@/lib/format";
 
 export function GlobalSearch() {
@@ -107,10 +108,11 @@ export function NotificationPrefsPage() {
 }
 
 export function AuditLogPage() {
-  const [f, setF] = useState<Row>({ actor: "", action: "", entity_type: "", outcome: "", date_from: "", date_to: "", page: 1 });
-  const params = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== ""));
-  const { data, error } = useApi<Row>("/audit-log", params);
+  const [f, setF] = useState<Row>({ actor: "", action: "", entity_type: "", outcome: "", date_from: "", date_to: "", page: 1, include_system: false });
+  const params = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== "" && v !== false));
+  const { data, error, denied } = useApi<Row>("/audit-log", params);
   const exp = async (fmt: string) => { const r = await api.get("/audit-log", { params: { ...params, fmt }, responseType: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(r.data as Blob); a.download = `audit.${fmt}`; a.click(); };
+  if (denied) return <AccessDenied denied={denied} area="the Audit Log" />;
   if (error) return <div className="panel p-6 text-sm text-rose-700" data-testid="audit-log-error">{error}</div>;
   return (
     <div data-testid="audit-log-page">
@@ -119,6 +121,8 @@ export function AuditLogPage() {
       </PageHeader>
       <div className="mb-3 flex flex-wrap gap-2">
         {[["actor", "Actor email"], ["action", "Action prefix (e.g. authz, poam)"], ["entity_type", "Entity type"]].map(([k, l]) => <input key={k} className="input w-52" placeholder={l} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value, page: 1 })} data-testid={`audit-filter-${k}`} />)}
+        <label className="flex items-center gap-1 text-[12px]" data-testid="audit-include-system"><input type="checkbox" checked={!!f.include_system} onChange={(e) => setF({ ...f, include_system: e.target.checked, page: 1 })} />Include system events</label>
+        <span className="self-center text-[11px] text-slate-500">{f.include_system ? "All events" : "Human actions"}</span>
         <select className="input w-36" value={f.outcome} onChange={(e) => setF({ ...f, outcome: e.target.value, page: 1 })} data-testid="audit-filter-outcome"><option value="">Any outcome</option><option value="success">success</option><option value="denied">denied</option><option value="failure">failure</option></select>
         <input type="date" className="input w-40" value={f.date_from} onChange={(e) => setF({ ...f, date_from: e.target.value, page: 1 })} data-testid="audit-filter-from" />
         <input type="date" className="input w-40" value={f.date_to} onChange={(e) => setF({ ...f, date_to: e.target.value, page: 1 })} data-testid="audit-filter-to" />
@@ -132,7 +136,7 @@ export function AuditLogPage() {
             <td className="td max-w-[300px] truncate font-mono text-[10px]">{JSON.stringify(e.details ?? e.after ?? {})}</td></tr>)}
         </Table>
         <div className="mt-2 flex items-center gap-2 text-[12px]"><button className="btn-secondary px-2 py-1 text-xs" disabled={f.page <= 1} onClick={() => setF({ ...f, page: f.page - 1 })} data-testid="audit-prev">Prev</button>
-          Page {f.page} · {data?.total ?? 0} events<button className="btn-secondary px-2 py-1 text-xs" disabled={!data || f.page * data.page_size >= data.total} onClick={() => setF({ ...f, page: f.page + 1 })} data-testid="audit-next">Next</button></div>
+          Page {f.page} · {data ? data.total : "…"} events<button className="btn-secondary px-2 py-1 text-xs" disabled={!data || f.page * data.page_size >= data.total} onClick={() => setF({ ...f, page: f.page + 1 })} data-testid="audit-next">Next</button></div>
       </Panel>
     </div>
   );

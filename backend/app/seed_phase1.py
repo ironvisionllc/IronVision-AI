@@ -44,14 +44,14 @@ PROVIDERS = [
 ]
 
 
-def _seed_config(db: Session, org: Organization) -> None:
+def _seed_config(db: Session, org: Organization, providers: bool = True) -> None:
     if not db.scalar(select(DedupRule.id).limit(1)):
         db.add(DedupRule(source_type="stig_checklist", version=1, fields=["source_type", "benchmark", "vuln_id", "rule_id", "asset"],
                          description="STIG: benchmark + Vuln ID (group) + Rule ID + asset"))
         db.add(DedupRule(source_type="acas", version=1, fields=["source_type", "plugin_id", "asset", "component", "port", "protocol"],
                          description="ACAS: plugin + asset + component + port/protocol"))
     if not db.scalar(select(FreshnessPolicy.id).limit(1)):
-        for et, days in (("pipeline", 7), ("cloud_config", 2), ("stig_checklist", 30), ("training", 365), ("vulnerability_scan", 30)):
+        for et, days in (("pipeline", 7), ("cloud_config", 2), ("stig_checklist", 30), ("training", 365), ("vulnerability_scan", 30), ("attestation", 365)):
             db.add(FreshnessPolicy(evidence_type=et, window_days=days, label=f"{et}: {days}d (demo settings, not NIST requirements)"))
     for code, (w, d) in WEIGHTS.items():
         if not db.scalar(select(PriorityWeight.id).where(PriorityWeight.reason_code == code)):
@@ -65,7 +65,13 @@ def _seed_config(db: Session, org: Organization) -> None:
                               source_type="acas", match={"requires_cve": True}, control_ids=["ra-5", "si-2"], review_status="human_approved",
                               approved_by="Synthetic ISSM approval (demo seed)", effective_date=date(2026, 1, 1), source=SEED,
                               provenance={"note": "Synthetic organizational rule: CVE-bearing vulnerability findings → RA-5, SI-2"}))
-    if not db.scalar(select(CommonControlProvider.id).limit(1)):
+    if not db.scalar(select(OrgMappingRule.id).where(OrgMappingRule.source_type == "sarif").limit(1)):
+        db.add(OrgMappingRule(rule_key="sarif-cwe-to-controls", version=1, title="CWE → control org mapping v1 (SYNTHETIC)", source_type="sarif",
+                              match={"cwes": ["CWE-79", "CWE-89", "CWE-78", "CWE-22", "CWE-20", "CWE-502", "CWE-798", "CWE-259", "CWE-327"]},
+                              control_ids=["si-10", "sa-11", "ra-5"], review_status="human_approved", approved_by="Synthetic ISSM approval (demo seed)",
+                              effective_date=date(2026, 1, 1), source=SEED,
+                              provenance={"note": "Synthetic organizational rule: listed injection/input/crypto/credential CWEs → SI-10, SA-11, RA-5"}))
+    if providers and not db.scalar(select(CommonControlProvider.id).where(CommonControlProvider.org_id == org.id).limit(1)):
         for name, pkg, ctrls in PROVIDERS:
             p = CommonControlProvider(id=uuid.uuid4(), org_id=org.id, name=name, package=pkg, source=SEED)
             db.add(p)
@@ -73,10 +79,31 @@ def _seed_config(db: Session, org: Organization) -> None:
             for cid, resp in ctrls.items():
                 db.add(ProviderControl(provider_id=p.id, control_id=cid, responsibility=resp))
     db.flush()
+    from app.services.responsibility import seed_matrix
+
+    seed_matrix(db)
 
 
 def _user(db, email):
     return db.scalar(select(User).where(User.email == email))
+
+
+def role_user(db, org, role: str):
+    """Org-scoped holder of a role: sandbox persona, or the role fixture user in tests."""
+    return db.scalar(select(User).join(RoleAssignment, RoleAssignment.user_id == User.id).where(
+        User.org_id == org.id, User.is_active.is_(True), RoleAssignment.role == role, RoleAssignment.scope_type == "org",
+        RoleAssignment.scope_id == org.id).order_by(User.persona_role.is_(None), User.created_at).limit(1))
+
+
+def seed_tenant_config(db: Session, org: Organization) -> None:
+    """Clean tenant: shared rule tables + this tenant's decision/match/CAT rules. No systems, providers or records."""
+    from app.seed_phase2 import seed_phase2_config
+    from app.seed_phase4 import seed_phase4
+
+    _seed_config(db, org, providers=False)
+    seed_phase2_config(db, org)
+    seed_phase4(db, org)
+    db.flush()
 
 
 def seed_phase1(db: Session, org: Organization, samples_dir: str) -> None:
@@ -99,7 +126,7 @@ def seed_phase1(db: Session, org: Organization, samples_dir: str) -> None:
         seed_phase4(db, org)
         return
     sd = Path(samples_dir)
-    isso, issm, ao, so = (_user(db, e) for e in ("isso@aegisrmf.demo", "issm@aegisrmf.demo", "ao@aegisrmf.demo", "system.owner@aegisrmf.demo"))
+    isso, issm, ao, so = (role_user(db, org, r) for r in ("isso", "issm", "ao", "system_owner"))
     specs = [
         ("Logistics Tracking Platform", "LTP", "moderate", ["demo-cloud-overlay"], "Test", "In assessment", None, None, "AWS GovCloud (synthetic)"),
         ("Mission Planning Portal", "MPP", "high", [], "Operations", "Authorized (ATO)", date(2023, 11, 30), date(2026, 11, 30), "On-prem enclave"),
@@ -121,7 +148,7 @@ def seed_phase1(db: Session, org: Organization, samples_dir: str) -> None:
         systems[acr] = s
         for u, role in ((isso, "isso"), (issm, "issm"), (ao, "ao"), (so, "system_owner")):
             db.add(RoleAssignment(user_id=u.id, role=role, scope_type="system", scope_id=s.id, source=SEED))
-    db.add(RoleAssignment(user_id=_user(db, "devsecops@aegisrmf.demo").id, role="isso", scope_type="system", scope_id=systems["TRS"].id, source=SEED))
+    db.add(RoleAssignment(user_id=role_user(db, org, "devsecops").id, role="isso", scope_type="system", scope_id=systems["TRS"].id, source=SEED))
     for idx, (h, ip) in enumerate(LTP_HOSTS):
         onprem = idx >= 8
         db.add(Asset(system_id=systems["LTP"].id, name=h, hostname=h, ip_address=ip, os="Demo Linux 9", asset_type="server",
@@ -194,7 +221,8 @@ def reset_demo(db: Session, org: Organization, samples_dir: str) -> None:
     reset_phase4(db, org)
     from app.seed import SEED_SOURCE
     from sqlalchemy import update as _upd
-    db.execute(_upd(User).where(User.org_id == org.id, User.source.is_distinct_from(SEED_SOURCE)).values(is_active=False))
+    db.execute(_upd(User).where(User.org_id == org.id, User.source.is_distinct_from(SEED_SOURCE), User.persona_role.is_(None),
+                                User.id != (org.owner_user_id or uuid.uuid4())).values(is_active=False))
     db.execute(delete(RiskSnapshot).where(RiskSnapshot.org_id == org.id))
     db.execute(delete(Notification).where(Notification.user_id.in_(select(User.id).where(User.org_id == org.id))))
     sys_ids = list(db.scalars(select(System.id).where(System.org_id == org.id, System.is_synthetic.is_(True))))

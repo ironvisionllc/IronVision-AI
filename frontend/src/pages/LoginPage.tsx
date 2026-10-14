@@ -1,23 +1,23 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { KeyRound, ShieldAlert, UserRound } from "lucide-react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { KeyRound, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api, errorMessage } from "@/lib/api";
+import type { Row } from "@/lib/useApi";
 import type { AuthProviderInfo } from "@/lib/types";
-import { cn } from "@/lib/format";
-import { ROLE_LABELS } from "@/lib/nav";
 import { SyntheticBanner } from "@/components/shell/SyntheticBanner";
 import { BrandLockup, BrandMark, ThemeToggle, Wordmark } from "@/components/shell/Brand";
 
 export default function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [info, setInfo] = useState<AuthProviderInfo | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [note, setNote] = useState("");
   const pwRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -25,12 +25,6 @@ export default function LoginPage() {
   }, []);
 
   if (user) return <Navigate to="/controls" replace />;
-
-  const pick = (addr: string) => {
-    setEmail(addr);
-    setError("");
-    pwRef.current?.focus();
-  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -62,7 +56,7 @@ export default function LoginPage() {
             <p className="t-caption mt-3 text-slate-600">
               RMF automation for ISSOs, ISSMs, assessors and authorizing officials — grounded in pinned, hash-verified NIST SP 800-53 Rev 5 and DISA CCI reference content.
             </p>
-            <div className="t-label mt-8 !text-[10px]">Phase 5 · Production Hardening</div>
+            
           </div>
         </aside>
 
@@ -77,7 +71,8 @@ export default function LoginPage() {
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
               {info?.label ?? "DEVELOPMENT AUTHENTICATION – SIMULATED, NOT CAC/PIV"}
             </div>
-            <form onSubmit={submit} className="panel p-7" data-testid="login-form">
+            {note && <div className="mb-3 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-800" data-testid="signup-success">{note}</div>}
+            {mode === "login" && <form onSubmit={submit} className="panel p-7" data-testid="login-form">
               <h2 className="t-title text-slate-900">Sign in</h2>
               <p className="t-caption mt-1 text-slate-600">Provider: <span className="font-mono text-[12px]">{info?.provider ?? "…"}</span></p>
               <label className="t-label mt-6 block" htmlFor="email">Email</label>
@@ -90,10 +85,10 @@ export default function LoginPage() {
               <button type="submit" disabled={busy} className="btn-primary mt-6 w-full justify-center py-2.5" data-testid="login-submit-btn">
                 <KeyRound className="h-4 w-4" aria-hidden /> {busy ? "Signing in…" : "Sign in"}
               </button>
-            </form>
-            {info?.is_simulated && info.dev_accounts.length > 0 && (
-              <DevPicker accounts={info.dev_accounts} selected={email} onPick={pick} highlight={location.search.includes("switch") || sessionStorage.getItem("aegis.switch_user") === "1"} />
-            )}
+            </form>}
+            {info?.signup_enabled && (mode === "signup" ? <><SignupForm onDone={(e) => { setEmail(e); setMode("login"); setNote("Account created – your private sandbox is being prepared. Sign in to continue."); }} />
+              <button type="button" className="mt-3 w-full text-center text-[13px] text-blue-800 underline" onClick={() => setMode("login")} data-testid="show-login-btn">I already have an account – sign in</button></>
+              : <button type="button" className="mt-4 w-full text-center text-[13px] text-blue-800 underline" onClick={() => setMode("signup")} data-testid="show-signup-btn">New here? Create a free sandbox account</button>)}
             </>}
           </div>
         </main>
@@ -102,31 +97,47 @@ export default function LoginPage() {
   );
 }
 
-function DevPicker({ accounts, selected, onPick, highlight }: {
-  accounts: AuthProviderInfo["dev_accounts"]; selected: string; onPick: (e: string) => void; highlight: boolean;
-}) {
+function SignupForm({ onDone }: { onDone: (email: string) => void }) {
+  const [f, setF] = useState({ name: "", email: "", password: "", organization: "", iv_hp_fax_only: "" });
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [token, setToken] = useState<Row | null>(null);
+  useEffect(() => { api.get<Row>("/auth/signup/start").then((r) => setToken({ ...r.data, at: Date.now() })).catch(() => setToken(null)); }, []);
+  const rules = [["12+ characters", f.password.length >= 12], ["a lowercase letter", /[a-z]/.test(f.password)], ["an uppercase letter", /[A-Z]/.test(f.password)],
+    ["a digit", /\d/.test(f.password)], ["a symbol", /[^A-Za-z0-9]/.test(f.password)],
+    ["not your email name", !(f.email.split("@")[0].length >= 3 && f.password.toLowerCase().includes(f.email.split("@")[0].toLowerCase()))]] as const;
+  const pwOk = rules.every(([, ok]) => ok);
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!pwOk) { setErr("Password needs: " + rules.filter(([, ok]) => !ok).map(([l]) => l).join(", ")); return; }
+    setBusy(true); setErr("");
+    try {
+      const wait = token ? Number(token.min_seconds) * 1000 - (Date.now() - token.at) : 0;  // client clock only: no skew
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait + 100));  // very fast autofill+submit: wait out the minimum instead of failing
+      await api.post("/auth/signup", { ...f, form_token: token?.form_token });
+      onDone(f.email);
+    } catch (x) {
+      setErr(errorMessage(x));
+      api.get<Row>("/auth/signup/start").then((r) => setToken({ ...r.data, at: Date.now() })).catch(() => undefined);
+    } finally { setBusy(false); }
+  };
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
   return (
-    <div className={cn("panel mt-4 p-4", highlight && "ring-2 ring-blue-500/30")} data-testid="dev-user-picker">
-      <div className="flex items-center justify-between">
-        <div className="eyebrow">Switch user (dev only)</div>
-        <span className="text-[11px] text-slate-500">{accounts.length} synthetic accounts</span>
+    <form onSubmit={submit} className="panel p-7" data-testid="signup-form">
+      <h2 className="t-title text-slate-900">Create a sandbox account</h2>
+      <p className="t-caption mt-1 text-slate-600">You get a private sandbox with a copy of the 4 synthetic demo systems. Synthetic data only – do not upload CUI or real system data. Sandboxes are deleted after 30 days without activity.</p>
+      <label className="t-label mt-5 block" htmlFor="su-name">Name</label><input id="su-name" required autoComplete="name" className="input mt-1.5" value={f.name} onChange={set("name")} data-testid="signup-name-input" />
+      <label className="t-label mt-3 block" htmlFor="su-email">Email</label><input id="su-email" type="email" required autoComplete="email" className="input mt-1.5" value={f.email} onChange={set("email")} data-testid="signup-email-input" />
+      <label className="t-label mt-3 block" htmlFor="su-pw">Password</label><input id="su-pw" type="password" required autoComplete="new-password" className="input mt-1.5" value={f.password} onChange={set("password")} data-testid="signup-password-input" />
+      <ul className="mt-1 flex flex-wrap gap-2 text-[11px]" data-testid="signup-password-rules">{rules.map(([l, ok]) => <li key={l} className={ok ? "text-emerald-700" : "text-slate-500"}>{ok ? "✓" : "○"} {l}</li>)}</ul>
+      <label className="t-label mt-3 block" htmlFor="su-org">Organization (optional)</label><input id="su-org" autoComplete="organization" className="input mt-1.5" value={f.organization} onChange={set("organization")} data-testid="signup-org-input" />
+      {/* bot trap: off-screen (not display:none), unusual name, excluded from autofill + password managers + tab order + a11y tree */}
+      <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", top: "auto", width: 1, height: 1, overflow: "hidden" }}>
+        <label htmlFor="iv-hp-fax">Leave this empty</label>
+        <input id="iv-hp-fax" type="text" name="iv_hp_fax_only" tabIndex={-1} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other"
+          value={f.iv_hp_fax_only} onChange={set("iv_hp_fax_only")} data-testid="signup-trap-input" />
       </div>
-      <p className="mt-1 text-[12px] text-slate-500">Selecting fills the email; enter the documented dev password.</p>
-      <ul className="mt-3 grid grid-cols-2 gap-1.5">
-        {accounts.map((a) => (
-          <li key={a.email}>
-            <button type="button" onClick={() => onPick(a.email)} data-testid={`dev-user-option-${a.role}`}
-              className={cn("flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors duration-150",
-                selected === a.email ? "border-blue-500 bg-blue-50" : "bg-surface border-slate-200 hover:border-blue-300 hover:bg-blue-50")}>
-              <UserRound className="h-3.5 w-3.5 shrink-0 text-blue-700" aria-hidden />
-              <span className="min-w-0">
-                <span className="block truncate font-heading text-[12px] font-semibold text-slate-800">{ROLE_LABELS[a.role] ?? a.role_label}</span>
-                <span className="block truncate font-mono text-[10px] text-slate-500">{a.email}</span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+      {err && <div role="alert" className="mt-3 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-[13px] text-rose-800" data-testid="signup-error">{err}</div>}
+      <button type="submit" disabled={busy} className="btn-primary mt-5 w-full justify-center py-2.5" data-testid="signup-submit-btn">{busy ? "Creating…" : "Create account"}</button>
+    </form>);
 }

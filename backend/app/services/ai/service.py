@@ -46,17 +46,22 @@ def _extract_json(text: str) -> dict:
 
 
 class AIService:
-    def __init__(self, provider: AIProvider | None):
+    def __init__(self, provider: AIProvider | None, error: str | None = None):
         self.provider = provider
+        self.error = error
 
     @property
     def configured(self) -> bool:
         return self.provider is not None and self.provider.is_configured()
 
     def describe(self) -> dict:
+        s = get_settings()
         if self.provider is None:
-            return {"provider": "none", "model": None, "configured": False}
-        return {"provider": self.provider.name, "model": self.provider.model, "configured": self.provider.is_configured()}
+            reason = self.error or ("AI_PROVIDER is empty/none – AI disabled; template drafting is used" if s.ai_provider in ("", "none") else "provider not built")
+            return {"provider": s.ai_provider or "none", "model": None, "configured": False, "reason": reason, "app_env": s.environment}
+        ok = self.provider.is_configured()
+        return {"provider": self.provider.name, "model": self.provider.model, "configured": ok, "app_env": s.environment,
+                "reason": None if ok else "provider selected but its API key or model is missing"}
 
     async def run(self, prompt_id: str, version: str, variables: dict, actor_user_id: uuid.UUID | None = None) -> AIResult:
         if not self.configured:
@@ -113,4 +118,7 @@ def build_provider(name: str) -> AIProvider | None:
 
 @lru_cache
 def get_ai_service() -> AIService:
-    return AIService(build_provider(get_settings().ai_provider))
+    try:
+        return AIService(build_provider(get_settings().ai_provider))
+    except (ValueError, ImportError) as exc:
+        return AIService(None, str(exc))

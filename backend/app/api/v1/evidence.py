@@ -10,7 +10,7 @@ from app.api.v1.records import get_system, to_dict
 from app.db import get_db
 from app.models import (Asset, ControlAssignment, Evidence, EvidenceControl, EvidenceSource, Finding, FindingControlMap,
                         FreshnessPolicy, IngestRun, IntegrityCheck)
-from app.security.deps import CurrentUser, enforce, get_current_user, require_permission
+from app.security.deps import CurrentUser, enforce, get_current_user, require_object_permission, require_permission
 from app.services import audit, jobs
 from app.services.connectors import SOURCE_TYPES, adapter_for
 from app.services.evaluation import evaluate_freshness, evaluate_system
@@ -33,14 +33,9 @@ def _source_out(db: Session, s: EvidenceSource) -> dict:
     d = to_dict(s, ("secret_ciphertext",))
     d["credential_set"] = bool(s.secret_ciphertext)
     d["type_label"], d["adapter_mode"] = SOURCE_TYPES[s.source_type]
-    ev_ids = select(Evidence.id).where(Evidence.source_id == s.id)
-    fq = select(func.count(func.distinct(Finding.id))).select_from(Finding).where(Finding.latest_evidence_id.in_(ev_ids))
-    d["assets"] = db.scalar(select(func.count(func.distinct(Finding.asset_id))).where(Finding.latest_evidence_id.in_(ev_ids)))
-    d["findings_total"] = db.scalar(fq)
-    d["findings_open"] = db.scalar(fq.where(Finding.current_state == "open"))
-    d["mapped"] = db.scalar(fq.where(Finding.mapping_status == "mapped"))
-    d["unmapped"] = d["findings_total"] - d["mapped"]
-    d["dispositioned"] = db.scalar(fq.where(Finding.mapping_status == "dispositioned"))
+    from app.services.metrics import source_counts
+
+    d.update(source_counts(db, s))
     newest = db.scalar(select(Evidence).where(Evidence.source_id == s.id).order_by(Evidence.collected_at.desc()).limit(1))
     d["freshness"] = newest.state if newest else "no_evidence"
     d["evidence_count"] = db.scalar(select(func.count()).select_from(Evidence).where(Evidence.source_id == s.id))
@@ -88,7 +83,7 @@ def create_source(system_id: uuid.UUID, body: SourceIn, db: Session = Depends(ge
 
 @router.patch("/sources/{source_id}")
 def update_source(source_id: uuid.UUID, body: SourceIn, request: Request, db: Session = Depends(get_db),
-                  current: CurrentUser = Depends(get_current_user)) -> dict:
+                  current: CurrentUser = Depends(require_object_permission("source.manage", "EvidenceSource", "source_id"))) -> dict:
     s = _source(db, source_id)
     enforce(request, current, "source.manage", s.system_id)
     ch = body.model_dump(exclude_unset=True, exclude={"credential", "source_type"})
@@ -103,7 +98,7 @@ def update_source(source_id: uuid.UUID, body: SourceIn, request: Request, db: Se
 
 
 @router.post("/sources/{source_id}/test")
-def test_source(source_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def test_source(source_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("source.manage", "EvidenceSource", "source_id"))) -> dict:
     s = _source(db, source_id)
     enforce(request, current, "source.manage", s.system_id)
     ok, msg = adapter_for(s.source_type).test_connection(s)
@@ -115,7 +110,7 @@ def test_source(source_id: uuid.UUID, request: Request, db: Session = Depends(ge
 
 
 @router.post("/sources/{source_id}/run")
-def run_source(source_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def run_source(source_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("source.manage", "EvidenceSource", "source_id"))) -> dict:
     s = _source(db, source_id)
     enforce(request, current, "source.manage", s.system_id)
     if not s.enabled:
@@ -198,7 +193,7 @@ class MapIn(BaseModel):
 
 
 class DispositionIn(BaseModel):
-    disposition: str = Field(pattern="^(not_applicable|false_positive|risk_accepted_pending|no_control_mapping)$")
+    disposition: str = Field(pattern="^(not_applicable|out_of_scope|informational|false_positive|no_control_mapping)$")
     justification: str = Field(min_length=10, max_length=2000)
 
 
@@ -211,7 +206,7 @@ def _finding(db, request, current, finding_id) -> Finding:
 
 
 @router.post("/findings/{finding_id}/map")
-def map_finding(finding_id: uuid.UUID, body: MapIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def map_finding(finding_id: uuid.UUID, body: MapIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("finding.map", "Finding", "finding_id"))) -> dict:
     f = _finding(db, request, current, finding_id)
     cid = body.control_id.strip().lower()
     a = db.scalar(select(ControlAssignment).where(ControlAssignment.system_id == f.system_id, ControlAssignment.control_id == cid))
@@ -232,14 +227,15 @@ def map_finding(finding_id: uuid.UUID, body: MapIn, request: Request, db: Sessio
 
 @router.post("/findings/{finding_id}/disposition")
 def disposition_finding(finding_id: uuid.UUID, body: DispositionIn, request: Request, db: Session = Depends(get_db),
-                        current: CurrentUser = Depends(get_current_user)) -> dict:
+                        current: CurrentUser = Depends(require_object_permission("finding.map", "Finding", "finding_id"))) -> dict:
+    from app.services import workflow as wf
+
     f = _finding(db, request, current, finding_id)
-    before = {"mapping_status": f.mapping_status}
-    f.mapping_status, f.disposition, f.disposition_justification = "dispositioned", body.disposition, body.justification
-    audit.record(db, action="finding.dispositioned", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="finding",
-                 entity_id=str(f.id), before=before, after=body.model_dump(), **audit.request_meta(request))
+    req = wf.request_disposition(db, system=get_system(db, f.system_id), requester=current.user, findings=[f],
+                                 disposition=body.disposition, justification=body.justification)
     db.commit()
-    return {"ok": True}
+    return {"ok": True, "applied": False, "pending_request": req.human_id, "request_id": str(req.id),
+            "message": f"{req.human_id}: {body.disposition.replace('_', ' ')} disposition awaiting {req.assigned_role.upper()} – not applied until approved"}
 
 
 @router.get("/systems/{system_id}/evidence")

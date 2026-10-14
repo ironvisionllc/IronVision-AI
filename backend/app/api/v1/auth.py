@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.seed import SEED_SOURCE
+from app.config import get_settings
 from app.models import AuthIdentity, Organization, RoleAssignment, User
 from app.schemas import AuthProviderInfo, DevAccount, LoginRequest, RoleOut, TokenResponse, UserOut
 from app.security import login_guard, sessions
@@ -30,19 +31,29 @@ def build_user_out(db: Session, user: User, assignments: list[RoleAssignment], p
         id=user.id, email=user.email, display_name=user.display_name, title=user.title, org_id=user.org_id,
         org_name=org.name if org else "", roles=[RoleOut.model_validate(a) for a in assignments],
         permissions=effective_permissions(assignments), auth_provider=provider_name,
-        auth_is_simulated=provider.is_simulated,
+        auth_is_simulated=provider.is_simulated, persona_role=user.persona_role, is_sandbox=bool(org and org.is_sandbox),
     )
 
 
-def _issue(db: Session, user: User, provider: str, request: Request) -> TokenResponse:
+def _issue(db: Session, user: User, provider: str, request: Request, operator: User | None = None) -> TokenResponse:
     meta = audit.request_meta(request)
+    org = db.get(Organization, user.org_id)
+    if operator is None and org is not None and org.is_sandbox and org.sandbox_personas and user.persona_role is None and org.sandbox_status == "ready":
+        from app.services.sandbox import persona
+
+        user.acting_role = "isso"  # fresh login always starts as the ISSO persona
+        p = persona(db, org.id, "isso")
+        if p is not None and p.operator_id == user.id:
+            user.last_login_at = datetime.now(timezone.utc)
+            user, operator = p, user
     sess, refresh = sessions.create(db, user.id, provider, meta.get("ip"), request.headers.get("user-agent"))
     user.last_login_at = datetime.now(timezone.utc)
-    audit.record(db, action="auth.login", outcome="success", actor_user_id=user.id, actor_email=user.email,
-                 entity_type="user", entity_id=str(user.id), details={"provider": provider, "session_id": str(sess.id)}, **meta)
+    audit.record(db, action="auth.login", outcome="success", actor_user_id=user.id, actor_email=user.email, entity_type="user", entity_id=str(user.id),
+                 details={"provider": provider, "session_id": str(sess.id), **({"operated_by": operator.email, "sandbox_persona": True} if operator else {})},
+                 **meta)
     db.commit()
     assignments = list(db.scalars(select(RoleAssignment).where(RoleAssignment.user_id == user.id)))
-    token, ttl = create_access_token(user.id, provider, sess.id)
+    token, ttl = create_access_token(user.id, provider, sess.id, operator.id if operator else None)
     return TokenResponse(access_token=token, expires_in=ttl, refresh_token=refresh, idle_timeout_minutes=sessions.IDLE_MINUTES,
                          user=build_user_out(db, user, assignments, provider))
 
@@ -61,9 +72,10 @@ def provider_info(db: Session = Depends(get_db)) -> AuthProviderInfo:
                    User.source == SEED_SOURCE)
             .order_by(User.email)
         ).all()
-        accounts = [DevAccount(email=e, display_name=n, role=r, role_label=ROLES.get(r, r)) for e, n, r in rows]
+        accounts = []  # no public account picker: one shared demo account (docs only) + self sign-up
+        _ = rows
     return AuthProviderInfo(provider=provider.name, label=provider.display_label, is_simulated=provider.is_simulated,
-                            dev_accounts=accounts, enabled_providers=enabled, dev_password_enabled="dev_password" in enabled,
+                            dev_accounts=accounts, enabled_providers=enabled, dev_password_enabled="dev_password" in enabled, signup_enabled=get_settings().allow_signup and "dev_password" in enabled,
                             oidc_enabled="oidc" in enabled)
 
 

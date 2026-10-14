@@ -12,19 +12,37 @@ from app.services import audit
 
 SIGNATURE = "Record approval (simulated signature – not CAC/PIV)"
 ACTIVE_POAM = ("new", "in_progress", "closure_eligible", "closure_review", "risk_acceptance_review")
-REQUEST_TYPES = {"false_positive": "False-positive disposition", "poam_closure": "POA&M closure", "risk_acceptance": "Risk acceptance",
-                 "waiver_extension": "Waiver / extension", "control_implementation_review": "Control implementation review",
-                 "deadline_extension": "Deadline extension", "authorization_package_review": "Authorization package review",
+REQUEST_TYPES = {"finding_out_of_scope": "Out of scope / N/A / informational disposition", "false_positive": "False-positive disposition", "poam_closure": "POA&M closure", "risk_acceptance": "Risk acceptance",
+                 "waiver_extension": "Waiver (risk accepted past due date)", "control_implementation_review": "Control implementation review",
+                 "deadline_extension": "Deadline extension (≤ 90 days, no risk acceptance)", "authorization_package_review": "Authorization package review",
                  "assessment_result": "Assessment result", "authorization_decision": "Authorization decision",
                  "emass_submission": "eMASS outbound change"}
+EXTENSION_LIMIT_DAYS = 90
+RULE_PRECEDENCE = ("Exactly one active rule per request type. Deadline extension applies only when the new date is ≤ 90 days past the current "
+                   "due date; anything longer, or any extension that accepts residual risk, must be filed as a Waiver (ISSM endorses → AO decides).")
+
+
+def validate_rules(rules: list) -> list[str]:
+    """Reject overlapping rules: more than one active rule for the same request type/scope, or unknown request types."""
+    errs, seen = [], {}
+    for r in rules:
+        if r.request_type not in REQUEST_TYPES:
+            errs.append(f"unknown request type {r.request_type}")
+        if r.is_active and (r.org_id, r.request_type) in seen:
+            errs.append(f"overlapping active rules for {r.request_type}")
+        seen[(r.org_id, r.request_type)] = r
+    return errs
+
+
 DEFAULT_RULES = [
     ("false_positive", [{"role": "issm", "action": "decide"}], "False positive → ISSM decides"),
+    ("finding_out_of_scope", [{"role": "issm", "action": "decide"}], "Out of scope / not applicable → ISSM decides"),
     ("poam_closure", [{"role": "issm", "action": "decide"}], "POA&M closure → ISSM decides"),
-    ("waiver_extension", [{"role": "issm", "action": "endorse"}, {"role": "ao", "action": "decide"}], "Waiver/extension → ISSM endorses, AO decides"),
+    ("waiver_extension", [{"role": "issm", "action": "endorse"}, {"role": "ao", "action": "decide"}], "Waiver (accept risk beyond the due date, or extension > 90 days) → ISSM endorses, AO decides"),
     ("risk_acceptance", [{"role": "issm", "action": "endorse"}, {"role": "ao", "action": "decide"}], "Risk acceptance → ISSM endorses, AO decides"),
     ("control_implementation_review", [{"role": "issm", "action": "decide"}], "Control implementation statement → ISSM decides"),
     ("assessment_result", [{"role": "sca", "action": "decide"}], "Assessment result → SCA records (independence enforced)"),
-    ("deadline_extension", [{"role": "issm", "action": "decide"}], "Deadline extension → ISSM decides"),
+    ("deadline_extension", [{"role": "issm", "action": "decide"}], "Deadline extension (new date ≤ 90 days past current due date, no risk acceptance) → ISSM decides"),
     ("authorization_package_review", [{"role": "issm", "action": "endorse"}, {"role": "ao", "action": "decide"}],
      "Authorization package → ISSM endorses, AO records authorization decision"),
     ("authorization_decision", [{"role": "ao", "action": "decide"}], "Authorization decision (ATO/ATO w/ conditions/IATT/DATO) → AO only"),
@@ -167,6 +185,13 @@ def on_remediation_observed(db: Session, findings: list[Finding], run_id=None) -
 def rule_for(db: Session, org_id, request_type: str) -> DecisionRule:
     r = db.scalar(select(DecisionRule).where(DecisionRule.org_id == org_id, DecisionRule.request_type == request_type,
                                              DecisionRule.is_active.is_(True)).order_by(DecisionRule.version.desc()))
+    if r is None and not db.scalar(select(DecisionRule.id).where(DecisionRule.org_id == org_id, DecisionRule.request_type == request_type)):
+        default = next((d for d in DEFAULT_RULES if d[0] == request_type), None)
+        if default:  # request type added after the tenant was seeded: install its default rule (v1)
+            r = DecisionRule(org_id=org_id, request_type=request_type, version=1, steps=default[1], label=default[2],
+                             description="Default decision rule (installed on first use)")
+            db.add(r)
+            db.flush()
     if r is None:
         raise HTTPException(409, f"No active decision rule for {request_type}")
     return r
@@ -188,6 +213,22 @@ def create_request(db: Session, *, system: System, requester: User, request_type
                                                "poam_id": str(req.poam_id) if req.poam_id else None,
                                                "finding_id": str(req.finding_id) if req.finding_id else None})
     return req
+
+
+DISPOSITIONS = {"false_positive": "false_positive", "not_applicable": "finding_out_of_scope", "out_of_scope": "finding_out_of_scope",
+                "informational": "finding_out_of_scope", "no_control_mapping": "finding_out_of_scope"}
+
+
+def request_disposition(db: Session, *, system: System, requester: User, findings: list[Finding], disposition: str, justification: str) -> ApprovalRequest:
+    """Every finding disposition is a review under the active decision rule; nothing changes until it is approved."""
+    if db.scalar(select(ApprovalRequest.id).where(ApprovalRequest.finding_id.in_([f.id for f in findings]), ApprovalRequest.status == "pending")):
+        raise HTTPException(409, "A pending disposition request already exists for these findings")
+    f0 = findings[0]
+    ctl = finding_controls(db, f0)
+    return create_request(db, system=system, requester=requester, request_type=DISPOSITIONS[disposition], justification=justification,
+                          finding_id=f0.id, control_id=ctl[0] if ctl else None,
+                          payload={"finding_ids": [str(f.id) for f in findings], "disposition": disposition, "rule_key": f0.vuln_id or f0.rule_id},
+                          evidence_ids=[str(f0.latest_evidence_id)] if f0.latest_evidence_id else [])
 
 
 def decide(db: Session, req_id: uuid.UUID, actor: User, assignments: list, action: str, rationale: str) -> ApprovalRequest:
@@ -293,6 +334,15 @@ def _apply_effects(db: Session, req: ApprovalRequest, actor: User) -> None:
     elif t == "false_positive":
         f = db.get(Finding, req.finding_id)
         f.disposition, f.disposition_justification = "false_positive", req.justification
+    elif t == "finding_out_of_scope":
+        disp = (req.payload or {}).get("disposition", "out_of_scope")
+        for fid in (req.payload or {}).get("finding_ids", [str(req.finding_id)]):
+            f = db.get(Finding, uuid.UUID(fid))
+            if f is not None:
+                f.mapping_status, f.disposition, f.disposition_justification = "dispositioned", disp, req.justification
+        from app.services.evaluation import evaluate_system
+        db.flush()
+        evaluate_system(db, req.system_id)
     elif t == "risk_acceptance":
         p = db.get(Poam, req.poam_id)
         p.status, p.risk_acceptance_ref = "risk_accepted", req.human_id

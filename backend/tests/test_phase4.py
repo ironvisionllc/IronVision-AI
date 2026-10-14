@@ -163,7 +163,9 @@ def test_emass_failure_retry_conflict_and_export_only(client, token):
         db.commit()
     r = client.post(f"/api/v1/emass/changes/{c2['id']}/submit", headers=isso).json()
     assert r["status"] == "conflict"
-    assert client.post(f"/api/v1/emass/changes/{c2['id']}/resolve", json={"choice": "keep_local", "rationale": "Local is authoritative"}, headers=isso).json()["status"] == "approved"
+    assert client.post(f"/api/v1/emass/changes/{c2['id']}/resolve", json={"choice": "keep_local", "rationale": "Local is authoritative"}, headers=isso).json()["status"] == "proposed"
+    assert client.post(f"/api/v1/emass/changes/{c2['id']}/submit", headers=isso).status_code == 409  # keep_local needs a fresh approval
+    _approve(client, isso, issm, c2["id"])
     assert client.post(f"/api/v1/emass/changes/{c2['id']}/submit", headers=isso).json()["status"] == "succeeded"
     # export-only mode never claims a sync
     client.put("/api/v1/emass/config", json={"mode": "oscal_export_only"}, headers=admin)

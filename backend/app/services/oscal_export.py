@@ -4,6 +4,7 @@ NIST OSCAL JSON schemas. A document is only called valid OSCAL if schema validat
 import hashlib
 import json
 import uuid
+from app.services.queue import fmt_control
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -176,7 +177,7 @@ def build_ar(db: Session, s: System) -> dict:
         ou = _u("ar-obs", a.id)
         obs.append({"uuid": ou, "description": a.findings_text or f"SCA assessment of {a.control_id}",
                     "methods": [m.upper() for m in a.methods if m.upper() in ("EXAMINE", "INTERVIEW", "TEST")] or ["EXAMINE"], "collected": _ts(a.created_at)})
-        findings.append({"uuid": str(a.id), "title": f"{a.control_id.upper()} assessment", "description": a.findings_text or a.result,
+        findings.append({"uuid": str(a.id), "title": f"{fmt_control(a.control_id)} assessment", "description": a.findings_text or a.result,
                          "target": {"type": "objective-id", "target-id": f"{a.control_id}_obj",
                                     "status": {"state": "satisfied" if a.result == "satisfied" else "not-satisfied"}},
                          "related-observations": [{"observation-uuid": ou}]})

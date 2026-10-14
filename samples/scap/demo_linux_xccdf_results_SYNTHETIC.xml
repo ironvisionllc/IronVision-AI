@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SYNTHETIC XCCDF 1.2 results for demo/testing only. Not a DISA product. -->
+<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="xccdf_mil.disa.stig_benchmark_Demo_Linux_SYNTHETIC" resolved="1">
+  <title>Demo Linux SCAP Benchmark (SYNTHETIC)</title>
+  <version>V1R1</version>
+  <Group id="V-910001">
+    <Rule id="xccdf_mil.disa.stig_rule_SV-910001r1_rule" severity="medium">
+      <title>The OS must display the Standard Mandatory DoD Notice before granting local or remote access (SYNTHETIC).</title>
+      <ident system="http://cyber.mil/cci">CCI-000048</ident>
+    </Rule>
+  </Group>
+  <Group id="V-910002">
+    <Rule id="xccdf_mil.disa.stig_rule_SV-910002r1_rule" severity="high">
+      <title>The OS must be configured in accordance with the security configuration settings (SYNTHETIC).</title>
+      <ident system="http://cyber.mil/cci">CCI-000366</ident>
+    </Rule>
+  </Group>
+  <Group id="V-910003">
+    <Rule id="xccdf_mil.disa.stig_rule_SV-910003r1_rule" severity="low">
+      <title>Not-applicable demo rule (SYNTHETIC).</title>
+      <ident system="http://cyber.mil/cci">CCI-000366</ident>
+    </Rule>
+  </Group>
+  <TestResult id="xccdf_org.ironvision_testresult_demo" start-time="2026-09-01T10:00:00" end-time="2026-09-01T10:05:00">
+    <benchmark href="#xccdf_mil.disa.stig_benchmark_Demo_Linux_SYNTHETIC"/>
+    <target>ltp-app-01</target>
+    <target-address>192.0.2.11</target-address>
+    <rule-result idref="xccdf_mil.disa.stig_rule_SV-910001r1_rule" severity="medium"><result>pass</result></rule-result>
+    <rule-result idref="xccdf_mil.disa.stig_rule_SV-910002r1_rule" severity="high"><result>fail</result></rule-result>
+    <rule-result idref="xccdf_mil.disa.stig_rule_SV-910003r1_rule" severity="low"><result>notapplicable</result></rule-result>
+  </TestResult>
+</Benchmark>

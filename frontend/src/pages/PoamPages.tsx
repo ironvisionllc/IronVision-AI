@@ -8,15 +8,15 @@ import { useApi, Row } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { ControlLink, S, Sev, Stat, Table } from "@/components/common/Bits";
 import { Modal } from "@/components/common/Workflow";
-import { fmtDate } from "@/lib/format";
+import { fmtControl, fmtDate, human } from "@/lib/format";
 
 const SEV: Record<string, string> = { critical: "failing", high: "failing", medium: "near_expiration", low: "neutral" };
 
 export function PoamListPage() {
   const { selectedId: sid } = useSystems();
   const [all, setAll] = useState(false);
-  const [p, setP] = useState({ q: "", status: "open", severity: "", sort: "human_id", desc: false, page: 1 });
-  const { data } = useApi<Row>("/poams", { system_id: all ? undefined : sid || undefined, ...p, q: p.q || undefined, status: p.status || undefined, severity: p.severity || undefined });
+  const [p, setP] = useState({ q: "", status: "open", severity: "", sort: "risk", desc: false, page: 1 });
+  const { data, loading } = useApi<Row>("/poams", { system_id: all ? undefined : sid || undefined, ...p, q: p.q || undefined, status: p.status || undefined, severity: p.severity || undefined });
   const sm = data?.summary;
   const sortBy = (k: string) => setP({ ...p, sort: k, desc: p.sort === k ? !p.desc : false });
   return (
@@ -28,7 +28,7 @@ export function PoamListPage() {
         <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-6">
           <Stat label="Open" value={sm.open} testId="poam-card-open" /><Stat label="Overdue" value={sm.overdue} testId="poam-card-overdue" />
           <Stat label="Due ≤ 30 days" value={sm.due_30d} testId="poam-card-due30" /><Stat label="Pending ISSM review" value={sm.pending_issm_review} testId="poam-card-pending-issm" />
-          <Stat label="CAT I / high+" value={sm.cat1} testId="poam-card-cat1" /><Stat label="Pending eMASS sync" value={sm.pending_emass_sync} testId="poam-card-emass" hint="open outbound changes in the eMASS queue" />
+          <Stat label="CAT I / high+" value={sm.cat1} testId="poam-card-cat1" /><Stat label="Pending eMASS sync" value={sm.pending_emass_sync} testId="poam-card-emass" hint={`not sent ${sm.emass_by_state?.not_sent ?? 0} · out of sync ${sm.emass_by_state?.out_of_sync ?? 0} · queued ${sm.emass_by_state?.queued ?? 0} · failed/retrying ${(sm.emass_by_state?.failed ?? 0) + (sm.emass_by_state?.retrying ?? 0)}`} />
         </div>
       )}
       <Panel testId="poam-table-panel" actions={
@@ -40,11 +40,13 @@ export function PoamListPage() {
         </div>}>
         <div className="overflow-x-auto">
           <table className="w-full" data-testid="poam-table">
-            <thead><tr>{[["Item ID", "human_id"], ["Weakness"], ["Related control"], ["Severity", "severity"], ["Asset"], ["Source"], ["Owner"], ["Due", "due_date"], ["Milestones"], ["Status", "status"], ["eMASS"]].map(([h, k]) => (
+            <thead><tr>{[["Risk", "risk"], ["Item ID", "human_id"], ["Weakness"], ["Related control"], ["Severity", "severity"], ["Asset"], ["Source"], ["Owner"], ["Due", "due_date"], ["Milestones"], ["Status", "status"], ["eMASS"]].map(([h, k]) => (
               <th key={h} className="th">{k ? <button onClick={() => sortBy(k)} data-testid={`poam-sort-${k}`}>{h}{p.sort === k ? (p.desc ? " ▼" : " ▲") : ""}</button> : h}</th>))}</tr></thead>
             <tbody>
+              {(loading && !data) && [0, 1, 2].map((i) => <tr key={i}><td colSpan={12} className="td"><div className="h-4 animate-pulse rounded bg-slate-100" data-testid="poam-skeleton" /></td></tr>)}
               {data?.items.map((r: Row) => (
                 <tr key={r.id} data-testid={`poam-row-${r.human_id}`}>
+                  <td className="td font-mono text-[12px]" title={(r.risk_breakdown || []).map((x: Row) => `${x.label}: +${x.points}`).join("\n")} data-testid={`poam-risk-${r.human_id}`}>{r.risk_score}</td>
                   <td className="td"><Link className="font-mono text-[12px] font-semibold text-blue-800 hover:underline" to={`/poams/${r.id}`}>{r.human_id}</Link></td>
                   <td className="td max-w-[320px] text-[12px]">{r.weakness}</td>
                   <td className="td">{r.control_ids.map((c: string) => <span key={c} className="mr-1"><ControlLink systemId={r.system_id} controlId={c} /></span>)}</td>
@@ -52,7 +54,7 @@ export function PoamListPage() {
                   <td className="td text-[12px]">{r.asset_names.join(", ") || "—"}</td><td className="td text-[12px]">{r.source_label}</td>
                   <td className="td text-[12px]">{r.owner_name ?? "—"}</td><td className="td font-mono text-[11px]">{r.due_date ?? "—"}</td>
                   <td className="td font-mono text-[12px]">{r.milestones_done} of {r.milestones_total}</td>
-                  <td className="td"><S v={r.display_status} testId={`poam-status-${r.human_id}`} /></td><td className="td text-[11px] text-slate-500" data-testid={`poam-emass-${r.human_id}`}>{r.emass_queue_status ? `queue: ${r.emass_queue_status.replace(/_/g, " ")}` : r.emass_status.replace(/_/g, " ")}</td>
+                  <td className="td"><S v={r.display_status} testId={`poam-status-${r.human_id}`} /></td><td className="td text-[11px] text-slate-500" data-testid={`poam-emass-${r.human_id}`}>{r.emass.label}{r.emass.remote_id ? ` (${r.emass.remote_id})` : ""}</td>
                 </tr>
               ))}
             </tbody>
@@ -60,7 +62,7 @@ export function PoamListPage() {
         </div>
         <div className="mt-3 flex items-center gap-2 text-[12px]" data-testid="poam-pagination">
           <button className="btn-secondary px-2 py-1 text-xs" disabled={p.page <= 1} onClick={() => setP({ ...p, page: p.page - 1 })} data-testid="poam-prev">Prev</button>
-          <span>Page {p.page} · {data?.total ?? 0} items</span>
+          <span data-testid="poam-total">{loading || !data ? "Loading…" : `Page ${p.page} · ${data.total} items`}</span>
           <button className="btn-secondary px-2 py-1 text-xs" disabled={!data || p.page * data.page_size >= data.total} onClick={() => setP({ ...p, page: p.page + 1 })} data-testid="poam-next">Next</button>
         </div>
       </Panel>
@@ -84,10 +86,10 @@ export function PoamDetailPage() {
     <label className="text-[13px]">{label}<input type={type} className="input" value={f[k] ?? ""} onChange={(e) => setF({ ...f, [k]: e.target.value })} data-testid={`poam-${modal}-${k}`} /></label>);
   return (
     <div data-testid="poam-detail-page">
-      <PageHeader title={`${p.human_id} · ${p.weakness}`} subtitle={`System ${p.system_id.slice(0, 8)} · created ${fmtDate(p.created_at)} · eMASS: ${p.emass_status.replace(/_/g, " ")}${p.emass_remote_id ? ` (${p.emass_remote_id})` : ""}`}>
+      <PageHeader title={`${p.human_id} · ${p.weakness}`} subtitle={`${p.system_acronym} · ${p.system_name} · created ${fmtDate(p.created_at)} · eMASS: ${p.emass.label}${p.emass.remote_id ? ` (${p.emass.remote_id})` : ""}`}>
         <div className="flex items-center gap-2">
           <S v={p.display_status} testId="poam-detail-status" />
-          {p.display_status !== p.status && <span className="text-[12px] text-slate-500" data-testid="poam-detail-stored-status">· stored status: {p.status.replace(/_/g, " ")}</span>}
+          {p.display_status !== p.status && <span className="text-[12px] text-slate-500" data-testid="poam-detail-stored-status">{human(p.display_status)} (was {human(p.status)})</span>}
         </div>
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" data-testid="poam-msg">{msg}</div>}
@@ -137,7 +139,7 @@ export function PoamDetailPage() {
         </Panel>
         <Panel title="Reviews & history" testId="poam-history">
           {data.requests.map((r: Row) => <div key={r.id} className="text-[12px]"><Link className="font-mono text-blue-800 underline" to={`/reviews/${r.id}`} data-testid={`poam-review-link-${r.human_id}`}>{r.human_id}</Link> {r.request_type.replace(/_/g, " ")} <S v={r.status} /></div>)}
-          <ul className="mt-2 max-h-60 overflow-y-auto text-[11px] text-slate-600">{data.history.map((h: Row) => <li key={h.id}>{fmtDate(h.created_at)} · {h.actor_name ? `${h.actor_name} (${(h.actor_roles || []).map((x: string) => x.toUpperCase()).join("/")})` : h.actor_email} · <b>{h.action}</b> {h.details ? JSON.stringify(h.details).slice(0, 120) : ""}</li>)}</ul>
+          <ul className="mt-2 max-h-60 overflow-y-auto text-[11px] text-slate-600">{data.history.map((h: Row) => <li key={h.id}>{fmtDate(h.created_at)} · {h.actor_name ? `${h.actor_name} (${(h.actor_roles || []).map((x: string) => x.toUpperCase()).join("/")})` : h.actor_email} · <b>{human(h.action)}</b> <HistoryDetails d={h.details} /></li>)}</ul>
         </Panel>
       </div>
       {modal === "edit" && <Modal title="Edit / assign POA&M" onClose={() => setModal("")} testId="poam-edit-modal">
@@ -163,4 +165,14 @@ function OwnerSelect({ value, onChange }: { value: string; onChange: (v: string)
   const { data } = useApi<Row>("/reference/registration");
   const users: Row[] = data?.users ?? [];
   return <label className="text-[13px]">Owner<select className="input" value={value ?? ""} onChange={(e) => onChange(e.target.value)} data-testid="poam-owner-select"><option value="">(unassigned)</option>{users.map((u) => <option key={u.id} value={u.id}>{u.display_name} ({u.email})</option>)}</select></label>;
+}
+
+function HistoryDetails({ d }: { d: Row | null }) {
+  if (!d) return null;
+  const val = (v: unknown) => (v === null || v === undefined || v === "None" ? "—" : String(v));
+  if (d.before || d.after) {
+    const keys = Array.from(new Set([...Object.keys(d.before || {}), ...Object.keys(d.after || {})]));
+    return <ul className="ml-4 list-disc">{keys.map((k) => <li key={k}>{human(k)}: {val(d.before?.[k])} → {val(d.after?.[k])}</li>)}</ul>;
+  }
+  return <span>{Object.entries(d).map(([k, v]) => `${human(k)}: ${Array.isArray(v) ? v.map((x) => (typeof x === "string" && /^[a-z]{2}-\d/.test(x) ? fmtControl(x) : x)).join(", ") : val(v)}`).join(" · ")}</span>;
 }

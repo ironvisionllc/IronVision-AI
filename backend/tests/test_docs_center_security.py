@@ -5,8 +5,8 @@ import pytest
 
 BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://aegis-rmf-demo.preview.emergentagent.com").rstrip("/")
 API = f"{BASE}/api/v1"
-EMAIL = "isso@aegisrmf.demo"
-PASSWORD = "AegisDemo!2026"
+EMAIL = "demo@ironvision.ai"
+PASSWORD = "IronVisionDemo!2026"
 
 
 @pytest.fixture(scope="module")

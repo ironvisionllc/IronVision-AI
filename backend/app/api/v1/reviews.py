@@ -10,7 +10,7 @@ from app.api.v1.records import get_system, to_dict, visible_systems
 from app.db import get_db
 from app.models import (ApprovalDecision, ApprovalRequest, Asset, ControlAssignment, DecisionRule, Evidence, Finding, FindingControlMap,
                         FindingObservation, IngestRun, Notification, Poam, PoamFinding, System, User)
-from app.security.deps import CurrentUser, enforce, get_current_user
+from app.security.deps import CurrentUser, enforce, get_current_user, require_object_permission, self_scoped
 from app.services import workflow as wf
 from app.services.people import attach
 
@@ -75,7 +75,7 @@ class DecisionIn(BaseModel):
 
 
 @router.post("/reviews/{request_id}/decisions")
-def decide(request_id: uuid.UUID, body: DecisionIn, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def decide(request_id: uuid.UUID, body: DecisionIn, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("system.read", "ApprovalRequest", "request_id"))) -> dict:
     r = wf.decide(db, request_id, current.user, current.assignments, body.action, body.rationale)
     db.commit()
     return _req_out(db, r)
@@ -94,7 +94,7 @@ class FalsePositiveIn(BaseModel):
 
 @router.post("/findings/{finding_id}/request-false-positive", status_code=201)
 def request_fp(finding_id: uuid.UUID, body: FalsePositiveIn, request: Request, db: Session = Depends(get_db),
-               current: CurrentUser = Depends(get_current_user)) -> dict:
+               current: CurrentUser = Depends(require_object_permission("finding.map", "Finding", "finding_id"))) -> dict:
     f = db.get(Finding, finding_id)
     if f is None:
         raise HTTPException(404, "Finding not found")
@@ -153,7 +153,7 @@ def notifications(db: Session = Depends(get_db), current: CurrentUser = Depends(
 
 
 @router.post("/notifications/{notification_id}/ack")
-def ack(notification_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def ack(notification_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(self_scoped)) -> dict:
     n = db.get(Notification, notification_id)
     if n is None or n.user_id != current.user.id:
         raise HTTPException(404, "Notification not found")

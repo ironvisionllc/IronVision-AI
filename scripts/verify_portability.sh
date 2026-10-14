@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 
 BASE="http://localhost:8001/api/v1"
 FRONT="http://localhost:3000"
-PW_DEFAULT='AegisDemo!2026'
+PW_DEFAULT='IronVisionDemo!2026'
 declare -a RESULTS=()
 FAILED=0
 
@@ -30,7 +30,7 @@ if [ ! -f .env ]; then
 else
   pass ".env present"
 fi
-PW=$(grep -E '^DEMO_USER_PASSWORD=' .env | cut -d= -f2-); PW=${PW:-$PW_DEFAULT}
+PW=$(grep -E '^DEMO_PASSWORD=' .env | cut -d= -f2-); PW=${PW:-$PW_DEFAULT}
 
 step "Compose config"
 docker compose config -q && pass "docker compose config valid" || fail "docker compose config invalid"
@@ -57,11 +57,12 @@ worker_ok() { [ "$(curl -fsS "$BASE/health" | json "d['components']['worker']['o
 wait_for 20 worker_ok && pass "health.worker heartbeat fresh" || fail "worker heartbeat stale/missing"
 echo "    health.ai configured = $(echo "$H" | json "d['components']['ai']['ok']") (expected False when AI_PROVIDER=none)"
 
-step "Login as demo users"
-login() { curl -fsS -X POST "$BASE/auth/login" -H 'Content-Type: application/json' -d "{\"email\":\"$1\",\"password\":\"$PW\"}" | json "d['access_token']"; }
-ISSO=$(login isso@aegisrmf.demo) && [ -n "$ISSO" ] && pass "ISSO login" || fail "ISSO login"
-AO=$(login ao@aegisrmf.demo) && [ -n "$AO" ] && pass "AO login" || fail "AO login"
-ADMIN=$(login platform.admin@aegisrmf.demo) && [ -n "$ADMIN" ] && pass "Platform admin login" || fail "Platform admin login"
+step "Login as the single demo account, then switch sandbox personas"
+DEMO_TOKEN=$(curl -fsS -X POST "$BASE/auth/login" -H 'Content-Type: application/json' -d "{\"email\":\"demo@ironvision.ai\",\"password\":\"$PW\"}" | json "d['access_token']")
+login() { curl -fsS -X POST "$BASE/sandbox/act-as" -H "Authorization: Bearer $DEMO_TOKEN" -H 'Content-Type: application/json' -d "{\"role\":\"$1\"}" | json "d['access_token']"; }
+ISSO=$(login isso) && [ -n "$ISSO" ] && pass "ISSO persona" || fail "ISSO persona"
+AO=$(login ao) && [ -n "$AO" ] && pass "AO persona" || fail "AO persona"
+ADMIN=$(login platform_admin) && [ -n "$ADMIN" ] && pass "Admin persona" || fail "Admin persona"
 
 step "Reference content (worker job content.load_reference)"
 cat_ok() { [ "$(curl -fsS "$BASE/content/stats" -H "Authorization: Bearer $ISSO" | json "d.get('controls_total',0)")" = "1196" ]; }
@@ -79,7 +80,7 @@ code() { curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/authorization-dec
 [ "$(code "$ISSO")" = "403" ] && pass "ISSO -> AO endpoint = 403" || fail "ISSO expected 403"
 [ "$(code "$AO")" = "200" ] && pass "AO -> AO endpoint = 200" || fail "AO expected 200"
 [ "$(code "$ADMIN")" = "403" ] && pass "Platform admin -> AO endpoint = 403" || fail "Admin expected 403"
-DEN=$(curl -fsS "$BASE/audit-events?action=authz.denied" -H "Authorization: Bearer $ADMIN" | json "sum(1 for e in d if e['actor_email']=='isso@aegisrmf.demo')")
+DEN=$(curl -fsS "$BASE/audit-events?action=authz.denied" -H "Authorization: Bearer $ADMIN" | json "sum(1 for e in d if e['actor_email'].startswith('isso.'))")
 [ "${DEN:-0}" -ge 1 ] && pass "authz.denied audit event recorded for ISSO" || fail "authz.denied audit event missing"
 [ "$(curl -fsS "$BASE/audit-events/verify" -H "Authorization: Bearer $ADMIN" | json "d['valid']")" = "True" ] && pass "audit hash chain valid" || fail "audit hash chain invalid"
 
@@ -92,7 +93,7 @@ else
 fi
 
 step "E2E workflow via API: register → upload STIG → POA&M → remediated rescan → closure → leadership"
-ISSM=$(login issm@aegisrmf.demo); LEAD=$(login leadership.viewer@aegisrmf.demo)
+ISSM=$(login issm); LEAD=$(login leadership_viewer)
 AUTH() { echo "Authorization: Bearer $1"; }
 TS=$(date +%s)
 SID=$(curl -fsS -X POST "$BASE/systems" -H "$(AUTH "$ISSM")" -H 'Content-Type: application/json' \

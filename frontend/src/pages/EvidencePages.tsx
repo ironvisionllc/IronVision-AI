@@ -36,6 +36,12 @@ export function SourcesPage() {
       <PageHeader title="Evidence Sources" subtitle="All metrics computed from the database. Non-file connectors are MOCK/DEMO adapters.">
         {can("source.manage") && <button className="btn-secondary" onClick={() => setForm({ name: "", source_type: "manual_upload", credential: "" })} data-testid="add-source-btn">Add source</button>}
       </PageHeader>
+      {sources.data && sources.data.length === 0 && !form && (
+        <div className="panel mb-5 p-6" data-testid="sources-empty">
+          <div className="t-title text-slate-900">Add a source or upload a scan</div>
+          <p className="mt-1 text-[13px] text-slate-600">This system has no evidence yet. Add a source (file import or a MOCK connector), or upload a STIG checklist (.ckl/.cklb), ACAS export (.nessus/.csv), SCAP XCCDF or SARIF file below.</p>
+        </div>
+      )}
       {form && (
         <Panel title="Add evidence source" className="mb-5" testId="source-form">
           <div className="grid grid-cols-4 gap-2">
@@ -51,8 +57,8 @@ export function SourcesPage() {
           <div key={s.id} className="panel p-4" data-testid={`source-card-${s.source_type}`}>
             <div className="flex items-start justify-between"><div><div className="font-semibold text-slate-900">{s.name}</div><div className="text-[11px] text-slate-500">{s.type_label} · {s.adapter_mode === "mock" ? "MOCK/DEMO adapter" : "File import only"}</div></div><S v={s.enabled ? s.health : "disabled"} /></div>
             <dl className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
-              {[["Total findings", s.findings_total, "total"], ["Open", s.findings_open, "open"], ["Mapped", s.mapped, "mapped"], ["Unmapped", s.unmapped, "unmapped"], ["Assets", s.assets, "assets"], ["Evidence items", s.evidence_count, "evidence"]].map(([k, v, t]) => <div key={k}><dt className="text-slate-500">{k}</dt><dd className="font-mono text-[13px] text-slate-800" data-testid={`source-${s.source_type}-${t}`}>{String(v)}</dd></div>)}
-              <div className="col-span-3 text-[10px] text-slate-400">Mapped + Unmapped = Total (canonical findings, all states){s.dispositioned ? ` · unmapped incl. ${s.dispositioned} dispositioned` : ""} · freshness {s.freshness}</div>
+              {[["Results (latest run)", s.results_latest_run, "results"], ["Findings (failed)", s.findings_open, "open"], ["Passing checks", s.findings_passing, "passing"], ["Mapped findings", s.mapped, "mapped"], ["Unmapped findings", s.unmapped, "unmapped"], ["Assets", s.assets, "assets"], ["Evidence items", s.evidence_count, "evidence"]].map(([k, v, t]) => <div key={k}><dt className="text-slate-500">{k}</dt><dd className="font-mono text-[13px] text-slate-800" data-testid={`source-${s.source_type}-${t}`}>{String(v)}</dd></div>)}
+              <div className="col-span-3 text-[10px] text-slate-400">Results = all records the source produced (checks, config snapshots, findings) · Mapped/Unmapped findings = canonical findings; the ingest table counts mapped/unmapped results per run ({s.findings_total}){s.dispositioned ? ` · unmapped incl. ${s.dispositioned} dispositioned` : ""} · freshness {s.freshness}</div>
             </dl>
             <div className="mt-2 text-[11px] text-slate-500">Last run {fmtDate(s.last_run_at)} · Next {s.next_run_at ? fmtDate(s.next_run_at) : "manual"} · {s.credential_set ? "credential set ✓" : "no credential"}</div>
             {can("source.manage") && (
@@ -75,7 +81,7 @@ export function SourcesPage() {
           <button className="btn-primary" onClick={() => fileRef.current?.click()} data-testid="upload-btn"><Upload className="h-4 w-4" />Upload .nessus / .csv / .ckl / .cklb</button>
         </div>)}>
         {msg.upload && <div className="mb-2 text-[12px] text-slate-700" data-testid="upload-msg">{msg.upload}</div>}
-        <Table head={["Received", "Source", "File", "Status", "Total", "Mapped", "Unmapped", "Controls touched", "SHA-256"]} testId="ingest-runs-table">
+        <Table head={["Received", "Source", "File", "Status", "Results", "Mapped results", "Unmapped results", "Controls touched", "SHA-256"]} testId="ingest-runs-table">
           {runs.data?.map((r) => (
             <tr key={r.id} data-testid={`ingest-run-${r.id}`}>
               <td className="td font-mono text-[11px]"><Link className="text-blue-800 hover:underline" to={`/ingest-runs/${r.id}`}>{fmtDate(r.received_at)}</Link></td>
@@ -100,7 +106,10 @@ export function IngestRunPage() {
   const r = data.run;
   const unmapped = data.findings.filter((f: Row) => f.mapping_status === "unmapped");
   const send = async (fid: string, kind: "map" | "disposition") => {
-    try { await api.post(`/findings/${fid}/${kind}`, kind === "map" ? { control_id: edit[fid]?.control_id, justification: edit[fid]?.justification } : { disposition: "no_control_mapping", justification: edit[fid]?.justification }); setErr(""); reload(); }
+    try {
+      const res = await api.post(`/findings/${fid}/${kind}`, kind === "map" ? { control_id: edit[fid]?.control_id, justification: edit[fid]?.justification } : { disposition: "no_control_mapping", justification: edit[fid]?.justification });
+      setErr(res?.data?.message ?? ""); reload();
+    }
     catch (e) { setErr(errorMessage(e)); }
   };
   return (

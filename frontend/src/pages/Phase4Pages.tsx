@@ -7,7 +7,7 @@ import { useApi, Row } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { NeedSystem, S, Stat, Table } from "@/components/common/Bits";
 import { Modal } from "@/components/common/Workflow";
-import { cn, fmtDate } from "@/lib/format";
+import { cn, fmtControl, fmtDate } from "@/lib/format";
 
 const DIFF_TABS: [string, string][] = [["added", "Added"], ["removed", "Removed"], ["changed_requirement", "Changed requirement"], ["changed_severity", "Changed severity"]];
 
@@ -49,7 +49,7 @@ export function ContentUpdatesPanel() {
         {imp.counts && <div className="my-3 grid grid-cols-4 gap-2">{Object.entries(imp.counts).map(([k, v]) => <Stat key={k} label={`Affected ${k}`} value={String(v)} testId={`impact-${k}`} />)}</div>}
         {imp.poams?.length > 0 && <div className="text-[12px]" data-testid="impact-poams"><b>POA&M impact:</b>{imp.poams.map((p: Row) => <div key={p.human_id}><Link className="font-mono text-blue-800 underline" to={`/poams/${p.poam_id}`}>{p.human_id}</Link> {p.weakness} – {p.impacts.join(", ")}</div>)}</div>}
         {imp.assets?.length > 0 && <div className="mt-2 max-h-24 overflow-y-auto text-[11px]" data-testid="impact-assets"><b>Assets needing a new checklist:</b> {imp.assets.map((a: Row) => `${a.asset} (${a.system})`).join(", ")}</div>}
-        {imp.controls?.length > 0 && <div className="mt-1 text-[11px]" data-testid="impact-controls"><b>Controls:</b> {imp.controls.map((c: Row) => `${c.control_id.toUpperCase()}@${c.system}`).join(", ")}</div>}
+        {imp.controls?.length > 0 && <div className="mt-1 text-[11px]" data-testid="impact-controls"><b>Controls:</b> {imp.controls.map((c: Row) => `${fmtControl(c.control_id)}@${c.system}`).join(", ")}</div>}
         {imp.note && <div className="mt-1 text-[11px] text-slate-500">{imp.note}</div>}
         <div className="mt-3 flex items-center gap-2"><button className="btn-primary" disabled={!can("content.apply")} onClick={apply} data-testid="apply-content-btn">Apply approved update</button>
           <span className="text-[11px] text-slate-500">{can("content.apply") ? "Historical observations, assessments and mappings keep their original content version." : "Requires content.apply (ISSM or platform admin)."}</span></div>
@@ -97,7 +97,7 @@ export function FindingMappingHistory({ findingId }: { findingId: string }) {
       <select className="input mb-2 w-72" value={asOf} onChange={(e) => setAsOf(e.target.value)} data-testid="mapping-as-of"><option value="">Current mappings</option>{versions.map((v: Row) => <option key={v.id} value={v.id}>As of {v.type} {v.version}</option>)}</select>
       {msg && <div className="mb-1 text-[12px]" role="alert" data-testid="mapping-msg">{msg}</div>}
       <div className="text-[11px] text-slate-500">Finding currently evaluated under: {data?.current_content_version ?? "—"}</div>
-      {(data?.mappings || []).map((m: Row) => <div key={m.id} className="text-[12px]"><span className="font-mono">{m.control_id.toUpperCase()}</span> via {m.cci_id || m.mapping_source} · <S v={m.review_status} />{m.valid_to && <span className="text-[10px] text-slate-400"> superseded {fmtDate(m.valid_to)}</span>}</div>)}
+      {(data?.mappings || []).map((m: Row) => <div key={m.id} className="text-[12px]"><span className="font-mono">{fmtControl(m.control_id)}</span> via {m.cci_id || m.mapping_source} · <S v={m.review_status} />{m.valid_to && <span className="text-[10px] text-slate-400"> superseded {fmtDate(m.valid_to)}</span>}</div>)}
     </Panel>
   );
 }
@@ -117,16 +117,16 @@ export function MappingReviewPage() {
     <div data-testid="mapping-review-page">
       <PageHeader title="Mapping review" subtitle="Suggested and low-confidence mappings need a human decision with justification. AI suggestions are proposals only." />
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="mapping-review-msg">{msg}</div>}
-      <Panel title={`Pending review (${data?.pending.length ?? 0})`} className="mb-5" testId="mapping-pending">
+      <Panel title={`Pending review (${data ? data.pending.length : "…"})`} className="mb-5" testId="mapping-pending">
         <Table head={["Finding", "Control", "Source", "Confidence", "Rationale", "Status", ""]}>
           {data?.pending.map((m: Row) => <tr key={m.id} data-testid={`pending-map-${m.id}`}><td className="td text-[12px]"><Link className="text-blue-800 underline" to={`/findings/${m.finding_id}`}>{m.vuln_id}</Link> {m.finding_title}</td>
-            <td className="td font-mono">{m.control_id.toUpperCase()}</td><td className="td text-[11px]">{m.source}</td><td className="td"><S v={m.confidence} /></td><td className="td max-w-[260px] text-[11px]">{m.justification}</td><td className="td"><S v={m.review_status} /></td>
+            <td className="td font-mono">{fmtControl(m.control_id)}</td><td className="td text-[11px]">{m.source}</td><td className="td"><S v={m.confidence} /></td><td className="td max-w-[260px] text-[11px]">{m.justification}</td><td className="td"><S v={m.review_status} /></td>
             <td className="td">{can("finding.map") && <div className="flex gap-1"><button className="btn-primary px-2 py-0.5 text-[11px]" onClick={() => act(m.id, "approve")} data-testid={`map-approve-${m.id}`}>Approve</button><button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(m.id, "reject")} data-testid={`map-reject-${m.id}`}>Reject</button></div>}</td></tr>)}
         </Table>
       </Panel>
-      <Panel title={`Unmapped findings (${data?.unmapped.length ?? 0})`} testId="mapping-unmapped">
-        {data?.unmapped.map((f: Row) => <div key={f.id} className="flex items-center justify-between border-b border-slate-100 py-1 text-[12px]"><span><Link className="text-blue-800 underline" to={`/findings/${f.id}`}>{f.vuln_id}</Link> {f.title} <span className="text-slate-400">{(f.ccis || []).join(", ")}</span></span>
-          {can("finding.map") && <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => suggest(f.id)} data-testid={`suggest-${f.id}`}>AI: suggest mapping</button>}</div>)}
+      <Panel title={data ? `Unmapped open findings · ${data.unmapped.length} rules / ${data.unmapped_findings_total} findings` : "Unmapped open findings · loading…"} eyebrow={`Passing / not-applicable results are evidence, not findings (${data?.passing_unmapped_excluded ?? 0} excluded)`} testId="mapping-unmapped">
+        {data && data.unmapped.length === 0 && <div className="text-[12px] text-emerald-700" data-testid="unmapped-clear">All open findings are mapped or dispositioned.</div>}
+        {data?.unmapped.map((g: Row) => <UnmappedRule key={g.rule_key} g={g} systemId={sid} canMap={can("finding.map")} ai={data.ai_configured} onSuggest={suggest} onDone={(m: string) => { setMsg(m); reload(); }} />)}
       </Panel>
     </div>
   );
@@ -161,7 +161,7 @@ export function OscalPanel({ systemId }: { systemId: string }) {
 export function EmassStatusBanner({ st }: { st: Row }) {
   return <div className={cn("panel mb-4 p-3 text-[13px]", st.mode === "mock" ? "border-amber-300 bg-amber-50" : st.mode === "oscal_export_only" ? "border-slate-400 bg-slate-50" : "")} data-testid="emass-mode-banner">
     <b>eMASS mode: {st.mode_label}</b>{st.notice && <div data-testid="emass-notice">{st.notice}</div>}
-    <div className="text-[11px]">Last sync {st.last_sync_at ? fmtDate(st.last_sync_at) : "never"}{st.last_error && <span className="text-rose-700"> · last error: {st.last_error}</span>}</div></div>;
+    <div className="text-[11px]">Last sync <span data-testid="emass-last-sync">{st.last_sync_at ? fmtDate(st.last_sync_at) : "never"}</span>{st.last_error && <span className="text-rose-700"> · last error: {st.last_error}</span>}</div></div>;
 }
 
 export function EmassPage() {
@@ -184,7 +184,10 @@ export function EmassPage() {
       </PageHeader>
       <EmassStatusBanner st={data.status} />
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="emass-msg">{msg}</div>}
-      <div className="mb-5 grid grid-cols-3 gap-3 md:grid-cols-7">{Object.entries(sm).map(([k, v]) => <Stat key={k} label={k.replace(/_/g, " ")} value={String(v)} testId={`emass-sum-${k}`} />)}</div>
+      <div className="mb-5 grid grid-cols-3 gap-3 md:grid-cols-7">{Object.entries(sm).map(([k, v]) => <Stat key={k} label={`queue: ${k.replace(/_/g, " ")}`} value={String(v)} testId={`emass-sum-${k}`} />)}</div>
+      <Panel title={`POA&M eMASS state · pending sync ${data.pending_emass_sync}`} eyebrow={data.pending_definition} className="mb-5" testId="emass-poam-states">
+        <div className="flex flex-wrap gap-2 text-[12px]">{data.poam_states.map((p: Row) => <Link key={p.id} to={`/poams/${p.id}`} className="rounded border border-slate-200 px-2 py-1" data-testid={`emass-poam-${p.human_id}`}><b className="font-mono">{p.human_id}</b> {p.label}{p.remote_id ? ` (${p.remote_id})` : ""}</Link>)}</div>
+      </Panel>
       {cmp && <Panel title={`Local vs remote${cmp.mock ? " (MOCK remote)" : ""}`} className="mb-5" testId="emass-compare">
         <div className="mb-1 text-[12px]">{Object.entries(cmp.summary).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join(" · ")} · remote controls: {cmp.controls_remote}</div>
         <Table head={["POA&M", "Remote ID", "State", "Differences", ""]}>{cmp.poams.map((r: Row, i: number) => <tr key={i} data-testid={`cmp-${r.human_id ?? r.remote_id}`}><td className="td font-mono text-[12px]">{r.human_id ?? "—"}</td><td className="td font-mono text-[11px]">{r.remote_id ?? "—"}</td><td className="td"><S v={r.state === "in_sync" ? "current" : r.state === "different" ? "needs_attention" : "not_configured"} label={r.state} /></td>
@@ -279,4 +282,40 @@ export function AdminPhase4Panels() {
       </Panel>}
     </div>
   );
+}
+
+function UnmappedRule({ g, systemId, canMap, ai, onSuggest, onDone }: { g: Row; systemId: string; canMap: boolean; ai: boolean; onSuggest: (id: string) => void; onDone: (m: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"" | "map" | "out_of_scope" | "informational">("");
+  const [q, setQ] = useState("");
+  const [picked, setPicked] = useState<string[]>([]);
+  const [just, setJust] = useState("");
+  const { data: hits } = useApi<Row>(mode === "map" && q.length >= 2 ? "/controls" : null, { q, limit: 15 });
+  const submit = async () => {
+    try { const r = await api.post<Row>("/mapping-review/rule-action", { system_id: systemId, finding_ids: g.finding_ids, action: mode, control_ids: picked, justification: just });
+      onDone(r.data.pending_request ? `${g.vuln_id}: ${r.data.message}` : `${g.vuln_id}: ${mode.replace(/_/g, " ")} applied to ${r.data.updated} finding(s)`); setMode(""); } catch (e) { onDone(errorMessage(e)); }
+  };
+  return (
+    <div className="border-b border-slate-100 py-1.5 text-[12px]" data-testid={`unmapped-rule-${g.rule_key}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span><Link className="font-mono text-blue-800 underline" to={`/findings/${g.id}`}>{g.vuln_id}</Link> {g.title} <span className="text-slate-500">· {g.severity}</span>
+          {g.pending_disposition && <span className="ml-2 rounded bg-amber-100 px-1.5 text-[10px] text-amber-900" data-testid={`pending-disposition-${g.rule_key}`}>out of scope pending {g.pending_disposition}</span>}
+          <button className="ml-2 text-blue-800 underline" onClick={() => setOpen(!open)} data-testid={`unmapped-hosts-${g.rule_key}`}>{g.host_count} host{g.host_count === 1 ? "" : "s"} {open ? "▾" : "▸"}</button></span>
+        {canMap && <span className="flex flex-wrap gap-1">
+          <button className="btn-primary px-2 py-0.5 text-[11px]" onClick={() => setMode("map")} data-testid={`map-manual-${g.rule_key}`}>Map manually</button>
+          <button className="btn-secondary px-2 py-0.5 text-[11px]" disabled={!!g.pending_disposition} onClick={() => setMode("out_of_scope")} data-testid={`map-oos-${g.rule_key}`}>Out of scope / N/A (needs approval)</button>
+          <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => setMode("informational")} data-testid={`map-info-${g.rule_key}`}>Accept as informational</button>
+          {ai ? <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => onSuggest(g.id)} data-testid={`suggest-${g.id}`}>AI: suggest</button>
+            : <span className="text-[10px] text-slate-500" data-testid={`ai-off-${g.rule_key}`}>AI not configured – use manual mapping</span>}</span>}
+      </div>
+      {open && <table className="mt-1 w-full text-[11px]"><thead><tr><th className="th">Host</th></tr></thead><tbody>{g.hosts.map((h: string, i: number) => <tr key={i}><td className="td font-mono">{h}</td></tr>)}</tbody></table>}
+      {mode && <div className="mt-2 rounded border border-slate-200 p-2" data-testid={`rule-action-form-${g.rule_key}`}>
+        {mode === "map" && <><input className="input" placeholder="Search catalog incl. enhancements (e.g. AC-2(3), audit)" value={q} onChange={(e) => setQ(e.target.value)} data-testid="control-picker-search" />
+          <div className="mt-1 flex flex-wrap gap-1">{(hits?.items ?? hits ?? []).slice?.(0, 15).map((c: Row) => <button key={c.control_id} className={cn("rounded border px-1.5 text-[11px]", picked.includes(c.control_id) && "border-blue-700 bg-blue-50")} onClick={() => setPicked(picked.includes(c.control_id) ? picked.filter((x) => x !== c.control_id) : [...picked, c.control_id])} data-testid={`pick-${c.control_id}`}>{c.label} {c.title}</button>)}</div>
+          <div className="mt-1 text-[11px]">Selected: {picked.map(fmtControl).join(", ") || "none"}</div></>}
+        <input className="input mt-1" placeholder="Justification (required, min 10 chars)" value={just} onChange={(e) => setJust(e.target.value)} data-testid="rule-action-justification" />
+        <div className="mt-1 text-[10px] text-slate-500">Applies to all {g.finding_ids.length} finding(s) of {g.vuln_id} (all hosts). Recorded with provenance and audit.</div>
+        <div className="mt-1 flex gap-1"><button className="btn-primary px-2 py-0.5 text-[11px]" disabled={just.length < 10 || (mode === "map" && !picked.length)} onClick={submit} data-testid="rule-action-submit">Apply</button><button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => setMode("")}>Cancel</button></div>
+      </div>}
+    </div>);
 }

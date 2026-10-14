@@ -9,7 +9,11 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
+from contextvars import ContextVar
+
 from app.logging_setup import correlation_id_var
+
+operator_var: ContextVar[dict | None] = ContextVar("operator", default=None)  # per-request holder, mutated by auth dependency
 from app.models import AuditEvent
 
 GENESIS_HASH = "0" * 64
@@ -44,9 +48,9 @@ def compute_hash(prev_hash: str, ev: AuditEvent) -> str:
 def request_meta(request: Request | None) -> dict:
     if request is None:
         return {}
-    fwd = request.headers.get("x-forwarded-for")
-    ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else None)
-    return {"ip": ip, "user_agent": (request.headers.get("user-agent") or "")[:500]}
+    from app.security.web import client_ip
+
+    return {"ip": client_ip(request), "user_agent": (request.headers.get("user-agent") or "")[:500]}
 
 
 def record(
@@ -65,6 +69,9 @@ def record(
     user_agent: str | None = None,
     correlation_id: str | None = None,
 ) -> AuditEvent:
+    op = (operator_var.get() or {}).get("email")
+    if op:
+        details = {**(details or {}), "operated_by": op, "sandbox_persona": True}
     db.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": _LOCK_KEY})
     prev = db.scalar(select(AuditEvent.hash).order_by(AuditEvent.seq.desc()).limit(1)) or GENESIS_HASH
     ev = AuditEvent(

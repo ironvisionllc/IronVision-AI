@@ -21,15 +21,18 @@ router = APIRouter(tags=["workbench"])
 
 @router.get("/systems/{system_id}/workbench/summary")
 def summary(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    from app.services.metrics import system_metrics as metrics
+
     rows = list(db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == system_id)))
     c = lambda pred: sum(1 for a in rows if pred(a))  # noqa: E731
-    return {"overlapping_counts_note": "Counts overlap: one control can appear in several categories.",
-            "total_assigned": len(rows), "with_current_evidence": c(lambda a: a.evidence_freshness_status in ("current", "near_expiration")),
+    m = metrics(db, get_system(db, system_id))
+    return {"overlapping_counts_note": "Counts overlap: one control can appear in several categories.", "metrics": m,
+            "total_assigned": m["assigned_controls"], "with_current_evidence": m["controls_with_current_evidence"],
             "fully_inherited": c(lambda a: a.responsibility == "inherited"), "shared": c(lambda a: a.responsibility == "shared"),
             "not_assessed": c(lambda a: a.assessment_status == "not_assessed"),
             "with_open_findings": c(lambda a: (a.evaluation or {}).get("open_findings", 0) > 0),
             "requiring_manual_action": c(lambda a: any(r["code"] != "missing_assessment_evidence" for r in (a.reasons or []))),
-            "unmapped_findings": db.scalar(select(func.count()).select_from(Finding).where(Finding.system_id == system_id, Finding.mapping_status == "unmapped")),
+            "unmapped_findings": m["unmapped_findings"],
             "by_origin": dict(Counter(a.origin for a in rows)),
             "monitoring": dict(Counter(a.monitoring_status for a in rows)), "freshness": dict(Counter(a.evidence_freshness_status for a in rows))}
 
@@ -53,6 +56,16 @@ def controls(system_id: uuid.UUID, queue: bool = False, q: str | None = None, im
     return [{**to_dict(a, ("evaluation",)), "title": t, "label": lbl, "evaluation": a.evaluation} for a, t, lbl in db.execute(stmt).all()]
 
 
+@router.get("/systems/{system_id}/workbench/queue")
+def work_queue(system_id: uuid.UUID, mine: bool = False, db: Session = Depends(get_db),
+               current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    from app.services.queue import work_queue as wq
+
+    s = get_system(db, system_id)
+    roles = {a.role for a in current.assignments if a.scope_id in (s.id, s.org_id)}
+    return wq(db, s, current.user, roles, mine)
+
+
 @router.get("/systems/{system_id}/workbench/controls/{control_id}")
 def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(get_db),
                    _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
@@ -74,12 +87,17 @@ def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(
     evidence = db.execute(select(Evidence, EvidenceSource.name).join(EvidenceControl, EvidenceControl.evidence_id == Evidence.id)
                           .outerjoin(EvidenceSource, EvidenceSource.id == Evidence.source_id).where(EvidenceControl.assignment_id == a.id)
                           .order_by(Evidence.collected_at.desc())).all()
+    from app.models import PoamFinding
+
+    linked = {fid: (str(pid), hid) for fid, pid, hid in db.execute(select(PoamFinding.finding_id, Poam.id, Poam.human_id).join(Poam, Poam.id == PoamFinding.poam_id)
+                                                                   .where(Poam.system_id == system_id))}
     seen, open_findings = set(), []
     for f, asset, m in findings:
         if f.current_state == "open" and f.id not in seen:
             seen.add(f.id)
             open_findings.append({**to_dict(f, ("dedup_fields",)), "asset_name": asset,
-                                  "mapping": {"source": m.source, "review_status": m.review_status, "cci_id": m.cci_id or None, "confidence": m.confidence}})
+                                  "mapping": {"source": m.source, "review_status": m.review_status, "cci_id": m.cci_id or None, "confidence": m.confidence},
+                                  "poam": {"id": linked[f.id][0], "human_id": linked[f.id][1]} if f.id in linked else None})
     impls = db.scalars(select(Implementation).where(Implementation.assignment_id == a.id).order_by(Implementation.version.desc()))
     prov = db.get(CommonControlProvider, a.provider_id) if a.provider_id else None
     cci_cv = db.scalar(select(ContentVersion).where(ContentVersion.content_type == "cci_list", ContentVersion.is_active.is_(True)))
@@ -99,9 +117,65 @@ def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(
         "approved_implementation": next((to_dict(i) for i in db.scalars(select(Implementation).where(
             Implementation.assignment_id == a.id, Implementation.review_status == "approved"))), None),
         "poams": _control_poams(db, system_id, a.control_id),
+        "policy_parameters": _policy_parameters(db, system_id, a.control_id),
+        "statement_segments": _render_odps(db, system_id, a.control_id, catalog),
         "pending_reviews": [to_dict(r) for r in db.scalars(select(ApprovalRequest).where(
             ApprovalRequest.system_id == system_id, ApprovalRequest.control_id == a.control_id, ApprovalRequest.status == "pending"))],
     }
+
+
+ODP_PARAM = {"inactivity_disable_days": "ac-02.03_odp.02", "unsuccessful_logon_attempts": "ac-07_odp.01", "session_lock_minutes": "ac-11_odp.01"}
+
+
+def _render_odps(db, system_id, control_id, catalog: dict) -> list[dict]:
+    """Statement split into text + ODP segments; approved system ODP values fill the matching [Assignment: …] placeholder."""
+    import re
+
+    from app.models import OdpValue
+
+    odps = {ODP_PARAM.get(o.parameter): o for o in db.scalars(select(OdpValue).where(OdpValue.system_id == system_id, OdpValue.control_id == control_id))}
+    params = catalog.get("parameters") or []
+    text, out, pos, i = catalog.get("statement") or "", [], 0, 0
+    for m in re.finditer(r"\[(Assignment|Selection)[^\]]*\]", text):
+        out.append({"text": text[pos:m.start()]})
+        p = params[i] if i < len(params) else {}
+        o = odps.get(p.get("id"))
+        out.append({"odp_id": p.get("id"), "original": m.group(0), "value": f"{o.value} (organization-defined)" if o else None,
+                    "source": f"{o.source}, approved {o.approved_at}" if o else None, "status": "filled" if o else "not yet defined"})
+        pos, i = m.end(), i + 1
+    out.append({"text": text[pos:]})
+    return out
+
+
+def _policy_parameters(db, system_id, control_id) -> list[dict]:
+    from app.models import ObservedConfigValue, OdpValue, Policy, PolicyFinding
+
+    rows = []
+    for o in db.scalars(select(OdpValue).where(OdpValue.system_id == system_id, OdpValue.control_id == control_id)):
+        obs = db.scalar(select(ObservedConfigValue).where(ObservedConfigValue.system_id == system_id, ObservedConfigValue.control_id == control_id,
+                                                          ObservedConfigValue.parameter == o.parameter).order_by(ObservedConfigValue.observed_at.desc()))
+        pfs = []
+        for pf, pol in db.execute(select(PolicyFinding, Policy).join(Policy, Policy.id == PolicyFinding.policy_id).where(
+                PolicyFinding.system_id == system_id, PolicyFinding.control_id == control_id, PolicyFinding.parameter == o.parameter,
+                PolicyFinding.status != "dismissed")):
+            pfs.append({"id": str(pf.id), "status": pf.status, "type": pf.finding_type, "policy_id": str(pol.id), "policy": f"{pol.title} v{pol.version}",
+                        "policy_value": pf.policy_value, "quote": pf.quote, "finding_id": str(pf.finding_id) if pf.finding_id else None})
+        pol = next(iter(pfs), None)
+        result = None if not obs else ("Match" if obs.numeric_value == o.numeric_value else "Mismatch")
+        rows.append({"parameter": o.parameter, "odp_value": o.value, "odp_source": f"{pol['policy'] if pol else o.source}, approved {o.approved_at}",
+                     "observed_value": obs.value if obs else None,
+                     "observed_source": f"{obs.source}, collected {obs.observed_at:%Y-%m-%d}" if obs else None,
+                     "observed_evidence_id": str(obs.evidence_id) if obs and obs.evidence_id else None, "result": result,
+                     "policy_findings": pfs, "poams": [p for p in _control_poams(db, system_id, control_id)]})
+    return rows
+
+
+def _policies_for(db, system_id, control_id) -> list[str]:
+    from app.models import Policy, PolicyFinding
+
+    rows = db.execute(select(Policy.title, Policy.version, Policy.approval_date).join(PolicyFinding, PolicyFinding.policy_id == Policy.id)
+                      .where(PolicyFinding.system_id == system_id, PolicyFinding.control_id == control_id, Policy.status == "current").distinct()).all()
+    return [f"{t} v{v}" + (f" (approved {d})" if d else "") for t, v, d in rows]
 
 
 def _control_poams(db, system_id, control_id) -> list[dict]:
@@ -144,14 +218,54 @@ def build_grounding(db, system_id, a: ControlAssignment) -> dict:
                                                            "passing_checks_for_control": by_ev.get(str(e.id), {}).get("passing", 0)}}
                      for e, n in ev],
         "existing_approved_statement": approved.narrative if approved else None,
+        "odp_ids": [p.get("id") for p in (c.parameters or [])],
+        "policies_list": _policies_for(db, system_id, a.control_id),
         "open_poams": [p["human_id"] + ": " + p["weakness"] for p in _control_poams(db, system_id, a.control_id) if p["status"] not in ("closed", "risk_accepted")],
-        "policies": "None loaded yet (Policy Auditor is Phase 3) – do not assume any policy exists.",
+        "policies": "; ".join(_policies_for(db, system_id, a.control_id)) or "No policy linked to this control – do not assume any policy exists.",
     }
 
 
+TEMPLATE_VERSION = "impl-template-1.0.0"
+
+
+def template_draft(db, system_id, a: ControlAssignment, ctx: dict) -> dict:
+    """Deterministic, versioned template engine (no AI): same sections + citations as the AI draft, built only from records."""
+    from app.services.queue import fmt_control
+
+    segs = _render_odps(db, system_id, a.control_id, {"statement": ctx["control"]["statement"],
+                                                       "parameters": [{"id": p} for p in ctx.get("odp_ids", [])]})
+    req = "".join(s["text"] if "text" in s else (s["value"] or s["original"]) for s in segs).strip()
+    s, r, cid = ctx["system"], ctx["responsibility"], fmt_control(a.control_id)
+    ev = ctx["evidence"]
+    split = {"inherited": f"This control is fully inherited from {r['provider'] or 'the common control provider'}.",
+             "shared": f"Responsibility is shared with {r['provider'] or 'a common control provider'}: the provider implements its portion; "
+                       f"{s['acronym']} implements the system-specific portion described below.",
+             }.get(r["responsibility"], f"{s['acronym']} implements this control directly (system-owned).")
+    facts = [f"{s['name']} ({s['acronym']}) boundary: {s['boundary'] or 'not documented'}; environment: {s['environment'] or 'not documented'}.", split]
+    facts += [f"Evidence {e['name']} ({e['type']}, collected {e['collected_at'][:10]}) [EV:{e['evidence_id']}]" for e in ev[:8]]
+    open_items = [f"Open finding: {x}" for e in ev for x in e["summary"]["open_findings_for_control"]][:6] + [f"Open POA&M: {p}" for p in ctx["open_poams"]][:6]
+    missing = []
+    if not ev:
+        missing.append("No current supporting evidence is linked to this control.")
+    missing += [f"Organization-defined parameter not yet defined: {x['original']}" for x in segs if x.get("status") == "not yet defined"]
+    if not ctx.get("policies_list"):
+        missing.append("No governing policy is linked to this control.")
+    narrative = "\n\n".join(filter(None, [
+        f"{cid} – {ctx['control']['title']}. Requirement: {req}",
+        f"{split} {s['name']} implements the requirement as follows: [describe mechanism, responsible role and frequency].",
+        ("Supporting evidence: " + "; ".join(f"{e['name']} collected {e['collected_at'][:10]} [EV:{e['evidence_id']}]" for e in ev[:8]) + ".") if ev else None,
+        ("Known gaps: " + "; ".join(open_items) + ".") if open_items else None,
+        ("Governing policy: " + "; ".join(ctx["policies_list"]) + ".") if ctx.get("policies_list") else None]))
+    return {"narrative": narrative, "verified_facts": facts, "interpretation": [], "missing_information": missing,
+            "suggested_actions": (["Resolve or document the open findings/POA&Ms listed above."] if open_items else []) +
+                                 ["Replace the bracketed placeholder with the actual mechanism, owner and frequency before requesting review."],
+            "citations": [e["evidence_id"] for e in ev[:8]]}
+
+
 @router.post("/systems/{system_id}/workbench/controls/{control_id}/ai-draft")
-async def ai_draft(system_id: uuid.UUID, control_id: str, db: Session = Depends(get_db),
+async def ai_draft(system_id: uuid.UUID, control_id: str, mode: str = "auto", db: Session = Depends(get_db),
                    current: CurrentUser = Depends(require_permission("implementation.write"))) -> dict:
+    """mode=auto → AI when configured, otherwise the template engine; mode=template forces the template engine."""
     import json
 
     from app.services.ai.prompts import get_prompt
@@ -159,12 +273,17 @@ async def ai_draft(system_id: uuid.UUID, control_id: str, db: Session = Depends(
 
     from app.services.rmf import require_ai_use_case
 
-    require_ai_use_case(db, current.user.org_id, "control.implementation_statement")
     a = assignment_for(db, system_id, control_id)
     ctx = build_grounding(db, system_id, a)
     svc = get_ai_service()
-    if not svc.configured:
-        raise HTTPException(503, "AI provider is not configured")
+    if mode == "template" or not svc.configured:
+        out = template_draft(db, system_id, a, ctx)
+        audit.record_now(action="implementation.template_draft", actor_user_id=current.user.id, actor_email=current.user.email,
+                         entity_type="control_assignment", entity_id=str(a.id), details={"template_version": TEMPLATE_VERSION, "citations": out["citations"]})
+        return {"draft": out, "stripped_citations": [], "provider": "template", "model": None, "prompt_id": "template", "prompt_version": TEMPLATE_VERSION,
+                "interaction_id": None, "template": True, "label": "TEMPLATE DRAFT (no AI)",
+                "ai_status": svc.describe(), "grounding": {"evidence_count": len(ctx["evidence"]), "policies": ctx["policies"], "open_poams": ctx["open_poams"]}}
+    require_ai_use_case(db, current.user.org_id, "control.implementation_statement")
     try:
         res = await svc.run("control.implementation_statement", "1.0.0", {"context": json.dumps(ctx, default=str)}, actor_user_id=current.user.id)
     except AIOutputValidationError as exc:
@@ -276,6 +395,12 @@ def priority_weights(db: Session = Depends(get_db), _: CurrentUser = Depends(get
 def leadership(db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("portfolio.read"))) -> dict:
     from datetime import date, timedelta
 
+    if current.operator is not None and not (current.operator.onboarding or {}).get("view_leadership"):
+        audit.record(db, action="leadership.viewed", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="organization",
+                     entity_id=str(current.user.org_id))
+        current.operator.onboarding = {**(current.operator.onboarding or {}), "view_leadership": True}
+        db.commit()
+
     from app.services.evaluation import OP_WEIGHTS
     from app.services.workflow import ACTIVE_POAM
 
@@ -293,7 +418,13 @@ def leadership(db: Session = Depends(get_db), current: CurrentUser = Depends(req
              "open_cat1": tot("open_cat1"), "kev_open": tot("kev_open"), "open_findings": tot("open_findings"),
              "overdue_poams": tot("overdue_poams"), "open_poams": tot("open_poams"), "risk_acceptances": tot("risk_acceptances"),
              "pending_risk_decisions": tot("pending_risk_decisions"),
-             "evidence_fresh_pct": round(100 * cf / cwe, 1) if cwe else None, "controls_stale": tot("controls_stale")}
+             "evidence_fresh_pct": round(100 * cf / tot("assigned_controls"), 1) if tot("assigned_controls") else None,
+             "control_evidence_coverage_pct": round(100 * cf / tot("assigned_controls"), 1) if tot("assigned_controls") else None,
+             "controls_with_current_evidence": cf, "assigned_controls": tot("assigned_controls"),
+             "evidence_items_fresh_pct": round(100 * tot("evidence_items_fresh") / tot("evidence_total"), 1) if tot("evidence_total") else None,
+             "evidence_items_fresh": tot("evidence_items_fresh"), "evidence_total": tot("evidence_total"),
+             "pending_emass_sync": tot("pending_emass_sync"), "controls_stale": tot("controls_stale")}
+    _ = cwe
     trend = [{"taken_at": t.taken_at, "synthetic": t.is_synthetic, **t.metrics} for t in db.scalars(
         select(RiskSnapshot).where(RiskSnapshot.org_id == current.user.org_id, RiskSnapshot.system_id.is_(None)).order_by(RiskSnapshot.taken_at))]
     roles = {a.role for a in current.assignments}

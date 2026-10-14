@@ -1,10 +1,12 @@
+import { fmtControl } from "@/lib/format";
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { StatusPill, Tone } from "@/components/common/StatusPill";
 
 // Maps existing record states onto IronVision status categories (meaning unchanged; text is always shown).
 const TONES: Record<string, Tone> = {
-  passing: "success", failing: "failed", no_data: "neutral", inherited: "info",
+  passing: "success", failing: "failed", no_data: "neutral", inherited: "info", review_overdue: "critical", review_due_soon: "warning",
+  Mismatch: "failed", Match: "success",
   current: "success", near_expiration: "warning", expired: "critical", no_evidence: "neutral", integrity_mismatch: "failed", signature_invalid: "failed",
   not_assessed: "neutral", satisfied: "success", other_than_satisfied: "failed",
   planned: "warning", implemented: "success", partially_implemented: "warning", not_implemented: "neutral",
@@ -32,7 +34,7 @@ export function Sev({ v, testId }: { v: string | null | undefined; testId?: stri
 }
 
 export function ControlLink({ systemId, controlId }: { systemId: string; controlId: string }) {
-  return <Link to={`/systems/${systemId}/controls/${controlId}`} className="font-mono text-[12px] font-semibold text-blue-800 hover:underline" data-testid={`control-link-${controlId}`}>{controlId.toUpperCase()}</Link>;
+  return <Link to={`/systems/${systemId}/controls/${controlId}`} className="font-mono text-[12px] font-semibold text-blue-800 hover:underline" data-testid={`control-link-${controlId}`}>{fmtControl(controlId)}</Link>;
 }
 
 export function Table({ head, children, testId }: { head: string[]; children: ReactNode; testId?: string }) {
@@ -57,5 +59,9 @@ export function Stat({ label, value, testId, hint }: { label: string; value: Rea
 }
 
 export function NeedSystem() {
-  return <div className="panel p-6 text-sm text-slate-600" data-testid="need-system">Select a system in the sidebar (or register one on the Systems page) to view this module.</div>;
+  return <div className="panel p-6 text-sm text-slate-600" data-testid="need-system">
+    <div className="t-title text-slate-900">No system selected</div>
+    <p className="mt-1">This module works on one system at a time. Pick one in the sidebar – or, if you have none yet, register your first system.</p>
+    <Link to="/systems/new" className="btn-primary mt-3 inline-flex" data-testid="need-system-register">Register your first system</Link>
+  </div>;
 }

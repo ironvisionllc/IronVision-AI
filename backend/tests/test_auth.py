@@ -46,7 +46,7 @@ def test_success_login_audited(client, token):
     assert any(e["actor_email"] == "devsecops@aegisrmf.demo" for e in events)
 
 
-def test_provider_info_lists_dev_accounts(client):
+def test_provider_info_has_no_public_account_picker(client):
     body = client.get("/api/v1/auth/provider").json()
     assert body["label"] == "DEVELOPMENT AUTHENTICATION – SIMULATED, NOT CAC/PIV"
-    assert sorted(a["email"] for a in body["dev_accounts"]) == sorted(ALL_EMAILS)
+    assert body["dev_accounts"] == []  # single demo account is documented, never listed publicly

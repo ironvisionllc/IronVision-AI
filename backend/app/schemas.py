@@ -31,6 +31,8 @@ class UserOut(BaseModel):
     permissions: list[str]
     auth_provider: str
     auth_is_simulated: bool
+    persona_role: str | None = None
+    is_sandbox: bool = False
 
 
 class TokenResponse(BaseModel):
@@ -56,6 +58,7 @@ class AuthProviderInfo(BaseModel):
     dev_accounts: list[DevAccount]
     enabled_providers: list[str] = []
     dev_password_enabled: bool = True
+    signup_enabled: bool = False
     oidc_enabled: bool = False
 
 

@@ -26,7 +26,7 @@ export function StatsStrip({ stats }: { stats: ContentStats | null }) {
         <div key={id} className="px-4 py-3">
           <div className="eyebrow !text-[10px]">{label}</div>
           <div className="mt-1 font-mono text-lg font-semibold text-slate-900" data-testid={id}>
-            {id === "stat-baselines" ? `${b.low ?? 0} / ${b.moderate ?? 0} / ${b.high ?? 0}` : (value ?? 0).toLocaleString()}
+            {id === "stat-baselines" ? `${b.low ?? 0} / ${b.moderate ?? 0} / ${b.high ?? 0}` : value === undefined || value === null ? "…" : value.toLocaleString()}
           </div>
           {id === "stat-baselines" && <div className="text-[10px] text-slate-500">Privacy: {b.privacy ?? 0}</div>}
         </div>

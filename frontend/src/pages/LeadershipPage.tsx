@@ -3,12 +3,23 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import { useApi, Row } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { S, Stat, Table } from "@/components/common/Bits";
+import { AccessDenied } from "@/components/common/AccessDenied";
 
 export default function LeadershipPage() {
-  const { data, error } = useApi<Row>("/dashboard/leadership");
+  const { data, error, denied } = useApi<Row>("/dashboard/leadership");
+  if (denied) return <AccessDenied denied={denied} area="Portfolio / Leadership" />;
   if (error) return <div className="panel p-6 text-sm text-rose-700" role="alert" data-testid="leadership-error">{error}</div>;
   if (!data) return null;
   const c = data.cards;
+  if (!c.systems_total) return (
+    <div data-testid="leadership-page">
+      <PageHeader title="Portfolio / Leadership" subtitle={data.note} />
+      <div className="panel p-8 text-center" data-testid="leadership-empty">
+        <div className="t-title text-slate-900">No systems yet</div>
+        <p className="mt-1 text-[13px] text-slate-600">Portfolio risk, authorization status and evidence coverage appear here once a system is registered.</p>
+        <Link to="/systems/new" className="btn-primary mt-3 inline-flex" data-testid="leadership-empty-register">Register your first system</Link>
+      </div>
+    </div>);
   const trend = data.trend.map((t: Row) => ({ ...t, label: new Date(t.taken_at).toISOString().slice(5, 10) }));
   return (
     <div data-testid="leadership-page">
@@ -20,7 +31,7 @@ export default function LeadershipPage() {
         <Stat label="Open CAT I / critical" value={c.open_cat1} testId="card-open-cat1" />
         <Stat label="Open KEV" value={c.kev_open} testId="card-kev" />
         <Stat label="Overdue POA&Ms" value={c.overdue_poams} testId="card-poams" hint={`${c.open_poams} open`} />
-        <Stat label="Evidence freshness" value={c.evidence_fresh_pct === null ? "—" : `${c.evidence_fresh_pct}%`} testId="card-freshness" hint={`controls fully current · ${c.controls_stale} stale/partial`} />
+        <Stat label="Controls w/ current evidence" value={`${c.controls_with_current_evidence} of ${c.assigned_controls}`} testId="card-freshness" hint={`${c.control_evidence_coverage_pct ?? "—"}% coverage · evidence items fresh ${c.evidence_items_fresh_pct ?? "—"}% · ${c.controls_stale} stale/partial`} />
         <Stat label="Pending risk decisions" value={c.pending_risk_decisions} testId="card-pending-risk" hint={`${c.risk_acceptances} accepted`} />
       </div>
       <Panel title="Waiting on your decision" className="mb-5" testId="waiting-on-you">
@@ -30,7 +41,7 @@ export default function LeadershipPage() {
       </Panel>
       <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
         <Panel title="System risk" eyebrow={data.op_score.label} testId="leadership-system-table">
-          <Table head={["System", "Op. priority", "Authorization", "Expires", "Open", "CAT I", "KEV", "POA&M open / overdue", "Pending risk", "Evidence fresh"]}>
+          <Table head={["System", "Op. priority", "Authorization", "Expires", "Open", "CAT I", "KEV", "POA&M open / overdue", "Pending risk", "Controls w/ current evidence"]}>
             {data.systems.map((s: Row) => (
               <tr key={s.id} data-testid={`leadership-row-${s.acronym}`}>
                 <td className="td"><Link className="font-medium text-blue-800 hover:underline" to={`/systems/${s.id}`}>{s.name}</Link><div className="text-[10px] uppercase text-slate-400">{s.baseline} · {s.lifecycle_phase}</div></td>
@@ -40,7 +51,7 @@ export default function LeadershipPage() {
                 <td className="td font-mono text-[11px]">{s.authorization_expiration ?? "—"}{s.days_to_expiration !== null && <div className="text-amber-700">{s.days_to_expiration}d</div>}</td>
                 <td className="td font-mono">{s.open_findings}</td><td className="td font-mono">{s.open_cat1}</td><td className="td font-mono">{s.kev_open}</td>
                 <td className="td font-mono">{s.open_poams} / {s.overdue_poams}</td><td className="td font-mono">{s.pending_risk_decisions}</td>
-                <td className="td font-mono">{s.evidence_fresh_pct === null ? "—" : `${s.evidence_fresh_pct}%`}</td>
+                <td className="td font-mono" data-testid={`leadership-coverage-${s.acronym}`}>{s.controls_with_current_evidence} of {s.assigned_controls}<div className="text-[10px] text-slate-500">items fresh {s.evidence_items_fresh_pct ?? "—"}%</div></td>
               </tr>
             ))}
           </Table>
@@ -53,7 +64,7 @@ export default function LeadershipPage() {
                 <Tooltip contentStyle={{ background: "var(--iv-surface-solid)", border: "1px solid var(--iv-border-strong)", borderRadius: 12, color: "var(--iv-text)", fontSize: 12 }} /><Legend wrapperStyle={{ fontSize: 11, color: "var(--iv-text-muted)" }} />
                 <Line dataKey="open_cat1" name="Open CAT I" stroke="var(--iv-chart-1)" strokeWidth={2} dot={false} />
                 <Line dataKey="kev_open" name="KEV" stroke="var(--iv-chart-2)" strokeWidth={2} dot={false} />
-                <Line dataKey="evidence_fresh_pct" name="Evidence fresh %" stroke="var(--iv-chart-3)" strokeWidth={2} dot={false} />
+                <Line dataKey="evidence_fresh_pct" name="Control evidence coverage %" stroke="var(--iv-chart-3)" strokeWidth={2} dot={false} />
                 <Line dataKey="open_findings" name="Total open" stroke="var(--iv-chart-4)" strokeWidth={2} dot={false} />
                 <Line dataKey="overdue_poams" name="Overdue POA&Ms" stroke="var(--iv-chart-5)" strokeWidth={2} dot={false} />
                 <Line dataKey="risk_acceptances" name="Risk acceptances" stroke="var(--iv-chart-6)" strokeWidth={2} dot={false} />

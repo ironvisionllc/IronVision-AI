@@ -55,6 +55,8 @@ app.add_middleware(
 async def correlation_and_access_log(request: Request, call_next):
     cid = request.headers.get("x-correlation-id") or str(uuid.uuid4())
     token = correlation_id_var.set(cid[:100])
+    from app.services.audit import operator_var
+    operator_var.set({})
     started = time.perf_counter()
     try:
         response = web.rate_limited(request) or await call_next(request)

@@ -9,7 +9,7 @@ ALGORITHM = "HS256"
 ISSUER = "aegisrmf"
 
 
-def create_access_token(user_id: uuid.UUID, provider: str, sid: uuid.UUID | None = None) -> tuple[str, int]:
+def create_access_token(user_id: uuid.UUID, provider: str, sid: uuid.UUID | None = None, operator_id: uuid.UUID | None = None) -> tuple[str, int]:
     s = get_settings()
     ttl = s.jwt_ttl_minutes * 60
     now = datetime.now(timezone.utc)
@@ -24,6 +24,8 @@ def create_access_token(user_id: uuid.UUID, provider: str, sid: uuid.UUID | None
     }
     if sid:
         payload["sid"] = str(sid)
+    if operator_id:
+        payload["op"] = str(operator_id)
     return jwt.encode(payload, s.jwt_secret, algorithm=ALGORITHM), ttl
 
 
