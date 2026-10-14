@@ -88,24 +88,26 @@ mobile/.metro-cache/
 # overlay black-box crash/user-report dumps — session data, never history
 **/.emergent/recordings/
 
-# AegisRMF
-/.env
-/data/
-backend/.pytest_cache/
-backend/.env
-frontend/.env
+# IronVision AI (AegisRMF)
 /data/
 backend/data/
+backend/.pytest_cache/
 /samples/uploads/
-frontend/node_modules/.cache/default-development/6.pack
-frontend/node_modules/.cache/default-development/3.pack
+frontend/build
+
+# Secrets: real env files, keys and credentials are never committed
 .env
 .env.*
 *.env
-credentials.json
 *.key
 .credentials
+credentials.json
+# ...but env TEMPLATES are committed (placeholders only; backend/tests/test_env_templates.py checks them)
+!.env.example
+!**/.env.example
+!**/.env.*.example
+!*.env.example
+!env.template
+!**/env.template
+!**/env.*.template
 frontend/node_modules/.cache/default-development/0.pack
-
-frontend/build
-frontend/node_modules/.cache/default-development/10.pack

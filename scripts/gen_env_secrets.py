@@ -72,7 +72,8 @@ def fill(path: Path) -> tuple[list[str], list[str]]:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2 or not Path(sys.argv[1]).is_file():
-        sys.exit("usage: python3 scripts/gen_env_secrets.py <env-file>   (the file must exist; copy the .example first)")
+        sys.exit("usage: python3 scripts/gen_env_secrets.py <env-file>   (the file must exist – create it first, e.g.\n"
+                 "  cp deploy/digitalocean/env.production.template deploy/digitalocean/.env.production)")
     f, k = fill(Path(sys.argv[1]))
     print(f"gen_env_secrets: {sys.argv[1]} (mode 600)")
     print("  generated: " + (", ".join(f) or "nothing – every secret already had a value"))

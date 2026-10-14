@@ -92,7 +92,7 @@ createuser aegis -P && createdb -O aegis aegisrmf && createdb -O aegis aegisrmf_
 cd backend
 python -m venv .venv && . .venv/bin/activate
 pip install -r requirements.prod.txt
-cp .env.example .env            # edit DATABASE_URL, JWT_SECRET, AI settings
+cp env.template .env            # edit DATABASE_URL, JWT_SECRET, AI settings
 alembic upgrade head
 python -m app.seed              # demo org + 8 users + enqueues content load
 uvicorn app.main:app --port 8001 --reload
@@ -103,14 +103,14 @@ python -m pytest -c pytest.aegis.ini -q
 
 # frontend
 cd ../frontend
-cp .env.example .env            # REACT_APP_BACKEND_URL=http://localhost:8001
+cp env.template .env            # REACT_APP_BACKEND_URL=http://localhost:8001
 yarn install && yarn start
 ```
 
 ## Docker Compose
 
 ```bash
-cp .env.example .env      # set real secrets; AI_PROVIDER=anthropic + ANTHROPIC_API_KEY to enable AI
+cp env.template .env      # set real secrets; AI_PROVIDER=anthropic + ANTHROPIC_API_KEY to enable AI
 docker compose up -d --build
 # DigitalOcean / production: scripts/deploy.sh deploy/digitalocean/.env.production  (fail-fast, see docs/DIGITALOCEAN_DEPLOYMENT.md §0)
 # services: postgres, seaweedfs (profile seaweedfs, S3 on the internal network) + objectstore-init (bucket bootstrap, our backend image), migrate (alembic upgrade head + seed, one-shot), backend :8001, worker, frontend :3000

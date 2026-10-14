@@ -195,6 +195,11 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Empty states: NeedSystem CTA, Systems "Register your first system", Evidence Sources "Add a source or upload a scan", Leadership "No systems yet", Workflow ongoing stages "not configured" when no records.
 - Fixed tenant leak: audit log items + category counts now tenant-scoped.
 
+### Env templates shipped to GitHub (Oct 2026)
+- .gitignore: `.env`, `.env.*` and `*.env` ignored every template. Added negations for `*.example` and `env.template`. Real env files, keys, pem and credentials stay ignored. Removed duplicate and legacy cache entries.
+- Non-dot copies sit next to each template, identical in content: env.template, backend/env.template, backend/worker/env.template, frontend/env.template, deploy/digitalocean/env.production.template and env.staging.template. Docs, README, CI, verify_portability and the deploy.sh hint now copy from the *.template files.
+- tests/test_env_templates.py checks that each pair exists and is identical, holds placeholders only, covers every variable the code reads, and that git check-ignore results are right.
+
 ### Fail-fast DigitalOcean deploy (Oct 2026)
 - Customer failure: they ran plain `docker compose up` (project aegisrmf) without --env-file or overlays. As a result seaweedfs never started, the S3 keys were blank and objectstore-init exited 1. Their own wrapper then printed "Deployment complete"; that wrapper is not in this repo.
 - `scripts/deploy.sh [ENV_FILE] [--staging] [--skip-edge-check] [--no-pull]` is the only supported deploy command. It uses an explicit `-p ironvision`, `--env-file` and overlays, takes COMPOSE_PROFILES from the env file, refuses while aegisrmf containers run, and fixes DATA_ROOT ownership whether run as root or as ironvision (postgres 70, objects 10001, backups = operator). Order: check_env → config → pull → build → postgres → seaweedfs → objectstore-init → migrate → app → /api/v1/ready → summary. It stops at the first failure and is shellcheck clean.

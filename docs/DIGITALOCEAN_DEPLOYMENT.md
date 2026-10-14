@@ -54,7 +54,7 @@ MinIO discontinued its community edition. `minio/minio` and `minio/mc` are no lo
 cd /opt/ironvision/IronVision-AI
 git pull
 F=deploy/digitalocean/.env.production
-test -f $F || cp deploy/digitalocean/.env.production.example $F
+test -f $F || cp deploy/digitalocean/env.production.template $F     # identical to .env.production.example
 chmod 600 $F
 python3 scripts/gen_env_secrets.py $F          # fills only EMPTY secrets (DB, JWT, Fernet, SeaweedFS app + admin keys); never overwrites
 nano $F                                        # set APP_DOMAIN, FRONTEND_URL, CORS_ORIGINS, OIDC_* ; keep COMPOSE_PROFILES=seaweedfs, STORAGE_DRIVER=s3, S3_ENDPOINT_URL= (empty)
@@ -220,7 +220,7 @@ sudo install -d -m 750 -o ironvision -g ironvision /srv/ironvision/backups
 ```bash
 sudo install -d -o ironvision -g ironvision /opt/ironvision && cd /opt/ironvision
 git clone <your-git-remote>/ironvision-ai.git app && cd app && git checkout <release-tag>
-cp deploy/digitalocean/.env.production.example deploy/digitalocean/.env.production && chmod 600 deploy/digitalocean/.env.production
+cp deploy/digitalocean/env.production.template deploy/digitalocean/.env.production && chmod 600 deploy/digitalocean/.env.production
 python3 scripts/gen_env_secrets.py deploy/digitalocean/.env.production   # fills empty secrets in place; never overwrites, never prints them
 python3 scripts/check_env.py deploy/digitalocean/.env.production        # must print RESULT: PASS
 sudo cp deploy/digitalocean/docker-daemon.json /etc/docker/daemon.json && sudo systemctl restart docker   # log rotation
@@ -306,7 +306,7 @@ Named volumes from the base compose file (`pgdata`, `objectstore`, `localobjects
 
 ## 6. Environment templates
 
-- `deploy/digitalocean/.env.production.example` and `.env.staging.example` list **every** variable the backend reads, plus the compose/edge/backup variables. Completeness is enforced by the test `test_env_templates_cover_every_variable_the_code_reads`.
+- `deploy/digitalocean/env.production.template` / `env.staging.template` (identical non-dot copies of `.env.production.example` / `.env.staging.example`, so they survive tools that drop dot-files) list **every** variable the backend reads, plus the compose/edge/backup variables. Completeness is enforced by the test `test_env_templates_cover_every_variable_the_code_reads`.
 - Preview-only variables (`EMERGENT_LLM_KEY`, `EMERGENT_AI_VENDOR`) are deliberately absent.
 - Secrets are generated with the commands in §2.11.
 - `scripts/check_env.py <file>` checks the file and **fails** on:
@@ -426,7 +426,7 @@ docker rm -f iv-testdb
 *Not yet executed on DigitalOcean.* Use a separate Droplet (2–4 GB), with its own Block Storage volume (`DATA_ROOT=/srv/ironvision-staging`), database (`ironvision_staging`), bucket and DNS name.
 
 ```bash
-cp deploy/digitalocean/.env.staging.example deploy/digitalocean/.env.staging && chmod 600 deploy/digitalocean/.env.staging
+cp deploy/digitalocean/env.staging.template deploy/digitalocean/.env.staging && chmod 600 deploy/digitalocean/.env.staging
 echo "STAGING_DEMO_PASSWORD=$(openssl rand -base64 24 | tr -d '\n=+/')"      # paste into the env file
 sudo install -d /srv/ironvision-staging/staging && sudo htpasswd -B -c /srv/ironvision-staging/staging/htpasswd reviewer
 printf 'allow 203.0.113.0/24;\ndeny all;\n' | sudo tee /srv/ironvision-staging/staging/allowlist.conf   # or "allow all;" with basic auth only

@@ -57,7 +57,7 @@ has_profile() { case ",$PROFILES," in *",$1,"*) return 0 ;; esac; return 1; }
 # ---------------------------------------------------------------- preflight
 step "preflight"
 [ -f "$ENV_FILE" ] || die "env file not found: $ENV_FILE
-  create it:  cp deploy/digitalocean/.env.production.example $ENV_FILE && python3 scripts/gen_env_secrets.py $ENV_FILE"
+  create it:  cp deploy/digitalocean/env.production.template $ENV_FILE && python3 scripts/gen_env_secrets.py $ENV_FILE"
 case "$(stat -c %a "$ENV_FILE")" in 600|400) ;; *) warn "$ENV_FILE is readable by others – run: chmod 600 $ENV_FILE" ;; esac
 if [ "$(id -u)" -eq 0 ]; then
   SUDO=()

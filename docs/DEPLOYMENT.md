@@ -5,7 +5,7 @@
 ## 1. Development / evaluation (single host)
 ```bash
 git clone <repo> aegisrmf && cd aegisrmf
-cp .env.example .env              # set POSTGRES_PASSWORD, S3_SECRET_ACCESS_KEY, S3_ADMIN_SECRET_ACCESS_KEY, JWT_SECRET, SECRET_STORE_KEY
+cp env.template .env              # set POSTGRES_PASSWORD, S3_SECRET_ACCESS_KEY, S3_ADMIN_SECRET_ACCESS_KEY, JWT_SECRET, SECRET_STORE_KEY
 docker compose up -d --build      # migrate (alembic upgrade head + seed) runs once, then backend :8001, worker, frontend :3000
 ./scripts/verify_portability.sh   # end-to-end PASS/FAIL report
 ```
@@ -36,7 +36,7 @@ Checklist:
 - [ ] Multiple backend replicas: move rate limiting and OIDC `state` storage to a shared store (both are in-process today).
 
 ## 3. Without Docker
-Requires Python 3.11, Node 20, and PostgreSQL 16. Steps: `backend/.env` from `backend/.env.example`, then `alembic upgrade head`, then `uvicorn app.main:app --host 0.0.0.0 --port 8001`, plus `python -m app.worker` and `yarn build` served by any static server that proxies `/api`.
+Requires Python 3.11, Node 20, and PostgreSQL 16. Steps: `backend/.env` from `backend/env.template` (= `backend/.env.example`), then `alembic upgrade head`, then `uvicorn app.main:app --host 0.0.0.0 --port 8001`, plus `python -m app.worker` and `yarn build` served by any static server that proxies `/api`.
 
 ## 4. Backup / restore
 `scripts/backup.sh [OUT_DIR]` writes `db.dump` (pg_dump custom format), the object store archive, and `manifest.json` (SHA-256 of every artifact, alembic revision, audit-chain head hash).
