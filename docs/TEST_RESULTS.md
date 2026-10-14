@@ -1,6 +1,6 @@
 # Test results
 
-Generated 2026-10-14T15:25:52+00:00 by `scripts/run_acceptance.sh` (pod run, PostgreSQL 16).
+Generated 2026-10-14T18:25:30+00:00 by `scripts/run_acceptance.sh` (pod run, PostgreSQL 16).
 
 ## Acceptance suite (AT-1 … AT-12)
 | # | Test | Scenario | Result |
@@ -18,10 +18,10 @@ Generated 2026-10-14T15:25:52+00:00 by `scripts/run_acceptance.sh` (pod run, Pos
 | 11 | `test_at11_controlled_content_update` | AT-11: STIG V1R2 diff (6/3/11/2) + impact (P-0027 CAT II→CAT I) previewed before apply; history not rewritten. | **PASSED** |
 | 12 | `test_at12_persistence_across_reinit` | AT-12: data written through the API survives app re-init / a brand-new DB connection pool. | **PASSED** |
 
-Acceptance summary: `============================= 12 passed in 30.74s ==============================`
+Acceptance summary: `============================= 12 passed in 23.25s ==============================`
 
 ## Full regression suite (`pytest tests`)
-`169 passed, 1 skipped, 1 warning in 72.49s (0:01:12)`
+`201 passed, 2 skipped, 2 warnings in 67.50s (0:01:07)`
 
 ## Manual persistence check (AT-12, restart)
 1. Create a POA&M milestone in the UI.  2. `docker compose restart backend worker` (pod: `supervisorctl restart backend worker`).

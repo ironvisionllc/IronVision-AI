@@ -1,4 +1,5 @@
 import { OscalPanel } from "@/pages/Phase4Pages";
+import { AiModelSettings } from "@/components/admin/AiModelSettings";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Search } from "lucide-react";
@@ -173,7 +174,8 @@ export function AdminPhase3Panels() {
       </Panel>
       <Panel title="AI administration" testId="ai-admin-panel">
         {ai && <div className="text-[13px]">
-          <div>Provider <b>{ai.provider}</b> · model {ai.model ?? "—"} · {ai.provider_note}</div>
+          <AiModelSettings ai={ai} onSave={(m) => run(() => api.put("/admin/ai-settings", { model: m }), () => (m ? `AI model set to ${m}` : "AI model override cleared"))} />
+          <div className="mt-2 text-[12px] text-slate-500">{ai.provider_note}</div>
           <div>Logging: {ai.logging_policy} · Retrieval: {ai.retrieval_restrictions}</div>
           <div className="mt-1">Human approval required: <b>always on (locked)</b></div>
           <div className="mt-2 flex flex-wrap gap-3">{Object.entries(ai.use_cases).map(([k, v]) => <label key={k} className="flex items-center gap-1"><input type="checkbox" checked={!!v} onChange={(e) => run(() => api.put("/admin/ai-settings", { use_cases: { [k]: e.target.checked } }), () => `AI use case ${k} ${e.target.checked ? "enabled" : "disabled"}`)} data-testid={`ai-usecase-${k}`} />{k}</label>)}</div>

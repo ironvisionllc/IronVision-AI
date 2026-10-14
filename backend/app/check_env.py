@@ -129,7 +129,7 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
             if env.get(k) == DOCUMENTED_DEMO_PASSWORD:
                 errors.append(f"{k} uses the publicly documented demo password")
         if (env.get("AI_PROVIDER") or "none") == "emergent":
-            errors.append("AI_PROVIDER=emergent is preview-only; use anthropic, openai_compatible or none")
+            errors.append("AI_PROVIDER=emergent is preview-only; use openrouter, anthropic, openai_compatible or none")
         if not (env.get("FRONTEND_URL") or "").startswith("https://"):
             errors.append("FRONTEND_URL must be https://")
         origins = [o.strip() for o in (env.get("CORS_ORIGINS") or "").split(",") if o.strip()]
@@ -168,6 +168,17 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
         errors += [f"{k} is required for AI_PROVIDER=anthropic" for k in ("ANTHROPIC_API_KEY", "AI_MODEL") if not env.get(k)]
     elif ai == "openai_compatible":
         errors += [f"{k} is required for AI_PROVIDER=openai_compatible" for k in ("OPENAI_COMPAT_BASE_URL", "AI_MODEL") if not env.get(k)]
+    elif ai == "openrouter":
+        errors += [f"{k} is required for AI_PROVIDER=openrouter" for k in ("OPENAI_COMPAT_API_KEY", "AI_MODEL") if not env.get(k)]
+        if env.get("ANTHROPIC_API_KEY"):
+            warns.append("ANTHROPIC_API_KEY is set but never used with AI_PROVIDER=openrouter – remove it from the env file")
+        base = env.get("OPENAI_COMPAT_BASE_URL") or "https://openrouter.ai/api/v1"
+        if strict and not base.startswith("https://"):
+            errors.append("OPENAI_COMPAT_BASE_URL must be https:// in staging/production")
+    if ai in ("openrouter", "openai_compatible", "anthropic"):
+        for k in ("AI_MODEL", "AI_MODEL_DRAFTING", "AI_MODEL_POLICY", "AI_MODEL_MAPPING", "AI_MODEL_SUMMARY"):
+            if env.get(k) and any(c.isspace() for c in env[k]):
+                errors.append(f"{k} must be a single model slug without spaces (e.g. openai/gpt-4o)")
     elif ai not in ("none", "emergent"):
         errors.append(f"AI_PROVIDER {ai!r} is not supported")
     if (env.get("SECRET_STORE_BACKEND") or "env_key") == "vault":

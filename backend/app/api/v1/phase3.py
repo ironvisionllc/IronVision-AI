@@ -660,13 +660,22 @@ def ai_settings(db: Session = Depends(get_db), current: CurrentUser = Depends(re
 
     svc = get_ai_service()
     s = rmf.get_setting(db, current.user.org_id, "ai", rmf.AI_DEFAULTS)
-    return {**s, "effective": svc.describe(), "provider": svc.provider.name if svc.configured else "none", "model": svc.provider.model if svc.configured else None,
-            "endpoint": "configured via environment (AI_PROVIDER / base URL)", "human_approval_required": True,
-            "human_approval_locked": True, "provider_note": "Provider/model/endpoint are environment-configured; change .env and restart"}
+    eff = svc.describe()
+    return {**s, "effective": eff, "provider": svc.provider.name if svc.configured else "none",
+            "model": s.get("model") or (svc.provider.model if svc.configured else None),
+            "model_source": "admin override" if s.get("model") else "environment (AI_MODEL / AI_MODEL_<USE CASE>)",
+            "endpoint": eff.get("base_url") or "configured via environment", "human_approval_required": True,
+            "human_approval_locked": True, "model_examples": AI_MODEL_EXAMPLES,
+            "provider_note": "Provider, base URL and API key come from the environment; the model can be changed here (any slug)"}
+
+
+AI_MODEL_EXAMPLES = ["openai/gpt-4.1", "openai/gpt-4o", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.1-70b-instruct",
+                     "mistralai/mistral-large"]
 
 
 class AISettingsIn(BaseModel):
-    use_cases: dict[str, bool]
+    use_cases: dict[str, bool] = {}
+    model: str | None = None              # free-text model slug; "" clears the override (back to AI_MODEL)
     logging_policy: str | None = None
     retrieval_restrictions: str | None = None
 
@@ -675,6 +684,12 @@ class AISettingsIn(BaseModel):
 def set_ai_settings(body: AISettingsIn, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("admin.users.manage"))) -> dict:
     cur = rmf.get_setting(db, current.user.org_id, "ai", rmf.AI_DEFAULTS)
     new = {**cur, "use_cases": {**cur["use_cases"], **body.use_cases}, "human_approval_required": True}
+    if body.model is not None:
+        from app.services.ai.service import MODEL_SLUG
+        slug = body.model.strip()
+        if slug and not MODEL_SLUG.match(slug):
+            raise HTTPException(422, "Model must be a provider model slug such as openai/gpt-4o (no spaces, max 200 characters)")
+        new["model"] = slug or None
     for k in ("logging_policy", "retrieval_restrictions"):
         if getattr(body, k):
             new[k] = getattr(body, k)

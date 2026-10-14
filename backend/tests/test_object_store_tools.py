@@ -214,7 +214,7 @@ def test_deploy_script_is_fail_fast_and_ordered():
     assert p.stat().st_mode & 0o111 and "set -Eeuo pipefail" in s and subprocess.run(["bash", "-n", str(p)]).returncode == 0
     assert 'LEGACY_PROJECT="aegisrmf"' in s and 'PROJECT="${PROJECT:-ironvision}"' in s and "--env-file \"$ENV_FILE\"" in s
     assert s.count("#### DEPLOYMENT SUCCEEDED") == 1
-    order = ["python3 scripts/check_env.py", "config -q", "pull --ignore-buildable", "build", "--wait-timeout 180 postgres",
+    order = ["python3 scripts/check_env.py", "config -q", "pull --ignore-buildable", "build", "-T backend python -m app.tools.selfcheck", "-T worker python -m app.tools.selfcheck", "--wait-timeout 180 postgres",
              "--wait-timeout 180 seaweedfs", "run --rm --no-deps objectstore-init", "run --rm --no-deps migrate",
              "up -d --no-deps", "/api/v1/ready", "#### DEPLOYMENT SUCCEEDED"]
     body = s[s.index("# ---------------------------------------------------------------- preflight"):]

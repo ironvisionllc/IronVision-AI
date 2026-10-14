@@ -156,6 +156,9 @@ if [ "$PULL" -eq 1 ]; then
 fi
 step "build images" "image build failed – see the build output above"
 "${DC[@]}" build
+step "image self-check (imports every module, before anything starts)" "an import failed – a package is missing from backend/requirements.prod.txt; run: python3 scripts/check_requirements.py"
+"${DC[@]}" run --rm --no-deps -T backend python -m app.tools.selfcheck
+"${DC[@]}" run --rm --no-deps -T worker python -m app.tools.selfcheck
 
 # ---------------------------------------------------------------- ordered start
 step "start postgres" "logs: ${DC[*]} logs --tail 100 postgres"

@@ -6,7 +6,7 @@ Goal: `git clone` → set `.env` → `alembic upgrade head` → `docker compose 
 
 | # | Dependency | Where | Used in business logic? | How to remove / replace |
 |---|---|---|---|---|
-| 1 | **Emergent universal-key AI adapter** (`emergentintegrations`, `EMERGENT_LLM_KEY`) | `backend/app/services/ai/adapters/emergent_adapter.py` + one `"emergent"` line in `ADAPTERS` (`app/services/ai/service.py`) | No – behind `AIService` | Set `AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` (or `openai_compatible` + base URL). Delete the adapter file and the dict entry. The package is **not** in `requirements.prod.txt`, so Docker images never contain it. |
+| 1 | **Emergent universal-key AI adapter** (`emergentintegrations`, `EMERGENT_LLM_KEY`) | `backend/app/services/ai/adapters/emergent_adapter.py` + one `"emergent"` line in `ADAPTERS` (`app/services/ai/service.py`) | No – behind `AIService` | Set `AI_PROVIDER=openrouter` + `OPENAI_COMPAT_API_KEY` + any `AI_MODEL` slug (or `anthropic` + `ANTHROPIC_API_KEY`, or `openai_compatible` + base URL). Delete the adapter file and the dict entry. The package is **not** in `requirements.prod.txt`, so Docker images never contain it. |
 | 2 | **Preview hosting** – Postgres now auto-starts: data lives in `/app/data/postgres`, and `backend/server.py` (preview entrypoint only) re-runs `scripts/pod_bootstrap.sh` in the background if the supervisor `postgres` program is missing after a pod restart (Kubernetes ingress `*.preview.emergentagent.com`, supervisor programs) | `/etc/supervisor/conf.d/*` (outside repo), `deploy/emergent-pod/aegis-supervisor.conf`, `scripts/pod_bootstrap.sh` | No | Replaced by `docker-compose.yml`. Delete `deploy/emergent-pod/` and `scripts/pod_bootstrap.sh`. |
 | 3 | Preview-only frontend tooling: `@emergentbase/overlay`, `@emergentbase/visual-edits` devDependencies, `public/index.html` script tags (`assets.emergent.sh`, analytics), `craco.config.js` hooks, `frontend/plugins/` | `frontend/` | No | The frontend Dockerfile already strips the `@emergentbase/*` devDeps and swaps in `frontend/deploy/index.html` (no Emergent scripts). To clean the repo: `yarn remove @emergentbase/overlay @emergentbase/visual-edits`, replace `public/index.html` with `deploy/index.html`. craco tolerates their absence. |
 | 4 | Emergent testing config `backend/pytest.ini` (xdist addopts for Emergent's test agent) | `backend/pytest.ini` | No | Project tests use `pytest -c pytest.aegis.ini`. Delete `pytest.ini` after migration. |
@@ -67,3 +67,10 @@ No Emergent auth, storage, database, queue, email or deploy services are used. A
 | OIDC against a real IdP, ClamAV against live clamd, Vault live | **Not executed** – mocked tests only |
 | GitHub Actions CI | **Not executed** |
 | Emergent dependencies | Unchanged from the table above. None added in Phase 5. |
+
+## AI provider portability
+`AI_PROVIDER=openrouter` uses the vendor-neutral OpenAI Chat Completions schema over httpx (no vendor SDK on that path). Switching models is an env or admin-page change only (`AI_MODEL`, `AI_MODEL_<USE CASE>`); switching to a self-hosted endpoint is `AI_PROVIDER=openai_compatible` + `OPENAI_COMPAT_BASE_URL`.
+
+## Production dependencies
+Images install only `backend/requirements.prod.txt`. `scripts/check_requirements.py` keeps it identical to `requirements.txt`, except for the packages documented in `backend/requirements.prod-exclude.txt`, and checks import coverage. `python -m app.tools.selfcheck` (run by `deploy.sh`, `verify_portability.sh` and CI) imports every module in the built images.
+

@@ -195,6 +195,11 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Empty states: NeedSystem CTA, Systems "Register your first system", Evidence Sources "Add a source or upload a scan", Leadership "No systems yet", Workflow ongoing stages "not configured" when no records.
 - Fixed tenant leak: audit log items + category counts now tenant-scoped.
 
+### requirements.prod drift guard + OpenRouter (Oct 2026)
+- A production outage was caused by python-multipart missing from requirements.prod.txt. requirements.prod.txt now holds the same pins as requirements.txt (77 packages). 88 packages are left out, each listed with a reason in requirements.prod-exclude.txt: dev tools, the preview AI adapter and its transitive dependencies, and unused template leftovers.
+- scripts/check_requirements.py checks pins, exclusions, import coverage and implicit runtime dependencies; it runs in pytest and CI. app.tools.selfcheck imports every app and worker module; deploy.sh runs it in both images after build, and so do verify_portability and CI. A clean venv with only requirements.prod.txt passed: pip check, selfcheck, uvicorn /health and /ready returned 200, and the worker started.
+- AI_PROVIDER=openrouter uses httpx Chat Completions. The model slug is passed through verbatim. Per-use-case env models are supported, and an admin model override takes precedence over them. Structured output tries json_schema, then json_object, then a plain prompt; every reply is validated with Pydantic with one repair retry. 429/502/503 are retried using Retry-After; 402, 401, 404 and timeouts give clear messages. ANTHROPIC_API_KEY is never read in this mode. Templates, check_env and docs were updated.
+
 ### Env templates shipped to GitHub (Oct 2026)
 - .gitignore: `.env`, `.env.*` and `*.env` ignored every template. Added negations for `*.example` and `env.template`. Real env files, keys, pem and credentials stay ignored. Removed duplicate and legacy cache entries.
 - Non-dot copies sit next to each template, identical in content: env.template, backend/env.template, backend/worker/env.template, frontend/env.template, deploy/digitalocean/env.production.template and env.staging.template. Docs, README, CI, verify_portability and the deploy.sh hint now copy from the *.template files.

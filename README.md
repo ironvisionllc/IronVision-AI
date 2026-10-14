@@ -110,8 +110,9 @@ yarn install && yarn start
 ## Docker Compose
 
 ```bash
-cp env.template .env      # set real secrets; AI_PROVIDER=anthropic + ANTHROPIC_API_KEY to enable AI
+cp env.template .env      # set real secrets; AI_PROVIDER=openrouter + OPENAI_COMPAT_API_KEY + AI_MODEL to enable AI
 docker compose up -d --build
+# requirements: backend/requirements.prod.txt is enforced by python3 scripts/check_requirements.py
 # DigitalOcean / production: scripts/deploy.sh deploy/digitalocean/.env.production  (fail-fast, see docs/DIGITALOCEAN_DEPLOYMENT.md §0)
 # services: postgres, seaweedfs (profile seaweedfs, S3 on the internal network) + objectstore-init (bucket bootstrap, our backend image), migrate (alembic upgrade head + seed, one-shot), backend :8001, worker, frontend :3000
 ./scripts/verify_portability.sh   # builds, boots, waits for health, checks login/RBAC/catalog/tests, prints PASS/FAIL
@@ -132,10 +133,12 @@ docker compose up -d --build
 | `STORAGE_DRIVER` | backend, worker | `local` or `s3` (required) |
 | `STORAGE_LOCAL_ROOT` | local driver | Filesystem root |
 | `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | s3 driver | SeaweedFS (bundled, `COMPOSE_PROFILES=seaweedfs`) / AWS S3 / DO Spaces / Garage / Ceph RGW. `S3_ADDRESSING_STYLE` = path (self-hosted) or virtual (Spaces/AWS). MinIO was removed – its community images are no longer published |
-| `AI_PROVIDER` | backend | `anthropic`, `openai_compatible`, `emergent` (dev only), `none` |
-| `AI_MODEL`, `AI_TIMEOUT_SECONDS` | backend | Model id (e.g. `claude-sonnet-5-5`) and timeout |
+| `AI_PROVIDER` | backend | `openrouter` (recommended: one key, any model), `anthropic`, `openai_compatible`, `emergent` (dev only), `none` |
+| `AI_MODEL`, `AI_TIMEOUT_SECONDS`, `AI_TEMPERATURE` | backend | Any model slug passed verbatim (OpenRouter: `openai/gpt-4o`, `anthropic/claude-3.5-sonnet`, …), timeout, temperature. Admin page can override the model |
+| `AI_MODEL_DRAFTING`, `AI_MODEL_POLICY`, `AI_MODEL_MAPPING`, `AI_MODEL_SUMMARY` | backend | Optional per-use-case models (fall back to `AI_MODEL`) |
 | `ANTHROPIC_API_KEY` | anthropic adapter | Direct Anthropic API key |
-| `OPENAI_COMPAT_BASE_URL`, `OPENAI_COMPAT_API_KEY` | openai_compatible | Self-hosted / gateway endpoint |
+| `OPENAI_COMPAT_BASE_URL`, `OPENAI_COMPAT_API_KEY` | openrouter / openai_compatible | The only key for OpenRouter (base URL defaults to `https://openrouter.ai/api/v1`); self-hosted / gateway endpoint otherwise |
+| `OPENROUTER_SITE_URL`, `OPENROUTER_APP_NAME` | openrouter | Optional `HTTP-Referer` / `X-Title` attribution headers |
 | `EMERGENT_LLM_KEY`, `EMERGENT_AI_VENDOR` | emergent adapter | Emergent preview only |
 | `CONTENT_DIR`, `CONTENT_FETCH_REMOTE` | worker | Vendored content dir; remote re-fetch toggle |
 | `WORKER_ID`, `WORKER_POLL_SECONDS`, `WORKER_HEARTBEAT_STALE_SECONDS` | worker / health | Worker tuning |

@@ -1,0 +1,92 @@
+# Packages in requirements.txt (dev/preview freeze) that are deliberately NOT installed in production images.
+# One per line: <name>  # <reason>. Everything else in requirements.txt MUST be in requirements.prod.txt with the
+# same pinned version (enforced by scripts/check_requirements.py). When unsure, include the package instead.
+# '[optional]' = may be imported lazily (inside a function) by preview-only code paths.
+aiohappyeyeballs  # transitive dependency of emergentintegrations only
+aiohttp  # transitive dependency of emergentintegrations only
+aiosignal  # transitive dependency of emergentintegrations only
+ast_serialize  # transitive dependency of mypy only
+bandit  # dev security linter (CI installs it separately)
+black  # dev formatter
+boolean.py  # transitive dependency of pip-audit only
+CacheControl  # transitive dependency of pip-audit only
+cyclonedx-python-lib  # transitive dependency of pip-audit only
+dnspython  # transitive dependency of email-validator, motor only
+ecdsa  # transitive dependency of python-jose only
+email-validator  # not imported – the API uses no EmailStr fields
+emergentintegrations  # [optional] preview-only Emergent AI adapter, lazily imported; AI_PROVIDER=emergent is refused in staging/production
+execnet  # transitive dependency of pytest-xdist only
+fastuuid  # transitive dependency of emergentintegrations only
+filelock  # transitive dependency of emergentintegrations only
+flake8  # dev linter
+frozenlist  # transitive dependency of emergentintegrations only
+fsspec  # transitive dependency of emergentintegrations only
+google-ai-generativelanguage  # transitive dependency of emergentintegrations only
+google-api-core  # transitive dependency of emergentintegrations only
+google-api-python-client  # transitive dependency of emergentintegrations only
+google-auth  # transitive dependency of emergentintegrations only
+google-auth-httplib2  # transitive dependency of emergentintegrations only
+google-genai  # transitive dependency of emergentintegrations only
+google-generativeai  # transitive dependency of emergentintegrations only
+googleapis-common-protos  # transitive dependency of emergentintegrations, grpcio-status only
+grpcio  # transitive dependency of grpcio-status only
+grpcio-status  # Google API tooling installed with the preview AI adapter; not imported
+hf-xet  # transitive dependency of emergentintegrations only
+httplib2  # transitive dependency of emergentintegrations only
+huggingface_hub  # transitive dependency of emergentintegrations only
+importlib_metadata  # transitive dependency of emergentintegrations only
+isort  # dev import sorter
+Jinja2  # transitive dependency of emergentintegrations only
+jq  # Emergent preview tooling; not imported
+librt  # transitive dependency of mypy only
+license-expression  # transitive dependency of pip-audit only
+litellm  # transitive dependency of emergentintegrations only
+markdown-it-py  # transitive dependency of bandit, pip-audit, typer only
+mccabe  # transitive dependency of flake8 only
+mdurl  # transitive dependency of bandit, pip-audit, typer only
+motor  # Emergent template MongoDB driver; the app uses PostgreSQL only
+msgpack  # transitive dependency of pip-audit only
+multidict  # transitive dependency of emergentintegrations only
+mypy  # dev type checker
+mypy_extensions  # transitive dependency of black, isort, mypy only
+numpy  # transitive dependency of pandas only
+oauthlib  # transitive dependency of requests-oauthlib only
+packageurl-python  # transitive dependency of pip-audit only
+pandas  # not imported by container code
+passlib  # not imported – passwords use bcrypt directly
+pathspec  # transitive dependency of black, mypy only
+pip_api  # transitive dependency of pip-audit only
+pip_audit  # dev dependency auditor (CI installs it separately)
+pip-requirements-parser  # transitive dependency of pip-audit only
+platformdirs  # transitive dependency of black, pip-audit only
+propcache  # transitive dependency of emergentintegrations only
+proto-plus  # transitive dependency of emergentintegrations only
+protobuf  # transitive dependency of emergentintegrations, grpcio-status only
+py-serializable  # transitive dependency of pip-audit only
+pyasn1  # transitive dependency of emergentintegrations, python-jose only
+pyasn1_modules  # transitive dependency of emergentintegrations only
+pycodestyle  # transitive dependency of flake8 only
+pyflakes  # transitive dependency of flake8 only
+pymongo  # transitive dependency of motor only
+pyparsing  # transitive dependency of emergentintegrations, pip-audit only
+pytest-asyncio  # local test-runner plugin (container test runs do not use it)
+pytest-xdist  # local parallel test runner (make test -n); containers run pytest serially
+python-jose  # not imported – tokens use PyJWT
+pytokens  # transitive dependency of black only
+requests-oauthlib  # not imported; no production package requires it
+rich  # transitive dependency of bandit, pip-audit, typer only
+rsa  # transitive dependency of python-jose only
+s5cmd  # Emergent preview tooling (S3 CLI); not imported
+shellingham  # transitive dependency of typer only
+sortedcontainers  # transitive dependency of pip-audit only
+stevedore  # transitive dependency of bandit only
+stripe  # transitive dependency of emergentintegrations only
+tenacity  # transitive dependency of emergentintegrations only
+tiktoken  # transitive dependency of emergentintegrations only
+tokenizers  # transitive dependency of emergentintegrations only
+tomli  # transitive dependency of pip-audit only
+tomli_w  # transitive dependency of pip-audit only
+typer  # CLI tooling; not imported
+uritemplate  # transitive dependency of emergentintegrations only
+yarl  # transitive dependency of emergentintegrations only
+zipp  # transitive dependency of emergentintegrations only

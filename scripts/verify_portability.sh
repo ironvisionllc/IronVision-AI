@@ -37,6 +37,8 @@ docker compose config -q && pass "docker compose config valid" || fail "docker c
 
 step "Build images (backend, worker, frontend)"
 docker compose build && pass "images built" || { fail "image build failed"; exit 1; }
+docker compose run --rm --no-deps -T backend python -m app.tools.selfcheck && pass "backend image imports every module" || { fail "backend image self-check (requirements.prod.txt)"; exit 1; }
+docker compose run --rm --no-deps -T worker python -m app.tools.selfcheck && pass "worker image imports every module" || { fail "worker image self-check (requirements.prod.txt)"; exit 1; }
 
 step "Start stack"
 docker compose up -d && pass "compose up" || { fail "compose up failed"; exit 1; }

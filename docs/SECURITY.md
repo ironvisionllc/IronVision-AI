@@ -66,3 +66,10 @@ Report suspected vulnerabilities privately to the IronVision security contact. D
   - Persona approvals are labelled "simulated signature – not CAC/PIV · sandbox persona".
   - **One human holds all personas, so this is NOT acceptable separation of duties for production.** Production tenants keep strict real-identity SoD and real role assignments.
 - Sandbox data is purged after `SANDBOX_INACTIVITY_DAYS` without activity: tenant rows, evidence objects and accounts. A platform audit record keeps only the tenant id and counts. Purge never applies to non-sandbox tenants.
+
+## AI data handling (`AI_PROVIDER=openrouter` / `openai_compatible` / `anthropic`)
+- Prompts contain control context, evidence metadata, policy text and finding titles. With `openrouter` they go to OpenRouter **and onward to the provider of the selected model**. Choose models and providers that fit the data policy (OpenRouter provider routing, data-retention and "no training" settings), and prefer self-hosted `openai_compatible` endpoints for data that must not leave your boundary.
+- Dev and staging use **synthetic data only**.
+- Only one key is used (`OPENAI_COMPAT_API_KEY` for OpenRouter). It is sent only as a bearer header. It is never logged, returned by the API or shown in the UI; the admin page shows only "configured". `ANTHROPIC_API_KEY` is never read in openrouter mode.
+- Every call is recorded in `ai_interactions` (provider, model, prompt id/version, input SHA-256, token usage, validation status). Output is schema-validated and never auto-approved; human approval stays locked on.
+

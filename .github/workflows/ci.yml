@@ -33,7 +33,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
-      - run: pip install -r requirements.prod.txt pytest httpx pip-audit bandit
+      - run: pip install -r requirements.prod.txt
+      - name: prod-install smoke (only requirements.prod.txt installed)
+        run: python -m app.tools.selfcheck && python ../scripts/check_requirements.py
+      - run: pip install pip-audit bandit pytest-xdist
       - run: alembic upgrade head
       - run: python -m pytest -c pytest.aegis.ini tests -q
       - run: python -m pytest -c pytest.aegis.ini tests/acceptance -v

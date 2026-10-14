@@ -371,19 +371,43 @@ docker image prune -f && docker builder prune -f --filter until=168h
 
 ---
 
-## 8. Direct AI provider (no Emergent)
+## 8. AI provider (no Emergent) – OpenRouter recommended
 
+**OpenRouter** is a single key and a single endpoint for many model vendors. Set the model with `AI_MODEL` (any OpenRouter slug, passed through verbatim, no allowlist in code), or in **Admin → AI administration → Model**. No code change is needed to switch models.
 ```env
-AI_PROVIDER=anthropic           # or openai_compatible, or none
-AI_MODEL=<model id from your provider>
-ANTHROPIC_API_KEY=<key>
-# openai_compatible (self-hosted vLLM/Ollama/LiteLLM or any OpenAI-style endpoint):
-OPENAI_COMPAT_BASE_URL=http://llm.internal:8000/v1
-OPENAI_COMPAT_API_KEY=<key or empty>
+AI_PROVIDER=openrouter
+OPENAI_COMPAT_API_KEY=sk-or-v1-...            # the ONLY key needed (https://openrouter.ai/keys)
+AI_MODEL=openai/gpt-4o                        # e.g. openai/gpt-4.1, anthropic/claude-3.5-sonnet, meta-llama/llama-3.1-70b-instruct, mistralai/mistral-large
+# optional
+OPENAI_COMPAT_BASE_URL=                       # default https://openrouter.ai/api/v1 (must be https:// in staging/production)
+AI_MODEL_DRAFTING=                            # control implementation statements
+AI_MODEL_POLICY=                              # policy audit
+AI_MODEL_MAPPING=                             # finding → control mapping
+AI_MODEL_SUMMARY=                             # summaries
+AI_TEMPERATURE=0.2
+AI_TIMEOUT_SECONDS=60
+OPENROUTER_SITE_URL=https://app.example.gov   # sent as HTTP-Referer
+OPENROUTER_APP_NAME=IronVision AI             # sent as X-Title
+ANTHROPIC_API_KEY=                            # leave empty – never read with openrouter (check_env warns if set)
 ```
-- Verify: Admin → **AI provider check** (button), or `curl -fsS -X POST -H "Authorization: Bearer <platform admin token>" https://$APP_DOMAIN/api/v1/ai/health`. This sends a connectivity probe through the configured provider and records it in the audit log. `GET /api/v1/admin/ai-settings` shows the active provider and model.
-- Disable AI entirely with `AI_PROVIDER=none`. AI draft buttons then show an honest "AI not configured" state, and nothing is ever auto-approved.
-- The Emergent adapter is **not used in production**. Its library (`emergentintegrations`) is not in `requirements.prod.txt`. `AI_PROVIDER=emergent` is rejected by `check_env.py`, and the backend refuses to build it when `APP_ENV` is staging or production.
+- **Model precedence:** admin model (UI, per organization) > `AI_MODEL_<USE CASE>` > `AI_MODEL`. The admin page shows the effective provider, base URL, model, and whether a key is configured. It never shows the key itself.
+- **Requests:** OpenAI Chat Completions schema (`POST {base}/chat/completions`) over httpx. Structured output tries `response_format` json_schema (strict), then json_object, then a plain prompt that says "return only JSON matching this schema". The first mode an endpoint/model rejects is skipped on later calls. Every reply is validated with Pydantic (```json fences are stripped) and gets one repair retry; after that the call fails with a clear message.
+- **Errors:**
+  - 429/502/503 are retried 3 times, honouring `Retry-After`.
+  - **402** means *insufficient credits*: add credits at https://openrouter.ai/settings/credits or pick a cheaper model.
+  - 401 means the key was rejected. Timeouts report `AI_TIMEOUT_SECONDS`.
+  - Each call is logged to `ai_interactions` with provider, model and token usage. The key is never logged.
+- **Other providers:** `AI_PROVIDER=openai_compatible` with `OPENAI_COMPAT_BASE_URL` covers self-hosted vLLM, Ollama or LiteLLM (the key is optional there). `AI_PROVIDER=anthropic` with `ANTHROPIC_API_KEY` is the direct Anthropic API. `AI_PROVIDER=none` disables AI.
+- **Data handling:** prompts (control context, policy text, finding titles) go to OpenRouter and onward to the chosen model's provider. Pick models and providers that match your data policy (OpenRouter provider routing and data-retention settings). Use synthetic data only in dev and staging. Details are in `docs/SECURITY.md`.
+- **Verify:** Admin → **Run AI health check**, or `curl -fsS -X POST -H "Authorization: Bearer <platform admin token>" https://$APP_DOMAIN/api/v1/ai/health`. This sends one schema-validated probe through the configured provider and records it in the audit log.
+- The Emergent adapter is **not used in production**. Its library (`emergentintegrations`) is not in `requirements.prod.txt`. `AI_PROVIDER=emergent` is rejected by `check_env.py` and refused when `APP_ENV` is staging or production.
+
+### 8.1 Python dependencies (prevents the python-multipart outage)
+The backend and worker images install **only** `backend/requirements.prod.txt`. Its rules:
+- It pins every package in `requirements.txt` at the same version.
+- The only exceptions are the packages listed in `backend/requirements.prod-exclude.txt`, each with its reason (dev tools, the preview AI adapter and its transitive dependencies, unused template leftovers).
+- `python3 scripts/check_requirements.py` enforces this. It also checks that every third-party import in `backend/app`, `backend/worker` and `backend/alembic` maps to a production distribution. It runs in CI and pytest.
+- `scripts/deploy.sh` runs `python -m app.tools.selfcheck` inside the freshly built **backend and worker** images, which imports every module. This happens *before* anything is started, so a missing package fails the deploy instead of taking the running service down.
 
 ---
 
