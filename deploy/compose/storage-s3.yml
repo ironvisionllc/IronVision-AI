@@ -1,0 +1,20 @@
+# Added automatically by scripts/deploy.sh when STORAGE_DRIVER=s3 (never for STORAGE_DRIVER=local).
+# Missing S3 settings fail at `docker compose config` with a readable message instead of becoming blank strings.
+x-s3-required: &s3-required
+  S3_BUCKET: ${S3_BUCKET:?S3_BUCKET must be set in your env file}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?S3_ACCESS_KEY_ID must be set in your env file - built-in store - run python3 scripts/gen_env_secrets.py ENV_FILE}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?S3_SECRET_ACCESS_KEY must be set in your env file - built-in store - run python3 scripts/gen_env_secrets.py ENV_FILE}
+
+services:
+  objectstore-init:
+    environment:
+      <<: *s3-required
+  migrate:
+    environment:
+      <<: *s3-required
+  backend:
+    environment:
+      <<: *s3-required
+  worker:
+    environment:
+      <<: *s3-required

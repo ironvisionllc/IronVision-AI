@@ -24,22 +24,54 @@ MinIO discontinued its community edition. `minio/minio` and `minio/mc` are no lo
 - **Backup/restore/off-site/migration:** `python -m app.tools.objsync` (inside the backend image) copies objects between directories and any S3 endpoint and verifies each one with SHA-256.
 - **Renamed variables:** `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` → `S3_ADMIN_ACCESS_KEY_ID`/`S3_ADMIN_SECRET_ACCESS_KEY`. The old names are still read as a fallback and `check_env` warns. The app identity is `S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY`, which **must differ** from the admin key.
 
-**Recovering a failed deployment** (Droplet, as `ironvision`, in `/opt/ironvision/app`):
+**Always deploy with `scripts/deploy.sh`.** It is the one supported deploy command and it stops at the first failure with a non-zero exit. It prints `#### DEPLOYMENT FAILED at step "<step>"` plus a hint, and `#### DEPLOYMENT SUCCEEDED` only after `/api/v1/ready` answers. In order, it:
+1. runs `check_env`;
+2. always uses `docker compose -p ironvision --env-file <file> -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml` plus the storage overlays (`deploy/compose/storage-s3.yml`, and `storage-seaweedfs.yml` for the built-in store);
+3. takes `COMPOSE_PROFILES` from the env file;
+4. refuses to run while containers of the old `aegisrmf` project are running;
+5. creates the `${DATA_ROOT}` directories with the right owners, whether run as root or as `ironvision`;
+6. runs `config -q` → pull → build → postgres → seaweedfs → `objectstore-init` → migrate → app → readiness check → summary.
+
+`scripts/deploy.sh deploy/digitalocean/.env.staging --staging` deploys staging. `--skip-edge-check` skips the public HTTPS check (first TLS bootstrap only). Any wrapper script must not print "Deployment complete" when a step fails: call `deploy.sh` and check its exit code. **The "Cleaning unused images / Deployment complete" wrapper is not part of this repository.**
+
+### 0.1 Troubleshooting: `"S3_ACCESS_KEY_ID" variable is not set`, no seaweedfs container, `objectstore-init` exit 1
+**Symptom:**
+- `WARN "S3_ACCESS_KEY_ID" / "S3_SECRET_ACCESS_KEY" variable is not set. Defaulting to a blank string`;
+- a volume `aegisrmf_localobjects` and project `aegisrmf`;
+- **no** seaweedfs container;
+- `service "objectstore-init" didn't complete successfully: exit 1`.
+
+**Cause:** `docker compose up` was run from the repo root with only the base `docker-compose.yml` and the root `.env`. The `--env-file deploy/digitalocean/.env.production` and the DigitalOcean overlays were missing. As a result, `COMPOSE_PROFILES=seaweedfs` was never read, so seaweedfs never started, and the S3 keys were blank.
+
+**What happens now:**
+- The base files require `STORAGE_DRIVER`, so a run without an env file fails at `config` with *"STORAGE_DRIVER must be set in your env file"*.
+- The storage overlays fail with *"S3_ACCESS_KEY_ID must be set in your env file"*.
+- `check_env` and `deploy.sh` refuse the built-in store without *"COMPOSE_PROFILES=seaweedfs is required when using the built-in object store"*.
+- `objectstore-init` names each missing variable, or the unreachable endpoint, or the failing identity.
+
+**Quick recovery for exactly this state** (as root in `/opt/ironvision/IronVision-AI`, after the fixed release has been pushed to GitHub):
 ```bash
-git pull && git checkout <release-with-seaweedfs>
-$COMPOSE down --remove-orphans                       # removes the failed minio/minio-init containers
-# edit deploy/digitalocean/.env.production – remove MINIO_* lines and add (generate the secrets with openssl):
-#   COMPOSE_PROFILES=seaweedfs
-#   SEAWEEDFS_IMAGE=chrislusf/seaweedfs:4.48
-#   S3_ACCESS_KEY_ID=ivapp<random>          S3_SECRET_ACCESS_KEY=<openssl rand -base64 48 | tr -d '\n=+/' | cut -c1-48>
-#   S3_ADMIN_ACCESS_KEY_ID=ivadmin<random>  S3_ADMIN_SECRET_ACCESS_KEY=<different random>
-#   S3_ENDPOINT_URL=    S3_ADDRESSING_STYLE=path    S3_BUCKET_VERSIONING=true
-sudo install -d -m 750 -o root -g root /srv/ironvision/objectstore
-python3 scripts/check_env.py deploy/digitalocean/.env.production            # RESULT: PASS
-$COMPOSE config -q && $COMPOSE pull seaweedfs && $COMPOSE build
-$COMPOSE up -d seaweedfs && $COMPOSE run --rm objectstore-init               # expect "[s3-bootstrap] READY"
-$COMPOSE up -d && $COMPOSE ps && curl -fsS https://$APP_DOMAIN/api/v1/ready
+cd /opt/ironvision/IronVision-AI
+git pull
+F=deploy/digitalocean/.env.production
+test -f $F || cp deploy/digitalocean/.env.production.example $F
+chmod 600 $F
+python3 scripts/gen_env_secrets.py $F          # fills only EMPTY secrets (DB, JWT, Fernet, SeaweedFS app + admin keys); never overwrites
+nano $F                                        # set APP_DOMAIN, FRONTEND_URL, CORS_ORIGINS, OIDC_* ; keep COMPOSE_PROFILES=seaweedfs, STORAGE_DRIVER=s3, S3_ENDPOINT_URL= (empty)
+docker ps -aq --filter label=com.docker.compose.project=aegisrmf | xargs -r docker rm -f   # removes the failed old-project containers; volumes are kept
+docker network rm aegisrmf_default 2>/dev/null || true
+python3 scripts/check_env.py $F                # must print RESULT: PASS
+scripts/deploy.sh $F                           # add --skip-edge-check only if TLS (§4) is not set up yet
 ```
+The failed run never finished `migrate`, so the old `aegisrmf_*` volumes hold no evidence. Once the new stack is healthy, remove them with `docker volume rm aegisrmf_pgdata aegisrmf_localobjects aegisrmf_objectstore`.
+
+**Fallback without an object-store container** (evidence on the Block Storage volume, `${DATA_ROOT}/objects`):
+```bash
+sed -i 's/^STORAGE_DRIVER=.*/STORAGE_DRIVER=local/; s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=/' $F
+python3 scripts/check_env.py $F && scripts/deploy.sh $F    # objectstore-init prints "local storage driver – nothing to initialize"
+```
+
+**Older guide versions (recovery from the MinIO-era files):** remove the `MINIO_*` lines from the env file. Then run `python3 scripts/gen_env_secrets.py $F` and `scripts/deploy.sh $F`. The `MINIO_ROOT_*` names are still read as a fallback for the admin key only.
 
 **Migrating evidence that already sits in a MinIO volume.** Copying MinIO's raw `/data` files is **not safe**: MinIO stores objects in its own `xl.meta` format, not as plain files.
 - **If the old MinIO server is still running**, from an old image you still have locally: point objsync at it as the source.
@@ -179,7 +211,7 @@ sudo mount -a && df -h /srv/ironvision /srv/ironvision/backups
 ```bash
 sudo install -d -m 700 -o 70 -g 70 /srv/ironvision/postgres          # postgres:16-alpine runs as uid/gid 70
 sudo install -d -m 750 -o root -g root /srv/ironvision/objectstore   # SeaweedFS data (container runs as root)
-sudo install -d -m 750 /srv/ironvision/objects                       # only for STORAGE_DRIVER=local
+sudo install -d -m 750 -o 10001 -g 10001 /srv/ironvision/objects     # STORAGE_DRIVER=local (backend/worker run as uid 10001)
 sudo install -d -m 755 /srv/ironvision/letsencrypt /srv/ironvision/certbot/www
 sudo install -d -m 750 -o ironvision -g ironvision /srv/ironvision/backups
 ```
@@ -189,19 +221,13 @@ sudo install -d -m 750 -o ironvision -g ironvision /srv/ironvision/backups
 sudo install -d -o ironvision -g ironvision /opt/ironvision && cd /opt/ironvision
 git clone <your-git-remote>/ironvision-ai.git app && cd app && git checkout <release-tag>
 cp deploy/digitalocean/.env.production.example deploy/digitalocean/.env.production && chmod 600 deploy/digitalocean/.env.production
-# generate secrets (paste into the env file; never commit it)
-for k in POSTGRES_PASSWORD S3_SECRET_ACCESS_KEY S3_ADMIN_SECRET_ACCESS_KEY JWT_SECRET; do echo "$k=$(openssl rand -base64 48 | tr -d '\n=+/' | cut -c1-48)"; done
-echo "S3_ACCESS_KEY_ID=ivapp$(openssl rand -hex 6)"; echo "S3_ADMIN_ACCESS_KEY_ID=ivadmin$(openssl rand -hex 6)"
-echo "SECRET_STORE_KEY=$(python3 -c 'import base64,os;print(base64.urlsafe_b64encode(os.urandom(32)).decode())')"
+python3 scripts/gen_env_secrets.py deploy/digitalocean/.env.production   # fills empty secrets in place; never overwrites, never prints them
 python3 scripts/check_env.py deploy/digitalocean/.env.production        # must print RESULT: PASS
 sudo cp deploy/digitalocean/docker-daemon.json /etc/docker/daemon.json && sudo systemctl restart docker   # log rotation
-
-export COMPOSE="docker compose -p ironvision --env-file deploy/digitalocean/.env.production -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml"
-$COMPOSE config -q && $COMPOSE build
-# TLS first (see §4), then:
-$COMPOSE up -d            # postgres + seaweedfs → objectstore-init (bucket, versioning, SHA-256 round-trip) → migrate (alembic upgrade head + reference content) → backend/worker/frontend/edge
-$COMPOSE ps && curl -fsS https://$APP_DOMAIN/api/v1/ready
+# TLS first (see §4), then – the only supported deploy command (also creates the §2.10 directories with the right owners):
+scripts/deploy.sh deploy/digitalocean/.env.production
 ```
+`deploy.sh` runs, in order: check_env → config → pull → build → postgres → seaweedfs → objectstore-init (bucket, versioning, SHA-256 round-trip) → migrate (alembic + reference content) → backend/worker/frontend/edge → `/api/v1/ready`. It stops at the first failure. For later `ps` / `logs` commands it prints the exact compose command in its summary (`export COMPOSE="docker compose -p ironvision --env-file deploy/digitalocean/.env.production -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml"`).
 
 **Start on boot:** every long-running service uses `restart: unless-stopped`. The optional systemd unit adds an env check and ordered start/stop:
 ```bash

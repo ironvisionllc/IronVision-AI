@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+# IronVision AI – the one supported deploy command (DigitalOcean Droplet or any Docker host).
+#   scripts/deploy.sh [ENV_FILE] [--staging] [--project NAME] [--skip-edge-check] [--no-pull]
+# ENV_FILE defaults to deploy/digitalocean/.env.production. Stops at the first failure with a non-zero exit;
+# "DEPLOYMENT SUCCEEDED" is printed only after /api/v1/ready answered. Works as root or as a docker-group user.
+set -Eeuo pipefail
+
+ENV_FILE="deploy/digitalocean/.env.production"
+PROJECT=""
+STAGING=0
+SKIP_EDGE=0
+PULL=1
+READY_TIMEOUT="${READY_TIMEOUT:-240}"
+LEGACY_PROJECT="aegisrmf"
+
+usage() { sed -n '2,5p' "$0"; }
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --staging) STAGING=1 ;;
+    --project) PROJECT="${2:?--project needs a name}"; shift ;;
+    --skip-edge-check) SKIP_EDGE=1 ;;
+    --no-pull) PULL=0 ;;
+    -h|--help) usage; exit 0 ;;
+    -*) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
+    *) ENV_FILE="$1" ;;
+  esac
+  shift
+done
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+STEP="preflight"
+HINT=""
+STARTED=$(date +%s)
+
+finish() {
+  local rc=$?
+  if [ "$rc" -ne 0 ]; then
+    printf '\n#### DEPLOYMENT FAILED at step "%s" (exit %s). Later steps were NOT run.\n' "$STEP" "$rc" >&2
+    if [ -n "$HINT" ]; then printf '#### %s\n' "$HINT" >&2; fi
+  fi
+}
+trap finish EXIT
+
+step() { STEP="$1"; HINT="${2:-}"; printf '\n==== [%s] %s\n' "$(date +%H:%M:%S)" "$1"; }
+die() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
+warn() { printf 'WARN: %s\n' "$*" >&2; }
+envget() {
+  local v
+  v="$(grep -E "^[[:space:]]*$1[[:space:]]*=" "$ENV_FILE" | tail -n 1 || true)"
+  v="${v#*=}"
+  v="$(printf '%s' "$v" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  v="${v#\"}"; v="${v%\"}"; v="${v#\'}"; v="${v%\'}"
+  printf '%s' "$v"
+}
+has_profile() { case ",$PROFILES," in *",$1,"*) return 0 ;; esac; return 1; }
+
+# ---------------------------------------------------------------- preflight
+step "preflight"
+[ -f "$ENV_FILE" ] || die "env file not found: $ENV_FILE
+  create it:  cp deploy/digitalocean/.env.production.example $ENV_FILE && python3 scripts/gen_env_secrets.py $ENV_FILE"
+case "$(stat -c %a "$ENV_FILE")" in 600|400) ;; *) warn "$ENV_FILE is readable by others – run: chmod 600 $ENV_FILE" ;; esac
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=()
+  if id ironvision >/dev/null 2>&1; then OPERATOR=ironvision; else OPERATOR=root; fi
+  warn "running as root – supported. Recommended: a dedicated 'ironvision' user in the docker group (guide §2)."
+else
+  SUDO=(sudo)
+  OPERATOR="$(id -un)"
+fi
+OPGROUP="$(id -gn "$OPERATOR")"
+command -v python3 >/dev/null || die "python3 is required on the host (apt-get install -y python3)"
+command -v docker >/dev/null || die "docker is not installed (guide §2)"
+docker info >/dev/null 2>&1 || die "cannot reach the Docker daemon – run as root or as a user in the docker group"
+CV="$(docker compose version --short 2>/dev/null || true)"
+[ -n "$CV" ] || die "the Docker Compose plugin is missing (apt-get install -y docker-compose-plugin)"
+[ "$(printf '%s\n%s\n' 2.24.0 "${CV#v}" | sort -V | head -n 1)" = "2.24.0" ] || die "Docker Compose >= 2.24 is required (found $CV)"
+echo "docker compose $CV, operator=$OPERATOR"
+if [ -n "$(docker ps -q --filter "label=com.docker.compose.project=$LEGACY_PROJECT")" ]; then
+  die "containers of the old compose project '$LEGACY_PROJECT' are still running (they hold ports and confuse the stack).
+  Remove them first – named volumes are kept:
+    docker ps -aq --filter label=com.docker.compose.project=$LEGACY_PROJECT | xargs -r docker rm -f"
+fi
+if [ -n "$(docker ps -aq --filter "label=com.docker.compose.project=$LEGACY_PROJECT")" ]; then
+  warn "stopped containers of the old project '$LEGACY_PROJECT' exist; remove with: docker ps -aq --filter label=com.docker.compose.project=$LEGACY_PROJECT | xargs -r docker rm -f"
+fi
+
+# ---------------------------------------------------------------- env validation
+step "check_env" "fix every ERROR line above in $ENV_FILE, then re-run: scripts/deploy.sh $ENV_FILE"
+python3 scripts/check_env.py "$ENV_FILE"
+
+# ---------------------------------------------------------------- storage plan + compose command
+step "storage plan" "fix the storage settings in $ENV_FILE (guide §0 / §12.2)"
+DRIVER="$(envget STORAGE_DRIVER)"
+ENDPOINT="$(envget S3_ENDPOINT_URL)"
+PROFILES="$(envget COMPOSE_PROFILES | tr -d '[:space:]')"
+DATA_ROOT="$(envget DATA_ROOT)"
+APP_DOMAIN="$(envget APP_DOMAIN)"
+[ -n "$DATA_ROOT" ] || die "DATA_ROOT must be set in $ENV_FILE (e.g. /srv/ironvision)"
+FILES=(-f docker-compose.yml)
+if [ "$STAGING" -eq 1 ]; then
+  FILES+=(-f deploy/digitalocean/docker-compose.do.yml -f deploy/digitalocean/docker-compose.staging.yml)
+  PROJECT="${PROJECT:-ironvision-staging}"
+else
+  FILES+=(-f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml)
+  PROJECT="${PROJECT:-ironvision}"
+fi
+BUILTIN=0
+case "$DRIVER" in
+  local)
+    has_profile seaweedfs && die "STORAGE_DRIVER=local does not use the object store – remove seaweedfs from COMPOSE_PROFILES in $ENV_FILE"
+    MODE="local disk ($DATA_ROOT/objects)" ;;
+  s3)
+    FILES+=(-f deploy/compose/storage-s3.yml)
+    if [ -z "$ENDPOINT" ]; then
+      has_profile seaweedfs || die "COMPOSE_PROFILES=seaweedfs is required when using the built-in object store (STORAGE_DRIVER=s3 with S3_ENDPOINT_URL empty).
+  Add COMPOSE_PROFILES=seaweedfs to $ENV_FILE, or set S3_ENDPOINT_URL for external S3, or use STORAGE_DRIVER=local."
+      BUILTIN=1
+      FILES+=(-f deploy/compose/storage-seaweedfs.yml)
+      MODE="built-in SeaweedFS ($DATA_ROOT/objectstore)"
+    else
+      has_profile seaweedfs && die "S3_ENDPOINT_URL points to external S3 ($ENDPOINT) – remove seaweedfs from COMPOSE_PROFILES in $ENV_FILE"
+      MODE="external S3 ($ENDPOINT)"
+    fi ;;
+  *) die "STORAGE_DRIVER must be s3 or local in $ENV_FILE (got '$DRIVER')" ;;
+esac
+export COMPOSE_PROFILES="$PROFILES"
+DC=(docker compose -p "$PROJECT" --env-file "$ENV_FILE" "${FILES[@]}")
+echo "project=$PROJECT  storage=$MODE  profiles=${PROFILES:-none}"
+echo "compose: ${DC[*]}"
+
+# ---------------------------------------------------------------- directories (root or ironvision operator)
+step "data directories" "could not prepare $DATA_ROOT – run as root or a sudo-capable user"
+mk() { "${SUDO[@]}" install -d -m "$1" -o "$2" -g "$3" "$4"; printf '  %-40s %s:%s %s\n' "$4" "$2" "$3" "$1"; }
+"${SUDO[@]}" mkdir -p "$DATA_ROOT"
+mk 700 70 70 "$DATA_ROOT/postgres"                      # postgres:16-alpine uid/gid 70
+if [ "$BUILTIN" -eq 1 ]; then mk 750 0 0 "$DATA_ROOT/objectstore"; fi
+mk 750 10001 10001 "$DATA_ROOT/objects"                 # backend/worker uid 10001 (STORAGE_DRIVER=local)
+mk 755 0 0 "$DATA_ROOT/letsencrypt"
+mk 755 0 0 "$DATA_ROOT/certbot"
+mk 755 0 0 "$DATA_ROOT/certbot/www"
+mk 750 "$OPERATOR" "$OPGROUP" "$DATA_ROOT/backups"
+
+# ---------------------------------------------------------------- compose validation
+step "compose config" "the message above names the missing or invalid variable – set it in $ENV_FILE"
+"${DC[@]}" config -q
+SERVICES="$("${DC[@]}" config --services)"
+if [ "$BUILTIN" -eq 1 ] && ! grep -qx seaweedfs <<<"$SERVICES"; then
+  die "seaweedfs is not in the service set although the built-in object store is configured – COMPOSE_PROFILES=seaweedfs is required"
+fi
+echo "services: $(tr '\n' ' ' <<<"$SERVICES")"
+
+# ---------------------------------------------------------------- images
+if [ "$PULL" -eq 1 ]; then
+  step "pull images" "registry pull failed – check network/DNS and the image tags in $ENV_FILE (SEAWEEDFS_IMAGE)"
+  "${DC[@]}" pull --ignore-buildable
+fi
+step "build images" "image build failed – see the build output above"
+"${DC[@]}" build
+
+# ---------------------------------------------------------------- ordered start
+step "start postgres" "logs: ${DC[*]} logs --tail 100 postgres"
+"${DC[@]}" up -d --wait --wait-timeout 180 postgres
+if [ "$BUILTIN" -eq 1 ]; then
+  step "start object store (seaweedfs)" "logs: ${DC[*]} logs --tail 100 seaweedfs"
+  "${DC[@]}" up -d --wait --wait-timeout 180 seaweedfs
+fi
+step "objectstore-init" "read the '[s3-bootstrap] FAIL' line above – it names the setting to fix"
+"${DC[@]}" run --rm --no-deps objectstore-init
+step "migrate (alembic upgrade head + reference content)" "see the migration output above; database logs: ${DC[*]} logs postgres"
+"${DC[@]}" run --rm --no-deps migrate
+mapfile -t APP < <(grep -vxE 'postgres|seaweedfs|objectstore-init|migrate|certbot' <<<"$SERVICES")
+step "start application (${APP[*]})" "logs: ${DC[*]} logs --tail 200 ${APP[*]}"
+"${DC[@]}" up -d --no-deps "${APP[@]}"
+
+# ---------------------------------------------------------------- readiness
+step "wait for /api/v1/ready (max ${READY_TIMEOUT}s)" "backend not ready – logs: ${DC[*]} logs --tail 200 backend"
+deadline=$(( $(date +%s) + READY_TIMEOUT ))
+until "${DC[@]}" exec -T backend python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8001/api/v1/ready', timeout=5)" >/dev/null 2>&1; do
+  [ "$(date +%s)" -lt "$deadline" ] || die "backend did not report ready within ${READY_TIMEOUT}s"
+  sleep 3
+done
+echo "backend: ready"
+RUNNING="$("${DC[@]}" ps --status running --services)"
+for s in "${APP[@]}"; do
+  if [ "$s" = edge ] && [ "$SKIP_EDGE" -eq 1 ]; then continue; fi
+  grep -qx "$s" <<<"$RUNNING" || die "service '$s' is not running – logs: ${DC[*]} logs --tail 200 $s"
+done
+if grep -qx edge <<<"$SERVICES" && [ "$SKIP_EDGE" -eq 0 ]; then
+  step "public check https://$APP_DOMAIN/api/v1/ready" "public endpoint failed – check DNS for $APP_DOMAIN, the TLS certificate (guide §4) and the DO firewall; --skip-edge-check only for the first TLS bootstrap"
+  curl -fsS --max-time 15 --retry 10 --retry-delay 3 --retry-all-errors "https://$APP_DOMAIN/api/v1/ready" >/dev/null
+  echo "public endpoint: ready"
+fi
+
+# ---------------------------------------------------------------- summary
+STEP="summary"
+"${DC[@]}" ps
+printf '\n#### DEPLOYMENT SUCCEEDED in %ss\n' "$(( $(date +%s) - STARTED ))"
+printf '  project   %s\n  env file  %s\n  storage   %s\n  profiles  %s\n  url       https://%s\n' \
+  "$PROJECT" "$ENV_FILE" "$MODE" "${PROFILES:-none}" "$APP_DOMAIN"
+printf '  manage    %s ps | logs -f backend | stop\n' "${DC[*]}"

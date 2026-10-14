@@ -5,7 +5,10 @@
 set -euo pipefail
 REPO="${REPO:-/opt/ironvision/app}"
 ENV_FILE="${ENV_FILE:-$REPO/deploy/digitalocean/.env.production}"
-set -a; . "$ENV_FILE"; set +a
+set -a
+# shellcheck source=/dev/null
+. "$ENV_FILE"
+set +a
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${BACKUP_DIR:?}/ironvision-$TS"
 mkdir -p "$OUT"

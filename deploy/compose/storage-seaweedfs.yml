@@ -1,0 +1,22 @@
+# Added automatically by scripts/deploy.sh for the built-in object store (STORAGE_DRIVER=s3, S3_ENDPOINT_URL empty,
+# COMPOSE_PROFILES=seaweedfs). Requires the SeaweedFS admin + app identities and makes objectstore-init wait for a healthy seaweedfs.
+x-app-required: &app-required
+  S3_BUCKET: ${S3_BUCKET:?S3_BUCKET must be set in your env file}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?S3_ACCESS_KEY_ID must be set in your env file - run python3 scripts/gen_env_secrets.py ENV_FILE}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?S3_SECRET_ACCESS_KEY must be set in your env file - run python3 scripts/gen_env_secrets.py ENV_FILE}
+
+x-admin-required: &admin-required
+  S3_ADMIN_ACCESS_KEY_ID: ${S3_ADMIN_ACCESS_KEY_ID:-${MINIO_ROOT_USER:?S3_ADMIN_ACCESS_KEY_ID must be set in your env file - built-in SeaweedFS admin key - run python3 scripts/gen_env_secrets.py ENV_FILE}}
+  S3_ADMIN_SECRET_ACCESS_KEY: ${S3_ADMIN_SECRET_ACCESS_KEY:-${MINIO_ROOT_PASSWORD:?S3_ADMIN_SECRET_ACCESS_KEY must be set in your env file - run python3 scripts/gen_env_secrets.py ENV_FILE}}
+
+services:
+  seaweedfs:
+    environment:
+      <<: [*app-required, *admin-required]
+  objectstore-init:
+    environment:
+      <<: *admin-required
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+        required: true

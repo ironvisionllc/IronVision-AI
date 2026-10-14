@@ -112,6 +112,7 @@ yarn install && yarn start
 ```bash
 cp .env.example .env      # set real secrets; AI_PROVIDER=anthropic + ANTHROPIC_API_KEY to enable AI
 docker compose up -d --build
+# DigitalOcean / production: scripts/deploy.sh deploy/digitalocean/.env.production  (fail-fast, see docs/DIGITALOCEAN_DEPLOYMENT.md §0)
 # services: postgres, seaweedfs (profile seaweedfs, S3 on the internal network) + objectstore-init (bucket bootstrap, our backend image), migrate (alembic upgrade head + seed, one-shot), backend :8001, worker, frontend :3000
 ./scripts/verify_portability.sh   # builds, boots, waits for health, checks login/RBAC/catalog/tests, prints PASS/FAIL
 ```

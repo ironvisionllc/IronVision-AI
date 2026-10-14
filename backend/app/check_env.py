@@ -71,9 +71,18 @@ def storage_checks(env: Mapping[str, str], errors: list[str], warns: list[str]) 
     for prof, key in (("keycloak", "KEYCLOAK_ADMIN_PASSWORD"), ("monitoring", "GRAFANA_ADMIN_PASSWORD")):
         if prof in profiles and not env.get(key):
             errors.append(f"{key} is required when the {prof} profile is enabled")
-    driver = env.get("STORAGE_DRIVER") or "s3"
+    driver = env.get("STORAGE_DRIVER") or ""
+    seaweed_on = "seaweedfs" in {p.strip() for p in profiles.split(",")}
+    endpoint_host = urlparse(env.get("S3_ENDPOINT_URL") or "").hostname
     if driver not in ("s3", "local"):
-        errors.append(f"STORAGE_DRIVER must be s3 or local (got {driver!r})")
+        errors.append(f"STORAGE_DRIVER must be s3 or local (got {driver!r})" if driver else "STORAGE_DRIVER is required (s3 or local)")
+    if driver == "local" and seaweed_on:
+        errors.append("STORAGE_DRIVER=local does not use the object store – remove seaweedfs from COMPOSE_PROFILES")
+    if driver == "s3" and endpoint_host in (None, "seaweedfs") and not seaweed_on:
+        errors.append("COMPOSE_PROFILES=seaweedfs is required when using the built-in object store (STORAGE_DRIVER=s3 with "
+                      "S3_ENDPOINT_URL empty) – or set S3_ENDPOINT_URL for external S3, or use STORAGE_DRIVER=local")
+    if driver == "s3" and endpoint_host not in (None, "seaweedfs") and seaweed_on:
+        errors.append(f"S3_ENDPOINT_URL points to external S3 ({endpoint_host}) – remove seaweedfs from COMPOSE_PROFILES")
     if driver == "s3":
         for k in ("S3_BUCKET", "S3_REGION"):
             if not env.get(k):
