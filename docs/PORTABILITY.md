@@ -29,7 +29,7 @@ No Emergent auth, storage, database, queue, email or deploy services are used. A
 | pytest suite (33 tests: auth, RBAC 403/200, audit chain & append-only, catalog/CCI counts, storage local + S3 via moto) | **Executed – 33 passed** |
 | AI health through `AIService` (`emergent` adapter, `claude-sonnet-5-5`) | **Executed – success** |
 | `anthropic` and `openai_compatible` adapters | Code complete, **not executed** (no direct keys / endpoint in pod) |
-| `s3` storage driver against real MinIO | **Not executed** (moto-mocked S3 round-trip passes; MinIO exercised only by `verify_portability.sh`) |
+| `s3` storage driver against a real S3 server | **Executed in the pod against SeaweedFS 4.48** (`weed` binary, not the Docker image): bootstrap, live round-trip test, seed ingestion of 25 evidence objects, integrity job 25/25, `backup.sh` → `restore.sh` PASS, objsync bucket-to-bucket migration 31/31. The `chrislusf/seaweedfs:4.48` container itself is only syntax-checked (`docker compose config -q`). |
 | `docker compose config -q` (Compose v2.29.7 binary, no daemon) | **Executed – valid** |
 | hadolint on all three Dockerfiles | **Executed – no findings** (DL3008/DL3018/DL3007 pin warnings ignored) |
 | `pip install -r requirements.prod.txt` in a clean venv (no emergentintegrations) + full pytest run from that venv | **Executed – install OK, 33 passed** |

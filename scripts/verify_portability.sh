@@ -25,7 +25,7 @@ step "Environment"
 if [ ! -f .env ]; then
   cp .env.example .env
   R() { python3 -c "import secrets;print(secrets.token_hex(24))"; }
-  FK=$(python3 -c "import base64,os;print(base64.urlsafe_b64encode(os.urandom(32)).decode())"); sed -i.bak "s/^SECRET_STORE_KEY=.*/SECRET_STORE_KEY=$FK/; s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(R)/; s/^MINIO_ROOT_PASSWORD=.*/MINIO_ROOT_PASSWORD=$(R)/; s/^JWT_SECRET=.*/JWT_SECRET=$(R)$(R)/" .env && rm -f .env.bak
+  FK=$(python3 -c "import base64,os;print(base64.urlsafe_b64encode(os.urandom(32)).decode())"); sed -i.bak "s/^SECRET_STORE_KEY=.*/SECRET_STORE_KEY=$FK/; s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(R)/; s/^S3_SECRET_ACCESS_KEY=.*/S3_SECRET_ACCESS_KEY=$(R)/; s/^S3_ADMIN_SECRET_ACCESS_KEY=.*/S3_ADMIN_SECRET_ACCESS_KEY=$(R)/; s/^JWT_SECRET=.*/JWT_SECRET=$(R)$(R)/" .env && rm -f .env.bak
   pass ".env created from .env.example with generated secrets"
 else
   pass ".env present"

@@ -8,7 +8,7 @@ DOCUMENTED_DEMO_PASSWORD = "AegisDemo!2026"
 PLACEHOLDERS = ("change-me", "changeme", "change_me", "replace-me", "password", "secret", "example", "xxx", "todo")
 
 REQUIRED = [
-    "APP_ENV", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD", "MINIO_ROOT_USER", "MINIO_ROOT_PASSWORD", "S3_BUCKET", "S3_REGION",
+    "APP_ENV", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD",
     "JWT_SECRET", "SECRET_STORE_KEY", "CORS_ORIGINS", "FRONTEND_URL", "AUTH_PROVIDERS",
 ]
 REQUIRED_DEPLOYED = ["APP_DOMAIN"]
@@ -46,6 +46,58 @@ def insecure_production(env: Mapping[str, str]) -> list[str]:
     return errs
 
 
+DEPRECATED = {"MINIO_ROOT_USER": "S3_ADMIN_ACCESS_KEY_ID", "MINIO_ROOT_PASSWORD": "S3_ADMIN_SECRET_ACCESS_KEY", "MINIO_IMAGE": "SEAWEEDFS_IMAGE"}
+
+
+def _internal_host(host: str) -> bool:
+    import ipaddress
+
+    if "." not in host or host in ("localhost",) or host.endswith((".internal", ".local", ".svc", ".cluster.local")):
+        return True
+    try:
+        return ipaddress.ip_address(host).is_private or ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def storage_checks(env: Mapping[str, str], errors: list[str], warns: list[str]) -> tuple[list[str], list[str]]:
+    """Object storage: s3 (SeaweedFS profile, DO Spaces, AWS S3, Garage …) or local. MinIO-named variables are deprecated aliases."""
+    from urllib.parse import urlparse
+
+    for old, new in DEPRECATED.items():
+        if env.get(old):
+            warns.append(f"{old} is deprecated (MinIO was removed) – use {new}; the old name is still read as a fallback")
+    profiles = env.get("COMPOSE_PROFILES") or ""
+    for prof, key in (("keycloak", "KEYCLOAK_ADMIN_PASSWORD"), ("monitoring", "GRAFANA_ADMIN_PASSWORD")):
+        if prof in profiles and not env.get(key):
+            errors.append(f"{key} is required when the {prof} profile is enabled")
+    driver = env.get("STORAGE_DRIVER") or "s3"
+    if driver not in ("s3", "local"):
+        errors.append(f"STORAGE_DRIVER must be s3 or local (got {driver!r})")
+    if driver == "s3":
+        for k in ("S3_BUCKET", "S3_REGION"):
+            if not env.get(k):
+                errors.append(f"{k} is required for STORAGE_DRIVER=s3")
+        for k in ("S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"):
+            if not env.get(k):
+                errors.append(f"{k} is required for STORAGE_DRIVER=s3 (application identity – a new key, distinct from any old MinIO root user)")
+        if "seaweedfs" in (env.get("COMPOSE_PROFILES") or ""):
+            for k, alias in (("S3_ADMIN_ACCESS_KEY_ID", "MINIO_ROOT_USER"), ("S3_ADMIN_SECRET_ACCESS_KEY", "MINIO_ROOT_PASSWORD")):
+                if not env.get(k) and not env.get(alias):
+                    errors.append(f"{k} is required with the seaweedfs profile")
+            if env.get("S3_ADMIN_ACCESS_KEY_ID") and env.get("S3_ADMIN_ACCESS_KEY_ID") == env.get("S3_ACCESS_KEY_ID"):
+                errors.append("S3_ADMIN_ACCESS_KEY_ID must differ from S3_ACCESS_KEY_ID (least privilege)")
+        if (env.get("S3_ADDRESSING_STYLE") or "path") not in ("path", "virtual", "auto"):
+            errors.append("S3_ADDRESSING_STYLE must be path, virtual or auto")
+        for k in ("S3_ENDPOINT_URL", "OFFSITE_S3_ENDPOINT_URL"):
+            u = urlparse(env.get(k) or "")
+            if u.scheme == "http" and u.hostname and not _internal_host(u.hostname):
+                warns.append(f"{k} uses plain http to a non-internal host ({u.hostname}) – use https")
+        if "digitaloceanspaces.com" in (env.get("S3_ENDPOINT_URL") or "") and (env.get("S3_ADDRESSING_STYLE") or "path") == "path":
+            warns.append("DigitalOcean Spaces: set S3_ADDRESSING_STYLE=virtual")
+    return errors, warns
+
+
 def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], list[str]]:
     errors, warns = [], []
     profile = env.get("APP_ENV") or "development"
@@ -57,8 +109,9 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
     if "*" in [o.strip() for o in (env.get("CORS_ORIGINS") or "").split(",")]:
         errors.append("CORS_ORIGINS='*' is refused – list explicit origins (credentials are never combined with a wildcard)")
     strict = profile in ("staging", "production")
+    storage_checks(env, errors, warns)
     if strict:
-        for k, n in (("JWT_SECRET", 32), ("POSTGRES_PASSWORD", 16), ("MINIO_ROOT_PASSWORD", 16)):
+        for k, n in (("JWT_SECRET", 32), ("POSTGRES_PASSWORD", 16), ("S3_SECRET_ACCESS_KEY", 16), ("S3_ADMIN_SECRET_ACCESS_KEY", 16)):
             if env.get(k) and _weak(env[k], n):
                 errors.append(f"{k} is weak or a placeholder (min {n} chars, generate with openssl rand)")
         if env.get("SECRET_STORE_KEY") and not _fernet_ok(env["SECRET_STORE_KEY"]):

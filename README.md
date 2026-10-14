@@ -23,7 +23,7 @@ Current status: **Phase 5 complete + IronVision Design System** (light/dark them
                               │  AIService ──────┼─ anthropic |     │  SKIP LOCKED)
                               │                  │  openai_compat | │
                               │                  │  emergent(dev)   │
-                              │  StorageService ─┼─ local | s3 ─────┼──▶ MinIO / S3 / Ceph
+                              │  StorageService ─┼─ local | s3 ─────┼──▶ SeaweedFS / S3 / Spaces
                               └──────────────────┘                  │
                               ┌──────────────────┐                  │
                               │ worker           │ ─────────────────┘
@@ -112,7 +112,7 @@ yarn install && yarn start
 ```bash
 cp .env.example .env      # set real secrets; AI_PROVIDER=anthropic + ANTHROPIC_API_KEY to enable AI
 docker compose up -d --build
-# services: postgres, minio (+ minio-init bucket), migrate (alembic upgrade head + seed, one-shot), backend :8001, worker, frontend :3000
+# services: postgres, seaweedfs (profile seaweedfs, S3 on the internal network) + objectstore-init (bucket bootstrap, our backend image), migrate (alembic upgrade head + seed, one-shot), backend :8001, worker, frontend :3000
 ./scripts/verify_portability.sh   # builds, boots, waits for health, checks login/RBAC/catalog/tests, prints PASS/FAIL
 ```
 
@@ -130,7 +130,7 @@ docker compose up -d --build
 | `CORS_ORIGINS` | backend | Comma-separated browser origins |
 | `STORAGE_DRIVER` | backend, worker | `local` or `s3` (required) |
 | `STORAGE_LOCAL_ROOT` | local driver | Filesystem root |
-| `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | s3 driver | AWS S3 / MinIO / Ceph RGW |
+| `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | s3 driver | SeaweedFS (bundled, `COMPOSE_PROFILES=seaweedfs`) / AWS S3 / DO Spaces / Garage / Ceph RGW. `S3_ADDRESSING_STYLE` = path (self-hosted) or virtual (Spaces/AWS). MinIO was removed – its community images are no longer published |
 | `AI_PROVIDER` | backend | `anthropic`, `openai_compatible`, `emergent` (dev only), `none` |
 | `AI_MODEL`, `AI_TIMEOUT_SECONDS` | backend | Model id (e.g. `claude-sonnet-5-5`) and timeout |
 | `ANTHROPIC_API_KEY` | anthropic adapter | Direct Anthropic API key |

@@ -51,6 +51,7 @@ class Settings:
     s3_region: str | None
     s3_access_key_id: str | None
     s3_secret_access_key: str | None
+    s3_addressing_style: str | None
     ai_provider: str
     ai_model: str | None
     ai_timeout_seconds: int
@@ -82,6 +83,7 @@ def get_settings() -> Settings:
         s3_region=_opt("S3_REGION"),
         s3_access_key_id=_opt("S3_ACCESS_KEY_ID"),
         s3_secret_access_key=_opt("S3_SECRET_ACCESS_KEY"),
+        s3_addressing_style=_opt("S3_ADDRESSING_STYLE", "path"),
         ai_provider=_opt("AI_PROVIDER", "none"),
         ai_model=_opt("AI_MODEL"),
         ai_timeout_seconds=int(_opt("AI_TIMEOUT_SECONDS", "60")),

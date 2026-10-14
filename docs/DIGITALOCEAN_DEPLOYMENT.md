@@ -3,16 +3,55 @@
 > **Status: documentation only – not yet executed on DigitalOcean.**
 > Every DigitalOcean step below is marked *Not yet executed on DigitalOcean*. The operator records the real outcome in the [validation checklist](#13-operator-validation-checklist). Nothing in this guide has been tested on a Droplet. The code has no DigitalOcean-specific dependency; `doctl` is optional and only used in examples.
 
-Target: an IronVision-controlled **Ubuntu 24.04 LTS Droplet** running Docker Compose with PostgreSQL 16, MinIO, the FastAPI backend, the worker, the React frontend (nginx) and a TLS edge nginx.
+Target: an IronVision-controlled **Ubuntu 24.04 LTS Droplet** running Docker Compose with PostgreSQL 16, SeaweedFS (S3-compatible object store), the FastAPI backend, the worker, the React frontend (nginx) and a TLS edge nginx.
 Files: `deploy/digitalocean/` (compose overlays, nginx templates, env templates, systemd units, backup script, Docker log config), `scripts/check_env.py`, `scripts/verify_no_preview_deps.sh`, `backend/app/cli.py` (`create-admin`).
 
 ```
 Internet ─▶ DO Cloud Firewall (80/443, 22 from admin IPs) ─▶ ufw ─▶ edge nginx :80/:443 (Let's Encrypt)
                                                               ├─▶ frontend nginx :8080 (SPA, CSP)
                                                               └─▶ backend :8001 (/api) ─▶ postgres :5432 (127.0.0.1 only)
-                                                                  worker ────────────────▶ minio :9000/9001 (127.0.0.1 only)
-Block Storage: /srv/ironvision/{postgres,minio,letsencrypt,certbot} and /srv/ironvision/backups
+                                                                  worker ────────────────▶ seaweedfs S3 :8333 (internal network only; master UI 127.0.0.1:9333)
+Block Storage: /srv/ironvision/{postgres,objectstore,letsencrypt,certbot} and /srv/ironvision/backups
 ```
+
+---
+
+## 0. MinIO removal (read first if a deployment failed pulling `minio/minio`)
+
+MinIO discontinued its community edition. `minio/minio` and `minio/mc` are no longer publicly pullable from Docker Hub, quay.io/minio or registry.min.io, so any deployment that references them fails at `docker compose pull/up`. The stack no longer uses any MinIO image or the `mc` client:
+- **Object store:** SeaweedFS `chrislusf/seaweedfs:4.48`. The tag was verified on Docker Hub: pushed 2026-09-28, multi-arch amd64/arm64/arm, and the registry manifest returned HTTP 200. Profile `seaweedfs`, single container, internal network only.
+- **Bucket bootstrap:** the one-shot `objectstore-init` service runs **our backend image** (`python -m app.tools.s3_bootstrap`). It creates the bucket if missing, enables versioning if supported, applies an optional bucket policy, and checks a put/get/delete round-trip with SHA-256. It is idempotent.
+- **Backup/restore/off-site/migration:** `python -m app.tools.objsync` (inside the backend image) copies objects between directories and any S3 endpoint and verifies each one with SHA-256.
+- **Renamed variables:** `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` → `S3_ADMIN_ACCESS_KEY_ID`/`S3_ADMIN_SECRET_ACCESS_KEY`. The old names are still read as a fallback and `check_env` warns. The app identity is `S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY`, which **must differ** from the admin key.
+
+**Recovering a failed deployment** (Droplet, as `ironvision`, in `/opt/ironvision/app`):
+```bash
+git pull && git checkout <release-with-seaweedfs>
+$COMPOSE down --remove-orphans                       # removes the failed minio/minio-init containers
+# edit deploy/digitalocean/.env.production – remove MINIO_* lines and add (generate the secrets with openssl):
+#   COMPOSE_PROFILES=seaweedfs
+#   SEAWEEDFS_IMAGE=chrislusf/seaweedfs:4.48
+#   S3_ACCESS_KEY_ID=ivapp<random>          S3_SECRET_ACCESS_KEY=<openssl rand -base64 48 | tr -d '\n=+/' | cut -c1-48>
+#   S3_ADMIN_ACCESS_KEY_ID=ivadmin<random>  S3_ADMIN_SECRET_ACCESS_KEY=<different random>
+#   S3_ENDPOINT_URL=    S3_ADDRESSING_STYLE=path    S3_BUCKET_VERSIONING=true
+sudo install -d -m 750 -o root -g root /srv/ironvision/objectstore
+python3 scripts/check_env.py deploy/digitalocean/.env.production            # RESULT: PASS
+$COMPOSE config -q && $COMPOSE pull seaweedfs && $COMPOSE build
+$COMPOSE up -d seaweedfs && $COMPOSE run --rm objectstore-init               # expect "[s3-bootstrap] READY"
+$COMPOSE up -d && $COMPOSE ps && curl -fsS https://$APP_DOMAIN/api/v1/ready
+```
+
+**Migrating evidence that already sits in a MinIO volume.** Copying MinIO's raw `/data` files is **not safe**: MinIO stores objects in its own `xl.meta` format, not as plain files.
+- **If the old MinIO server is still running**, from an old image you still have locally: point objsync at it as the source.
+  ```bash
+  $COMPOSE run --rm -T --no-deps -e OLD_S3_ENDPOINT_URL=http://<old-minio-host>:9000 -e OLD_S3_BUCKET=ironvision-evidence \
+    -e OLD_S3_REGION=us-east-1 -e OLD_S3_ACCESS_KEY_ID=<old root user> -e OLD_S3_SECRET_ACCESS_KEY=<old root password> \
+    backend python -m app.tools.objsync copy s3:OLD s3 --manifest /tmp/minio-migration.json
+  ```
+  Then run `backup.sh` and `restore.sh` verification; each evidence SHA-256 must match the DB ledger.
+- **If MinIO can no longer run:** restore objects from the latest `backup.sh` output (`objects.tar.gz` + `objects-manifest.json` / `manifest.json` hashes) with `restore.sh`. Or re-ingest the original scan files: the evidence ledger lists every file and its SHA-256, so re-uploads are detected as the same content.
+
+*Not yet executed on DigitalOcean.* What **was** executed in the build pod (aarch64): the SeaweedFS 4.48 `weed` binary from GitHub releases (md5 verified), our entrypoint, `s3_bootstrap` (twice, idempotent), a least-privilege check (the app key cannot create or write other buckets; a wrong secret fails with SignatureDoesNotMatch), the live S3 round-trip test, migrate + seed with real ingestion of 25 evidence objects, the integrity job (25/25 ok), `backup.sh` → `restore.sh` into a fresh DB + bucket (**RESTORE_VERIFY: PASS**), and an objsync bucket-to-bucket migration (31/31 verified). `docker compose config -q` passed for every compose/overlay/env-template combination with the standalone Compose v5.6.0 binary. The Docker images themselves were **not** pulled or run here.
 
 ---
 
@@ -27,7 +66,7 @@ These numbers were measured in the Emergent build pod (8 shared vCPU, single uvi
 | Worker | 160 MiB | 144 MiB | 171 MiB | 155 MiB | measured |
 | Frontend nginx (static) | ~5–15 MiB | | ~15 MiB | | **estimate** (nginx not run in the pod) |
 | Edge nginx (TLS) | ~10–20 MiB | | ~30 MiB | | **estimate** |
-| MinIO (single node) | ~150–300 MiB | | ~300–500 MiB | | **estimate** (MinIO not run in the pod) |
+| SeaweedFS 4.48 (`weed server`: master + volume + filer + S3 in one container) | **333 MiB** RSS | | ~400–600 MiB | | idle **measured** in the pod (aarch64 binary, 31 objects); load peak is an **estimate** |
 | Docker Engine + containerd | ~100–150 MiB | | | | **estimate** |
 | Ubuntu 24.04 base | ~300–400 MiB | | | | **estimate** |
 | **Frontend production build** (`yarn build`) | — | — | **1,730 MiB** | 1,565 MiB | measured, 11.2 s with warm `node_modules` |
@@ -37,7 +76,7 @@ These numbers were measured in the Emergent build pod (8 shared vCPU, single uvi
 
 Database size after demo reset is 79 MB (reference catalogs plus synthetic data). Evidence objects take 25 MB. A 5,000-finding scan adds about 1.7 MB of evidence plus its rows.
 
-**Steady state under load:** about 0.35 GB (OS) + 0.15 GB (Docker) + 0.6 GB (Postgres) + 0.23 GB (backend) + 0.17 GB (worker) + 0.4 GB (MinIO) + 0.05 GB (nginx), which is about **1.95 GB**.
+**Steady state under load:** about 0.35 GB (OS) + 0.15 GB (Docker) + 0.6 GB (Postgres) + 0.23 GB (backend) + 0.17 GB (worker) + 0.45 GB (SeaweedFS) + 0.05 GB (nginx), which is about **2.0 GB**. With `STORAGE_DRIVER=local` or Spaces/AWS S3 (no object-store container) it is about **1.55 GB**.
 **Peak:** steady state plus an image build on the same host. The frontend build alone is about 1.7 GB, plus yarn install, which comes to about **4–4.5 GB**.
 
 | Tier | Droplet | Reasoning |
@@ -47,7 +86,7 @@ Database size after demo reset is 79 MB (reference catalogs plus synthetic data)
 
 **Disk:**
 - Root disk: OS about 10 GB; images and build cache about 6–10 GB (prune with `docker builder prune` after upgrades); Docker logs are capped at 5 × 10 MB per container.
-- Block volume **ironvision-data**: 50 GB to start. That covers Postgres (start at 10 GB; grows with observations, about 1–2 GB/year for a mid-size portfolio, estimated) and MinIO evidence (raw scan files; estimate about 2–10 GB/year depending on scan cadence).
+- Block volume **ironvision-data**: 50 GB to start. That covers Postgres (start at 10 GB; grows with observations, about 1–2 GB/year for a mid-size portfolio, estimated) and SeaweedFS evidence (raw scan files; estimate about 2–10 GB/year depending on scan cadence).
 - Block volume **ironvision-backups**: at least retention days × (DB dump + evidence). 14 days × about 3 GB means 50 GB to start.
 - Grow volumes online with `resize2fs` after resizing in DigitalOcean.
 
@@ -115,11 +154,10 @@ apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io docke
 usermod -aG docker ironvision
 docker compose version   # must be >= 2.24 (overlays use !reset / !override)
 
-# 2.8 aws-cli (MinIO object sync for backups)
-snap install aws-cli --classic
+# 2.8 nothing else: backups, restore and off-site copies use our objsync helper inside the backend image (no mc / aws-cli / rclone)
 ```
 
-> **Docker and ufw:** ports published by Docker bypass ufw's INPUT rules, because Docker writes its own iptables chains. The overlay therefore publishes **only** 80/443 (edge) publicly. Postgres (5432) and MinIO (9000/9001) bind to **127.0.0.1**; the backend (8001) and frontend (8080) are not published at all. The DO Cloud Firewall (§3) is the authoritative perimeter.
+> **Docker and ufw:** ports published by Docker bypass ufw's INPUT rules, because Docker writes its own iptables chains. The overlay therefore publishes **only** 80/443 (edge) publicly. Postgres (5432) and the SeaweedFS master UI (9333) bind to **127.0.0.1**; the SeaweedFS S3 API (8333) is not published at all (internal compose network only); the backend (8001) and frontend (8080) are not published at all. The DO Cloud Firewall (§3) is the authoritative perimeter.
 
 ### 2.9 Block Storage volumes
 *Not yet executed on DigitalOcean.* Create two volumes in the same region and attach them, choosing "manually format & mount". With doctl, for example: `doctl compute volume create ironvision-data --region nyc3 --size 50GiB` and `doctl compute volume-action attach <vol-id> <droplet-id>`. Then run:
@@ -140,7 +178,8 @@ sudo mount -a && df -h /srv/ironvision /srv/ironvision/backups
 ### 2.10 Directories and ownership (§5)
 ```bash
 sudo install -d -m 700 -o 70 -g 70 /srv/ironvision/postgres          # postgres:16-alpine runs as uid/gid 70
-sudo install -d -m 750 -o root -g root /srv/ironvision/minio         # minio runs as root by default
+sudo install -d -m 750 -o root -g root /srv/ironvision/objectstore   # SeaweedFS data (container runs as root)
+sudo install -d -m 750 /srv/ironvision/objects                       # only for STORAGE_DRIVER=local
 sudo install -d -m 755 /srv/ironvision/letsencrypt /srv/ironvision/certbot/www
 sudo install -d -m 750 -o ironvision -g ironvision /srv/ironvision/backups
 ```
@@ -151,7 +190,8 @@ sudo install -d -o ironvision -g ironvision /opt/ironvision && cd /opt/ironvisio
 git clone <your-git-remote>/ironvision-ai.git app && cd app && git checkout <release-tag>
 cp deploy/digitalocean/.env.production.example deploy/digitalocean/.env.production && chmod 600 deploy/digitalocean/.env.production
 # generate secrets (paste into the env file; never commit it)
-for k in POSTGRES_PASSWORD MINIO_ROOT_PASSWORD JWT_SECRET; do echo "$k=$(openssl rand -base64 48 | tr -d '\n=+/' | cut -c1-48)"; done
+for k in POSTGRES_PASSWORD S3_SECRET_ACCESS_KEY S3_ADMIN_SECRET_ACCESS_KEY JWT_SECRET; do echo "$k=$(openssl rand -base64 48 | tr -d '\n=+/' | cut -c1-48)"; done
+echo "S3_ACCESS_KEY_ID=ivapp$(openssl rand -hex 6)"; echo "S3_ADMIN_ACCESS_KEY_ID=ivadmin$(openssl rand -hex 6)"
 echo "SECRET_STORE_KEY=$(python3 -c 'import base64,os;print(base64.urlsafe_b64encode(os.urandom(32)).decode())')"
 python3 scripts/check_env.py deploy/digitalocean/.env.production        # must print RESULT: PASS
 sudo cp deploy/digitalocean/docker-daemon.json /etc/docker/daemon.json && sudo systemctl restart docker   # log rotation
@@ -159,7 +199,7 @@ sudo cp deploy/digitalocean/docker-daemon.json /etc/docker/daemon.json && sudo s
 export COMPOSE="docker compose -p ironvision --env-file deploy/digitalocean/.env.production -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml"
 $COMPOSE config -q && $COMPOSE build
 # TLS first (see §4), then:
-$COMPOSE up -d            # postgres → minio-init → migrate (alembic upgrade head + reference content) → backend/worker/frontend/edge
+$COMPOSE up -d            # postgres + seaweedfs → objectstore-init (bucket, versioning, SHA-256 round-trip) → migrate (alembic upgrade head + reference content) → backend/worker/frontend/edge
 $COMPOSE ps && curl -fsS https://$APP_DOMAIN/api/v1/ready
 ```
 
@@ -191,10 +231,10 @@ No separate API host is needed: the SPA calls `/api` on the same origin (`REACT_
 | Inbound | TCP 22 | admin IPs / VPN CIDR only |
 | Inbound | TCP 80, 443 | `0.0.0.0/0`, `::/0` |
 | Inbound | ICMP | optional |
-| Inbound | **5432, 9000, 9001, 8001, 8080, 3000** | **not opened** |
+| Inbound | **5432, 8333, 9333, 8001, 8080, 3000** | **not opened** |
 | Outbound | TCP 443, 80, UDP 53, UDP 123 | all (package updates, ACME, IdP/AI APIs, NTP) |
 
-The matching ufw rules are in §2.5. **MinIO console:** reach it only through an SSH tunnel: `ssh -L 9001:127.0.0.1:9001 ironvision@<droplet>`, then open http://localhost:9001.
+The matching ufw rules are in §2.5. **SeaweedFS master UI** (read-only cluster status): reach it only through an SSH tunnel: `ssh -L 9333:127.0.0.1:9333 ironvision@<droplet>`, then open http://localhost:9333. The S3 API is never exposed.
 
 ---
 
@@ -228,12 +268,13 @@ The SPA security headers come from the frontend nginx: CSP with `frame-ancestors
 | Data | Container path | Droplet path | Owner |
 |---|---|---|---|
 | PostgreSQL | `/var/lib/postgresql/data` | `/srv/ironvision/postgres` | uid/gid 70, mode 700 |
-| MinIO evidence | `/data` | `/srv/ironvision/minio` | root, 750 |
+| SeaweedFS evidence | `/data` | `/srv/ironvision/objectstore` | root, 750 |
+| Local evidence (`STORAGE_DRIVER=local` only) | `/srv/objects` | `/srv/ironvision/objects` | root, 750 |
 | Let's Encrypt | `/etc/letsencrypt` | `/srv/ironvision/letsencrypt` | root |
 | ACME webroot | `/var/www/certbot` | `/srv/ironvision/certbot/www` | root, 755 |
 | Backups | — (host) | `/srv/ironvision/backups` (2nd volume) | ironvision, 750 |
 
-Named volumes from the base compose file (`pgdata`, `miniodata`) are replaced with `!override` bind mounts. DO volume snapshots of `ironvision-data` are a useful **complement** to `scripts/backup.sh`, not a replacement. A snapshot of a running Postgres is only crash-consistent; dumps are portable and verifiable.
+Named volumes from the base compose file (`pgdata`, `objectstore`, `localobjects`) are replaced with `!override` bind mounts. DO volume snapshots of `ironvision-data` are a useful **complement** to `scripts/backup.sh`, not a replacement. A snapshot of a running Postgres is only crash-consistent; dumps are portable and verifiable.
 
 ---
 
@@ -244,7 +285,7 @@ Named volumes from the base compose file (`pgdata`, `miniodata`) are replaced wi
 - Secrets are generated with the commands in §2.11.
 - `scripts/check_env.py <file>` checks the file and **fails** on:
   - a missing required variable;
-  - a weak or placeholder `JWT_SECRET`, `POSTGRES_PASSWORD` or `MINIO_ROOT_PASSWORD`;
+  - a weak or placeholder `JWT_SECRET`, `POSTGRES_PASSWORD`, `S3_SECRET_ACCESS_KEY` or `S3_ADMIN_SECRET_ACCESS_KEY`; identical app/admin S3 keys; missing S3 settings for `STORAGE_DRIVER=s3` (warns on deprecated `MINIO_*` names and on plain-http S3 endpoints to non-internal hosts);
   - an invalid Fernet key;
   - the publicly documented demo password;
   - non-https or localhost `FRONTEND_URL`/`CORS_ORIGINS`;
@@ -275,9 +316,9 @@ $COMPOSE exec backend python -m app.cli create-admin --email admin@agency.gov --
 With OIDC no password is stored; the admin signs in through the IdP and is matched by email. Other users and roles are then managed under Admin → Users. `--password-stdin` exists only for non-production with `dev_password` enabled.
 
 **Backups** (nightly via `ironvision-backup.timer`):
-- `deploy/digitalocean/backup-offsite.sh` runs `scripts/backup.sh` (pg_dump custom format, MinIO sync via aws-cli, and `manifest.json` with SHA-256 hashes, alembic revision and audit-chain head).
-- It keeps `BACKUP_RETENTION_DAYS` of backups locally, then copies off the Droplet with `rclone copy --checksum` and verifies with `rclone check`.
-- Configure rclone once for Spaces or any S3: `rclone config create spaces s3 provider DigitalOcean endpoint nyc3.digitaloceanspaces.com access_key_id … secret_access_key …`.
+- `deploy/digitalocean/backup-offsite.sh` runs `scripts/backup.sh` (pg_dump custom format, object copy via `python -m app.tools.objsync` in the backend image with a per-object SHA-256 manifest, and `manifest.json` with SHA-256 hashes, alembic revision and audit-chain head).
+- It keeps `BACKUP_RETENTION_DAYS` of backups locally. If `OFFSITE_S3_BUCKET` is set, it copies the backup off the Droplet to DO Spaces / AWS S3 / any S3 with objsync. objsync re-reads every file at the destination and compares its SHA-256.
+- Off-site settings (in the env file): `OFFSITE_S3_ENDPOINT_URL` (e.g. `https://nyc3.digitaloceanspaces.com`), `OFFSITE_S3_BUCKET`, `OFFSITE_S3_REGION`, `OFFSITE_S3_ACCESS_KEY_ID`, `OFFSITE_S3_SECRET_ACCESS_KEY`, `OFFSITE_S3_ADDRESSING_STYLE=virtual`.
 - Run it manually with `sudo systemctl start ironvision-backup.service && journalctl -u ironvision-backup -n 50`.
 
 **Restore** (always into an empty target first):
@@ -393,15 +434,21 @@ $SCOMPOSE up -d --build
    - Migrations still run through the one-shot `migrate` service (`alembic upgrade head`).
 5. Rollback: point `DATABASE_URL` back at the Droplet Postgres, which stays untouched until sign-off.
 
-### 12.2 S3-compatible storage (DO Spaces, AWS S3, others)
-- Uses the existing `STORAGE_DRIVER=s3` with `S3_ENDPOINT_URL` (Spaces: `https://nyc3.digitaloceanspaces.com`), `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`.
-- The client uses **path-style** addressing and SigV4, which Spaces, MinIO and S3 all accept. Virtual-host style would need a code change and is not required.
-- **Encryption at rest:** Spaces always encrypts at rest, but SSE-KMS and customer keys are not available there. AWS S3 supports SSE-S3/SSE-KMS through a bucket default-encryption policy, which needs no code change. MinIO needs KES for SSE.
-- **Copy:**
-  1. `rclone sync minio:ironvision-evidence spaces:ironvision-evidence --checksum`, then `rclone check`.
-  2. Run a `backup.sh` into the new store's sibling, then `restore.sh` verification: each evidence object's SHA-256 must match the DB ledger, and the audit chain must verify.
-  3. Switch the env, `$COMPOSE up -d`, and spot-check evidence downloads in the Evidence Ledger.
-- **Rollback:** revert `S3_ENDPOINT_URL` and the keys; MinIO stays intact until sign-off.
+### 12.2 Storage profiles (env only – no code change)
+| Profile | Env | Notes |
+|---|---|---|
+| **A. SeaweedFS (default)** | `COMPOSE_PROFILES=seaweedfs`, `STORAGE_DRIVER=s3`, `S3_ENDPOINT_URL=` (empty → `http://seaweedfs:8333`), `S3_ADDRESSING_STYLE=path`, app + admin keys | Apache-2.0, image `chrislusf/seaweedfs:4.48` (pinned). Data on Block Storage `/srv/ironvision/objectstore`. App identity limited to Read/Write/List/Tagging on `S3_BUCKET`. Versioning is enabled by `objectstore-init` when supported. No object lock. No SSE: rely on encrypted DO Block Storage plus SHA-256 ledger verification. |
+| **B. DigitalOcean Spaces** | remove `seaweedfs` from `COMPOSE_PROFILES`; `S3_ENDPOINT_URL=https://nyc3.digitaloceanspaces.com`, `S3_REGION=nyc3`, `S3_ADDRESSING_STYLE=virtual`, Spaces key pair as `S3_ACCESS_KEY_ID/SECRET` | Use a bucket-scoped Spaces key. Spaces encrypts at rest (no SSE-KMS or customer keys). Create the bucket in the console or let `objectstore-init` create it (needs a full-access key). |
+| **C. AWS S3** | no seaweedfs profile; `S3_ENDPOINT_URL=https://s3.<region>.amazonaws.com`, `S3_REGION=<region>`, `S3_ADDRESSING_STYLE=virtual`, IAM user keys scoped to the bucket | SSE-S3/SSE-KMS through bucket default encryption (no code change). Object Lock is available but must be configured at bucket creation (outside the app). |
+| **D. Garage (optional)** | add your own `garage` service; `S3_ENDPOINT_URL=http://garage:3900`, `S3_REGION=garage`, `S3_ADDRESSING_STYLE=path` | **AGPL-3.0** – review licensing. No versioning or object lock; `objectstore-init` reports "not supported" and continues. |
+| **E. Local disk** | no seaweedfs profile; `STORAGE_DRIVER=local` | Simplest single-Droplet install: evidence under `/srv/ironvision/objects` on Block Storage, backed up by `backup.sh` (tar + SHA-256). No object-store container (~0.45 GB less RAM). |
+
+- **Client:** boto3 with SigV4. `S3_ADDRESSING_STYLE` = `path` (self-hosted) or `virtual` (Spaces/AWS).
+- **Switching between S3 stores:**
+  1. Copy with verification: `$COMPOSE run --rm -T --no-deps -e OLD_S3_ENDPOINT_URL=… -e OLD_S3_BUCKET=… -e OLD_S3_REGION=… -e OLD_S3_ACCESS_KEY_ID=… -e OLD_S3_SECRET_ACCESS_KEY=… backend python -m app.tools.objsync copy s3:OLD s3 --manifest /tmp/m.json`. The current `S3_*` variables must point at the **new** store; every object is re-hashed at the destination.
+  2. Run `backup.sh`, then `restore.sh` verification against a scratch DB: each evidence SHA-256 must match the ledger, and the audit chain must verify.
+  3. Switch the env, run `$COMPOSE up -d`, and spot-check evidence downloads.
+- **Rollback:** revert the `S3_*` variables; the old store stays intact until sign-off.
 
 **Effect on security posture and claims:** managed services move parts of physical, backup and patching control to DigitalOcean. Commercial DigitalOcean is **not** FedRAMP-authorized and not an IL2–IL6 environment, and nothing in this guide changes the statements in SECURITY.md (no ATO, FedRAMP, CUI or FIPS claims). Record any DO SOC 2/ISO reports you rely on in your own SSP.
 

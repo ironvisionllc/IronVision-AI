@@ -68,4 +68,5 @@ def get_storage() -> StorageService:
         region=s.s3_region,
         access_key_id=s.s3_access_key_id,
         secret_access_key=s.s3_secret_access_key,
+        addressing_style=s.s3_addressing_style,
     )

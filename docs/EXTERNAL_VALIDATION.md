@@ -11,7 +11,7 @@ This shows that IronVision AI runs on any machine with Docker: clone → `.env` 
 | OS | Linux, macOS, or Windows + WSL2 (x86_64 or arm64) |
 | Docker | Docker Engine **24+** (or Docker Desktop 4.25+) with **Compose v2** (`docker compose version` ≥ 2.20) |
 | RAM / disk | **≥ 6 GB RAM** free for Docker (the frontend build peaks at ~2–3 GB), **≥ 8 GB** disk |
-| Free ports | **3000** (frontend/nginx), **8001** (API), **5432** (Postgres), **9000/9001** (MinIO API/console) |
+| Free ports | **3000** (frontend/nginx), **8001** (API), **5432** (Postgres) (SeaweedFS S3 stays on the internal compose network – no host port) |
 | Host tools | `git`, `bash`, `curl`, `python3` (used only by the verify script for JSON parsing) |
 | Network | Needed for the first build only (Docker Hub images, PyPI, npm registry). No calls to emergent.sh / emergentagent.com |
 
@@ -23,10 +23,10 @@ git clone <your-repo-url> aegisrmf && cd aegisrmf
 ```
 
 The script does the following:
-1. If `.env` is missing, it creates it from `.env.example` and generates the Postgres, MinIO, JWT and `SECRET_STORE_KEY` secrets.
+1. If `.env` is missing, it creates it from `.env.example` and generates the Postgres, S3 (app + admin), JWT and `SECRET_STORE_KEY` secrets.
 2. Runs `docker compose config`, then `docker compose build` (backend, worker, frontend) and `docker compose up -d`.
 3. Waits for the one-shot `migrate` service (`alembic upgrade head`, revisions 0001 to 0005) and checks that `alembic current` is at `(head)`.
-4. Checks health (database, storage/MinIO, worker heartbeat; AI is reported but optional).
+4. Checks health (database, storage/SeaweedFS S3, worker heartbeat; AI is reported but optional).
 5. Logs in the demo users, then checks the catalog (1196 controls / moderate 287), RBAC (ISSO → AO endpoint 403, audited) and the audit hash chain.
 6. Runs the **E2E workflow via the API**: register a moderate system → upload `samples/e2e/e2e-web-01.ckl` (the worker ingests it) → V-900140 persisted as **CAT I** → create a POA&M from the finding → a duplicate attempt returns **409** → upload `e2e-web-01_remediated.ckl` → POA&M becomes **closure_eligible** (not closed) → ISSO requests closure with evidence → ISSO self-approval returns **403** (audited) → ISSM approves → POA&M **closed** → the leadership open CAT I count drops.
 7. Checks the seed (LTP = 291 controls, ≥ 7 POA&Ms, decision rules), the frontend on :3000 and nginx proxying `/api`.

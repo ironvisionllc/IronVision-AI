@@ -13,9 +13,10 @@ x-logging: &logging
 x-do-env: &do-env
   DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}}
   STORAGE_DRIVER: ${STORAGE_DRIVER:-s3}
-  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
-  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-${MINIO_ROOT_USER}}
-  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-${MINIO_ROOT_PASSWORD}}
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://seaweedfs:8333}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+  S3_ADDRESSING_STYLE: ${S3_ADDRESSING_STYLE:-path}
   HSTS_ENABLED: ${HSTS_ENABLED:-true}
   CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-}
   OIDC_CLAIM_EMAIL: ${OIDC_CLAIM_EMAIL:-email}
@@ -44,33 +45,44 @@ services:
     restart: unless-stopped
     logging: *logging
 
-  minio:
-    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-04-22T22-12-26Z}
+  seaweedfs:                             # profile seaweedfs (COMPOSE_PROFILES=seaweedfs in the env file); omit for Spaces/AWS S3
     volumes: !override
-      - ${DATA_ROOT}/minio:/data
+      - ${DATA_ROOT}/objectstore:/data   # Block Storage, e.g. /srv/ironvision/objectstore
+      - ./deploy/seaweedfs/entrypoint.sh:/etc/ironvision/seaweedfs-entrypoint.sh:ro
     ports: !override
-      - "127.0.0.1:9000:9000"   # S3 API for host-side backups
-      - "127.0.0.1:9001:9001"   # console – reach it only through an SSH tunnel
-    restart: unless-stopped
+      - "127.0.0.1:9333:9333"   # SeaweedFS master UI – loopback only; reach it through an SSH tunnel. S3 (8333) stays internal.
     logging: *logging
 
-  minio-init:
+  objectstore-init:
+    environment:
+      <<: *do-env
     logging: *logging
 
   migrate:
     environment:
       <<: *do-env
+    volumes: !override
+      - ./samples:/samples:ro
+      - ${DATA_ROOT}/objects:/srv/objects       # STORAGE_DRIVER=local only
     logging: *logging
 
   backend:
     environment:
       <<: *do-env
+    volumes: !override
+      - ./samples:/samples:ro
+      - ${DATA_ROOT}/objects:/srv/objects
+      - ./README.md:/srv/handover/README.md:ro
+      - ./docs:/srv/handover/docs:ro
     ports: !reset []
     logging: *logging
 
   worker:
     environment:
       <<: *do-env
+    volumes: !override
+      - ./samples:/samples:ro
+      - ${DATA_ROOT}/objects:/srv/objects
     logging: *logging
 
   frontend:

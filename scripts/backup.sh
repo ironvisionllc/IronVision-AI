@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # AegisRMF backup: pg_dump (custom format) + evidence object storage copy + manifest (SHA-256 per artifact, row counts,
 # audit-chain head hash). Usage: scripts/backup.sh [OUT_DIR]
-# Env: DATABASE_URL (required), STORAGE_DRIVER=local|s3, STORAGE_LOCAL_ROOT (local), S3_BUCKET/S3_ENDPOINT_URL (s3, uses aws cli),
+# Env: DATABASE_URL (required), STORAGE_DRIVER=local|s3, STORAGE_LOCAL_ROOT (local), S3_* (s3 – copied with our objsync helper, no mc/aws cli),
+#      OBJSYNC (command prefix; default `python3 -m app.tools.objsync` run from backend/, or e.g. `docker compose run --rm -T backend python -m app.tools.objsync`),
 #      PG_BIN (dir with pg_dump matching the server major version, e.g. /usr/lib/postgresql/16/bin)
 set -euo pipefail
 OUT="${1:-./backups/aegisrmf-$(date -u +%Y%m%dT%H%M%SZ)}"
@@ -17,7 +18,9 @@ case "${STORAGE_DRIVER:-local}" in
          tar -C "$STORAGE_LOCAL_ROOT" -czf "$OUT/objects.tar.gz" . ;;
   s3)    : "${S3_BUCKET:?S3_BUCKET required}"
          echo "[backup] objects (s3://$S3_BUCKET) -> $OUT/objects/"
-         aws s3 sync "s3://$S3_BUCKET" "$OUT/objects" ${S3_ENDPOINT_URL:+--endpoint-url "$S3_ENDPOINT_URL"}
+         OUT_ABS="$(cd "$OUT" && pwd)"
+         (cd "$(dirname "$0")/../backend" && ${OBJSYNC:-python3 -m app.tools.objsync} copy s3 "dir:$OUT_ABS/objects")
+         cp "$OUT/objects/.objsync-manifest.json" "$OUT/objects-manifest.json"
          tar -C "$OUT/objects" -czf "$OUT/objects.tar.gz" . && rm -rf "$OUT/objects" ;;
   *) echo "unsupported STORAGE_DRIVER"; exit 2 ;;
 esac

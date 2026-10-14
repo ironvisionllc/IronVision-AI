@@ -195,6 +195,13 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Empty states: NeedSystem CTA, Systems "Register your first system", Evidence Sources "Add a source or upload a scan", Leadership "No systems yet", Workflow ongoing stages "not configured" when no records.
 - Fixed tenant leak: audit log items + category counts now tenant-scoped.
 
+### MinIO removal → SeaweedFS (Oct 2026)
+- MinIO community images are no longer pullable. All compose files now use SeaweedFS `chrislusf/seaweedfs:4.48` (pinned; verified on Docker Hub: 2026-09-28, amd64/arm64/arm). It runs under profile `seaweedfs`, single container, internal network only (no S3 host port; master UI 127.0.0.1:9333 on DO). S3 identities are generated from env by `deploy/seaweedfs/entrypoint.sh`; the app identity can only Read/Write/List/Tagging on S3_BUCKET.
+- `objectstore-init` = backend image `python -m app.tools.s3_bootstrap`: bucket, versioning, optional policy, SHA-256 round-trip; idempotent. `python -m app.tools.objsync` handles dir↔S3 and S3↔S3 copies with a SHA-256 manifest; used by backup.sh, restore.sh, backup-offsite.sh (off-site to any S3 via OFFSITE_S3_*) and MinIO migration (s3:OLD). No mc, aws-cli or rclone.
+- New env: S3_ADDRESSING_STYLE, S3_ADMIN_ACCESS_KEY_ID/SECRET (MINIO_ROOT_* are deprecated aliases for the admin key only), S3_BUCKET_VERSIONING, S3_BUCKET_POLICY_FILE, SEAWEEDFS_IMAGE, OFFSITE_S3_*. check_env: storage checks, deprecated names, plain-http non-internal endpoints, app≠admin key. Storage profiles: SeaweedFS / DO Spaces / AWS S3 / Garage / local.
+- Also fixed: the KEYCLOAK/GRAFANA `:?` interpolation broke `compose config` for DO env files even with those profiles off. Those passwords are now required only when the profile is enabled (check_env).
+- Executed in pod: weed 4.48 binary, bootstrap, least privilege, live round-trip, seed ingestion (25 objects), integrity 25/25, backup→restore PASS, migration 31/31; `docker compose config -q` (Compose v5.6.0) passes on all combinations. Images were not pulled or run.
+
 ### CORS review (Oct 2026)
 - `access-control-allow-origin: *` on preview responses is injected by the Emergent ingress (app sends exact-origin only; unknown origins get no header, preflight 400). Preview CORS_ORIGINS now = the preview origin only (old host + localhost removed). `*` refused at startup and by check_env; allow_credentials=false. Documented in SECURITY.md + PORTABILITY.md (#7).
 

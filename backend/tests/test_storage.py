@@ -32,3 +32,11 @@ def test_s3_round_trip_moto():
         boto3.client("s3", region_name="us-east-1").create_bucket(Bucket="aegis-test")
         _round_trip(build_storage("s3", bucket="aegis-test", region="us-east-1", access_key_id="test",
                                   secret_access_key="test"))
+
+
+@pytest.mark.skipif(not __import__("os").environ.get("IV_LIVE_S3_ENDPOINT"), reason="set IV_LIVE_S3_* to run against a real S3 backend (e.g. SeaweedFS)")
+def test_s3_round_trip_live():
+    import os
+    _round_trip(build_storage("s3", bucket=os.environ["IV_LIVE_S3_BUCKET"], endpoint_url=os.environ["IV_LIVE_S3_ENDPOINT"], region="us-east-1",
+                              access_key_id=os.environ["IV_LIVE_S3_KEY"], secret_access_key=os.environ["IV_LIVE_S3_SECRET"],
+                              addressing_style="path"))

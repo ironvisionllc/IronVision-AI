@@ -7,7 +7,7 @@
                                             ▼
                      PostgreSQL 16  ◀── worker (separate process: jobs table queue + scheduler)
                                             │
-                     Object storage (local FS | S3/MinIO) – immutable, SHA-256 addressed evidence
+                     Object storage (local FS | S3: SeaweedFS / AWS S3 / DO Spaces) – immutable, SHA-256 addressed evidence
  Optional: OIDC IdP (Keycloak profile) · clamd · Prometheus/Grafana · Vault · AI provider (anthropic | openai_compatible)
 ```
 

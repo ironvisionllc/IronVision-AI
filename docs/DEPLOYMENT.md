@@ -5,7 +5,7 @@
 ## 1. Development / evaluation (single host)
 ```bash
 git clone <repo> aegisrmf && cd aegisrmf
-cp .env.example .env              # set POSTGRES_PASSWORD, MINIO_ROOT_PASSWORD, JWT_SECRET, SECRET_STORE_KEY
+cp .env.example .env              # set POSTGRES_PASSWORD, S3_SECRET_ACCESS_KEY, S3_ADMIN_SECRET_ACCESS_KEY, JWT_SECRET, SECRET_STORE_KEY
 docker compose up -d --build      # migrate (alembic upgrade head + seed) runs once, then backend :8001, worker, frontend :3000
 ./scripts/verify_portability.sh   # end-to-end PASS/FAIL report
 ```

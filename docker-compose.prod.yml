@@ -29,8 +29,6 @@ services:
       <<: *prod-env
   frontend:
     ports: !reset []
-  minio:
-    ports: !reset []
   edge:
     image: nginxinc/nginx-unprivileged:1.27-alpine
     volumes:

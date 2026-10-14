@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AegisRMF restore + verification. Usage: scripts/restore.sh BACKUP_DIR
-# Env: TARGET_DATABASE_URL (empty database), TARGET_STORAGE_ROOT (empty dir, local driver) – or STORAGE_DRIVER=s3 + S3_BUCKET,
+# Env: TARGET_DATABASE_URL (empty database), TARGET_STORAGE_ROOT (empty dir, local driver) – or STORAGE_DRIVER=s3 + S3_* (objsync, OBJSYNC as in backup.sh),
 #      PG_BIN as for backup.sh. Verification: artifact hashes vs manifest, row counts, every evidence object re-hashed against
 #      its ledger SHA-256, and the audit hash chain recomputed end-to-end. Exit code != 0 on any mismatch.
 set -euo pipefail
@@ -20,7 +20,8 @@ EOF
 echo "[restore] database restored"
 case "${STORAGE_DRIVER:-local}" in
   local) : "${TARGET_STORAGE_ROOT:?TARGET_STORAGE_ROOT required}"; mkdir -p "$TARGET_STORAGE_ROOT"; tar -C "$TARGET_STORAGE_ROOT" -xzf "$B/objects.tar.gz" ;;
-  s3)    T=$(mktemp -d); tar -C "$T" -xzf "$B/objects.tar.gz"; aws s3 sync "$T" "s3://$S3_BUCKET" ${S3_ENDPOINT_URL:+--endpoint-url "$S3_ENDPOINT_URL"} ;;
+  s3)    T=$(mktemp -d); tar -C "$T" -xzf "$B/objects.tar.gz"
+         (cd "$(dirname "$0")/../backend" && ${OBJSYNC:-python3 -m app.tools.objsync} copy "dir:$T" s3) ;;  # verifies vs the backup's SHA-256 manifest
 esac
 echo "[restore] objects restored"
 cd "$(dirname "$0")/../backend"
@@ -52,8 +53,8 @@ with Session(eng) as db:
     print(f"[verify] evidence re-hashed: {n - bad}/{n} match ledger SHA-256"); ok &= bad == 0
     ch = verify_chain(db)
     head = db.execute(text("select seq||':'||hash from audit_events order by seq desc limit 1")).scalar()
-    print(f"[verify] audit chain valid={ch['valid']} checked={ch['checked']} head_matches_manifest={head == m['audit_chain_head']}")
-    ok &= ch["valid"] and head == m["audit_chain_head"]
+    print(f"[verify] audit chain valid={ch['valid']} checked={ch['checked']} head_matches_manifest={(head or '') == m['audit_chain_head']}")
+    ok &= ch["valid"] and (head or "") == m["audit_chain_head"]
     rev = db.execute(text("select version_num from alembic_version")).scalar()
     print(f"[verify] alembic revision {rev} (manifest {m['alembic_revision']})"); ok &= rev == m["alembic_revision"]
 print("RESTORE_VERIFY:", "PASS" if ok else "FAIL")
