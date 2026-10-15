@@ -11,6 +11,8 @@ import { ControlLink, NeedSystem, S, Sev, Table } from "@/components/common/Bits
 import { fmtDate } from "@/lib/format";
 import { AddToPoamButton } from "@/components/common/Workflow";
 
+const sourceKey = (all: { source_type?: unknown }[], i: number) => { const n = all.slice(0, i).filter((x) => x.source_type === all[i].source_type).length; return n ? `${String(all[i].source_type)}-${n + 1}` : String(all[i].source_type); };
+
 export function SourcesPage() {
   const { selectedId: sid } = useSystems();
   const { can } = useAuth();
@@ -53,26 +55,26 @@ export function SourcesPage() {
         </Panel>
       )}
       <div className="mb-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {sources.data?.map((s) => (
-          <div key={s.id} className="panel p-4" data-testid={`source-card-${s.source_type}`}>
+        {sources.data?.map((s, i, all) => { const tk = sourceKey(all, i); return (
+          <div key={s.id} className="panel p-4" data-testid={`source-card-${tk}`}>
             <div className="flex items-start justify-between"><div><div className="font-semibold text-slate-900">{s.name}</div><div className="text-[11px] text-slate-500">{s.type_label} · {s.adapter_mode === "mock" ? "MOCK/DEMO adapter" : "File import only"}</div></div><S v={s.enabled ? s.health : "disabled"} /></div>
             <dl className="mt-3 grid grid-cols-3 gap-2 text-[11px]">
-              {[["Results (latest run)", s.results_latest_run, "results"], ["Findings (failed)", s.findings_open, "open"], ["Passing checks", s.findings_passing, "passing"], ["Mapped findings", s.mapped, "mapped"], ["Unmapped findings", s.unmapped, "unmapped"], ["Assets", s.assets, "assets"], ["Evidence items", s.evidence_count, "evidence"]].map(([k, v, t]) => <div key={k}><dt className="text-slate-500">{k}</dt><dd className="font-mono text-[13px] text-slate-800" data-testid={`source-${s.source_type}-${t}`}>{String(v)}</dd></div>)}
-              <div className="col-span-3 text-[10px] text-slate-400">Results = all records the source produced (checks, config snapshots, findings) · Mapped/Unmapped findings = canonical findings; the ingest table counts mapped/unmapped results per run ({s.findings_total}){s.dispositioned ? ` · unmapped incl. ${s.dispositioned} dispositioned` : ""} · freshness {s.freshness}</div>
+              {[["Results (latest run)", s.results_latest_run, "results"], ["Findings total", s.findings_total, "findings-total"], ["Failed (of total)", s.findings_open, "open"], ["Passing (of total)", s.findings_passing, "passing"], ["Mapped (of total)", s.mapped, "mapped"], ["Unmapped (of total)", s.unmapped, "unmapped"], ["Assets", s.assets, "assets"], ["Evidence items", s.evidence_count, "evidence"]].map(([k, v, t]) => <div key={k}><dt className="text-slate-500">{k}</dt><dd className="font-mono text-[13px] text-slate-800" data-testid={`source-${tk}-${t}`}>{String(v)}</dd></div>)}
+              <div className="col-span-3 text-[10px] text-slate-400">Results = all records the source produced (checks, config snapshots, findings) · Findings total = Failed + Passing{s.findings_total - s.findings_open - s.findings_passing > 0 ? ` + ${s.findings_total - s.findings_open - s.findings_passing} in other states (e.g. closed)` : ""} = Mapped + Unmapped{s.dispositioned ? ` (unmapped incl. ${s.dispositioned} dispositioned)` : ""} · the ingest table counts mapped/unmapped results per run · freshness {s.freshness}</div>
             </dl>
             <div className="mt-2 text-[11px] text-slate-500">Last run {fmtDate(s.last_run_at)} · Next {s.next_run_at ? fmtDate(s.next_run_at) : "manual"} · {s.credential_set ? "credential set ✓" : "no credential"}</div>
             {can("source.manage") && (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                <button className="btn-secondary px-2 py-1 text-xs" onClick={() => act(s.id, () => api.post(`/sources/${s.id}/test`))} data-testid={`source-test-${s.source_type}`}>Test connection</button>
-                <button className="btn-secondary px-2 py-1 text-xs" disabled={!s.enabled} onClick={() => act(s.id, () => api.post(`/sources/${s.id}/run`))} data-testid={`source-run-${s.source_type}`}>Run collection</button>
+                <button className="btn-secondary px-2 py-1 text-xs" onClick={() => act(s.id, () => api.post(`/sources/${s.id}/test`))} data-testid={`source-test-${tk}`}>Test connection</button>
+                <button className="btn-secondary px-2 py-1 text-xs" disabled={!s.enabled} onClick={() => act(s.id, () => api.post(`/sources/${s.id}/run`))} data-testid={`source-run-${tk}`}>Run collection</button>
                 <button className="btn-secondary px-2 py-1 text-xs" onClick={() => act(s.id, () => api.patch(`/sources/${s.id}`, { enabled: !s.enabled }))}>{s.enabled ? "Disable" : "Enable"}</button>
                 <Link className="btn-secondary px-2 py-1 text-xs" to="/evidence-ledger">View evidence</Link>
               </div>
             )}
             {s.last_error && <div className="mt-2 text-[11px] text-rose-700">Error: {s.last_error}</div>}
-            {msg[s.id] && <div className="mt-2 rounded bg-slate-50 p-2 text-[11px] text-slate-700" data-testid={`source-msg-${s.source_type}`}>{msg[s.id]}</div>}
+            {msg[s.id] && <div className="mt-2 rounded bg-slate-50 p-2 text-[11px] text-slate-700" data-testid={`source-msg-${tk}`}>{msg[s.id]}</div>}
           </div>
-        ))}
+        ); })}
       </div>
       <Panel title="Latest ingest" testId="ingest-runs-panel" actions={can("ingest.upload") && (
         <div className="flex gap-2">

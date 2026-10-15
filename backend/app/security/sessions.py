@@ -23,11 +23,12 @@ def _h(v: str) -> str:
     return hashlib.sha256(v.encode()).hexdigest()
 
 
-def create(db: Session, user_id: uuid.UUID, provider: str, ip: str | None, ua: str | None) -> tuple[AuthSession, str]:
+def create(db: Session, user_id: uuid.UUID, provider: str, ip: str | None, ua: str | None,
+           id_token_hint: str | None = None) -> tuple[AuthSession, str]:
     raw = secrets.token_urlsafe(48)
     t = now()
     s = AuthSession(user_id=user_id, provider=provider, refresh_hash=_h(raw), last_seen_at=t, idle_expires_at=t + timedelta(minutes=IDLE_MINUTES),
-                    absolute_expires_at=t + timedelta(hours=ABSOLUTE_HOURS), ip=ip, user_agent=(ua or "")[:300])
+                    absolute_expires_at=t + timedelta(hours=ABSOLUTE_HOURS), ip=ip, user_agent=(ua or "")[:300], id_token_hint=id_token_hint)
     db.add(s)
     db.flush()
     return s, raw

@@ -8,7 +8,8 @@ from app.models import Finding, Poam, System
 from tests.conftest import auth
 
 PUBLIC = {("POST", "/api/v1/auth/login"), ("POST", "/api/v1/auth/refresh"), ("POST", "/api/v1/auth/mtls/login"),
-          ("POST", "/api/v1/auth/logout"), ("POST", "/api/v1/auth/signup"), ("POST", "/api/v1/auth/demo-login")}
+          ("POST", "/api/v1/auth/logout"), ("POST", "/api/v1/auth/signup"), ("POST", "/api/v1/auth/demo-login"),
+          ("POST", "/api/v1/auth/oidc/exchange")}  # one-time login code is the credential
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 
 

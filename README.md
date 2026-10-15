@@ -124,6 +124,7 @@ cp env.template .env      # set real secrets; AI_PROVIDER=openrouter + OPENAI_CO
 docker compose up -d --build
 # requirements: backend/requirements.prod.txt is enforced by python3 scripts/check_requirements.py
 # DigitalOcean / production: scripts/deploy.sh deploy/digitalocean/.env.production  (fail-fast, see docs/DIGITALOCEAN_DEPLOYMENT.md §0)
+# Keycloak sign-in: ./deploy.sh --set-auth-domain auth.demo.ironvisionai.com  → docs/KEYCLOAK.md (migration is a separate dry-run-first step)
 # services: postgres, seaweedfs (profile seaweedfs, S3 on the internal network) + objectstore-init (bucket bootstrap, our backend image), migrate (alembic upgrade head + seed, one-shot), backend :8001, worker, frontend :3000
 ./scripts/verify_portability.sh   # builds, boots, waits for health, checks login/RBAC/catalog/tests, prints PASS/FAIL
 ```

@@ -35,7 +35,8 @@ def build_user_out(db: Session, user: User, assignments: list[RoleAssignment], p
     )
 
 
-def _issue(db: Session, user: User, provider: str, request: Request, operator: User | None = None) -> TokenResponse:
+def _issue(db: Session, user: User, provider: str, request: Request, operator: User | None = None,
+           id_token_hint: str | None = None) -> TokenResponse:
     meta = audit.request_meta(request)
     org = db.get(Organization, user.org_id)
     if operator is None and org is not None and org.is_sandbox and org.sandbox_personas and user.persona_role is None and org.sandbox_status == "ready":
@@ -46,7 +47,7 @@ def _issue(db: Session, user: User, provider: str, request: Request, operator: U
         if p is not None and p.operator_id == user.id:
             user.last_login_at = datetime.now(timezone.utc)
             user, operator = p, user
-    sess, refresh = sessions.create(db, user.id, provider, meta.get("ip"), request.headers.get("user-agent"))
+    sess, refresh = sessions.create(db, user.id, provider, meta.get("ip"), request.headers.get("user-agent"), id_token_hint)
     user.last_login_at = datetime.now(timezone.utc)
     audit.record(db, action="auth.login", outcome="success", actor_user_id=user.id, actor_email=user.email, entity_type="user", entity_id=str(user.id),
                  details={"provider": provider, "session_id": str(sess.id), **({"operated_by": operator.email, "sandbox_persona": True} if operator else {})},
@@ -76,8 +77,28 @@ def provider_info(db: Session = Depends(get_db)) -> AuthProviderInfo:
         _ = rows
     return AuthProviderInfo(provider=provider.name, label=provider.display_label, is_simulated=provider.is_simulated,
                             dev_accounts=accounts, enabled_providers=enabled, dev_password_enabled="dev_password" in enabled, signup_enabled=get_settings().allow_signup and "dev_password" in enabled,
-                            demo_login_enabled=get_settings().allow_demo_login,
+                            demo_login_enabled=demo_login_available(),
                             oidc_enabled="oidc" in enabled)
+
+
+def demo_login_mode() -> str | None:
+    """'keycloak' = Option B launcher (oidc enabled + launcher configured); 'dev_password' = local preview/dev; None = 404."""
+    from app.security import demo_launcher
+    if not get_settings().allow_demo_login:
+        return None
+    prov = sessions.enabled_providers()
+    if "oidc" in prov and demo_launcher.configured():
+        return "keycloak"
+    return "dev_password" if "dev_password" in prov else None
+
+
+def demo_login_available() -> bool:
+    return demo_login_mode() is not None
+
+
+def demo_login_global_limit() -> tuple[int, int]:
+    n, _, w = os.environ.get("DEMO_LOGIN_GLOBAL_RATE_LIMIT", "300/3600").partition("/")
+    return int(n), int(w or 3600)
 
 
 def demo_login_limit() -> tuple[int, int]:
@@ -95,24 +116,53 @@ def demo_login(request: Request, db: Session = Depends(get_db)) -> TokenResponse
     from app.models import AuditEvent
     from app.services.sandbox import DEMO_EMAIL
 
-    if not get_settings().allow_demo_login:
+    mode = demo_login_mode()
+    if mode is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Not Found")
     meta = audit.request_meta(request)
-    limit, window = demo_login_limit()
-    since = datetime.now(timezone.utc) - timedelta(seconds=window)
-    used = db.scalar(select(func.count()).select_from(AuditEvent).where(AuditEvent.action == "auth.demo_login", AuditEvent.outcome == "success",
-                                                                       AuditEvent.ip == meta.get("ip"), AuditEvent.occurred_at > since))
-    if used >= limit:
-        audit.record_now(action="auth.demo_login", outcome="denied", actor_email=DEMO_EMAIL, details={"reason": "rate_limited"}, **meta)
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, f"Too many demo sign-ins from this network ({limit} per {window // 60} min). Try again later.",
-                            headers={"Retry-After": str(window)})
+
+    def window_count(seconds: int, per_ip: bool) -> int:
+        since = datetime.now(timezone.utc) - timedelta(seconds=seconds)
+        q = select(func.count()).select_from(AuditEvent).where(AuditEvent.action == "auth.demo_login", AuditEvent.outcome == "success",
+                                                               AuditEvent.occurred_at > since)
+        return db.scalar(q.where(AuditEvent.ip == meta.get("ip")) if per_ip else q)
+
+    for (limit, window), per_ip, scope in ((demo_login_limit(), True, "this network"), (demo_login_global_limit(), False, "all visitors")):
+        if window_count(window, per_ip) >= limit:
+            audit.record_now(action="auth.demo_login", outcome="denied", actor_email=DEMO_EMAIL,
+                             details={"reason": "rate_limited" if per_ip else "global_rate_limited", "client_ip": meta.get("ip")}, **meta)
+            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, f"Too many demo sign-ins from {scope} ({limit} per {window // 60} min). Try again later.",
+                                headers={"Retry-After": str(window)})
+    provider = "dev_password"
+    if mode == "keycloak":
+        from app.security import demo_launcher
+        from app.services import identity_map
+        try:
+            claims = demo_launcher.login()
+        except Exception as exc:  # noqa: BLE001 - Keycloak down / misconfigured: never fall back to a bypass
+            audit.record_now(action="auth.demo_login", outcome="failure", actor_email=DEMO_EMAIL,
+                             details={"reason": str(exc)[:120], "client_ip": meta.get("ip")}, **meta)
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "The demo is temporarily unavailable. Try again in a minute.")
+        issuer, sub = claims["subject"].rsplit("|", 1)
+        ident = identity_map.by_subject(db, issuer, sub)
+        if ident is None:
+            audit.record_now(action="auth.demo_login", outcome="denied", actor_email=DEMO_EMAIL,
+                             details={"reason": "identity_not_mapped", "subject": claims["subject"], "client_ip": meta.get("ip")}, **meta)
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "The demo account is not mapped yet (operator: scripts/keycloak.sh migrate).")
+        user = db.get(User, ident.user_id)
+        if user is None or user.email != DEMO_EMAIL:  # the launcher may only ever open the demo tenant
+            audit.record_now(action="auth.demo_login", outcome="denied", actor_email=DEMO_EMAIL,
+                             details={"reason": "mapped_to_non_demo_user", "client_ip": meta.get("ip")}, **meta)
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Demo launcher misconfigured")
+        ident.last_used_at = datetime.now(timezone.utc)
+        provider = "oidc-demo"
     user = db.scalar(select(User).where(User.email == DEMO_EMAIL, User.is_active.is_(True)))
     org = db.get(Organization, user.org_id) if user else None
     if user is None or org is None or org.sandbox_status != "ready":
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "The demo workspace is being prepared. Try again in a minute.")
     audit.record(db, action="auth.demo_login", outcome="success", actor_user_id=user.id, actor_email=DEMO_EMAIL, entity_type="user",
-                 entity_id=str(user.id), details={"client_ip": meta.get("ip")}, **meta)
-    return _issue(db, user, "dev_password", request)
+                 entity_id=str(user.id), details={"client_ip": meta.get("ip"), "mode": mode}, **meta)
+    return _issue(db, user, provider, request)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -165,39 +215,94 @@ def refresh(body: RefreshIn, request: Request, db: Session = Depends(get_db)) ->
                          user=build_user_out(db, user, assignments, sess.provider))
 
 
-def _external_login(db: Session, request: Request, provider: str, subject: str, email: str | None) -> User:
+def _email_linking_allowed() -> bool:
+    """Dev/test-only escape hatch; production never links an IdP identity by email."""
+    return os.environ.get("OIDC_ALLOW_EMAIL_LINKING", "").lower() == "true" and get_settings().environment in ("development", "test")
+
+
+def _external_login(db: Session, request: Request, provider: str, subject: str, email: str | None, allow_email_link: bool = True) -> User:
     ident = db.scalar(select(AuthIdentity).where(AuthIdentity.provider == provider, AuthIdentity.subject == subject))
+    if ident is None and not allow_email_link:
+        audit.record_now(action="auth.login", outcome="denied", actor_email=email or None, entity_type="auth_identity",
+                         details={"provider": provider, "reason": "identity_not_mapped", "subject": subject}, **audit.request_meta(request))
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This sign-in identity is not mapped to an IronVision AI account. Ask an administrator.")
     user = db.get(User, ident.user_id) if ident else (db.scalar(select(User).where(User.email == email)) if email else None)
     if user is None or not user.is_active:
         audit.record_now(action="auth.login", outcome="failure", actor_email=email, details={"provider": provider, "reason": "no_provisioned_user"},
                          **audit.request_meta(request))
         raise HTTPException(status.HTTP_403_FORBIDDEN, "No active IronVision AI account is provisioned for this identity")
     if ident is None:
-        db.add(AuthIdentity(user_id=user.id, provider=provider, subject=subject))
+        db.add(AuthIdentity(user_id=user.id, provider=provider, subject=subject,
+                            attributes={"mapped_by": "email-link(dev-only)", "mapped_at": datetime.now(timezone.utc).isoformat()}))
+    else:
+        ident.last_used_at = datetime.now(timezone.utc)
     return user
 
 
-@router.get("/oidc/login")
-def oidc_login() -> RedirectResponse:
+def _require_oidc() -> None:
     if "oidc" not in sessions.enabled_providers():
         raise HTTPException(404, "OIDC is not enabled (AUTH_PROVIDERS)")
+
+
+@router.get("/oidc/login")
+def oidc_login(login_hint: str | None = None, db: Session = Depends(get_db)) -> RedirectResponse:
+    _require_oidc()
     from app.security import oidc
-    return RedirectResponse(oidc.authorization_url())
+    return RedirectResponse(oidc.authorization_url(db, (login_hint or "").strip()[:255] or None))
+
+
+LOGIN_CODE_TTL = 60
 
 
 @router.get("/oidc/callback")
-def oidc_callback(code: str, state: str, request: Request, db: Session = Depends(get_db)) -> RedirectResponse:
-    if "oidc" not in sessions.enabled_providers():
-        raise HTTPException(404, "OIDC is not enabled")
+def oidc_callback(request: Request, code: str | None = None, state: str | None = None, error: str | None = None,
+                  db: Session = Depends(get_db)) -> RedirectResponse:
+    _require_oidc()
+    import hashlib
+    import secrets
+    from datetime import timedelta
+
+    from app.models import OidcLoginCode
     from app.security import oidc
+    front = os.environ.get("FRONTEND_URL", "")
+    if error or not code or not state:
+        audit.record_now(action="auth.login", outcome="failure", details={"provider": "oidc", "reason": f"idp_error:{(error or 'missing_code')[:80]}"},
+                         **audit.request_meta(request))
+        return RedirectResponse(f"{front}/login?oidc_error=idp")
     try:
-        claims = oidc.complete(code, state)
+        claims = oidc.complete(db, code, state)
     except Exception as exc:
         audit.record_now(action="auth.login", outcome="failure", details={"provider": "oidc", "reason": str(exc)[:200]}, **audit.request_meta(request))
         raise HTTPException(401, "OIDC sign-in failed")
-    tr = _issue(db, _external_login(db, request, "oidc", claims["subject"], claims["email"]), "oidc", request)
-    # Tokens go to the SPA in the URL fragment (never sent to servers/logs); the SPA stores them and clears the hash.
-    return RedirectResponse(f"{os.environ.get('FRONTEND_URL', '')}/login#access_token={tr.access_token}&refresh_token={tr.refresh_token}")
+    user = _external_login(db, request, "oidc", claims["subject"], claims["email"], allow_email_link=_email_linking_allowed())
+    raw = secrets.token_urlsafe(32)
+    db.add(OidcLoginCode(code_sha256=hashlib.sha256(raw.encode()).hexdigest(), user_id=user.id, id_token=claims["id_token"],
+                         expires_at=datetime.now(timezone.utc) + timedelta(seconds=LOGIN_CODE_TTL)))
+    db.commit()
+    # Only an opaque one-time code (60 s, single use) reaches the browser URL; the SPA exchanges it by POST for app tokens.
+    return RedirectResponse(f"{front}/login?oidc_code={raw}")
+
+
+class OidcExchangeIn(BaseModel):
+    code: str
+
+
+@router.post("/oidc/exchange", response_model=TokenResponse)
+def oidc_exchange(body: OidcExchangeIn, request: Request, db: Session = Depends(get_db)) -> TokenResponse:
+    _require_oidc()
+    import hashlib
+
+    from sqlalchemy import delete
+
+    from app.models import OidcLoginCode
+    row = db.execute(delete(OidcLoginCode).where(OidcLoginCode.code_sha256 == hashlib.sha256(body.code.encode()).hexdigest())
+                     .returning(OidcLoginCode.user_id, OidcLoginCode.id_token, OidcLoginCode.expires_at)).first()
+    db.commit()
+    user = db.get(User, row.user_id) if row and row.expires_at > datetime.now(timezone.utc) else None
+    if user is None or not user.is_active:
+        audit.record_now(action="auth.login", outcome="failure", details={"provider": "oidc", "reason": "invalid_login_code"}, **audit.request_meta(request))
+        raise HTTPException(401, "Sign-in code invalid, expired or already used")
+    return _issue(db, user, "oidc", request, id_token_hint=row.id_token)
 
 
 @router.post("/mtls/login", response_model=TokenResponse)
@@ -218,9 +323,21 @@ def me(current: CurrentUser = Depends(get_current_user), db: Session = Depends(g
     return build_user_out(db, current.user, current.assignments, current.auth_provider)
 
 
-@router.post("/logout", status_code=204)
-def logout(request: Request, current: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)) -> None:
+@router.post("/logout")
+def logout(request: Request, current: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    from app.models import AuthSession
+    sess = db.get(AuthSession, uuid.UUID(request.state.sid))
+    end_url = None
+    if sess is not None and sess.provider == "oidc" and "oidc" in sessions.enabled_providers():
+        from app.security import oidc
+        try:
+            end_url = oidc.end_session_url(sess.id_token_hint)
+        except Exception:  # IdP unreachable: app session is still revoked
+            end_url = None
+        sess.id_token_hint = None
     sessions.revoke(db, uuid.UUID(request.state.sid), "logout")
     audit.record(db, action="auth.logout", actor_user_id=current.user.id, actor_email=current.user.email,
-                 entity_type="user", entity_id=str(current.user.id), details={"session_revoked": request.state.sid}, **audit.request_meta(request))
+                 entity_type="user", entity_id=str(current.user.id), details={"session_revoked": request.state.sid, "idp_logout": bool(end_url)},
+                 **audit.request_meta(request))
     db.commit()
+    return {"end_session_url": end_url}

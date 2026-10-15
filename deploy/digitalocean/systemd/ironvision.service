@@ -8,7 +8,9 @@ Wants=network-online.target
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/ironvision/app
-Environment=COMPOSE="docker compose -p ironvision --env-file deploy/digitalocean/.env.production -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml"
+# compose.env (COMPOSE_PROJECT_NAME / COMPOSE_FILE / COMPOSE_PROFILES) is written by scripts/deploy.sh: same overlays as the deploy
+EnvironmentFile=/srv/ironvision/compose.env
+Environment=COMPOSE="docker compose --env-file deploy/digitalocean/.env.production"
 ExecStartPre=/usr/bin/python3 scripts/check_env.py deploy/digitalocean/.env.production
 ExecStart=/bin/sh -c '$COMPOSE up -d'
 ExecStop=/bin/sh -c '$COMPOSE stop'

@@ -90,3 +90,4 @@ typer  # CLI tooling; not imported
 uritemplate  # transitive dependency of emergentintegrations only
 yarl  # transitive dependency of emergentintegrations only
 zipp  # transitive dependency of emergentintegrations only
+PyOTP  # test-only: TOTP codes for the live Keycloak MFA integration tests

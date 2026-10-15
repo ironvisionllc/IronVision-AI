@@ -1,6 +1,7 @@
 import { OscalPanel } from "@/pages/Phase4Pages";
 import { AiModelSettings } from "@/components/admin/AiModelSettings";
-import { useEffect, useState } from "react";
+import { IdentityMappings } from "@/components/admin/IdentityMappings";
+import { useEffect, useState, Fragment } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -156,7 +157,7 @@ export function AdminPhase3Panels() {
     <div className="space-y-5" data-testid="admin-phase3">
       {msg && <div className="panel p-3 text-[13px]" role="alert" data-testid="admin3-msg">{msg}</div>}
       <Panel title="Application security (truthful status)" testId="security-panel">
-        {sec && <dl className="grid grid-cols-[180px_1fr] gap-y-1 text-[13px]">{[["Sign-in", sec.sign_in], ["Cryptography", sec.cryptography], ["Session timeout", `${sec.session_timeout_minutes} min – ${sec.session_timeout_note}`], ["Markings banner", sec.markings_banner], ["Tenant separation", sec.tenant_separation], ["Secrets", sec.secrets]].map(([k, v]) => <><dt key={`k${k}`} className="text-slate-500">{k}</dt><dd key={`v${k}`} data-testid={`sec-${String(k).toLowerCase().replace(/\s+/g, "-")}`}>{v}</dd></>)}</dl>}
+        {sec && <dl className="grid grid-cols-[180px_1fr] gap-y-1 text-[13px]">{[["Sign-in", sec.sign_in], ["Cryptography", sec.cryptography], ["Session timeout", `${sec.session_timeout_minutes} min – ${sec.session_timeout_note}`], ["Markings banner", sec.markings_banner], ["Tenant separation", sec.tenant_separation], ["Secrets", sec.secrets]].map(([k, v]) => <Fragment key={String(k)}><dt className="text-slate-500">{k}</dt><dd data-testid={`sec-${String(k).toLowerCase().replace(/\s+/g, "-")}`}>{v}</dd></Fragment>)}</dl>}
         <button className="btn-secondary mt-2" onClick={() => { const t = window.prompt("Markings banner text", sec?.markings_banner); if (t) run(() => api.put("/admin/banner", { text: t }), () => "Banner updated"); }} data-testid="edit-banner-btn">Edit banner</button>
       </Panel>
       <Panel title="Users & roles" testId="users-panel" actions={<div className="flex gap-1">
@@ -172,6 +173,7 @@ export function AdminPhase3Panels() {
         <div className="mt-1 text-[11px] text-slate-500">System-specific roles: assign/revoke on each System page (audited).</div>
         {hist && <div className="mt-2 max-h-48 overflow-y-auto rounded bg-slate-50 p-2 text-[11px]" data-testid="access-history">{hist.map((h) => <div key={h.seq}>{fmtDate(h.occurred_at)} {h.action} {h.outcome}</div>)}</div>}
       </Panel>
+      <IdentityMappings />
       <Panel title="AI administration" testId="ai-admin-panel">
         {ai && <div className="text-[13px]">
           <AiModelSettings ai={ai} onSave={(m) => run(() => api.put("/admin/ai-settings", { model: m }), () => (m ? `AI model set to ${m}` : "AI model override cleared"))} />

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# TLS for the edge nginx, run by scripts/deploy.sh. Never sources the env file.
+# TLS for the edge nginx, run by scripts/deploy.sh. Never sources the env file. Handles APP_DOMAIN and, when set, AUTH_DOMAIN
+# (Keycloak) – one certificate per domain (AUTH_CERT_FULLCHAIN_PATH / AUTH_CERT_KEY_PATH for a user-supplied auth certificate).
 #   scripts/ensure_tls.sh ensure ENV_FILE -- <docker compose command...>   obtain/install a certificate if needed (edge not serving yet)
 #   scripts/ensure_tls.sh verify ENV_FILE                                   check the live certificate + https /api/v1/ready
 # Certificate sources: CERT_FULLCHAIN_PATH + CERT_KEY_PATH (user-supplied, copied in) or Let's Encrypt (certbot --standalone on
@@ -15,14 +16,27 @@ DC=("$@")
 
 die() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
 get() { python3 scripts/envget.py "$ENV_FILE" "$1"; }
-DOMAIN="$(get APP_DOMAIN)"
+APP_DOMAIN="$(get APP_DOMAIN)"
+AUTH_DOMAIN="$(get AUTH_DOMAIN)"
+REALM="$(get KEYCLOAK_REALM)"
+REALM="${REALM:-ironvision-demo}"
 DATA_ROOT="$(get DATA_ROOT)"
 EMAIL="$(get LETSENCRYPT_EMAIL)"
 STAGING="$(get LETSENCRYPT_STAGING)"
-USER_CERT="$(get CERT_FULLCHAIN_PATH)"
-USER_KEY="$(get CERT_KEY_PATH)"
-LIVE="$DATA_ROOT/letsencrypt/live/$DOMAIN"
-if [ -z "$DOMAIN" ] || [ -z "$DATA_ROOT" ]; then die "APP_DOMAIN and DATA_ROOT must be set in $ENV_FILE"; fi
+if [ -z "$APP_DOMAIN" ] || [ -z "$DATA_ROOT" ]; then die "APP_DOMAIN and DATA_ROOT must be set in $ENV_FILE"; fi
+if [ -n "$AUTH_DOMAIN" ] && [ "$AUTH_DOMAIN" = "$APP_DOMAIN" ]; then die "AUTH_DOMAIN must differ from APP_DOMAIN (e.g. auth.$APP_DOMAIN)"; fi
+DOMAIN="" LIVE="" USER_CERT="" USER_KEY=""
+use_domain() {   # select the domain the functions below operate on
+  DOMAIN="$1"
+  LIVE="$DATA_ROOT/letsencrypt/live/$DOMAIN"
+  if [ "$DOMAIN" = "$APP_DOMAIN" ]; then
+    USER_CERT="$(get CERT_FULLCHAIN_PATH)"; USER_KEY="$(get CERT_KEY_PATH)"
+  else
+    USER_CERT="$(get AUTH_CERT_FULLCHAIN_PATH)"; USER_KEY="$(get AUTH_CERT_KEY_PATH)"
+  fi
+}
+DOMAINS=("$APP_DOMAIN")
+[ -n "$AUTH_DOMAIN" ] && DOMAINS+=("$AUTH_DOMAIN")
 
 cert_ok() {   # valid for DOMAIN, > 30 days left, and from the CA we want
   local f="$LIVE/fullchain.pem" issuer
@@ -87,10 +101,10 @@ ensure() {
     echo "certificate for $DOMAIN is valid until $(openssl x509 -in "$LIVE/fullchain.pem" -noout -enddate | cut -d= -f2) – nothing to do"
     return 0
   fi
-  echo "certificate needed: $why"
+  echo "certificate needed for $DOMAIN: $why"
+  [ "${FORCE_TLS:-0}" = "1" ] || dns_preflight
   [ -n "$EMAIL" ] || die "LETSENCRYPT_EMAIL is required for Let's Encrypt – run: ./deploy.sh --set-domain $DOMAIN --email you@your-org"
   [ "${#DC[@]}" -gt 0 ] || die "internal: compose command missing"
-  [ "${FORCE_TLS:-0}" = "1" ] || dns_preflight
   "${DC[@]}" stop edge >/dev/null 2>&1 || true
   port80_free
   args=(certonly --standalone --non-interactive --agree-tos -m "$EMAIL" --no-eff-email -d "$DOMAIN" --keep-until-expiring)
@@ -114,13 +128,26 @@ $info"
 $info"
   fi
   [ "$STAGING" = "true" ] && curl_k=(-k)
-  curl -fsS "${curl_k[@]}" --max-time 15 --retry 10 --retry-delay 3 --retry-all-errors "https://$DOMAIN/api/v1/ready" >/dev/null \
-    || die "https://$DOMAIN/api/v1/ready did not answer – check the DO firewall (80/443) and: docker compose logs edge"
-  echo "TLS OK: $(grep -m1 -i issuer <<<"$info") · https://$DOMAIN/api/v1/ready answered"
+  if [ "$DOMAIN" = "$APP_DOMAIN" ]; then
+    curl -fsS "${curl_k[@]}" --max-time 15 --retry 10 --retry-delay 3 --retry-all-errors "https://$DOMAIN/api/v1/ready" >/dev/null \
+      || die "https://$DOMAIN/api/v1/ready did not answer – check the DO firewall (80/443) and: docker compose logs edge"
+    echo "TLS OK: $(grep -m1 -i issuer <<<"$info") · https://$DOMAIN/api/v1/ready answered"
+    return 0
+  fi
+  local disco="https://$DOMAIN/realms/$REALM/.well-known/openid-configuration" code
+  curl -fsS "${curl_k[@]}" --max-time 15 --retry 20 --retry-delay 5 --retry-all-errors "$disco" | grep -q "\"issuer\":\"https://$DOMAIN/realms/$REALM\"" \
+    || die "$disco did not return the expected issuer – logs: docker compose logs keycloak edge"
+  code="$(curl -s "${curl_k[@]}" -o /dev/null -w '%{http_code}' --max-time 10 "https://$DOMAIN/admin/master/console/")"
+  [ -n "$(get KEYCLOAK_ADMIN_ALLOWED_CIDRS)" ] || [ "$code" = "403" ] \
+    || die "Keycloak admin console is reachable from the internet (HTTP $code) – it must be 403 (check edge-auth.conf)"
+  echo "TLS OK: $(grep -m1 -i issuer <<<"$info") · OIDC discovery OK · public /admin → $code"
 }
 
-case "$MODE" in
-  ensure) ensure ;;
-  verify) verify ;;
-  *) die "unknown mode $MODE" ;;
-esac
+for d in "${DOMAINS[@]}"; do
+  use_domain "$d"
+  case "$MODE" in
+    ensure) ensure ;;
+    verify) verify ;;
+    *) die "unknown mode $MODE" ;;
+  esac
+done

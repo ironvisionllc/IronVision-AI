@@ -7,13 +7,13 @@ from sqlalchemy import select
 from app.db import SessionLocal
 from app.models import (Attestation, AuditEvent, ControlAssignment, Evidence, Finding, FindingControlMap, Notification, Policy, PolicyFinding,
                         System, User)
-from tests.conftest import auth
+from tests.conftest import auth, demo_org_id
 
 POL = os.environ.get("SAMPLES_DIR", "/app/samples") + "/policies"
 
 
 def _ltp(db):
-    return db.scalar(select(System).where(System.acronym == "LTP"))
+    return db.scalar(select(System).where(System.acronym == "LTP", System.org_id == demo_org_id(db)))
 
 
 def test_inheritance_counts_reconcile(client, token):

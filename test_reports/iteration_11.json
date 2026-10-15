@@ -1,0 +1,38 @@
+{
+  "summary": "Verified preview-mode OIDC hardening + logout + identity-mappings for IronVision AI. 9/9 pytest backend tests PASS and all 6 UI acceptance points PASS. (1) Password login still works for demo@ironvision.ai. (2) POST /api/v1/auth/demo-login still works (200) → demo-login-btn on /login logs the user in and lands on the ISSO persona. (3) GET /api/v1/auth/oidc/login → 404, GET /api/v1/auth/oidc/callback → 404, POST /api/v1/auth/oidc/exchange {code:'x'} → 404 (oidc not in AUTH_PROVIDERS in preview). (4) POST /api/v1/auth/logout now returns HTTP 200 with JSON {\"end_session_url\": null} for password sessions and the session is revoked (subsequent /auth/me = 401). (5) /api/v1/admin/identity-mappings → 401 unauthenticated, 403 for ISSO persona, 200 with [] for platform_admin persona (via act-as). (6) Admin UI /admin (Phase3Extras) shows [data-testid=identity-mappings-panel] with [data-testid=identity-mappings-empty] visible, read-only (no Create/Add/New button inside the panel). (7) /login?oidc_error=idp shows [data-testid=oidc-error] with text 'Single sign-on did not complete. Please try again.'; without the param the alert is absent.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/admin (Phase3Extras)", "issues": ["Benign React warning: 'Each child in a list should have a unique key prop. Check the render method of AdminPhase3Panels.' — not visible to users, worth cleaning up a map() somewhere in Phase3Extras."]},
+      {"screen": "all pages (ingress-injected)", "issues": ["Pre-existing CSP console errors from Cloudflare beacon.min.js and blob-worker (platform-injected, unchanged)."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_oidc_hardening.py",
+    "/app/test_reports/pytest/oidc_hardening.xml"
+  ],
+  "action_items": [
+    "(LOW) Fix the missing React 'key' prop in AdminPhase3Panels render (likely the panel list that now includes IdentityMappings)."
+  ],
+  "critical_code_review_comments": [
+    "OIDC gating via _require_oidc() -> 404 is correctly applied to /oidc/login, /oidc/callback and /oidc/exchange. Verified from the public ingress in preview (AUTH_PROVIDERS=dev_password).",
+    "logout now consistently returns HTTP 200 with {\"end_session_url\": <url|null>} regardless of provider, which fixes the previous 204 that could not carry the RP-initiated logout URL. For password sessions the body is {\"end_session_url\": null} — frontend AuthContext just needs to redirect to /login when null, which it already does.",
+    "admin.users.manage permission guard on GET /api/v1/admin/identity-mappings is correct — ISSO (default persona) is 403 and platform_admin is 200. Scoping to current.user.org_id is correct for multi-tenant isolation.",
+    "No create/update/delete endpoints exposed for identity mappings on the API; the UI panel also exposes no create buttons. Read-only contract honored on both sides.",
+    "Login page param handling (oidc_error=idp → oidc-error alert) is strict: only renders when the query param is present. Good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_oidc_hardening.py (new)"
+  ],
+  "success_rate": {"backend": "100% (9/9)", "frontend": "100% (6/6 acceptance points)"},
+  "test_credentials": "demo@ironvision.ai / IronVisionDemo!2026 (demo account; act-as platform_admin for admin endpoints).",
+  "seed_data_creation": "None. Logged in as demo + switched act-as to platform_admin only.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview runs AUTH_PROVIDERS=dev_password with ALLOW_DEMO_LOGIN=true; Keycloak is NOT running in preview. The 11 live Keycloak pytests in tests/test_keycloak_live.py require a real Keycloak and must NOT be run here. Backend pytest should use -n 0 (xdist -n 2 has a known schema race). Admin identity-mappings endpoint is GET /api/v1/admin/identity-mappings (full prefix includes an extra 'admin' because the admin router routes are declared with '/admin/...' and mounted under '/api/v1')."
+}

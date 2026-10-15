@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # AegisRMF backup: pg_dump (custom format) + evidence object storage copy + manifest (SHA-256 per artifact, row counts,
 # audit-chain head hash). Usage: scripts/backup.sh [OUT_DIR]
-# Env: DATABASE_URL (required), STORAGE_DRIVER=local|s3, STORAGE_LOCAL_ROOT (local), S3_* (s3 – copied with our objsync helper, no mc/aws cli),
+# Env: DATABASE_URL (required), KEYCLOAK_DB_URL (optional – also dumps the Keycloak DB to keycloak.dump), STORAGE_DRIVER=local|s3, STORAGE_LOCAL_ROOT (local), S3_* (s3 – copied with our objsync helper, no mc/aws cli),
 #      OBJSYNC (command prefix; default `python3 -m app.tools.objsync` run from backend/, or e.g. `docker compose run --rm -T backend python -m app.tools.objsync`),
 #      PG_BIN (dir with pg_dump matching the server major version, e.g. /usr/lib/postgresql/16/bin)
 set -euo pipefail
@@ -12,6 +12,10 @@ PGURL="${DATABASE_URL/postgresql+psycopg:/postgresql:}"
 mkdir -p "$OUT"
 echo "[backup] database -> $OUT/db.dump"
 "${PG_BIN}pg_dump" --format=custom --no-owner --no-privileges --file="$OUT/db.dump" "$PGURL"
+if [ -n "${KEYCLOAK_DB_URL:-}" ]; then   # optional: Keycloak database (separate DB/role on the same server)
+  echo "[backup] keycloak database -> $OUT/keycloak.dump"
+  "${PG_BIN}pg_dump" --format=custom --no-owner --no-privileges --file="$OUT/keycloak.dump" "$KEYCLOAK_DB_URL"
+fi
 case "${STORAGE_DRIVER:-local}" in
   local) : "${STORAGE_LOCAL_ROOT:?STORAGE_LOCAL_ROOT required}"
          echo "[backup] objects (local) -> $OUT/objects.tar.gz"

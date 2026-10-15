@@ -1,0 +1,120 @@
+# Production Keycloak overlay – added by scripts/deploy.sh when AUTH_DOMAIN is set in the env file (no profile needed).
+# Separate database + role (KEYCLOAK_DB_NAME / KEYCLOAK_DB_USER) on the existing Postgres server, created idempotently by
+# keycloak-db-init (never drops). Keycloak is internal-only; the edge proxies https://${AUTH_DOMAIN} to it and blocks /admin.
+# Admin console: SSH tunnel to 127.0.0.1:8081 (docs/KEYCLOAK.md). Requires Docker Compose >= 2.24.
+x-kc-admin-env: &kc-admin-env
+  KEYCLOAK_URL: http://keycloak:8080
+  KEYCLOAK_REALM: ${KEYCLOAK_REALM:-ironvision-demo}
+  KEYCLOAK_REQUIRE_MFA: ${KEYCLOAK_REQUIRE_MFA:-false}
+  KEYCLOAK_CONFIGURATOR_CLIENT_ID: ${KEYCLOAK_CONFIGURATOR_CLIENT_ID:-ironvision-configurator}
+  KEYCLOAK_CONFIGURATOR_CLIENT_SECRET: ${KEYCLOAK_CONFIGURATOR_CLIENT_SECRET:?KEYCLOAK_CONFIGURATOR_CLIENT_SECRET missing - run ./deploy.sh (gen_env_secrets)}
+  KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:?set KEYCLOAK_ADMIN_USERNAME (named permanent Keycloak admin)}
+  KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD missing - run ./deploy.sh (gen_env_secrets)}
+  KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-bootstrap-admin}
+  KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?KC_BOOTSTRAP_ADMIN_PASSWORD missing - run ./deploy.sh (gen_env_secrets)}
+  SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-30}
+  SESSION_ABSOLUTE_HOURS: ${SESSION_ABSOLUTE_HOURS:-12}
+  OIDC_ISSUER: ${OIDC_ISSUER:?set OIDC_ISSUER - ./deploy.sh --set-auth-domain <auth-domain>}
+  OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-ironvision-app}
+  OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?OIDC_CLIENT_SECRET missing - run ./deploy.sh (gen_env_secrets)}
+  OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:?set OIDC_REDIRECT_URI}
+  OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
+  FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL}
+  CREDENTIALS_DIR: /secrets
+  KEYCLOAK_DEMO_USERNAME: ${KEYCLOAK_DEMO_USERNAME:-}
+  KEYCLOAK_DEMO_PASSWORD: ${KEYCLOAK_DEMO_PASSWORD:-}
+  KEYCLOAK_DEMO_LAUNCHER_CLIENT_ID: ${KEYCLOAK_DEMO_LAUNCHER_CLIENT_ID:-ironvision-demo-launcher}
+  KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET: ${KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET:-}
+
+x-kc-db-env: &kc-db-env
+  DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}}
+  KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME:-keycloak}
+  KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak}
+  KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD missing - run ./deploy.sh (gen_env_secrets)}
+
+services:
+  keycloak-db-init:                     # one-shot: CREATE ROLE / CREATE DATABASE only if missing – never drops
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "-m", "app.tools.keycloak_db_init"]
+    environment:
+      <<: *kc-db-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  keycloak:
+    profiles: !reset []
+    build:
+      context: ./deploy/keycloak
+      dockerfile: Dockerfile
+    image: ironvision/keycloak:26.8.1
+    command: !override ["start", "--optimized"]
+    environment: !override
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${KEYCLOAK_DB_NAME:-keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?KEYCLOAK_DB_PASSWORD missing}
+      KC_HOSTNAME: https://${AUTH_DOMAIN:?set AUTH_DOMAIN - ./deploy.sh --set-auth-domain auth.<your-domain>}
+      KC_HOSTNAME_ADMIN: ${KEYCLOAK_ADMIN_URL:-http://localhost:8081}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: "8080"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-bootstrap-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?KC_BOOTSTRAP_ADMIN_PASSWORD missing}
+      JAVA_OPTS_KC_HEAP: -XX:MaxRAMPercentage=50
+    volumes: !reset []
+    ports: !override
+      - "127.0.0.1:8081:8080"           # loopback only → admin console via SSH tunnel; public traffic goes through the edge
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak-db-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  keycloak-config:                      # tools only (never auto-started): keycloak_config plan|apply, app.cli keycloak-migrate / keycloak-user
+    profiles: ["keycloak-tools"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "-m", "app.tools.keycloak_config", "plan"]
+    environment:
+      <<: [*kc-db-env, *kc-admin-env]
+      APP_ENV: ${APP_ENV:-production}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+    volumes:
+      - ${DATA_ROOT:?set DATA_ROOT}/secrets:/secrets
+      - ${DATA_ROOT}/backups:${DATA_ROOT}/backups:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    environment:
+      OIDC_POST_LOGOUT_REDIRECT_URI: ${OIDC_POST_LOGOUT_REDIRECT_URI:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?OIDC_CLIENT_SECRET missing}
+      DEPLOYMENT_KIND: ${DEPLOYMENT_KIND:-}
+      KEYCLOAK_DEMO_USERNAME: ${KEYCLOAK_DEMO_USERNAME:-}
+      KEYCLOAK_DEMO_PASSWORD: ${KEYCLOAK_DEMO_PASSWORD:-}
+      KEYCLOAK_DEMO_LAUNCHER_CLIENT_ID: ${KEYCLOAK_DEMO_LAUNCHER_CLIENT_ID:-ironvision-demo-launcher}
+      KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET: ${KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET:-}
+      DEMO_LOGIN_GLOBAL_RATE_LIMIT: ${DEMO_LOGIN_GLOBAL_RATE_LIMIT:-300/3600}
+
+  edge:
+    environment:
+      AUTH_DOMAIN: ${AUTH_DOMAIN}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-ironvision-demo}
+    volumes:
+      - ./deploy/digitalocean/nginx/edge-auth.conf.template:/etc/nginx/templates/auth.conf.template:ro
+      - ${DATA_ROOT}/edge/auth-admin-allow.conf:/etc/nginx/ironvision/auth-admin-allow.conf:ro

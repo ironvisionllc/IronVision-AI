@@ -1024,6 +1024,25 @@ class AuthSession(CoreMixin, Base):
     revoked_reason: Mapped[str | None] = mapped_column(String(50))
     ip: Mapped[str | None] = mapped_column(String(64))
     user_agent: Mapped[str | None] = mapped_column(String(300))
+    id_token_hint: Mapped[str | None] = mapped_column(Text)
+
+
+class OidcPending(Base):
+    """Single-use OIDC authorization state (PKCE verifier + nonce); survives restarts and works across replicas."""
+    __tablename__ = "oidc_pending"
+    state: Mapped[str] = mapped_column(String(128), primary_key=True)
+    verifier: Mapped[str] = mapped_column(String(128), nullable=False)
+    nonce: Mapped[str] = mapped_column(String(128), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+
+
+class OidcLoginCode(Base):
+    """One-time, short-lived code handed to the SPA after the OIDC callback (hash only); exchanged by POST for app tokens."""
+    __tablename__ = "oidc_login_codes"
+    code_sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id_token: Mapped[str | None] = mapped_column(Text)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
 
 
 class RetentionPolicy(CoreMixin, Base):

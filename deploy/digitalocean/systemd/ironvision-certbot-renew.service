@@ -6,5 +6,7 @@ After=ironvision.service
 Type=oneshot
 User=ironvision
 WorkingDirectory=/opt/ironvision/app
-Environment=COMPOSE="docker compose -p ironvision --env-file deploy/digitalocean/.env.production -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml"
+# compose.env (COMPOSE_PROJECT_NAME / COMPOSE_FILE / COMPOSE_PROFILES) is written by scripts/deploy.sh: same overlays as the deploy
+EnvironmentFile=/srv/ironvision/compose.env
+Environment=COMPOSE="docker compose --env-file deploy/digitalocean/.env.production"
 ExecStart=/bin/sh -c '$COMPOSE --profile certbot run --rm --no-deps certbot renew --webroot -w /var/www/certbot --quiet && $COMPOSE exec -T edge nginx -s reload'

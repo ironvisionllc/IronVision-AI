@@ -94,7 +94,8 @@ def source_counts(db: Session, s: EvidenceSource) -> dict:
                                                                                                  .where(IngestRun.source_id == s.id, IngestRun.status == "completed")),
             "findings_total": total, "findings_open": db.scalar(fq.where(Finding.current_state == "open")),
             "findings_passing": db.scalar(fq.where(Finding.current_state.in_(("pass", "not_applicable")))),
-            "mapped": mapped, "unmapped": db.scalar(fq.where(Finding.mapping_status == "unmapped")),
+            # unmapped includes dispositioned (UI: "unmapped incl. N dispositioned") so Mapped + Unmapped = Total always holds
+            "mapped": mapped, "unmapped": db.scalar(fq.where(Finding.mapping_status != "mapped")),
             "dispositioned": db.scalar(fq.where(Finding.mapping_status == "dispositioned")),
             "assets": db.scalar(select(func.count(func.distinct(Finding.asset_id))).where(Finding.latest_evidence_id.in_(ev_ids)))}
 

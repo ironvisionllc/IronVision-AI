@@ -2,6 +2,7 @@
 Profiles: development | staging | production. Never prints secret values."""
 import base64
 import os
+import re
 from typing import Mapping
 
 DOCUMENTED_DEMO_PASSWORD = "AegisDemo!2026"
@@ -107,6 +108,46 @@ def storage_checks(env: Mapping[str, str], errors: list[str], warns: list[str]) 
     return errors, warns
 
 
+def keycloak_checks(env: Mapping[str, str], strict: bool, errors: list[str], warns: list[str]) -> None:
+    """Built-in Keycloak (AUTH_DOMAIN set → deploy/compose/keycloak.yml)."""
+    import ipaddress
+    import re
+
+    auth = env.get("AUTH_DOMAIN") or ""
+    if not auth:
+        return
+    realm = env.get("KEYCLOAK_REALM") or "ironvision-demo"
+    if auth == env.get("APP_DOMAIN"):
+        errors.append("AUTH_DOMAIN must differ from APP_DOMAIN (e.g. auth.<app-domain>)")
+    if not re.fullmatch(r"[a-z0-9-]{1,64}", realm):
+        errors.append("KEYCLOAK_REALM must be lowercase letters, digits and dashes")
+    if env.get("OIDC_ISSUER", "").rstrip("/") != f"https://{auth}/realms/{realm}":
+        errors.append(f"OIDC_ISSUER must be https://{auth}/realms/{realm} – run ./deploy.sh --set-auth-domain {auth}")
+    for k, n in (("KEYCLOAK_DB_PASSWORD", 16), ("KC_BOOTSTRAP_ADMIN_PASSWORD", 16), ("KEYCLOAK_ADMIN_PASSWORD", 16),
+                 ("KEYCLOAK_CONFIGURATOR_CLIENT_SECRET", 32), ("OIDC_CLIENT_SECRET", 32)):
+        if not env.get(k):
+            errors.append(f"{k} is required with AUTH_DOMAIN (run ./deploy.sh – gen_env_secrets fills empty secrets)")
+        elif strict and _weak(env[k], n):
+            errors.append(f"{k} is weak or a placeholder (min {n} chars)")
+    if not env.get("KEYCLOAK_ADMIN_USERNAME"):
+        errors.append("KEYCLOAK_ADMIN_USERNAME is required with AUTH_DOMAIN (named permanent Keycloak admin, OTP enforced)")
+    elif env["KEYCLOAK_ADMIN_USERNAME"] == (env.get("KC_BOOTSTRAP_ADMIN_USERNAME") or "bootstrap-admin"):
+        errors.append("KEYCLOAK_ADMIN_USERNAME must differ from KC_BOOTSTRAP_ADMIN_USERNAME (the bootstrap admin is disabled)")
+    for c in [c.strip() for c in (env.get("KEYCLOAK_ADMIN_ALLOWED_CIDRS") or "").split(",") if c.strip()]:
+        try:
+            net = ipaddress.ip_network(c, strict=False)
+            if net.prefixlen == 0:
+                errors.append("KEYCLOAK_ADMIN_ALLOWED_CIDRS must not contain 0.0.0.0/0 or ::/0")
+        except ValueError:
+            errors.append(f"KEYCLOAK_ADMIN_ALLOWED_CIDRS: {c!r} is not a valid CIDR")
+    if env.get("KEYCLOAK_ADMIN_ALLOWED_CIDRS"):
+        warns.append("KEYCLOAK_ADMIN_ALLOWED_CIDRS is set – the Keycloak admin console is reachable on the public auth domain from those addresses")
+    if (env.get("APP_ENV") or "") == "production" and env.get("KEYCLOAK_REALM", "").endswith("-prod") and not _true(env.get("KEYCLOAK_REQUIRE_MFA")):
+        errors.append("KEYCLOAK_REQUIRE_MFA=true is required for a -prod realm")
+    if "oidc" not in providers(env):
+        warns.append("AUTH_DOMAIN is set but AUTH_PROVIDERS has no oidc – Keycloak runs, sign-in still uses the old provider (switch after keycloak-migrate)")
+
+
 def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], list[str]]:
     errors, warns = [], []
     profile = env.get("APP_ENV") or "development"
@@ -151,11 +192,22 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
     errors += insecure_production(env)
     if profile == "production" and _true(env.get("ALLOW_SIGNUP")):
         warns.append("ALLOW_SIGNUP=true in production – public self sign-up creates sandbox tenants; keep it false for production")
+    kind = (env.get("DEPLOYMENT_KIND") or "").strip().lower()
+    if kind and kind not in ("demo", "customer"):
+        errors.append("DEPLOYMENT_KIND must be demo or customer")
     if profile == "production" and _true(env.get("ALLOW_DEMO_LOGIN")):
-        if _true(env.get("ALLOW_DEMO_LOGIN_IN_PRODUCTION")):
-            warns.append("ALLOW_DEMO_LOGIN=true in production (override set) – anyone can open the shared demo workspace without a password")
+        if kind != "demo":
+            errors.append("ALLOW_DEMO_LOGIN=true is refused in production unless DEPLOYMENT_KIND=demo (never on a customer deployment)")
+        elif "oidc" in providers(env):
+            if not re.fullmatch(r"[a-z0-9][a-z0-9-]{11,62}", (env.get("KEYCLOAK_DEMO_USERNAME") or "").lower()):
+                errors.append("KEYCLOAK_DEMO_USERNAME must be an unpublished handle (12+ chars a-z 0-9 -, not the public demo e-mail) – gen_env_secrets fills it")
+            for k, n in (("KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET", 32), ("KEYCLOAK_DEMO_PASSWORD", 16)):
+                if not env.get(k):
+                    errors.append(f"{k} is required for the Explore-the-demo launcher (ALLOW_DEMO_LOGIN with oidc)")
+                elif _weak(env[k], n):
+                    errors.append(f"{k} is weak or a placeholder (min {n} chars)")
         else:
-            errors.append("ALLOW_DEMO_LOGIN=true is refused in production (passwordless shared demo login); set ALLOW_DEMO_LOGIN_IN_PRODUCTION=true to override")
+            warns.append("ALLOW_DEMO_LOGIN=true on a demo deployment without oidc – passwordless dev_password demo login")
     if profile == "production" and (env.get("SIGNUP_RATE_LIMIT_EXEMPT_CIDRS") or "").strip():
         warns.append("SIGNUP_RATE_LIMIT_EXEMPT_CIDRS is set in production – listed addresses bypass the sign-up limit; use only for test runners")
     if profile == "production" and _true(env.get("ALLOW_INSECURE_PRODUCTION")):
@@ -168,6 +220,13 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
     prov = providers(env)
     if "oidc" in prov:
         errors += [f"{k} is required when oidc is enabled" for k in ("OIDC_ISSUER", "OIDC_CLIENT_ID", "OIDC_REDIRECT_URI") if not env.get(k)]
+        if strict:
+            for k in ("OIDC_ISSUER", "OIDC_REDIRECT_URI", "OIDC_POST_LOGOUT_REDIRECT_URI"):
+                if env.get(k) and not env[k].startswith("https://"):
+                    errors.append(f"{k} must be https:// in staging/production")
+            if not env.get("OIDC_CLIENT_SECRET"):
+                errors.append("OIDC_CLIENT_SECRET is required in staging/production (confidential client)")
+    keycloak_checks(env, strict, errors, warns)
     if "mtls_header" in prov and not env.get("MTLS_TRUSTED_PROXIES"):
         errors.append("MTLS_TRUSTED_PROXIES is required when mtls_header is enabled")
     ai = env.get("AI_PROVIDER") or "none"

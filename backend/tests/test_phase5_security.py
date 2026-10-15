@@ -7,11 +7,11 @@ from sqlalchemy import func, select
 
 from app.db import SessionLocal
 from app.models import AuditEvent, Organization, RoleAssignment, System, User
-from tests.conftest import PASSWORD, auth
+from tests.conftest import PASSWORD, auth, demo_org_id
 
 
 def _ltp(db):
-    return db.scalar(select(System).where(System.acronym == "LTP"))
+    return db.scalar(select(System).where(System.acronym == "LTP", System.org_id == demo_org_id(db)))
 
 
 def test_security_headers_and_health(client):
@@ -239,7 +239,7 @@ def test_oidc_code_pkce_flow_with_mocked_idp(client, monkeypatch):
         return Resp({"id_token": sent["_id_token"]})
 
     class FakeJWK:
-        def __init__(self, uri): pass
+        def __init__(self, uri, **kw): pass
         def get_signing_key_from_jwt(self, t): return type("K", (), {"key": key.public_key()})()
 
     monkeypatch.setattr(oidc.httpx, "post", lambda url, **kw: fake_post(url, **kw))
@@ -252,17 +252,35 @@ def test_oidc_code_pkce_flow_with_mocked_idp(client, monkeypatch):
         assert q["code_challenge_method"] == ["S256"] and q["code_challenge"][0] and q["client_id"] == ["aegisrmf"]
         state = q["state"][0]
         now = int(time.time())
+        from app.db import SessionLocal
+        from app.models import OidcPending
+        with SessionLocal() as db:
+            nonce = db.get(OidcPending, state).nonce
         sent["_id_token"] = pyjwt.encode({"iss": iss, "aud": "aegisrmf", "sub": "kc-isso-1", "iat": now, "exp": now + 300,
-                                          "nonce": nonce_override or oidc._pending[state]["nonce"], "email": "isso@aegisrmf.demo",
+                                          "nonce": nonce_override or nonce, "email": "isso@aegisrmf.demo",
                                           "name": "Demo ISSO"}, key, algorithm="RS256")
         return state
 
     try:
+        from app.db import SessionLocal
+        from app.models import User
+        from app.services import identity_map
+        state = start()  # unmapped identity: no email fallback → 403
+        assert client.get(f"/api/v1/auth/oidc/callback?code=abc&state={state}", follow_redirects=False).status_code == 403
+        with SessionLocal() as db:
+            u = db.query(User).filter(User.email == "isso@aegisrmf.demo").one()
+            identity_map.map_identity(db, user=u, issuer=iss, sub="kc-isso-1", reason="test", actor="pytest")
+            db.commit()
         state = start()
         r = client.get(f"/api/v1/auth/oidc/callback?code=abc&state={state}", follow_redirects=False)
-        assert r.status_code in (302, 307) and r.headers["location"].startswith("http://spa.test/login#access_token=")
+        assert r.status_code in (302, 307) and r.headers["location"].startswith("http://spa.test/login?oidc_code=")
+        assert "access_token" not in r.headers["location"]
         assert sent["code_verifier"] and len(sent["code_verifier"]) >= 43
-        tok = parse_qs(urlparse(r.headers["location"]).fragment)["access_token"][0]
+        code = parse_qs(urlparse(r.headers["location"]).query)["oidc_code"][0]
+        ex = client.post("/api/v1/auth/oidc/exchange", json={"code": code})
+        assert ex.status_code == 200, ex.text
+        assert client.post("/api/v1/auth/oidc/exchange", json={"code": code}).status_code == 401  # one-time
+        tok = ex.json()["access_token"]
         me = client.get("/api/v1/auth/me", headers=auth(tok)).json()
         assert me["email"] == "isso@aegisrmf.demo"
         assert client.get(f"/api/v1/auth/oidc/callback?code=abc&state={state}", follow_redirects=False).status_code == 401  # replay

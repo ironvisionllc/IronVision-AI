@@ -70,7 +70,8 @@ export default function LoginPage() {
           <ThemeToggle className="absolute right-5 top-4" />
           <div className="w-full max-w-md animate-fade-up">
             <div className="mb-6 flex items-center gap-2.5 lg:hidden"><BrandMark /><Wordmark className="text-lg" /></div>
-            {info?.oidc_enabled && <a className="btn-primary mb-4 w-full justify-center py-2.5" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/auth/oidc/login`} data-testid="oidc-login-btn">Sign in with enterprise SSO (OIDC)</a>}
+            {new URLSearchParams(window.location.search).get("oidc_error") && <div role="alert" className="mb-4 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-[13px] text-rose-800" data-testid="oidc-error">Single sign-on did not complete. Please try again.</div>}
+            {info?.oidc_enabled && <a className="btn-primary mb-4 w-full justify-center py-2.5" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/auth/oidc/login`} data-testid="oidc-login-btn">Sign in with IronVision SSO</a>}
             {info && !info.dev_password_enabled && !info.oidc_enabled && <div className="panel p-4 text-[13px]" data-testid="external-auth-note">Sign-in is handled by {info.label}. Password sign-in is disabled.</div>}
             {(!info || info.dev_password_enabled) && <>
             <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-[12px] font-bold uppercase tracking-wide text-amber-900" data-testid="dev-auth-label">

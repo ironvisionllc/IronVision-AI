@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # IronVision AI – the one supported deploy command (DigitalOcean Droplet or any Docker host).
-#   scripts/deploy.sh [ENV_FILE] [--staging] [--project NAME] [--skip-edge-check] [--no-pull] [--no-cache] [--force-tls] [--install-systemd|--no-systemd]
+#   scripts/deploy.sh [ENV_FILE] [--staging] [--project NAME] [--skip-edge-check] [--no-pull] [--no-cache] [--force-tls] [--install-systemd|--no-systemd] [--apply-realm] [--no-backup]
 # ENV_FILE defaults to deploy/digitalocean/.env.production. Stops at the first failure with a non-zero exit;
 # "DEPLOYMENT SUCCEEDED" is printed only after /api/v1/ready answered. Works as root or as a docker-group user.
 set -Eeuo pipefail
@@ -12,6 +12,8 @@ SKIP_EDGE=0
 PULL=1
 SYSTEMD=auto
 BUILD_ARGS=()
+APPLY_REALM=0
+BACKUP=1
 READY_TIMEOUT="${READY_TIMEOUT:-240}"
 LEGACY_PROJECT="aegisrmf"
 
@@ -26,6 +28,8 @@ while [ $# -gt 0 ]; do
     --force-tls) export FORCE_TLS=1 ;;
     --install-systemd) SYSTEMD=yes ;;
     --no-systemd) SYSTEMD=no ;;
+    --apply-realm) APPLY_REALM=1 ;;
+    --no-backup) BACKUP=0 ;;
     -h|--help) usage; exit 0 ;;
     -*) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
     *) ENV_FILE="$1" ;;
@@ -125,9 +129,12 @@ case "$DRIVER" in
     fi ;;
   *) die "STORAGE_DRIVER must be s3 or local in $ENV_FILE (got '$DRIVER')" ;;
 esac
+AUTH_DOMAIN="$(envget AUTH_DOMAIN)"
+KEYCLOAK=0
+if [ -n "$AUTH_DOMAIN" ]; then KEYCLOAK=1; FILES+=(-f deploy/compose/keycloak.yml); fi
 export COMPOSE_PROFILES="$PROFILES"
 DC=(docker compose -p "$PROJECT" --env-file "$ENV_FILE" "${FILES[@]}")
-echo "project=$PROJECT  storage=$MODE  profiles=${PROFILES:-none}"
+echo "project=$PROJECT  storage=$MODE  profiles=${PROFILES:-none}  keycloak=$([ "$KEYCLOAK" -eq 1 ] && echo "https://$AUTH_DOMAIN" || echo off)"
 echo "compose: ${DC[*]}"
 
 # ---------------------------------------------------------------- directories (root or ironvision operator)
@@ -141,6 +148,20 @@ mk 755 0 0 "$DATA_ROOT/letsencrypt"
 mk 755 0 0 "$DATA_ROOT/certbot"
 mk 755 0 0 "$DATA_ROOT/certbot/www"
 mk 750 "$OPERATOR" "$OPGROUP" "$DATA_ROOT/backups"
+if [ "$KEYCLOAK" -eq 1 ]; then
+  mk 700 10001 10001 "$DATA_ROOT/secrets"               # one-time credential files (keycloak-migrate / keycloak-user rotate)
+  mk 755 0 0 "$DATA_ROOT/edge"
+  # Keycloak admin console allowlist for the public auth domain (default: nobody → SSH tunnel only)
+  ALLOW_FILE="$(mktemp)"
+  for c in $(envget KEYCLOAK_ADMIN_ALLOWED_CIDRS | tr ',' ' '); do printf 'allow %s;\n' "$c" >> "$ALLOW_FILE"; done
+  printf 'deny all;\n' >> "$ALLOW_FILE"
+  "${SUDO[@]}" install -m 644 "$ALLOW_FILE" "$DATA_ROOT/edge/auth-admin-allow.conf"; rm -f "$ALLOW_FILE"
+  echo "  keycloak admin allowlist: $(grep -c '^allow' "$DATA_ROOT/edge/auth-admin-allow.conf") CIDR(s), everything else denied"
+fi
+# the resolved compose set, read by the systemd units (boot start, renewals, backups)
+CF=""
+for x in "${FILES[@]}"; do [ "$x" = -f ] || CF="${CF:+$CF:}$x"; done
+printf 'COMPOSE_PROJECT_NAME=%s\nCOMPOSE_FILE=%s\nCOMPOSE_PROFILES=%s\n' "$PROJECT" "$CF" "$PROFILES" | "${SUDO[@]}" tee "$DATA_ROOT/compose.env" >/dev/null
 
 # ---------------------------------------------------------------- compose validation
 step "compose config" "the message above names the missing or invalid variable – set it in $ENV_FILE"
@@ -162,9 +183,25 @@ step "image self-check (imports every module, before anything starts)" "an impor
 "${DC[@]}" run --rm --no-deps -T backend python -m app.tools.selfcheck
 "${DC[@]}" run --rm --no-deps -T worker python -m app.tools.selfcheck
 
+# ---------------------------------------------------------------- backup of the running deployment (before anything changes)
+if [ "$BACKUP" -eq 1 ] && [ -n "$("${DC[@]}" ps -q postgres 2>/dev/null)" ]; then
+  step "backup (existing deployment: app DB$([ "$KEYCLOAK" -eq 1 ] && echo ' + keycloak DB') + objects)" "backup failed – nothing was changed. Fix it or re-run with --no-backup (not recommended)"
+  REPO="$PWD" ENV_FILE="$ENV_FILE" COMPOSE_PROJECT="$PROJECT" bash deploy/digitalocean/backup-offsite.sh
+fi
+
 # ---------------------------------------------------------------- ordered start
 step "start postgres" "logs: ${DC[*]} logs --tail 100 postgres"
 "${DC[@]}" up -d --wait --wait-timeout 180 postgres
+if [ "$KEYCLOAK" -eq 1 ]; then
+  step "keycloak-db-init (role + database if missing; never drops)" "see the [keycloak-db-init] line above"
+  "${DC[@]}" run --rm --no-deps keycloak-db-init
+  step "start keycloak (https://$AUTH_DOMAIN)" "logs: ${DC[*]} logs --tail 200 keycloak"
+  "${DC[@]}" up --no-deps -d --wait --wait-timeout 300 keycloak
+  step "keycloak realm $(envget KEYCLOAK_REALM) – plan$([ "$APPLY_REALM" -eq 1 ] && echo ' + apply' || echo ' (applied automatically only if the realm is absent)')" \
+       "read the [keycloak-config] lines above; admin access: docs/KEYCLOAK.md"
+  if [ "$APPLY_REALM" -eq 1 ]; then KC_ARGS=(apply --yes); else KC_ARGS=(apply --if-realm-absent --yes); fi
+  "${DC[@]}" run --rm --no-deps -T keycloak-config python -m app.tools.keycloak_config "${KC_ARGS[@]}"
+fi
 if [ "$BUILTIN" -eq 1 ]; then
   step "start object store (seaweedfs)" "logs: ${DC[*]} logs --tail 100 seaweedfs"
   "${DC[@]}" up -d --wait --wait-timeout 180 seaweedfs
@@ -173,9 +210,9 @@ step "objectstore-init" "read the '[s3-bootstrap] FAIL' line above – it names 
 "${DC[@]}" run --rm --no-deps objectstore-init
 step "migrate (alembic upgrade head + reference content)" "see the migration output above; database logs: ${DC[*]} logs postgres"
 "${DC[@]}" run --rm --no-deps migrate
-mapfile -t APP < <(grep -vxE 'postgres|seaweedfs|objectstore-init|migrate|certbot' <<<"$SERVICES")
+mapfile -t APP < <(grep -vxE 'postgres|seaweedfs|objectstore-init|migrate|certbot|keycloak|keycloak-db-init|keycloak-config' <<<"$SERVICES")
 if grep -qx edge <<<"$SERVICES" && [ "$SKIP_EDGE" -eq 0 ]; then
-  step "TLS certificate for $APP_DOMAIN" "fix the TLS message above (DNS A record, port 80, LETSENCRYPT_EMAIL) – guide §4"
+  step "TLS certificate for $APP_DOMAIN${AUTH_DOMAIN:+ + $AUTH_DOMAIN}" "fix the TLS message above (DNS A record, port 80, LETSENCRYPT_EMAIL) – guide §4"
   scripts/ensure_tls.sh ensure "$ENV_FILE" -- "${DC[@]}"
 fi
 step "start application (${APP[*]})" "logs: ${DC[*]} logs --tail 200 ${APP[*]}"
@@ -195,7 +232,7 @@ for s in "${APP[@]}"; do
   grep -qx "$s" <<<"$RUNNING" || die "service '$s' is not running – logs: ${DC[*]} logs --tail 200 $s"
 done
 if grep -qx edge <<<"$SERVICES" && [ "$SKIP_EDGE" -eq 0 ]; then
-  step "public check https://$APP_DOMAIN (certificate + /api/v1/ready)" "public endpoint failed – check DNS for $APP_DOMAIN, the DO firewall (80/443) and: ${DC[*]} logs edge"
+  step "public check https://$APP_DOMAIN${AUTH_DOMAIN:+ + https://$AUTH_DOMAIN} (certificates, /api/v1/ready, OIDC discovery, /admin blocked)" "public endpoint failed – check DNS for $APP_DOMAIN, the DO firewall (80/443) and: ${DC[*]} logs edge"
   scripts/ensure_tls.sh verify "$ENV_FILE"
 fi
 
@@ -204,7 +241,7 @@ install_systemd() {
   local dir="${SYSTEMD_DIR:-/etc/systemd/system}" u
   command -v systemctl >/dev/null || { warn "systemctl not found – skipping systemd units"; return 0; }
   for u in deploy/digitalocean/systemd/*.service deploy/digitalocean/systemd/*.timer; do
-    sed -e "s|/opt/ironvision/app|$PWD|g" -e "s|^User=ironvision\$|User=$OPERATOR|" \
+    sed -e "s|/opt/ironvision/app|$PWD|g" -e "s|^User=ironvision\$|User=$OPERATOR|" -e "s|/srv/ironvision/compose.env|$DATA_ROOT/compose.env|g" \
         -e "s|deploy/digitalocean/.env.production|$ENV_FILE|g" "$u" > "$dir/$(basename "$u")"
     echo "  installed $dir/$(basename "$u")"
   done
@@ -223,5 +260,9 @@ STEP="summary"
 printf '\n#### DEPLOYMENT SUCCEEDED in %ss\n' "$(( $(date +%s) - STARTED ))"
 printf '  project   %s\n  env file  %s\n  storage   %s\n  profiles  %s\n  url       https://%s\n' \
   "$PROJECT" "$ENV_FILE" "$MODE" "${PROFILES:-none}" "$APP_DOMAIN"
+if [ "$KEYCLOAK" -eq 1 ]; then
+  printf '  keycloak  https://%s/realms/%s  (admin console: SSH tunnel, docs/KEYCLOAK.md)\n' "$AUTH_DOMAIN" "$(envget KEYCLOAK_REALM)"
+  printf '  migrate   users are NOT migrated by deploy – dry run: scripts/keycloak.sh %s migrate\n' "$ENV_FILE"
+fi
 printf '  manage    %s ps | logs -f backend | stop\n' "${DC[*]}"
 printf '\nReady: https://%s  (API: https://%s/api/v1/ready)\n' "$(envget APP_DOMAIN)" "$(envget APP_DOMAIN)"

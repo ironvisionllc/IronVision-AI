@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from app.db import SessionLocal
 from app.models import (ApprovalRequest, AuditEvent, ControlAssignment, Evidence, Finding, FindingControlMap, Poam, PoamFinding, System)
 from app.services.ingest.pipeline import process_run, receive_upload
-from tests.conftest import auth
+from tests.conftest import auth, demo_org_id
 
 E2E = os.environ.get("SAMPLES_DIR", "/app/samples") + "/e2e"
 
@@ -50,7 +50,7 @@ def test_source_cards_reconcile_with_findings_and_ledger(client, token, e2e):
     for sid in (str(e2e), None):
         if sid is None:
             with SessionLocal() as db:
-                sid = str(db.scalar(select(System.id).where(System.acronym == "LTP")))
+                sid = str(db.scalar(select(System.id).where(System.acronym == "LTP", System.org_id == demo_org_id(db))))
         cards = client.get(f"/api/v1/systems/{sid}/sources", headers=h).json()
         ledger = client.get(f"/api/v1/systems/{sid}/evidence", headers=h).json()
         with SessionLocal() as db:
@@ -71,7 +71,7 @@ def test_grouped_mappings_no_repeated_controls(client, token, e2e):
 
 def test_partial_freshness_per_asset(client, token):
     with SessionLocal() as db:
-        ltp = db.scalar(select(System).where(System.acronym == "LTP"))
+        ltp = db.scalar(select(System).where(System.acronym == "LTP", System.org_id == demo_org_id(db)))
         ev = db.scalar(select(Evidence).where(Evidence.system_id == ltp.id, Evidence.file_name == "ltp_cache-node-06.ckl"))
         eid, sid = str(ev.id), str(ltp.id)
     r = client.post(f"/api/v1/demo/evidence/{eid}/collected-at", json={"days_ago": 60}, headers=auth(token("platform.admin@aegisrmf.demo")))
@@ -259,7 +259,7 @@ def test_seeded_poams_exist():
     with SessionLocal() as db:
         ids = set(db.scalars(select(Poam.human_id)))
         assert {"P-0015", "P-0019", "P-0022", "P-0026", "P-0027", "P-0030", "P-0031"} <= ids
-        p27 = db.scalar(select(Poam).where(Poam.human_id == "P-0027"))
+        p27 = db.scalar(select(Poam).where(Poam.human_id == "P-0027", Poam.org_id == demo_org_id(db)))
         assert db.scalar(select(func.count()).select_from(PoamFinding).where(PoamFinding.poam_id == p27.id)) == 2
 
 
@@ -268,7 +268,7 @@ def test_cat_derivation_persisted_and_counts_agree(client, token):
         assert db.scalar(select(func.count()).select_from(Finding).where(Finding.severity == "critical", Finding.cat.is_(None))) == 0
         assert db.scalar(select(func.count()).select_from(Finding).where(Finding.source_type == "acas", Finding.severity == "high",
                                                                          Finding.cat != "CAT I")) == 0
-        ltp = db.scalar(select(System).where(System.acronym == "LTP"))
+        ltp = db.scalar(select(System).where(System.acronym == "LTP", System.org_id == demo_org_id(db)))
         n = db.scalar(select(func.count()).select_from(Finding).where(Finding.system_id == ltp.id, Finding.cat == "CAT I",
                                                                       Finding.disposition.is_distinct_from("false_positive"),
                                                                       (Finding.current_state == "open") | (Finding.remediation_status == "remediated_observed")))

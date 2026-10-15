@@ -14,6 +14,7 @@ PAIRS = [
     ("frontend/.env.example", "frontend/env.template"),
     ("deploy/digitalocean/.env.production.example", "deploy/digitalocean/env.production.template"),
     ("deploy/digitalocean/.env.staging.example", "deploy/digitalocean/env.staging.template"),
+    ("deploy/digitalocean/.env.customer-production.example", "deploy/digitalocean/env.customer-production.template"),
 ]
 SECRET_KEY = re.compile(r"(SECRET|PASSWORD|PASSWD|TOKEN|API_KEY|PRIVATE|CREDENTIAL|SECRET_ACCESS_KEY|STORE_KEY)")
 PLACEHOLDER = re.compile(r"(change-me|generate-with|example|^env_key$|^/)", re.I)
@@ -57,8 +58,9 @@ def test_deploy_templates_cover_every_variable_the_code_reads():
     pat = re.compile(r"""(?:environ(?:\.get)?\(|environ\[|getenv\(|_opt\(|_req\(|_bool\()['"]([A-Z_0-9]+)['"]""")
     used = {m for f in (ROOT / "backend/app").rglob("*.py") for m in pat.findall(f.read_text())}
     ignore = {"EMERGENT_LLM_KEY", "EMERGENT_AI_VENDOR", "DATABASE_URL", "DOCS_ROOT", "CONTENT_DIR", "SAMPLES_DIR",
-              "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER"}
-    for tpl in ("deploy/digitalocean/env.production.template", "deploy/digitalocean/env.staging.template"):
+              "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER", "SUDO_USER"}
+    for tpl in ("deploy/digitalocean/env.production.template", "deploy/digitalocean/env.staging.template",
+                "deploy/digitalocean/env.customer-production.template"):
         keys = {line.split("=", 1)[0].lstrip("# ").strip() for line in (ROOT / tpl).read_text().splitlines() if "=" in line}
         missing = used - keys - ignore
         assert not missing, f"{tpl} missing {sorted(missing)}"

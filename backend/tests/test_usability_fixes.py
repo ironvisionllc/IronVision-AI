@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.models import System
-from tests.conftest import auth
+from tests.conftest import auth, demo_org_id
 
 
 def _sid(acr="LTP") -> str:
@@ -269,9 +269,9 @@ def test_26_xccdf_and_sarif_ingest(client, token):
             db.refresh(run)
             assert run.status == "completed", run.errors
     with SessionLocal() as db:
-        x = db.scalar(select(Finding).where(Finding.vuln_id == "V-910002"))
+        x = db.scalar(select(Finding).join(System, System.id == Finding.system_id).where(System.org_id == demo_org_id(db), Finding.vuln_id == "V-910002"))
         assert x.current_state == "open" and x.mapping_status == "mapped" and x.cat == "CAT I"
-        assert db.scalar(select(Finding).where(Finding.vuln_id == "V-910001")).current_state == "pass"
+        assert db.scalar(select(Finding).join(System, System.id == Finding.system_id).where(System.org_id == demo_org_id(db), Finding.vuln_id == "V-910001")).current_state == "pass"
         assert db.scalar(select(Finding).where(Finding.rule_id == "DEMO-SQLI-001")).mapping_status == "mapped"
         assert db.scalar(select(Finding).where(Finding.rule_id == "DEMO-STYLE-003")).mapping_status == "unmapped"
 

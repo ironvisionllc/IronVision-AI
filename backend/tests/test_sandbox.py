@@ -274,5 +274,11 @@ def test_check_env_refuses_demo_login_in_production():
     from app.check_env import validate
     errs, _ = validate({"APP_ENV": "production", "ALLOW_DEMO_LOGIN": "true"})
     assert any("ALLOW_DEMO_LOGIN" in e for e in errs)
-    errs, warns = validate({"APP_ENV": "production", "ALLOW_DEMO_LOGIN": "true", "ALLOW_DEMO_LOGIN_IN_PRODUCTION": "true"})
+    errs, _ = validate({"APP_ENV": "production", "ALLOW_DEMO_LOGIN": "true", "ALLOW_DEMO_LOGIN_IN_PRODUCTION": "true"})
+    assert any("DEPLOYMENT_KIND=demo" in e for e in errs)  # the old override no longer works
+    errs, _ = validate({"APP_ENV": "production", "ALLOW_DEMO_LOGIN": "true", "DEPLOYMENT_KIND": "customer"})
+    assert any("never on a customer deployment" in e for e in errs)
+    errs, warns = validate({"APP_ENV": "production", "ALLOW_DEMO_LOGIN": "true", "DEPLOYMENT_KIND": "demo"})
     assert not any("ALLOW_DEMO_LOGIN" in e for e in errs) and any("ALLOW_DEMO_LOGIN" in w for w in warns)
+    errs, _ = validate({"APP_ENV": "production", "ALLOW_DEMO_LOGIN": "true", "DEPLOYMENT_KIND": "demo", "AUTH_PROVIDERS": "oidc"})
+    assert any("KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET is required" in e for e in errs)

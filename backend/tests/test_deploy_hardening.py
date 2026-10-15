@@ -10,7 +10,7 @@ GOOD = {
     "S3_BUCKET": "ironvision-evidence", "S3_REGION": "us-east-1", "JWT_SECRET": "k" * 8 + "Q7m2Rz9Xv4Lp1Ns6Bt3Wy8Hc5Jd0Gf",
     "SECRET_STORE_KEY": "ZmVybmV0LWtleS1mb3ItdGVzdHMtb25seS0wMTIzNDU=", "CORS_ORIGINS": "https://rmf.agency.test",
     "FRONTEND_URL": "https://rmf.agency.test", "AUTH_PROVIDERS": "oidc", "OIDC_ISSUER": "https://idp.agency.test/realms/x",
-    "OIDC_CLIENT_ID": "ironvision", "OIDC_REDIRECT_URI": "https://rmf.agency.test/api/v1/auth/oidc/callback", "TRUST_PROXY_HEADERS": "true",
+    "OIDC_CLIENT_ID": "ironvision", "OIDC_CLIENT_SECRET": "Oc7Lm2Vw9Rz4Kp8Td3Nb6Hc1Jf5Yg0Ua9", "OIDC_REDIRECT_URI": "https://rmf.agency.test/api/v1/auth/oidc/callback", "TRUST_PROXY_HEADERS": "true",
     "SEED_DEMO_DATA": "false", "AI_PROVIDER": "none",
 }
 
@@ -86,7 +86,7 @@ def test_env_templates_cover_every_variable_the_code_reads():
     pat = re.compile(r"""(?:environ(?:\.get)?\(|environ\[|getenv\(|_opt\(|_req\(|_bool\()['"]([A-Z_0-9]+)['"]""")
     used = {m for f in (root / "backend/app").rglob("*.py") for m in pat.findall(f.read_text())}
     preview_only = {"EMERGENT_LLM_KEY", "EMERGENT_AI_VENDOR"}
-    compose_only = {"DATABASE_URL", "DOCS_ROOT", "CONTENT_DIR", "SAMPLES_DIR", "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER"}
+    compose_only = {"DATABASE_URL", "DOCS_ROOT", "CONTENT_DIR", "SAMPLES_DIR", "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER", "SUDO_USER"}
     for tpl in ("deploy/digitalocean/.env.production.example", "deploy/digitalocean/.env.staging.example"):
         keys = {l.split("=", 1)[0].lstrip("# ").strip() for l in (root / tpl).read_text().splitlines() if "=" in l}
         missing = used - keys - preview_only - compose_only

@@ -18,6 +18,7 @@ SOURCE_TYPES = {
     "on_prem": ("On-prem collector", "mock"), "disconnected": ("Disconnected / air-gapped", "file_import"),
     "oscal_catalog": ("OSCAL catalog", "file_import"), "manual_upload": ("Manual upload", "file_import"),
     "manual_attestation": ("Manual attestation", "mock"),
+    "sarif": ("Pipeline SAST / container scans (SARIF)", "file_import"),
 }
 EVIDENCE_TYPE = {"devsecops_pipeline": "pipeline", "aws_govcloud": "cloud_config", "azure_gov": "cloud_config",
                  "manual_attestation": "training", "on_prem": "on_prem_config", "emass": "emass_record"}

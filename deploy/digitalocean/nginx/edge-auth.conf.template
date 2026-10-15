@@ -1,0 +1,57 @@
+# Keycloak on ${AUTH_DOMAIN} (mounted only with deploy/compose/keycloak.yml). envsubst: ${AUTH_DOMAIN}, ${APP_DOMAIN}, ${KEYCLOAK_REALM}.
+# Only the application realm, static resources and JS are public. /admin/ and /realms/master/ are denied unless the client
+# address is in KEYCLOAK_ADMIN_ALLOWED_CIDRS (rendered by scripts/deploy.sh into auth-admin-allow.conf; default: deny all →
+# admin console only through the SSH tunnel to 127.0.0.1:8081). /health and /metrics (port 9000) are never proxied.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${AUTH_DOMAIN};
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name ${AUTH_DOMAIN};
+    server_tokens off;
+
+    ssl_certificate     /etc/letsencrypt/live/${AUTH_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${AUTH_DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSLAUTH:10m;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # resolve at request time so the edge still starts while keycloak is (re)starting
+    resolver 127.0.0.11 valid=30s ipv6=off;
+    set $keycloak http://keycloak:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $remote_addr;      # overwrite, never append client-supplied values
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port 443;
+    proxy_set_header Forwarded "";
+    proxy_buffer_size 128k;
+    proxy_buffers 4 256k;
+    proxy_busy_buffers_size 256k;
+
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location = / { return 302 https://${APP_DOMAIN}/; }
+
+    location /realms/${KEYCLOAK_REALM}/ { proxy_pass $keycloak; }
+    location /resources/ { proxy_pass $keycloak; }
+    location /js/ { proxy_pass $keycloak; }
+
+    location /admin/ {
+        include /etc/nginx/ironvision/auth-admin-allow.conf;
+        proxy_pass $keycloak;
+    }
+    location /realms/master/ {
+        include /etc/nginx/ironvision/auth-admin-allow.conf;
+        proxy_pass $keycloak;
+    }
+    location / { return 404; }
+}

@@ -29,11 +29,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | false>(null);
 
   useEffect(() => {
-    const h = new URLSearchParams(window.location.hash.slice(1));
-    if (h.get("access_token")) {
-      sessionStorage.setItem(TOKEN_KEY, h.get("access_token") as string);
-      sessionStorage.setItem(REFRESH_KEY, h.get("refresh_token") ?? "");
+    const q = new URLSearchParams(window.location.search);
+    const oidcCode = q.get("oidc_code");
+    if (oidcCode) {
+      // One-time 60 s code from the OIDC callback; exchanged by POST so no app token ever appears in a URL.
       window.history.replaceState(null, "", window.location.pathname);
+      api.post<{ access_token: string; refresh_token: string; user: User }>("/auth/oidc/exchange", { code: oidcCode })
+        .then((r) => {
+          sessionStorage.setItem(TOKEN_KEY, r.data.access_token);
+          sessionStorage.setItem(REFRESH_KEY, r.data.refresh_token ?? "");
+          setUser(r.data.user);
+        })
+        .catch(() => setUser(false));
+      return;
     }
     if (!sessionStorage.getItem(TOKEN_KEY)) {
       setUser(false);
@@ -77,14 +85,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    let endSession: string | null = null;
     try {
-      await api.post("/auth/logout");
+      const r = await api.post<{ end_session_url?: string | null } | undefined>("/auth/logout");
+      endSession = r.data?.end_session_url ?? null;
     } catch {
       /* token may already be invalid */
     }
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(REFRESH_KEY);
     setUser(false);
+    // OIDC: also end the Keycloak SSO session (RP-initiated logout), which redirects back to /login.
+    if (endSession) window.location.assign(endSession);
   }, []);
 
   const actAs = useCallback(async (role: string) => {

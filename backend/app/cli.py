@@ -3,6 +3,7 @@ Bootstraps the first production platform administrator without any demo accounts
 stored: the admin signs in through the IdP and is matched by email. --password-stdin creates a dev_password identity and is only
 allowed when dev_password is enabled (non-production)."""
 import argparse
+import os
 import re
 import sys
 
@@ -51,6 +52,30 @@ def create_admin(email: str, name: str, org_name: str, password: str | None = No
         return user, created
 
 
+def identity_cmd(a) -> int:
+    from app.services import identity_map
+    with SessionLocal() as db:
+        if a.cmd == "identity-list":
+            for m in identity_map.list_mappings(db):
+                print(f"{m['email']:38} {m['keycloak_user_id']:38} {m['mapped_by'] or '-':24} {m['mapped_at'] or '-'} {m['reason'] or ''}")
+            return 0
+        if not a.issuer:
+            print("error: --issuer or OIDC_ISSUER required", file=sys.stderr)
+            return 2
+        user = db.scalar(select(User).where(User.email == a.email.strip().lower()))
+        if user is None:
+            print(f"error: no app user {a.email}", file=sys.stderr)
+            return 2
+        try:
+            _, created = identity_map.map_identity(db, user=user, issuer=a.issuer, sub=a.sub, reason=a.reason, actor=a.actor)
+        except identity_map.MappingConflict as e:
+            print(f"CONFLICT: {e}", file=sys.stderr)
+            return 3
+        db.commit()
+        print(f"{'mapped' if created else 'already mapped'}: {user.email} -> {a.issuer}|{a.sub}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m app.cli")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -59,7 +84,20 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--name", required=True)
     c.add_argument("--org", default="IronVision AI")
     c.add_argument("--password-stdin", action="store_true", help="read a dev_password secret from stdin (non-production only)")
+    from app.tools import keycloak_migrate
+    keycloak_migrate.add_parsers(sub)
+    i = sub.add_parser("identity-map", help="explicitly map an IdP identity (issuer|sub) to an app user (audited)")
+    i.add_argument("--email", required=True)
+    i.add_argument("--sub", required=True, help="Keycloak user id (the ID token 'sub')")
+    i.add_argument("--issuer", default=os.environ.get("OIDC_ISSUER", ""))
+    i.add_argument("--reason", required=True)
+    i.add_argument("--actor", default=f"cli:{os.environ.get('SUDO_USER') or 'operator'}")
+    sub.add_parser("identity-list", help="list OIDC identity mappings")
     a = ap.parse_args(argv)
+    if a.cmd in ("keycloak-migrate", "keycloak-user"):
+        return keycloak_migrate.run(a)
+    if a.cmd in ("identity-map", "identity-list"):
+        return identity_cmd(a)
     pw = sys.stdin.readline().rstrip("\n") if a.password_stdin else None
     if a.password_stdin and len(pw or "") < 12:
         print("password must be at least 12 characters", file=sys.stderr)

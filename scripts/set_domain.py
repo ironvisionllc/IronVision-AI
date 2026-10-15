@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Switch the public domain in an env file safely (backup first, mode 600, never sources the file, never prints secrets).
 Usage: python3 scripts/set_domain.py deploy/digitalocean/.env.production demo.ironvisionai.com [--email admin@example.org]
+       python3 scripts/set_domain.py deploy/digitalocean/.env.production --auth-domain auth.demo.ironvisionai.com
 Sets APP_DOMAIN, FRONTEND_URL, CORS_ORIGINS, OPENROUTER_SITE_URL, OIDC_REDIRECT_URI and LETSENCRYPT_EMAIL, and replaces every
 other occurrence of the old domain (and of the template placeholder app.example.gov) in non-secret values."""
 import importlib.util
@@ -41,6 +42,17 @@ def plan(env: dict, domain: str, email: str | None) -> dict[str, str]:
     return {k: v for k, v in want.items() if env.get(k) != v}
 
 
+def plan_auth(env: dict, auth_domain: str) -> dict[str, str]:
+    """Built-in Keycloak on AUTH_DOMAIN. AUTH_PROVIDERS is deliberately NOT changed (switch only after the user migration)."""
+    app = env.get("APP_DOMAIN") or ""
+    realm = env.get("KEYCLOAK_REALM") or "ironvision-demo"
+    want = {"AUTH_DOMAIN": auth_domain, "KEYCLOAK_REALM": realm, "OIDC_ISSUER": f"https://{auth_domain}/realms/{realm}",
+            "OIDC_CLIENT_ID": "ironvision-app",
+            "OIDC_REDIRECT_URI": f"https://{app}/api/v1/auth/oidc/callback", "OIDC_POST_LOGOUT_REDIRECT_URI": f"https://{app}/login",
+            "KEYCLOAK_ADMIN_USERNAME": env.get("KEYCLOAK_ADMIN_USERNAME") or "ironvision-admin"}
+    return {k: v for k, v in want.items() if env.get(k) != v}
+
+
 def apply(text: str, changes: dict[str, str]) -> str:
     out, done = [], set()
     for raw in text.split("\n"):
@@ -65,6 +77,10 @@ def main(argv: list[str]) -> int:
     email = argv[argv.index("--email") + 1] if "--email" in argv else None
     if email:
         args.remove(email)
+    auth = argv[argv.index("--auth-domain") + 1].strip().lower().rstrip(".") if "--auth-domain" in argv else None
+    if auth:
+        args = [a for a in args if a.strip().lower().rstrip(".") != auth]
+        return set_auth(Path(args[0]), auth) if len(args) == 1 else 2
     if len(args) != 2:
         print(__doc__.split("\n")[1])
         return 2
@@ -92,6 +108,38 @@ def main(argv: list[str]) -> int:
     for k, v in changes.items():
         print(f"  {k}: {env.get(k, '<unset>')!s} → {v}")
     return 0
+
+
+def _write(path: Path, text: str, changes: dict[str, str], label: str) -> int:
+    env = envfile.parse_env_text(text)
+    backup = path.with_name(f"{path.name}.bak-{time.strftime('%Y%m%d%H%M%S')}")
+    shutil.copy2(path, backup)
+    os.chmod(backup, 0o600)
+    tmp = path.with_name(path.name + ".domaintmp")
+    tmp.write_text(apply(text, changes))
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, path)
+    print(f"set_domain: {path} → {label} (backup {backup})")
+    for k, v in changes.items():
+        print(f"  {k}: {env.get(k, '<unset>')!s} → {v}")
+    return 0
+
+
+def set_auth(path: Path, auth: str) -> int:
+    text = path.read_text()
+    env = envfile.parse_env_text(text)
+    app = env.get("APP_DOMAIN") or ""
+    if not HOST_RE.match(auth) or auth.endswith((".example.gov", ".example.com", ".example")):
+        print(f"set_domain: {auth!r} is not a usable public hostname")
+        return 2
+    if not app or app == PLACEHOLDER or auth == app:
+        print("set_domain: set APP_DOMAIN first (--set-domain) – the auth domain must differ from it, e.g. auth.<app-domain>")
+        return 2
+    changes = plan_auth(env, auth)
+    if not changes:
+        print(f"set_domain: {path} already uses auth domain {auth} – nothing to change")
+        return 0
+    return _write(path, text, changes, f"auth domain {auth}")
 
 
 if __name__ == "__main__":

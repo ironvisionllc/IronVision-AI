@@ -18,6 +18,7 @@ if [ "$1" = compose ]; then
     printf '%s\n' "$@" | grep -qx -- --services && printf 'postgres\nseaweedfs\nobjectstore-init\nmigrate\nbackend\nworker\nfrontend\nedge\n'
     exit 0
   fi
+  printf '%s\n' "$@" | grep -qx -- -q && exit 0      # `ps -q postgres`: fresh host, nothing running yet
   printf '%s\n' "$@" | grep -qx ps && printf 'backend\nworker\nfrontend\nedge\n'
   exit 0
 fi

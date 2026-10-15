@@ -53,3 +53,10 @@ def list_audit(db: Session = Depends(get_db), limit: int = Query(50, ge=1, le=50
 @router.get("/audit-events/verify")
 def verify_audit(db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("audit.read"))) -> dict:
     return audit.verify_chain(db)
+
+
+@router.get("/admin/identity-mappings")
+def identity_mappings(db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("admin.users.manage"))) -> list[dict]:
+    """Read-only: OIDC identity mappings for the caller's organization (created only by the operator CLI)."""
+    from app.services import identity_map
+    return identity_map.list_mappings(db, current.user.org_id)

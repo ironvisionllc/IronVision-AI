@@ -23,6 +23,16 @@ BASE = {
     "SECRET_STORE_KEY": lambda: base64.urlsafe_b64encode(os.urandom(32)).decode(),
     "DEMO_USER_PASSWORD": pw,
 }
+KEYCLOAK = {   # only when AUTH_DOMAIN is set (built-in Keycloak); an external IdP's client secret comes from that IdP
+    "KEYCLOAK_DB_PASSWORD": pw,
+    "KC_BOOTSTRAP_ADMIN_PASSWORD": pw,
+    "KEYCLOAK_ADMIN_PASSWORD": pw,
+    "KEYCLOAK_CONFIGURATOR_CLIENT_SECRET": pw,
+    "OIDC_CLIENT_SECRET": pw,
+    "KEYCLOAK_DEMO_PASSWORD": pw,
+    "KEYCLOAK_DEMO_USERNAME": lambda: "demo-launcher-" + secrets.token_hex(6),
+    "KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET": pw,
+}
 BUILTIN_S3 = {
     "S3_ACCESS_KEY_ID": lambda: "ivapp" + secrets.token_hex(8),
     "S3_SECRET_ACCESS_KEY": pw,
@@ -45,6 +55,8 @@ def fill(path: Path) -> tuple[list[str], list[str]]:
     gens = dict(BASE)
     if current.get("STORAGE_DRIVER") == "s3" and not current.get("S3_ENDPOINT_URL"):
         gens.update(BUILTIN_S3)
+    if current.get("AUTH_DOMAIN"):
+        gens.update(KEYCLOAK)
     filled, kept = [], []
     out = []
     for ln in lines:

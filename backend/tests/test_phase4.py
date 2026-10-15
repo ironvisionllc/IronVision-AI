@@ -5,11 +5,11 @@ from sqlalchemy import func, select, update
 
 from app.db import SessionLocal
 from app.models import (ContentVersion, EmassChange, EmassRemoteRecord, Finding, FindingObservation, Job, Poam, ScheduledJob, System)
-from tests.conftest import auth
+from tests.conftest import auth, demo_org_id
 
 
 def _ltp(db):
-    return db.scalar(select(System).where(System.acronym == "LTP"))
+    return db.scalar(select(System).where(System.acronym == "LTP", System.org_id == demo_org_id(db)))
 
 
 def _ver(db, v):
@@ -22,7 +22,7 @@ def test_part_a_fixes(client, token):
     with SessionLocal() as db:
         ltp = _ltp(db)
         sid = str(ltp.id)
-        pf = db.scalar(select(Finding).where(Finding.source_type == "policy_audit").limit(1))
+        pf = db.scalar(select(Finding).join(System, System.id == Finding.system_id).where(Finding.source_type == "policy_audit", System.org_id == demo_org_id(db)).limit(1))
     if pf is not None:
         assert client.get(f"/api/v1/findings/{pf.id}/poam-match", headers=isso).json()["prefill"]["source_label"] == "Policy audit"
     res = client.get("/api/v1/search", params={"q": "ac-2", "system_id": sid}, headers=isso).json()
@@ -47,7 +47,7 @@ def test_stig_diff_impact_and_apply_preserves_history(client, token):
         v1_id, v2_id = str(v1.id), str(v2.id)
         obs_before = {str(o.id): (o.observed_status, str(o.content_version_id)) for o in db.scalars(
             select(FindingObservation).join(Finding, Finding.id == FindingObservation.finding_id).where(Finding.benchmark == v1.meta["benchmark"]))}
-        f118 = db.scalar(select(Finding).where(Finding.vuln_id == "V-900118", Finding.current_state == "open"))
+        f118 = db.scalar(select(Finding).join(System, System.id == Finding.system_id).where(System.org_id == demo_org_id(db), Finding.vuln_id == "V-900118", Finding.current_state == "open"))
     assert obs_before and all(v[1] == v1_id for v in obs_before.values())
     ov = client.get("/api/v1/content-updates", headers=isso).json()
     stig = next(t for t in ov["types"] if t["content_type"] == "stig_benchmark")
@@ -68,7 +68,7 @@ def test_stig_diff_impact_and_apply_preserves_history(client, token):
         assert after == obs_before  # historical observations keep the content version used at the time
         f = db.get(Finding, f118.id)
         assert f.cat == "CAT I" and str(f.content_version_id) == v2_id
-        p = db.scalar(select(Poam).where(Poam.human_id == "P-0027"))
+        p = db.scalar(select(Poam).where(Poam.human_id == "P-0027", Poam.org_id == demo_org_id(db)))
         assert p.content_impact["status"] == "pending_review" and p.cat == "CAT II"  # POA&M needs human impact review
         assert _ver(db, "V1R1").status == "superseded" and _ver(db, "V1R2").is_active
     hist = client.get("/api/v1/content-updates", headers=isso).json()["history"]
@@ -127,8 +127,8 @@ def test_emass_failure_retry_conflict_and_export_only(client, token):
     with SessionLocal() as db:
         ltp = _ltp(db)
         sid = str(ltp.id)
-        p19 = db.scalar(select(Poam).where(Poam.human_id == "P-0019"))
-        p26 = db.scalar(select(Poam).where(Poam.human_id == "P-0026"))
+        p19 = db.scalar(select(Poam).where(Poam.human_id == "P-0019", Poam.org_id == demo_org_id(db)))
+        p26 = db.scalar(select(Poam).where(Poam.human_id == "P-0026", Poam.org_id == demo_org_id(db)))
         before19 = (p19.weakness, p19.status, p19.due_date)
     assert client.get("/api/v1/emass/status", headers=isso).json()["mode"] == "mock"
     cmp_ = client.post(f"/api/v1/systems/{sid}/emass/compare", headers=isso).json()
@@ -210,7 +210,8 @@ def test_scheduler_idempotent_tick(client, token):
 def test_risk_score_explanation_sums(client, token):
     isso, admin = auth(token("isso@aegisrmf.demo")), auth(token("platform.admin@aegisrmf.demo"))
     with SessionLocal() as db:
-        f = db.scalar(select(Finding).where(Finding.is_kev.is_(True)).limit(1)) or db.scalar(select(Finding).limit(1))
+        mine = select(Finding).join(System, System.id == Finding.system_id).where(System.org_id == demo_org_id(db))
+        f = db.scalar(mine.where(Finding.is_kev.is_(True)).limit(1)) or db.scalar(mine.limit(1))
     s = client.get(f"/api/v1/findings/{f.id}/score", headers=isso).json()
     assert "not a formal residual risk determination" in s["label"]
     assert round(sum(x["points"] for x in s["breakdown"]), 1) == s["score"]

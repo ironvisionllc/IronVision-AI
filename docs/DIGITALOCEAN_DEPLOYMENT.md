@@ -168,6 +168,17 @@ Database size after demo reset is 79 MB (reference catalogs plus synthetic data)
 
 ---
 
+### Keycloak sign-in (auth.demo.ironvisionai.com)
+
+Keycloak 26.8.1 runs as an internal service with a separate `keycloak` database and role on the same Postgres server. To add it:
+`./deploy.sh --set-auth-domain auth.demo.ironvisionai.com`. This adds env keys in place (with a backup), generates the empty
+secrets, does NOT switch the sign-in mode, and does NOT migrate users. Deploy order: backup → postgres → keycloak-db-init →
+keycloak → realm plan/apply → TLS for both domains → app → public checks (the `/admin` console must be 403).
+The admin console is reachable only through an SSH tunnel (`ssh -L 8081:127.0.0.1:8081 …`). User migration (dry run first), the
+credential CLI, the switch to `AUTH_PROVIDERS=oidc`, verification and rollback are covered in **[docs/KEYCLOAK.md](KEYCLOAK.md)**.
+The systemd units now read `/srv/ironvision/compose.env` (written by deploy.sh), so boot start, certificate renewal and backups use
+exactly the same overlays as the last deploy (storage + Keycloak).
+
 ## 2. Clean-server setup (Ubuntu 24.04 LTS)
 
 *Not yet executed on DigitalOcean.* Run as root on first login (SSH key added at Droplet creation). Replace `ADMIN_IP`, `you@…` and the domain.
@@ -254,8 +265,9 @@ sudo install -d -m 750 -o ironvision -g ironvision /srv/ironvision/backups
 
 ### 2.11 Clone, configure, build, migrate, start
 ```bash
+# Any checkout path works (scripts and systemd units resolve the repo root themselves). The customer Droplet uses /opt/ironvision/IronVision-AI.
 sudo install -d -o ironvision -g ironvision /opt/ironvision && cd /opt/ironvision
-git clone <your-git-remote>/ironvision-ai.git app && cd app && git checkout <release-tag>
+git clone <your-git-remote>/IronVision-AI.git IronVision-AI && cd IronVision-AI && git checkout <release-tag>
 cp deploy/digitalocean/env.production.template deploy/digitalocean/.env.production && chmod 600 deploy/digitalocean/.env.production
 python3 scripts/gen_env_secrets.py deploy/digitalocean/.env.production   # fills empty secrets in place; never overwrites, never prints them
 python3 scripts/check_env.py deploy/digitalocean/.env.production        # must print RESULT: PASS
@@ -324,6 +336,7 @@ The matching ufw rules are in §2.5. **SeaweedFS master UI** (read-only cluster 
 
 Prerequisites:
 - the DNS A record, plus AAAA if you use IPv6;
+- with built-in Keycloak, also the A record **`auth.demo.ironvisionai.com` → the same Droplet IPv4**. `./deploy.sh` DNS-checks it and requests its own certificate (renewed by the same timer);
 - the CAA record `0 issue "letsencrypt.org"` if you use CAA;
 - the DO Cloud Firewall and ufw open on 80 and 443 (§2.5, §3).
 
@@ -407,7 +420,7 @@ TARGET_DATABASE_URL=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:543
 
 **Upgrade:**
 ```bash
-cd /opt/ironvision/app && sudo systemctl start ironvision-backup.service              # 1. backup first (record the dir)
+cd "$(git rev-parse --show-toplevel)" && sudo systemctl start ironvision-backup.service   # 1. backup first (run inside your checkout, e.g. /opt/ironvision/IronVision-AI)
 git fetch --tags && git checkout <new-tag>                                          # 2. code
 python3 scripts/check_env.py deploy/digitalocean/.env.production                    # 3. new vars?
 $COMPOSE build && $COMPOSE run --rm migrate && $COMPOSE up -d                       # 4. build, migrate, restart
