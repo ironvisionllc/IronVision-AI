@@ -60,6 +60,7 @@ class AuthProviderInfo(BaseModel):
     dev_password_enabled: bool = True
     signup_enabled: bool = False
     demo_login_enabled: bool = False
+    registration_enabled: bool = False
     oidc_enabled: bool = False
 
 

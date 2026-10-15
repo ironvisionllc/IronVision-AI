@@ -8,7 +8,17 @@ import type { AuthProviderInfo } from "@/lib/types";
 import { SyntheticBanner } from "@/components/shell/SyntheticBanner";
 import { BrandLockup, BrandMark, ThemeToggle, Wordmark } from "@/components/shell/Brand";
 
+const OIDC_ERRORS: Record<string, string> = {
+  idp: "Single sign-on did not complete. Please try again.",
+  registration_email_exists: "This email belongs to an existing account; contact the administrator.",
+  registration_reserved: "This username or email is reserved. Please register with your own email address.",
+  registration_rate_limited: "Too many new accounts from this network. Please try again later.",
+  registration_invalid: "Registration needs a valid email address.",
+  registration_unavailable: "Account creation is temporarily unavailable. Please try again in a minute.",
+};
+
 export default function LoginPage() {
+  const oidcError = new URLSearchParams(window.location.search).get("oidc_error");
   const { user, login, demoLogin } = useAuth();
   const navigate = useNavigate();
   const [info, setInfo] = useState<AuthProviderInfo | null>(null);
@@ -70,8 +80,13 @@ export default function LoginPage() {
           <ThemeToggle className="absolute right-5 top-4" />
           <div className="w-full max-w-md animate-fade-up">
             <div className="mb-6 flex items-center gap-2.5 lg:hidden"><BrandMark /><Wordmark className="text-lg" /></div>
-            {new URLSearchParams(window.location.search).get("oidc_error") && <div role="alert" className="mb-4 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-[13px] text-rose-800" data-testid="oidc-error">Single sign-on did not complete. Please try again.</div>}
-            {info?.oidc_enabled && <a className="btn-primary mb-4 w-full justify-center py-2.5" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/auth/oidc/login`} data-testid="oidc-login-btn">Sign in with IronVision SSO</a>}
+            {oidcError && <div role="alert" className="mb-4 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-[13px] text-rose-800" data-testid="oidc-error">{OIDC_ERRORS[oidcError] ?? OIDC_ERRORS.idp}</div>}
+            {info?.oidc_enabled && <div className="panel p-7" data-testid="oidc-block">
+              <h2 className="t-title text-slate-900">Sign in</h2>
+              <a className="btn-primary mt-5 w-full justify-center py-2.5" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/auth/oidc/login`} data-testid="oidc-login-btn"><KeyRound className="h-4 w-4" aria-hidden /> Sign in</a>
+              {info.registration_enabled && <a className="btn-secondary mt-3 w-full justify-center py-2.5" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/auth/oidc/register`} data-testid="oidc-register-btn">Create account</a>}
+              {info.registration_enabled && <div className="mt-1.5 text-center text-[11px] text-slate-500" data-testid="oidc-register-caption">Free private sandbox · clean workspace · deleted after 30 days without activity</div>}
+            </div>}
             {info && !info.dev_password_enabled && !info.oidc_enabled && <div className="panel p-4 text-[13px]" data-testid="external-auth-note">Sign-in is handled by {info.label}. Password sign-in is disabled.</div>}
             {(!info || info.dev_password_enabled) && <>
             <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-[12px] font-bold uppercase tracking-wide text-amber-900" data-testid="dev-auth-label">
@@ -93,6 +108,7 @@ export default function LoginPage() {
                 <KeyRound className="h-4 w-4" aria-hidden /> {busy ? "Signing in…" : "Sign in"}
               </button>
             </form>}
+            </>}
             {mode === "login" && info?.demo_login_enabled && <div className="mt-4 text-center" data-testid="demo-login-block">
               <div className="mb-3 flex items-center gap-3 text-[11px] uppercase tracking-wide text-slate-400"><span className="h-px flex-1 bg-slate-200" />or<span className="h-px flex-1 bg-slate-200" /></div>
               <button type="button" disabled={busy} className="btn-secondary w-full justify-center py-2.5" onClick={demo} data-testid="demo-login-btn">
@@ -101,10 +117,9 @@ export default function LoginPage() {
               <div className="mt-1.5 text-[11px] text-slate-500" data-testid="demo-login-caption">Synthetic data · shared demo workspace · resets nightly</div>
               {demoErr && <div role="alert" className="mt-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-[13px] text-rose-800" data-testid="demo-login-error">{demoErr}</div>}
             </div>}
-            {info?.signup_enabled && (mode === "signup" ? <><SignupForm onDone={(e) => { setEmail(e); setMode("login"); setNote("Account created – your private sandbox is being prepared. Sign in to continue."); }} />
+            {info?.dev_password_enabled && info?.signup_enabled && (mode === "signup" ? <><SignupForm onDone={(e) => { setEmail(e); setMode("login"); setNote("Account created – your private sandbox is being prepared. Sign in to continue."); }} />
               <button type="button" className="mt-3 w-full text-center text-[13px] text-blue-800 underline" onClick={() => setMode("login")} data-testid="show-login-btn">I already have an account – sign in</button></>
               : <button type="button" className="mt-4 w-full text-center text-[13px] text-blue-800 underline" onClick={() => setMode("signup")} data-testid="show-signup-btn">New here? Create a free sandbox account</button>)}
-            </>}
           </div>
         </main>
       </div>

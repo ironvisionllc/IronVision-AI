@@ -17,7 +17,7 @@ from app.schemas import AuthProviderInfo, DevAccount, LoginRequest, RoleOut, Tok
 from app.security import login_guard, sessions
 from app.security.deps import CurrentUser, get_current_user
 from app.security.providers import AuthenticationError, get_auth_provider
-from app.security.rbac import ROLES, effective_permissions
+from app.security.rbac import effective_permissions
 from app.security.tokens import create_access_token
 from app.services import audit
 
@@ -77,8 +77,13 @@ def provider_info(db: Session = Depends(get_db)) -> AuthProviderInfo:
         _ = rows
     return AuthProviderInfo(provider=provider.name, label=provider.display_label, is_simulated=provider.is_simulated,
                             dev_accounts=accounts, enabled_providers=enabled, dev_password_enabled="dev_password" in enabled, signup_enabled=get_settings().allow_signup and "dev_password" in enabled,
-                            demo_login_enabled=demo_login_available(),
+                            demo_login_enabled=demo_login_available(), registration_enabled=_registration_enabled(),
                             oidc_enabled="oidc" in enabled)
+
+
+def _registration_enabled() -> bool:
+    from app.security import registration
+    return registration.enabled()
 
 
 def demo_login_mode() -> str | None:
@@ -251,6 +256,16 @@ def oidc_login(login_hint: str | None = None, db: Session = Depends(get_db)) -> 
     return RedirectResponse(oidc.authorization_url(db, (login_hint or "").strip()[:255] or None))
 
 
+@router.get("/oidc/register")
+def oidc_register(db: Session = Depends(get_db)) -> RedirectResponse:
+    """Keycloak registration page with the same PKCE/state/nonce flow (DEMO deployment, KEYCLOAK_ALLOW_REGISTRATION)."""
+    _require_oidc()
+    if not _registration_enabled():
+        raise HTTPException(404, "Self-registration is disabled")
+    from app.security import oidc
+    return RedirectResponse(oidc.authorization_url(db, None, register=True))
+
+
 LOGIN_CODE_TTL = 60
 
 
@@ -274,6 +289,18 @@ def oidc_callback(request: Request, code: str | None = None, state: str | None =
     except Exception as exc:
         audit.record_now(action="auth.login", outcome="failure", details={"provider": "oidc", "reason": str(exc)[:200]}, **audit.request_meta(request))
         raise HTTPException(401, "OIDC sign-in failed")
+    from app.services import identity_map
+    if identity_map.by_subject(db, claims["subject"].rsplit("|", 1)[0], claims["sub"]) is None and _registration_enabled():
+        from app.security import registration
+        try:
+            registration.jit(db, request, claims)  # brand-new self-registrant → clean sandbox + explicit mapping
+        except registration.Refused as r:
+            return RedirectResponse(f"{front}/login?oidc_error={r.code}")
+        except Exception as exc:  # noqa: BLE001 - Keycloak admin API unreachable: refuse, never fall back to e-mail linking
+            db.rollback()
+            audit.record_now(action="auth.signup", outcome="failure", details={"provider": "oidc", "reason": f"jit_failed:{str(exc)[:120]}"},
+                             **audit.request_meta(request))
+            return RedirectResponse(f"{front}/login?oidc_error=registration_unavailable")
     user = _external_login(db, request, "oidc", claims["subject"], claims["email"], allow_email_link=_email_linking_allowed())
     raw = secrets.token_urlsafe(32)
     db.add(OidcLoginCode(code_sha256=hashlib.sha256(raw.encode()).hexdigest(), user_id=user.id, id_token=claims["id_token"],

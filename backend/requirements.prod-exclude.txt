@@ -45,7 +45,6 @@ markdown-it-py  # transitive dependency of bandit, pip-audit, typer only
 mccabe  # transitive dependency of flake8 only
 mdurl  # transitive dependency of bandit, pip-audit, typer only
 motor  # Emergent template MongoDB driver; the app uses PostgreSQL only
-msgpack  # transitive dependency of pip-audit only
 multidict  # transitive dependency of emergentintegrations only
 mypy  # dev type checker
 mypy_extensions  # transitive dependency of black, isort, mypy only

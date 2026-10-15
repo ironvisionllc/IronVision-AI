@@ -5,6 +5,7 @@
 #   scripts/keycloak.sh [ENV_FILE] user list|set-password|rotate|disable|enable|reset-mfa [EMAIL] [--temporary]
 #   scripts/keycloak.sh [ENV_FILE] identity-list
 #   scripts/keycloak.sh [ENV_FILE] rotate-demo                     new demo launcher password: Keycloak + env file (backup) + backend restart
+#   scripts/keycloak.sh [ENV_FILE] doctor                          Explore-the-demo / registration diagnosis with exact fix commands
 # migrate --apply first runs the full backup (app DB + keycloak DB + objects) and refuses to continue if it fails.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -42,6 +43,7 @@ case "$CMD" in
     exec "${RUN[@]}" python -m app.cli keycloak-migrate "${EXTRA[@]}" "$@" ;;
   user) exec "${RUN[@]}" python -m app.cli keycloak-user "$@" ;;
   identity-list) exec "${RUN[@]}" python -m app.cli identity-list ;;
+  doctor) exec "${DC[@]}" --profile keycloak-tools run --rm -T -e DOCTOR_ENV_FILE="$F" keycloak-config python -m app.tools.keycloak_doctor ;;
   rotate-demo)
     NEW="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')"
     printf '%s\n' "$NEW" | "${DC[@]}" --profile keycloak-tools run --rm -T keycloak-config python -m app.cli keycloak-user set-password demo@ironvision.ai \

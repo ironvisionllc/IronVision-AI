@@ -269,3 +269,18 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Tests: 11 LIVE tests vs real Keycloak 26.8.1 in pod + 13 infra/unit tests (real nginx in front of live Keycloak for /admin 403). Backlog: approve Explore-demo mechanism; run on Droplet; switch AUTH_PROVIDERS=oidc after migration.
 - Follow-ups (Oct 2026): per-xdist-worker test DBs (`<db>_gwN`); tests/acceptance only collected when targeted; seed lookups scoped to the demo org (sandbox tenants copy LTP data). Real bugs fixed: SARIF evidence source missing from connector catalog (`/systems/{id}/sources` 500 after a SARIF upload); source cards `unmapped` now includes dispositioned (Mapped + Unmapped = Total). Docs/scripts path-agnostic (customer checkout /opt/ironvision/IronVision-AI). Live test: named master admin requires OTP.
 - Explore-the-demo Option B (approved, implemented): client `ironvision-demo-launcher` (direct grant only, client-specific flow denies users without admin-only attribute `demo_launcher=true`), realm browser flow `ironvision-browser` (username → deny launcher users → password → OTP), launcher user = unpublished handle `KEYCLOAK_DEMO_USERNAME` + `@demo-launcher.invalid` e-mail (Keycloak counts deny-access as brute-force failure; handle keeps visitors from targeting it), no default roles; backend ROPC server-side, ID-token validation, explicit mapping to demo@ironvision.ai, KC session ended immediately, provider `oidc-demo`, per-IP + global rate limits, 503 on IdP errors, 404 unless ALLOW_DEMO_LOGIN + oidc + launcher configured. check_env: production demo login only with DEPLOYMENT_KIND=demo. `scripts/keycloak.sh rotate-demo`. Option C (ephemeral per-visitor users) documented only.
+
+## 2026-10-15 – Demo self-registration + doctor; recovery toolkit (NOT run on the customer Droplet)
+- Keycloak self-registration, DEMO only (`KEYCLOAK_ALLOW_REGISTRATION`, check_env refuses customer). JIT clean sandbox only for
+  Keycloak REGISTER-event users; reserved identifiers / existing-account e-mails refused (403, never auto-linked); purge deletes
+  the self-registered Keycloak user; edge rate limit on registration routes; Login: Sign in / Create account / Explore demo.
+- `scripts/keycloak.sh doctor` (+ deploy.sh summary): OK/FAIL with exact fix commands, no secrets.
+- Migration 0013 `organizations.protected`; purge hard-refused for protected/non-sandbox tenants.
+- `./recover.sh` preflight/rehearse/apply --plan-hash/verify/rollback/status/audit/link; MinIO xl-single reader; copy-only
+  SeaweedFS recovery; `scripts/e2e_sso.py`; `scripts/recover_audit.sh`; docs/RECOVERY_REPORT.md.
+- Verified in pod: backend 256 passed/25 skipped (serial + parallel), live Keycloak 19/1 skipped, recovery E2E 25/25, e2e_sso 15/15,
+  testing agent iteration_12 100%.
+### Backlog
+- P0: operator runs `./recover.sh preflight → rehearse --e2e → apply` on the Droplet; `doctor` must show 0 failing checks.
+- P1: real MinIO binary fixture validation of the archive reader; reboot persistence check on the Droplet.
+- P2: Option C ephemeral demo users; customer-production registration opt-in design.

@@ -154,13 +154,7 @@ def signup(body: SignupIn, request: Request, db: Session = Depends(get_db)) -> d
         deny("password_policy", 422, "Password needs " + ", ".join(probs) + ".")
     if db.scalar(select(User.id).where(User.email == email)):
         deny("email_exists", 409, "This email is already registered – sign in instead.")
-    org = sbx.create_sandbox(db, None, body.organization or body.name, email)
-    u = User(org_id=org.id, email=email, display_name=body.name.strip(), title="Sandbox owner", source=sbx.SANDBOX_SOURCE)
-    db.add(u)
-    db.flush()
-    org.owner_user_id = u.id
-    for p in db.scalars(select(User).where(User.org_id == org.id, User.persona_role.is_not(None))):
-        p.operator_id = u.id
+    u, org = sbx.create_owner(db, email, body.name, body.organization)
     db.add(AuthIdentity(user_id=u.id, provider="dev_password", subject=email, secret_hash=hash_password(body.password)))
     job = jobs.enqueue(db, "sandbox.provision", {"org_id": str(org.id)}, requested_by=u.id)
     audit.record(db, action="auth.signup", actor_user_id=u.id, actor_email=email, entity_type="organization", entity_id=str(org.id),
@@ -238,7 +232,9 @@ def act_as(body: ActAs, request: Request, db: Session = Depends(get_db), current
     audit.record(db, action="sandbox.act_as", actor_user_id=real.id, actor_email=real.email, entity_type="user", entity_id=str(p.id),
                  details={"role": body.role, "persona": p.display_name})
     db.commit()
-    return _issue(db, p, current.auth_provider, request, operator=real)
+    from app.models import AuthSession
+    cur = db.get(AuthSession, uuid.UUID(request.state.sid))  # keep the IdP id_token_hint so persona sessions still end the SSO session
+    return _issue(db, p, current.auth_provider, request, operator=real, id_token_hint=cur.id_token_hint if cur else None)
 
 
 @router.post("/sandbox/reset")

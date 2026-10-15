@@ -164,6 +164,65 @@ cleanup job. Benefits: no shared account, full isolation between visitors, nothi
 narrowly scoped `manage-users` service account (a privilege the app currently does not have), user and tenant cleanup jobs, and
 growth/abuse limits (CAPTCHA, a global cap). Revisit if the demo becomes high-traffic or public marketing.
 
+## 7a. Self-registration – "Create account" (DEMO deployment only)
+
+Enabled only when `DEPLOYMENT_KIND=demo` **and** `KEYCLOAK_ALLOW_REGISTRATION=true` (default false). `check_env` refuses it for any
+other deployment kind, without the built-in Keycloak/oidc, or on a realm other than `ironvision-demo`. Templates: demo
+(`env.production.template`, `env.staging.template`) = true, `env.customer-production.template` = **false**.
+
+| Control | Where |
+|---|---|
+| Realm `registrationAllowed=true`, `verifyEmail=false` (no SMTP; customer accepted unverified e-mails for isolated sandboxes), existing password policy, OTP optional, brute-force protection on, `REGISTER` events stored 90 days | Keycloak (configurator) |
+| Edge nginx: `/realms/ironvision-demo/protocol/openid-connect/registrations` and `/login-actions/registration` limited per client IP (6/min, burst 10, else 429) | nginx |
+| Login page: **Sign in** (OIDC), **Create account** (same PKCE/state/nonce flow, Keycloak registrations endpoint), **Explore the demo** (launcher, if configured) | frontend + backend |
+| A user is a *self-registrant* only if Keycloak recorded a `REGISTER` event for it (or the admin-only `self_registered=true` stamp). Migration- or admin-created users never have one → normal "not mapped" 403, never JIT | backend (`app/security/registration.py`) |
+| JIT for a self-registrant without mapping: fresh sandbox tenant (reference content, decision rules, persona mode + acting-as switcher), app user, explicit `(issuer, sub)` mapping, audit `identity.mapped.jit` reason `self-registration` | backend |
+| Refused (and the Keycloak user deleted at once, audit `auth.signup` denied): `demo@ironvision.ai`, the launcher handle, any `@aegisrmf.demo` / `.invalid` e-mail, an e-mail that already belongs to an app account (403 "This email belongs to an existing account; contact the administrator" – **never auto-linked**), sign-up rate limit | backend |
+| Keycloak itself refuses a duplicate username/e-mail of an existing Keycloak user | Keycloak |
+| Backend uses a least-privilege service account (`ironvision-backend`: view/query/manage users, view events of the app realm only) – not the configurator | Keycloak + backend |
+| 30-day inactivity purge (and "Clear my workspace") deletes the self-registered Keycloak user; any other mapped Keycloak user is only disabled. Purge is **hard-refused** for protected tenants, non-sandbox tenants and tenants with non-sandbox role assignments | backend (`services/sandbox.py`) |
+| Role switcher is keyed to the tenant's persona mode, not the auth provider: works for launcher (demo → ISSM → approve) and self-registered users | backend |
+
+## 7b. Doctor – why does Explore / Create account not work?
+
+`scripts/keycloak.sh deploy/digitalocean/.env.production doctor` (also run at the end of every `./deploy.sh`; `deploy.sh` warns
+when `ALLOW_DEMO_LOGIN=true` but the launcher or the mapping is missing). Prints no secrets, only OK/FAIL and the exact fix:
+
+```text
+[keycloak-doctor] Explore-the-demo / registration diagnosis (no secrets printed)
+  OK   AUTH_PROVIDERS: oidc
+  OK   DEPLOYMENT_KIND: demo
+  OK   ALLOW_DEMO_LOGIN: true
+  OK   KEYCLOAK_DEMO_* env: all set
+  OK   KEYCLOAK_ALLOW_REGISTRATION: true
+  OK   KEYCLOAK_BACKEND_CLIENT_SECRET: set
+  OK   realm ironvision-demo: present
+  OK   launcher client ironvision-demo-launcher: present, direct grant, restricted flow
+  OK   demo launcher Keycloak user: present, enabled, demo_launcher=true
+  OK   realm registrationAllowed: true (env true)
+  OK   backend service-account client: present
+  OK   REGISTER events recorded: true
+  OK   demo app user demo@ironvision.ai: active, sandbox ready
+  FAIL demo identity mapping: missing
+       FIX: scripts/keycloak.sh deploy/digitalocean/.env.production migrate   (dry run → note plan hash), then: scripts/keycloak.sh deploy/digitalocean/.env.production migrate --apply --link --plan-hash <HASH>
+  OK   launcher token grant: ok, Keycloak session ended
+  OK   /auth/provider: {"provider": "oidc", ..., "demo_login_enabled": true, "registration_enabled": true, "dev_password_enabled": false}
+[keycloak-doctor] 1 failing check(s)
+```
+(Real pod output against live Keycloak 26.8.1. Running the printed FIX → `0 failing check(s)`, Explore → 200, switch to ISSM → 200.)
+
+### Droplet steps for registration (`/opt/ironvision/IronVision-AI`)
+```bash
+cd /opt/ironvision/IronVision-AI && git pull
+grep -q '^KEYCLOAK_ALLOW_REGISTRATION=' deploy/digitalocean/.env.production || \
+  printf 'true' | python3 scripts/envset.py deploy/digitalocean/.env.production KEYCLOAK_ALLOW_REGISTRATION   # in place, backup
+./deploy.sh                                     # migrate 0013 (additive), realm plan shows registration + service account
+scripts/keycloak.sh deploy/digitalocean/.env.production apply   # apply the realm changes it showed
+scripts/keycloak.sh deploy/digitalocean/.env.production doctor  # must end with "0 failing check(s)"
+```
+Rollback: set `KEYCLOAK_ALLOW_REGISTRATION=false`, `scripts/keycloak.sh … apply`, `./deploy.sh` (existing registrants keep working
+until purge; nothing is deleted).
+
 ## 8. Environment variables
 
 `AUTH_DOMAIN`, `KEYCLOAK_REALM`, `KEYCLOAK_REALM_DISPLAY_NAME`, `KEYCLOAK_REQUIRE_MFA`, `KEYCLOAK_DB_NAME`, `KEYCLOAK_DB_USER`,
@@ -172,6 +231,7 @@ growth/abuse limits (CAPTCHA, a global cap). Revisit if the demo becomes high-tr
 `KEYCLOAK_ADMIN_ALLOWED_CIDRS`, `KEYCLOAK_ADMIN_URL`, `KEYCLOAK_URL`, `AUTH_CERT_FULLCHAIN_PATH`, `AUTH_CERT_KEY_PATH`, `CREDENTIALS_DIR`,
 `DEPLOYMENT_KIND` (demo|customer), `KEYCLOAK_DEMO_USERNAME`* (unpublished handle), `KEYCLOAK_DEMO_PASSWORD`*,
 `KEYCLOAK_DEMO_LAUNCHER_CLIENT_ID`, `KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET`*, `DEMO_LOGIN_GLOBAL_RATE_LIMIT`,
+`KEYCLOAK_ALLOW_REGISTRATION` (demo only), `KEYCLOAK_BACKEND_CLIENT_ID`, `KEYCLOAK_BACKEND_CLIENT_SECRET`*,
 `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`*, `OIDC_REDIRECT_URI`, `OIDC_POST_LOGOUT_REDIRECT_URI`, `OIDC_ALLOW_EMAIL_LINKING`
 (dev only). Variables marked * are generated by `gen_env_secrets` when empty and never overwritten. `check_env` enforces the
 issuer = `https://AUTH_DOMAIN/realms/KEYCLOAK_REALM`, https issuer/redirect/post-logout URLs, a client secret in staging and
@@ -227,7 +287,9 @@ docker compose --env-file deploy/digitalocean/.env.production ps keycloak       
   HTTP, scripted browser through Keycloak's login pages. Covers: configurator apply/idempotency/drift; migration dry-run, conflicts,
   plan-hash, backup refusal, apply, unique passwords in the 600 CSV, idempotent re-run; OIDC login and role enforcement; invalid
   credentials; unmapped identity → 403 and audit; OTP enrolment and TOTP login (pyotp); logout ends the Keycloak session; idle
-  expiry; cross-tenant denial; Keycloak and backend restart mid-session followed by re-login. Run with
+  expiry; cross-tenant denial; Keycloak and backend restart mid-session followed by re-login; self-registration → clean JIT
+  sandbox; duplicate/reserved refusals; registrant role switch; launcher → ISSM → approve; inactivity purge deletes the Keycloak
+  user and refuses protected tenants. Run with
   `KEYCLOAK_LIVE_URL=… pytest -n 0 tests/test_keycloak_live.py`. Skipped when no Keycloak is reachable.
 * `tests/test_keycloak_infra.py`: compose overlay, edge auth block (and real nginx in front of the live Keycloak: `/admin` and
   `/realms/master` → 403), TLS for two domains (fake certbot/DNS), `--set-auth-domain`, secrets generation, check_env rules,

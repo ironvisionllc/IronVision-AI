@@ -92,6 +92,13 @@ def demo_password() -> str:
     return pw
 
 
+def demo_deployment_launcher() -> bool:
+    """DEPLOYMENT_KIND=demo + ALLOW_DEMO_LOGIN + oidc: the shared demo tenant is needed although SEED_DEMO_DATA stays off."""
+    from app.security import sessions
+    return ((os.environ.get("DEPLOYMENT_KIND") or "").lower() == "demo" and get_settings().allow_demo_login
+            and "oidc" in sessions.enabled_providers())
+
+
 def run() -> None:
     from app.check_env import production_guard
 
@@ -109,6 +116,15 @@ def run() -> None:
                 sbx.provision(db, org.id)
             retire_role_accounts(db)
             log.info("Demo seed complete (single demo account %s with a private sandbox)", sbx.DEMO_EMAIL)
+        elif demo_deployment_launcher():
+            from app.services import sandbox as sbx
+
+            ensure_reference_content(db)  # Keycloak demo deployment: ONLY the synthetic demo sandbox, no role accounts, no password
+            org = sbx.seed_demo_account(db, None)
+            db.commit()
+            if org.sandbox_status != "ready":
+                sbx.provision(db, org.id)
+            log.info("Demo deployment: demo sandbox %s ready for the Explore-the-demo launcher", sbx.DEMO_EMAIL)
         else:
             ensure_reference_content(db)
             log.info("SEED_DEMO_DATA is off: reference content only, no demo accounts")

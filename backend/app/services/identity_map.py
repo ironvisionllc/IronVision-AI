@@ -30,7 +30,8 @@ def by_subject(db: Session, issuer: str, sub: str) -> AuthIdentity | None:
     return db.scalar(select(AuthIdentity).where(AuthIdentity.provider == PROVIDER, AuthIdentity.subject == subject(issuer, sub)))
 
 
-def map_identity(db: Session, *, user: User, issuer: str, sub: str, reason: str, actor: str, username: str | None = None) -> tuple[AuthIdentity, bool]:
+def map_identity(db: Session, *, user: User, issuer: str, sub: str, reason: str, actor: str, username: str | None = None,
+                 action: str = "identity.mapped") -> tuple[AuthIdentity, bool]:
     """Create the mapping (idempotent). Raises MappingConflict on any ambiguity. Caller commits."""
     if not reason.strip():
         raise MappingConflict("a reason is required for every identity mapping")
@@ -47,7 +48,7 @@ def map_identity(db: Session, *, user: User, issuer: str, sub: str, reason: str,
                                      "mapped_by": actor, "mapped_at": datetime.now(timezone.utc).isoformat(), "reason": reason})
     db.add(ident)
     db.flush()
-    audit.record(db, action="identity.mapped", actor_email=actor, entity_type="user", entity_id=str(user.id),
+    audit.record(db, action=action, actor_email=actor, entity_type="user", entity_id=str(user.id),
                  details={"email": user.email, "issuer": issuer, "keycloak_user_id": sub, "reason": reason})
     return ident, True
 

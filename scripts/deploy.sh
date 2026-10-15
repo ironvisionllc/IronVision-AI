@@ -263,6 +263,12 @@ printf '  project   %s\n  env file  %s\n  storage   %s\n  profiles  %s\n  url   
 if [ "$KEYCLOAK" -eq 1 ]; then
   printf '  keycloak  https://%s/realms/%s  (admin console: SSH tunnel, docs/KEYCLOAK.md)\n' "$AUTH_DOMAIN" "$(envget KEYCLOAK_REALM)"
   printf '  migrate   users are NOT migrated by deploy – dry run: scripts/keycloak.sh %s migrate\n' "$ENV_FILE"
+  if [ "$(envget ALLOW_DEMO_LOGIN)" = true ] && { [ -z "$(envget KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET)" ] || [ -z "$(envget KEYCLOAK_DEMO_USERNAME)" ] || [ -z "$(envget KEYCLOAK_DEMO_PASSWORD)" ]; }; then
+    warn "ALLOW_DEMO_LOGIN=true but KEYCLOAK_DEMO_* launcher values are empty – 'Explore the demo' cannot work (re-run ./deploy.sh to generate them)"
+  fi
+  printf '\n'
+  "${DC[@]}" --profile keycloak-tools run --rm --no-deps -T -e DOCTOR_ENV_FILE="$ENV_FILE" keycloak-config python -m app.tools.keycloak_doctor \
+    || warn "Explore-the-demo / registration is NOT fully working – fix the FAIL lines above (re-check: scripts/keycloak.sh $ENV_FILE doctor)"
 fi
 printf '  manage    %s ps | logs -f backend | stop\n' "${DC[*]}"
 printf '\nReady: https://%s  (API: https://%s/api/v1/ready)\n' "$(envget APP_DOMAIN)" "$(envget APP_DOMAIN)"

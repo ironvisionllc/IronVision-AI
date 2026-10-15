@@ -166,7 +166,7 @@ def test_01_configurator_apply_is_idempotent():
     rc, out = run_cfg("plan")
     assert rc == 0 and "no changes (in sync)" in out, out
     r = kc().realm(REALM)
-    assert r["bruteForceProtected"] and not r["registrationAllowed"] and not r["resetPasswordAllowed"] and r["accessTokenLifespan"] == 300
+    assert r["bruteForceProtected"] and r["registrationAllowed"] == (os.environ.get("KEYCLOAK_ALLOW_REGISTRATION") == "true") and not r["resetPasswordAllowed"] and r["accessTokenLifespan"] == 300
     c = kc().client(REALM, os.environ["OIDC_CLIENT_ID"])
     assert not c["publicClient"] and not c["directAccessGrantsEnabled"] and not c["implicitFlowEnabled"]
     assert c["attributes"]["pkce.code.challenge.method"] == "S256"
@@ -557,3 +557,169 @@ def test_15_backend_demo_login_via_launcher(client, monkeypatch, tmp_path):
     finally:
         monkeypatch.undo()
         get_settings.cache_clear()
+
+
+# ---------------- self-registration (DEMO deployment) ----------------
+REG_PW = "Reg-Visitor-Pass-2026!"
+
+
+def _text(html: str) -> str:
+    t = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.S)
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", t))
+
+
+def _dup_rejected(page) -> bool:
+    t = _text(page.text).lower()
+    return page.status_code == 200 and any(x in t for x in ("already exists", "already associated", "already taken", "already in use"))
+
+
+def browser_register(client, b: httpx.Client, username: str, email: str, password: str = REG_PW) -> httpx.Response:
+    """Scripted browser: app /oidc/register → Keycloak registration form → app callback. Returns callback or Keycloak page."""
+    r = b.get(client.get("/api/v1/auth/oidc/register", follow_redirects=False).headers["location"])
+    action, data = _form(r.text)
+    r = b.post(action, data={**data, "username": username, "email": email, "firstName": "Reg", "lastName": "Visitor",
+                             "password": password, "password-confirm": password})
+    for _ in range(4):
+        if r.status_code not in (302, 303):
+            return r
+        loc = r.headers["location"]
+        if loc.startswith("http://testserver/"):
+            return client.get(loc.replace("http://testserver", ""), follow_redirects=False)
+        r = b.get(loc)
+    raise AssertionError("registration did not finish")
+
+
+def _exchange(client, cb) -> dict:
+    loc = cb.headers.get("location", "")
+    assert "oidc_code=" in loc, (cb.status_code, loc)
+    r = client.post("/api/v1/auth/oidc/exchange", json={"code": parse_qs(urlparse(loc).query)["oidc_code"][0]})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def _kc_user(username: str) -> dict | None:
+    rows = kc().users_by(REALM, username=username)
+    return rows[0] if rows else None
+
+
+@pytest.fixture()
+def reg_env(monkeypatch):
+    from app.config import get_settings
+    monkeypatch.setenv("AUTH_PROVIDERS", "oidc")
+    monkeypatch.setenv("SIGNUP_RATE_LIMIT", "100/3600")
+    get_settings.cache_clear()
+    assert run_cfg("apply", "--yes")[0] == 0 and "no changes" in run_cfg("plan")[1]
+    yield monkeypatch
+    monkeypatch.undo()
+    get_settings.cache_clear()
+
+
+def test_16_self_registration_creates_clean_tenant_with_persona_switch(client, reg_env):
+    from sqlalchemy import select
+
+    from app.db import SessionLocal
+    from app.models import AuditEvent
+    info = client.get("/api/v1/auth/provider").json()
+    assert info["registration_enabled"] is True and info["oidc_enabled"] is True
+    assert kc().realm(REALM)["registrationAllowed"] is True
+    tok = _exchange(client, browser_register(client, browser(), "reg-alice", "alice.reg@example.org"))
+    u = tok["user"]
+    assert u["is_sandbox"] and u["persona_role"] == "isso" and u["auth_provider"] == "oidc"
+    h = auth(tok["access_token"])
+    assert client.get("/api/v1/systems", headers=h).json() == []  # clean workspace: zero systems
+    st = client.get("/api/v1/sandbox/status", headers=h).json()
+    assert st["workspace"] == "clean" and st["status"] == "ready" and st["reset_label"] == "Clear my workspace" and st["onboarding"]
+    issm = client.post("/api/v1/sandbox/act-as", json={"role": "issm"}, headers=h)
+    assert issm.status_code == 200 and issm.json()["user"]["persona_role"] == "issm"
+    ku = _kc_user("reg-alice")
+    assert (ku.get("attributes") or {}).get("self_registered") == ["true"]
+    with SessionLocal() as db:
+        ev = db.scalar(select(AuditEvent).where(AuditEvent.action == "identity.mapped.jit").order_by(AuditEvent.seq.desc()))
+        assert ev.details["reason"] == "self-registration" and ev.details["keycloak_user_id"] == ku["id"]
+    sid = client.post("/api/v1/systems", json={"name": "Alice Private System", "acronym": "APS", "baseline_key": "low"}, headers=auth(issm.json()["access_token"]))
+    assert sid.status_code == 201, sid.text
+    STATE["alice"] = {"token": tok["access_token"], "system": sid.json()["id"], "kc": ku["id"]}
+    out = client.post("/api/v1/auth/logout", headers=auth(issm.json()["access_token"]))
+    assert out.status_code == 200 and "id_token_hint=" in (out.json()["end_session_url"] or "")  # persona session still ends the SSO session
+
+
+def test_17_registration_refusals_existing_and_reserved(client, reg_env):
+    from sqlalchemy import select
+
+    from app.db import SessionLocal
+    from app.models import AuthIdentity, Organization, User
+    page = browser_register(client, browser(), "reg-dup-ao", "ao@aegisrmf.demo")  # migrated account: Keycloak rejects on the page
+    assert _dup_rejected(page), _text(page.text)[-400:]
+    page = browser_register(client, browser(), os.environ["KEYCLOAK_DEMO_USERNAME"], "handle.squat@example.org")
+    assert _dup_rejected(page) and "username" in _text(page.text).lower(), _text(page.text)[-400:]
+    page = browser_register(client, browser(), "reg-demo-squat", "demo@ironvision.ai")  # disabled reserved placeholder
+    assert _dup_rejected(page), _text(page.text)[-400:]
+    with SessionLocal() as db:  # app account that is NOT in Keycloak yet (not migrated): refused after registration, never linked
+        org = db.scalar(select(Organization).where(Organization.is_sandbox.is_(False)).limit(1))
+        if not db.scalar(select(User).where(User.email == "legacy.only@example.org")):
+            db.add(User(org_id=org.id, email="legacy.only@example.org", display_name="Legacy only", source="test"))
+            db.commit()
+    for username, email, code in (("reg-legacy", "legacy.only@example.org", "registration_email_exists"),
+                                  ("reg-seed-squat", "newperson@aegisrmf.demo", "registration_reserved")):
+        cb = browser_register(client, browser(), username, email)
+        assert f"oidc_error={code}" in cb.headers.get("location", ""), cb.headers.get("location")
+        assert _kc_user(username) is None  # refused registrant removed from Keycloak at once
+    with SessionLocal() as db:
+        legacy = db.scalar(select(User).where(User.email == "legacy.only@example.org"))
+        assert db.scalar(select(AuthIdentity).where(AuthIdentity.user_id == legacy.id)) is None
+
+
+def test_18_rate_limit_and_two_registrants_isolated(client, reg_env):
+    from sqlalchemy import func, select
+
+    from app.db import SessionLocal
+    from app.models import AuditEvent
+    bob = _exchange(client, browser_register(client, browser(), "reg-bob", "bob.reg@example.org"))
+    hb = auth(bob["access_token"])
+    assert bob["user"]["org_id"] != client.get("/api/v1/auth/me", headers=auth(STATE["alice"]["token"])).json()["org_id"]
+    assert client.get("/api/v1/systems", headers=hb).json() == []
+    assert client.get(f"/api/v1/systems/{STATE['alice']['system']}", headers=hb).status_code in (403, 404)
+    STATE["bob"] = {"org": bob["user"]["org_id"], "kc": _kc_user("reg-bob")["id"]}
+    with SessionLocal() as db:
+        n = db.scalar(select(func.count()).select_from(AuditEvent).where(AuditEvent.action == "auth.signup", AuditEvent.outcome == "success"))
+    reg_env.setenv("SIGNUP_RATE_LIMIT", f"{n}/3600")
+    cb = browser_register(client, browser(), "reg-carol", "carol.reg@example.org")
+    assert "oidc_error=registration_rate_limited" in cb.headers.get("location", "") and _kc_user("reg-carol") is None
+
+
+def test_19_purge_after_inactivity_deletes_tenant_and_keycloak_user(client, reg_env):
+    import uuid as _uuid
+
+    from app.db import SessionLocal
+    from app.models import Organization
+    from app.services import sandbox as sbx
+    with SessionLocal() as db:
+        org = db.get(Organization, _uuid.UUID(STATE["bob"]["org"]))
+        org.last_activity_at = datetime.now(timezone.utc) - timedelta(days=sbx.inactivity_days() + 2)
+        db.commit()
+        assert sbx.run_expiry(db)["purged"] >= 1
+        db.refresh(org)
+        assert org.sandbox_status == "purged"
+    assert kc().user(REALM, STATE["bob"]["kc"]) is None  # self-registered Keycloak user deleted on purge
+    assert kc().user(REALM, STATE["alice"]["kc"]) is not None  # active registrant untouched
+
+
+def test_20_demo_launcher_switch_to_issm_and_approve(client, reg_env):
+    from app.config import get_settings
+    reg_env.setenv("ALLOW_DEMO_LOGIN", "true")
+    reg_env.setenv("DEMO_LOGIN_RATE_LIMIT", "1000/3600")
+    reg_env.setenv("DEMO_LOGIN_GLOBAL_RATE_LIMIT", "1000/3600")
+    get_settings.cache_clear()
+    r = client.post("/api/v1/auth/demo-login")
+    assert r.status_code == 200, r.text
+    isso = auth(r.json()["access_token"])
+    sid = client.post("/api/v1/systems", json={"name": "Launcher Approve System", "acronym": "LAS", "baseline_key": "low"},
+                      headers=auth(client.post("/api/v1/sandbox/act-as", json={"role": "issm"}, headers=isso).json()["access_token"])).json()["id"]
+    p = client.post("/api/v1/poams", json={"system_id": sid, "weakness": "Launcher SoD weakness", "control_ids": ["ac-2"], "due_date": "2027-01-31"}, headers=isso)
+    assert p.status_code == 201, p.text
+    assert client.post(f"/api/v1/poams/{p.json()['id']}/request-extension", json={"justification": "Vendor patch delayed by a quarter",
+                       "kind": "deadline_extension", "new_due_date": "2027-04-30"}, headers=isso).status_code == 201
+    rid = next(x["id"] for x in client.get("/api/v1/reviews", headers=isso).json()["items"] if x.get("poam_id") == p.json()["id"])
+    issm = auth(client.post("/api/v1/sandbox/act-as", json={"role": "issm"}, headers=isso).json()["access_token"])
+    ok = client.post(f"/api/v1/reviews/{rid}/decisions", json={"action": "approve", "rationale": "Approved by ISSM persona"}, headers=issm)
+    assert ok.status_code == 200, ok.text

@@ -59,6 +59,23 @@ def launcher_enabled() -> bool:
     return bool(os.environ.get("KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET"))
 
 
+def registration_enabled() -> bool:
+    return _bool("KEYCLOAK_ALLOW_REGISTRATION")
+
+
+BACKEND_ROLES = ["view-users", "query-users", "manage-users", "view-events"]  # JIT check (REGISTER events) + purge offboarding
+PROFILE_ATTRS = [DEMO_ATTR, "self_registered", "reserved"]  # admin view/edit only: users can neither see nor set them
+RESERVED_USERS = ["demo@ironvision.ai"]  # disabled placeholders: the registration page rejects these identifiers ("already exists")
+
+
+def desired_backend_client() -> dict:
+    return {"clientId": os.environ.get("KEYCLOAK_BACKEND_CLIENT_ID") or "ironvision-backend",
+            "name": "IronVision backend (service account: registration check, sandbox purge)", "enabled": True,
+            "protocol": "openid-connect", "publicClient": False, "clientAuthenticatorType": "client-secret",
+            "standardFlowEnabled": False, "implicitFlowEnabled": False, "directAccessGrantsEnabled": False,
+            "serviceAccountsEnabled": True, "redirectUris": [], "webOrigins": [], "fullScopeAllowed": True}  # token carries only the 4 assigned roles
+
+
 def desired_launcher_client(flow_id: str) -> dict:
     return {"clientId": os.environ.get("KEYCLOAK_DEMO_LAUNCHER_CLIENT_ID") or "ironvision-demo-launcher",
             "name": "IronVision Explore-the-demo launcher (server-side only)", "enabled": True, "protocol": "openid-connect",
@@ -91,7 +108,8 @@ def desired_realm() -> dict:
     idle = int(os.environ.get("SESSION_IDLE_MINUTES", "30")) * 60
     absolute = int(os.environ.get("SESSION_ABSOLUTE_HOURS", "12")) * 3600
     return {"realm": realm_name(), "enabled": True, "displayName": os.environ.get("KEYCLOAK_REALM_DISPLAY_NAME", "IronVision AI"),
-            "sslRequired": "external", "registrationAllowed": False, "resetPasswordAllowed": False, "verifyEmail": False,
+            "sslRequired": "external", "registrationAllowed": registration_enabled(), "registrationEmailAsUsername": False,
+            "resetPasswordAllowed": False, "verifyEmail": False,
             "rememberMe": False, "loginWithEmailAllowed": True, "duplicateEmailsAllowed": False, "editUsernameAllowed": False,
             "bruteForceProtected": True, "permanentLockout": False, "failureFactor": 5, "waitIncrementSeconds": 60,
             "maxFailureWaitSeconds": 900, "maxDeltaTimeSeconds": 43200, "minimumQuickLoginWaitSeconds": 60,
@@ -239,12 +257,19 @@ class Planner:
             self.add(f"~ {name}.browserFlow: {(cur or {}).get('browserFlow')!r} -> {APP_BROWSER_FLOW!r}",
                      lambda: kc.put(f"/{name}", {"browserFlow": APP_BROWSER_FLOW}))
         self._client(name, cur is None)
-        if launcher_enabled():
+        self.add(f"= master client {configurator_id()}: ensure {name}-realm management roles", lambda: self._sa_realm_roles(name))
+        if launcher_enabled() or registration_enabled():
             self._profile_attr(name, cur is None)
+        if launcher_enabled():
             self._flow(name, LAUNCHER_FLOW, launcher_flow_spec(), cur is None)
             self._launcher_client(name, cur is None)
             self._demo_user(name, cur is None)
-        self.add(f"= master client {configurator_id()}: ensure {name}-realm management roles", lambda: self._sa_realm_roles(name))
+        if os.environ.get("KEYCLOAK_BACKEND_CLIENT_SECRET"):
+            self._backend_client(name, cur is None)
+        if registration_enabled():
+            self._events(name, cur is None)
+            for r in RESERVED_USERS:
+                self._reserved_user(name, r, cur is None)
         return cur is None
 
     # ---------- custom authentication flows ----------
@@ -340,19 +365,70 @@ class Planner:
         self.add(f"= {realm} user {name}: ensure no default roles / no OTP credential", lambda: self._strip_demo_user(realm, u["id"]))
 
     def _profile_attr(self, realm: str, realm_new: bool) -> None:
-        """Keycloak 26 drops undeclared attributes: declare demo_launcher as admin-only (users can neither see nor set it)."""
+        """Keycloak 26 drops undeclared attributes: declare ours as admin-only (users can neither see nor set them)."""
         kc = self.kc
-        attr = {"name": DEMO_ATTR, "displayName": "Demo launcher (managed by IronVision)", "multivalued": False,
-                "permissions": {"view": ["admin"], "edit": ["admin"]}, "validations": {}, "annotations": {}}
+
+        def spec(n: str) -> dict:
+            return {"name": n, "displayName": f"{n} (managed by IronVision)", "multivalued": False,
+                    "permissions": {"view": ["admin"], "edit": ["admin"]}, "validations": {}, "annotations": {}}
 
         def apply() -> None:
             prof = kc.get(f"/{realm}/users/profile")
-            prof["attributes"] = [a for a in prof["attributes"] if a["name"] != DEMO_ATTR] + [attr]
+            prof["attributes"] = [a for a in prof["attributes"] if a["name"] not in PROFILE_ATTRS] + [spec(n) for n in PROFILE_ATTRS]
             kc.put(f"/{realm}/users/profile", prof)
         prof = None if realm_new else kc.get(f"/{realm}/users/profile")
-        have = next((a for a in (prof or {}).get("attributes", []) if a["name"] == DEMO_ATTR), None)
-        if not have or have.get("permissions") != attr["permissions"]:
-            self.add(f"+ {realm} user profile attribute {DEMO_ATTR} (admin view/edit only)", apply)
+        have = {a["name"]: a for a in (prof or {}).get("attributes", [])}
+        if any(have.get(n, {}).get("permissions") != spec(n)["permissions"] for n in PROFILE_ATTRS):
+            self.add(f"+ {realm} user profile attributes {', '.join(PROFILE_ATTRS)} (admin view/edit only)", apply)
+
+    def _backend_client(self, realm: str, realm_new: bool) -> None:
+        kc, want, secret = self.kc, desired_backend_client(), os.environ["KEYCLOAK_BACKEND_CLIENT_SECRET"]
+        if len(secret) < 32:
+            raise KeycloakError("KEYCLOAK_BACKEND_CLIENT_SECRET must be >= 32 characters (gen_env_secrets fills it)")
+        cur = None if realm_new else kc.client(realm, want["clientId"])
+        if cur is None:
+            self.add(f"+ {realm} client {want['clientId']} (service account only: {', '.join(BACKEND_ROLES)}; secret=***)",
+                     lambda: (kc.post(f"/{realm}/clients", {**want, "secret": secret}), self._backend_roles(realm)))
+            return
+        diffs = _diff(cur, want, f"{realm}.client.{want['clientId']}")
+        if kc.get(f"/{realm}/clients/{cur['id']}/client-secret").get("value") != secret:
+            diffs.append(f"{realm}.client.{want['clientId']}.secret: *** -> *** (from env)")
+        if diffs:
+            self.add("~ " + "\n  ~ ".join(diffs), lambda: kc.put(f"/{realm}/clients/{cur['id']}", {**cur, **want, "secret": secret}))
+        self.add(f"= {realm} client {want['clientId']}: ensure roles {', '.join(BACKEND_ROLES)}", lambda: self._backend_roles(realm))
+
+    def _backend_roles(self, realm: str) -> None:
+        kc = self.kc
+        c = kc.client(realm, desired_backend_client()["clientId"])
+        uid = kc.get(f"/{realm}/clients/{c['id']}/service-account-user")["id"]
+        rm = kc.client(realm, "realm-management")
+        have = {r["name"] for r in kc.get(f"/{realm}/users/{uid}/role-mappings/clients/{rm['id']}") or []}
+        missing = [kc.get(f"/{realm}/clients/{rm['id']}/roles/{n}") for n in BACKEND_ROLES if n not in have]
+        if missing:
+            kc.post(f"/{realm}/users/{uid}/role-mappings/clients/{rm['id']}", missing)
+
+    def _events(self, realm: str, realm_new: bool) -> None:
+        """Keycloak records REGISTER events – the authoritative 'self-registered' marker for just-in-time provisioning."""
+        kc = self.kc
+        cur = {} if realm_new else (kc.realm(realm) or {})  # realm representation: needs manage-realm only (not manage-events)
+        types = set(cur.get("enabledEventTypes") or []) if cur.get("eventsEnabled") else set()
+        if cur.get("eventsEnabled") and "REGISTER" in types and int(cur.get("eventsExpiration") or 0) >= 7776000:
+            return
+        self.add(f"~ {realm} events: eventsEnabled=true, REGISTER recorded, 90-day expiry",
+                 lambda: kc.put(f"/{realm}", {"eventsEnabled": True, "eventsExpiration": 7776000,
+                                              "enabledEventTypes": sorted(types | {"REGISTER"})}))
+
+    def _reserved_user(self, realm: str, name: str, realm_new: bool) -> None:
+        kc = self.kc
+        rows = [] if realm_new else kc.users_by(realm, username=name)
+        if not rows:
+            self.add(f"+ {realm} user {name} (DISABLED reserved placeholder – registration rejects this identifier)",
+                     lambda: kc.post(f"/{realm}/users", {"username": name, "email": name, "firstName": "Reserved", "lastName": "Identifier",
+                                                         "enabled": False, "attributes": {"reserved": ["true"]}}))
+        elif rows[0].get("enabled") or (rows[0].get("attributes") or {}).get("reserved") != ["true"]:
+            u = rows[0]
+            self.add(f"~ {realm} user {name}: disable reserved placeholder",
+                     lambda: kc.put(f"/{realm}/users/{u['id']}", {**u, "enabled": False, "attributes": {**(u.get("attributes") or {}), "reserved": ["true"]}}))
 
     def _create_demo_user(self, realm: str, name: str, email: str, pw: str) -> None:
         uid = created_id(self.kc.post(f"/{realm}/users", {"username": name, "email": email, "firstName": "Demo", "lastName": "Visitor",

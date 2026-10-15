@@ -208,6 +208,16 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
                     errors.append(f"{k} is weak or a placeholder (min {n} chars)")
         else:
             warns.append("ALLOW_DEMO_LOGIN=true on a demo deployment without oidc – passwordless dev_password demo login")
+    if _true(env.get("KEYCLOAK_ALLOW_REGISTRATION")):
+        if strict and kind != "demo":
+            errors.append("KEYCLOAK_ALLOW_REGISTRATION=true is refused unless DEPLOYMENT_KIND=demo (customer deployments: needs a future explicit opt-in)")
+        if not env.get("AUTH_DOMAIN") or "oidc" not in providers(env):
+            warns.append("KEYCLOAK_ALLOW_REGISTRATION=true is inert until the built-in Keycloak (AUTH_DOMAIN) and oidc in AUTH_PROVIDERS are enabled")
+        else:
+            if (env.get("KEYCLOAK_REALM") or "ironvision-demo") != "ironvision-demo":
+                errors.append("KEYCLOAK_ALLOW_REGISTRATION is only supported on realm ironvision-demo")
+            if len(env.get("KEYCLOAK_BACKEND_CLIENT_SECRET") or "") < 32:
+                errors.append("KEYCLOAK_BACKEND_CLIENT_SECRET (>=32 chars) is required for self-registration – run ./deploy.sh (gen_env_secrets)")
     if profile == "production" and (env.get("SIGNUP_RATE_LIMIT_EXEMPT_CIDRS") or "").strip():
         warns.append("SIGNUP_RATE_LIMIT_EXEMPT_CIDRS is set in production – listed addresses bypass the sign-up limit; use only for test runners")
     if profile == "production" and _true(env.get("ALLOW_INSECURE_PRODUCTION")):

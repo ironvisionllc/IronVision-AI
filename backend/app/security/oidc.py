@@ -68,7 +68,7 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def authorization_url(db: Session, login_hint: str | None = None) -> str:
+def authorization_url(db: Session, login_hint: str | None = None, register: bool = False) -> str:
     c = cfg()
     m = discovery(c["issuer"])
     verifier, state, nonce = _b64(secrets.token_bytes(32)), secrets.token_urlsafe(32), secrets.token_urlsafe(32)
@@ -80,7 +80,10 @@ def authorization_url(db: Session, login_hint: str | None = None) -> str:
               "code_challenge_method": "S256"}
     if login_hint:
         params["login_hint"] = login_hint
-    return f"{m['authorization_endpoint']}?{httpx.QueryParams(params)}"
+    ep = m["authorization_endpoint"]
+    if register:  # Keycloak: …/protocol/openid-connect/registrations accepts the same authorization request
+        ep = ep.rsplit("/auth", 1)[0] + "/registrations"
+    return f"{ep}?{httpx.QueryParams(params)}"
 
 
 def _take_state(db: Session, state: str) -> OidcPending | None:

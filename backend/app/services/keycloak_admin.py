@@ -40,6 +40,18 @@ class KeycloakAdmin:
         raise KeycloakError("cannot authenticate to the Keycloak admin API: configurator service account and bootstrap admin both "
                             "rejected (see docs/KEYCLOAK.md → 'Admin API access')")
 
+    def login_service(self, realm: str, client_id: str, secret: str) -> "KeycloakAdmin":
+        """Service account of an application realm (admin REST limited to that realm's realm-management roles)."""
+        t = self._grant_at(realm, {"grant_type": "client_credentials", "client_id": client_id, "client_secret": secret})
+        if not t:
+            raise KeycloakError(f"service account {client_id} rejected by realm {realm}")
+        self._token, self.mode = t, "realm-service-account"
+        return self
+
+    def _grant_at(self, realm: str, data: dict) -> str | None:
+        r = self.http.post(f"{self.base}/realms/{realm}/protocol/openid-connect/token", data=data)
+        return r.json()["access_token"] if r.status_code == 200 else None
+
     # --- http ---
     def req(self, method: str, path: str, ok=(200, 201, 204), **kw):
         r = self.http.request(method, f"{self.base}/admin/realms{path}", headers={"Authorization": f"Bearer {self._token}"}, **kw)

@@ -32,6 +32,7 @@ KEYCLOAK = {   # only when AUTH_DOMAIN is set (built-in Keycloak); an external I
     "KEYCLOAK_DEMO_PASSWORD": pw,
     "KEYCLOAK_DEMO_USERNAME": lambda: "demo-launcher-" + secrets.token_hex(6),
     "KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET": pw,
+    "KEYCLOAK_BACKEND_CLIENT_SECRET": pw,
 }
 BUILTIN_S3 = {
     "S3_ACCESS_KEY_ID": lambda: "ivapp" + secrets.token_hex(8),

@@ -1,7 +1,9 @@
 # Keycloak on ${AUTH_DOMAIN} (mounted only with deploy/compose/keycloak.yml). envsubst: ${AUTH_DOMAIN}, ${APP_DOMAIN}, ${KEYCLOAK_REALM}.
 # Only the application realm, static resources and JS are public. /admin/ and /realms/master/ are denied unless the client
 # address is in KEYCLOAK_ADMIN_ALLOWED_CIDRS (rendered by scripts/deploy.sh into auth-admin-allow.conf; default: deny all →
-# admin console only through the SSH tunnel to 127.0.0.1:8081). /health and /metrics (port 9000) are never proxied.
+# /health and /metrics (port 9000) are never proxied. Self-registration pages are rate-limited per client IP (limit_req).
+limit_req_zone $binary_remote_addr zone=kc_registration:10m rate=6r/m;
+
 server {
     listen 80;
     listen [::]:80;
@@ -42,6 +44,11 @@ server {
     location = / { return 302 https://${APP_DOMAIN}/; }
 
     location /realms/${KEYCLOAK_REALM}/ { proxy_pass $keycloak; }
+    location ~ ^/realms/${KEYCLOAK_REALM}/(protocol/openid-connect/registrations|login-actions/registration) {
+        limit_req zone=kc_registration burst=10 nodelay;
+        limit_req_status 429;
+        proxy_pass $keycloak;
+    }
     location /resources/ { proxy_pass $keycloak; }
     location /js/ { proxy_pass $keycloak; }
 

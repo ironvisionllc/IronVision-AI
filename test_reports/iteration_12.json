@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 12 – independent verification of DEMO self-registration + no-prod-touch recovery toolkit. All 8 review items PASS. (1) Full backend suite serial `pytest -n 0 tests` = 256 passed, 25 skipped (matches gated expectation). (2) `pytest -n 0 tests/test_recovery_unit.py` = 8 passed (xl-single reader inline + part.1 + refusal paths, purge-guard, check_env registration rules, redaction, scratch-DB drop guard). (3) check_env.validate() returns tuple[errors,warnings]; verified: KEYCLOAK_ALLOW_REGISTRATION=true with DEPLOYMENT_KIND=customer+APP_ENV=production -> ERROR 'refused unless DEPLOYMENT_KIND=demo'; demo+preview without AUTH_DOMAIN/oidc -> only WARN 'inert until built-in Keycloak … enabled' (no error); demo+preview+oidc+AUTH_DOMAIN without KEYCLOAK_BACKEND_CLIENT_SECRET -> ERROR 'KEYCLOAK_BACKEND_CLIENT_SECRET (>=32 chars) is required for self-registration'. Env templates: customer-production=false, demo preview/staging/production=true. (4) `bash -n recover.sh` OK; `RECOVER_LOCAL=1 ./recover.sh` (no args) prints usage header and exits 2; `RECOVER_LOCAL=1 ./recover.sh apply` (no --plan-hash) prints `FAILED: usage: ./recover.sh apply --plan-hash H` and exits 1 without changing anything; `./recover.sh apply --plan-hash x` (non-local, no env file) refuses with `env file deploy/digitalocean/.env.production not found (run from /opt/ironvision/IronVision-AI)` exit 1. No side-effects. (5) Frontend /login via public preview URL: default (dev_password preview) shows demo-login-btn + show-signup-btn, no oidc buttons. With GET /api/v1/auth/provider page.route-stubbed to oidc+registration_enabled=true: oidc-login-btn ('Sign in', href ends /api/v1/auth/oidc/login), oidc-register-btn ('Create account', href ends /api/v1/auth/oidc/register), oidc-register-caption, demo-login-btn all visible. With registration_enabled=false the Create-account button is correctly hidden; oidc-login-btn and demo-login-btn remain. (6) Backend preview API: GET /api/v1/auth/provider -> 200 includes `registration_enabled: false` (dev_password preview); POST /api/v1/auth/login demo@ironvision.ai / IronVisionDemo!2026 -> 200 with access_token/refresh_token/user (DB on 0013); GET /api/v1/auth/oidc/register -> 404 `{\"detail\":\"OIDC is not enabled (AUTH_PROVIDERS)\"}` (clean refusal, not 500). (7) docs/RECOVERY_REPORT.md states 'NOT run on the customer Droplet', dedicated SeaweedFS §4, exact per-subcommand commands and rollback semantics. docs/KEYCLOAK.md has §7a 'Self-registration – Create account (DEMO deployment only)' and §7b 'Doctor – why does Explore / Create account not work?' with sample output and `scripts/keycloak.sh … doctor` command.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "all pages", "issues": ["Pre-existing CSP console errors from Cloudflare beacon.min.js and blob-worker (platform-injected by ingress, unchanged, not blocking)."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/test_reports/pytest/recovery_unit.xml",
+    "/app/test_reports/pytest/full_suite.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "check_env registration rule is correctly layered: `strict and kind != 'demo'` ERROR for customer production, inert WARN when AUTH_DOMAIN/oidc missing (so demo preview without a Keycloak doesn't error), and hard ERROR on missing KEYCLOAK_BACKEND_CLIENT_SECRET once oidc+AUTH_DOMAIN are present. Also enforces realm=='ironvision-demo' when active – good blast-radius control.",
+    "recover.sh case-* for an unknown/empty command prints usage + exits 2, but a *no-arg* invocation in non-local mode dies earlier at the `[ -f \"$ENV_FILE\" ] || die` host check (exit 1). This is still safe (no state mutation) and the error message is clear ('run from /opt/ironvision/IronVision-AI'). If the UX contract is 'always exit 2 for usage', consider moving the usage/case dispatch *before* the ENV_FILE/compose.env guards.",
+    "apply refuses cleanly without --plan-hash (local and non-local) and without env file; snapshot_objects, switch_db and py-apply never run unless both guards pass. Rollback also only runs after a recorded env-switch artifact exists.",
+    "/api/v1/auth/oidc/register returns 404 with detail 'OIDC is not enabled (AUTH_PROVIDERS)' – no 500, no stack trace, no secret leakage. Same gating as the rest of the OIDC endpoints verified in iteration 11.",
+    "GET /api/v1/auth/provider now exposes `registration_enabled` consistently with `oidc_enabled`/`demo_login_enabled`, which lets the LoginPage render the Create-account button purely from the provider payload (no second roundtrip)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (256/256 non-skipped; 8/8 recovery unit; 3/3 check_env rules; 4/4 recover.sh safety checks; 3/3 preview API checks)", "frontend": "100% (3/3 login UI states)"},
+  "test_credentials": "demo@ironvision.ai / IronVisionDemo!2026 (dev_password preview).",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview is dev_password mode (ALLOW_DEMO_LOGIN=true, oidc disabled, Keycloak NOT running). Backend pytest MUST use `-n 0` – `-n auto` triggers a schema race in test fixtures and ERRORs ~256 tests. Live Keycloak (tests/test_keycloak_live.py) and recovery E2E (tests/test_recovery_e2e.py) are gated by env vars (KEYCLOAK_LIVE_URL, RECOVERY_E2E=1) and intentionally skipped in this pod. Never run `./recover.sh apply|rollback` in non-local mode here, and never against the preview DB. For OIDC UI testing on /login, stub GET /api/v1/auth/provider with page.route – do not try to flip AUTH_PROVIDERS on the preview backend.",
+  "rca of the issue": "N/A – no bugs found."
+}

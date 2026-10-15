@@ -48,6 +48,7 @@ class Organization(CoreMixin, ProvenanceMixin, Base):
     is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     is_sandbox: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     sandbox_personas: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    protected: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))  # never purge-eligible
     owner_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     last_activity_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     sandbox_status: Mapped[str | None] = mapped_column(String(30))

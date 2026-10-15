@@ -6,7 +6,7 @@ import re
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.models import AuthIdentity, AuthSession, Evidence, Organization, RoleAssignment, System, User
@@ -49,6 +49,18 @@ def create_sandbox(db: Session, owner: User | None, org_name: str | None, email:
     db.flush()
     ensure_personas(db, org, owner)
     return org
+
+
+def create_owner(db: Session, email: str, name: str, org_name: str | None) -> tuple[User, Organization]:
+    """New clean sandbox tenant + its owner (self sign-up and Keycloak self-registration). Caller enqueues/runs provisioning."""
+    org = create_sandbox(db, None, org_name or name, email)
+    u = User(org_id=org.id, email=email, display_name=name.strip()[:200], title="Sandbox owner", source=SANDBOX_SOURCE)
+    db.add(u)
+    db.flush()
+    org.owner_user_id = u.id
+    for p in db.scalars(select(User).where(User.org_id == org.id, User.persona_role.is_not(None))):
+        p.operator_id = u.id
+    return u, org
 
 
 def ensure_personas(db: Session, org: Organization, owner: User | None) -> dict[str, User]:
@@ -170,10 +182,29 @@ def reset(db: Session, org: Organization, actor: User | None) -> None:
                  entity_type="organization", entity_id=str(org.id))
 
 
+def purge_refusal(db: Session, org: Organization) -> str | None:
+    """Only self-service sandbox tenants are purge-eligible. Restored/customer data can never be touched by expiry/purge."""
+    if not org.is_sandbox:
+        return "not a sandbox tenant"
+    if org.protected:
+        return "tenant is protected"
+    if org.source != SANDBOX_SOURCE:
+        return f"tenant source is {org.source!r}, not a self-service sandbox"
+    owner = db.get(User, org.owner_user_id) if org.owner_user_id else None
+    if owner is None or owner.email == DEMO_EMAIL:
+        return "shared demo tenant or tenant without a self-service owner"
+    real = db.scalar(select(func.count()).select_from(RoleAssignment).join(User, User.id == RoleAssignment.user_id)
+                     .where(User.org_id == org.id, User.persona_role.is_(None)))
+    if real:
+        return f"{real} role assignment(s) outside sandbox persona mode"
+    return None
+
+
 def purge(db: Session, org: Organization, reason: str) -> dict:
     """Delete tenant data, evidence objects and user accounts. Platform audit keeps only tenant id + counts (no content)."""
-    if not org.is_sandbox:
-        raise PermissionError("Expiry/purge never applies to non-sandbox tenants")
+    why = purge_refusal(db, org)
+    if why:
+        raise PermissionError(f"Purge refused for tenant {org.id}: {why}")
     from app.models import Notification, Poam
 
     objects = _purge_data(db, org)
@@ -189,11 +220,15 @@ def purge(db: Session, org: Organization, reason: str) -> dict:
     db.execute(delete(RoleAssignment).where(RoleAssignment.user_id.in_(user_ids)))
     db.execute(delete(System).where(System.id.in_(sys_ids)))
     db.execute(delete(AuthSession).where(AuthSession.user_id.in_(user_ids)))
+    oidc_ids = [tuple(s.rsplit("|", 1)) for s in db.scalars(select(AuthIdentity.subject).where(
+        AuthIdentity.user_id.in_(user_ids), AuthIdentity.provider == "oidc"))]
     db.execute(delete(AuthIdentity).where(AuthIdentity.user_id.in_(user_ids)))
     for u in db.scalars(select(User).where(User.id.in_(user_ids))):
         u.is_active, u.email, u.display_name, u.title, u.operator_id = False, f"{u.id}@purged.invalid", "(purged sandbox user)", None, None
     org.sandbox_status, org.name, org.slug = "purged", f"purged-{org.id}", f"purged-{org.id}"
-    res = {"tenant_id": str(org.id), "systems": len(sys_ids), "users": len(user_ids), "objects_deleted": objects, "reason": reason}
+    from app.security.registration import offboard
+    res = {"tenant_id": str(org.id), "systems": len(sys_ids), "users": len(user_ids), "objects_deleted": objects, "reason": reason,
+           "keycloak_users": offboard(oidc_ids)}
     audit.record(db, action="platform.sandbox_purged", actor_email="scheduler", entity_type="tenant", entity_id=str(org.id), details=res)
     db.flush()
     return res
@@ -213,8 +248,11 @@ def run_expiry(db: Session) -> dict:
     purged = []
     for org in db.scalars(select(Organization).where(Organization.is_sandbox.is_(True), Organization.sandbox_status != "purged",
                                                      Organization.last_activity_at < cutoff)):
-        owner = db.get(User, org.owner_user_id) if org.owner_user_id else None
-        if owner and owner.email == DEMO_EMAIL:
+        why = purge_refusal(db, org)
+        if why:
+            if not (why.startswith("shared demo")):
+                audit.record(db, action="sandbox.purge_refused", entity_type="organization", entity_id=str(org.id), outcome="denied",
+                             details={"reason": why})
             continue
         purged.append(purge(db, org, f"inactive > {n} days"))
     for org in db.scalars(select(Organization).where(Organization.is_sandbox.is_(True), Organization.sandbox_status == "ready")):
@@ -237,7 +275,8 @@ def reset_demo_account(db: Session) -> dict:
     return {"reset": True}
 
 
-def seed_demo_account(db: Session, password: str) -> Organization:
+def seed_demo_account(db: Session, password: str | None) -> Organization:
+    """password=None (Keycloak demo deployment): no local password identity – the launcher signs in via the identity mapping."""
     from app.security.passwords import hash_password, verify_password
 
     u = db.scalar(select(User).where(User.email == DEMO_EMAIL))
@@ -250,7 +289,9 @@ def seed_demo_account(db: Session, password: str) -> Organization:
         db.execute(update(User).where(User.org_id == org.id, User.persona_role.is_not(None)).values(operator_id=u.id))
     org = db.get(Organization, u.org_id)
     ident = db.scalar(select(AuthIdentity).where(AuthIdentity.provider == "dev_password", AuthIdentity.subject == DEMO_EMAIL))
-    if ident is None:
+    if password is None:
+        pass
+    elif ident is None:
         db.add(AuthIdentity(user_id=u.id, provider="dev_password", subject=DEMO_EMAIL, secret_hash=hash_password(password)))
     elif not verify_password(password, ident.secret_hash or ""):
         ident.secret_hash = hash_password(password)

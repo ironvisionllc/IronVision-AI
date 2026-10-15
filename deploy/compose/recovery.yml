@@ -1,0 +1,51 @@
+# Recovery tooling overlay (added by ./recover.sh only – never part of a normal deploy).
+#   recovery           one-off tool container: app code + PostgreSQL 16 client tools, same network as postgres/seaweedfs/keycloak
+#   rehearsal-backend  backend pointed at the rehearsal DB/bucket; 127.0.0.1:8012 only (SSH tunnel), never behind the edge
+x-recovery-env: &recovery-env
+  DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}}
+  STORAGE_DRIVER: s3
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://seaweedfs:8333}
+  S3_BUCKET: ${S3_BUCKET}
+  S3_REGION: ${S3_REGION:-us-east-1}
+  S3_ADDRESSING_STYLE: ${S3_ADDRESSING_STYLE:-path}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+  RECOVER_S3_ADMIN_ACCESS_KEY_ID: ${S3_ADMIN_ACCESS_KEY_ID:-}
+  RECOVER_S3_ADMIN_SECRET_ACCESS_KEY: ${S3_ADMIN_SECRET_ACCESS_KEY:-}
+  KEYCLOAK_URL: http://keycloak:8080
+  KEYCLOAK_REALM: ${KEYCLOAK_REALM:-ironvision-demo}
+  KEYCLOAK_CONFIGURATOR_CLIENT_ID: ${KEYCLOAK_CONFIGURATOR_CLIENT_ID:-ironvision-configurator}
+  KEYCLOAK_CONFIGURATOR_CLIENT_SECRET: ${KEYCLOAK_CONFIGURATOR_CLIENT_SECRET:-}
+  KEYCLOAK_DB_NAME: ${KEYCLOAK_DB_NAME:-keycloak}
+  OIDC_ISSUER: ${OIDC_ISSUER:-}
+  OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-ironvision-app}
+  OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+  APP_DOMAIN: ${APP_DOMAIN:-}
+  APP_ENV: production
+
+services:
+  recovery:
+    profiles: ["recovery"]
+    build: {context: ., dockerfile: deploy/recovery/Dockerfile}
+    environment: *recovery-env
+    volumes:
+      - ${RECOVER_PREDEPLOY_DIR:-/root/ironvision-predeploy}:/predeploy:ro
+      - ${RECOVERY_DIR:-/root/ironvision-recovery}:/recovery
+    restart: "no"
+
+  rehearsal-backend:
+    profiles: ["recovery"]
+    build: {context: ., dockerfile: deploy/recovery/Dockerfile}
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    environment:
+      <<: *recovery-env
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${REHEARSAL_DB:-rehearsal-db-not-set}
+      S3_BUCKET: ${REHEARSAL_BUCKET:-rehearsal-bucket-not-set}
+      S3_ACCESS_KEY_ID: ${S3_ADMIN_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_ADMIN_SECRET_ACCESS_KEY:-}
+      AUTH_PROVIDERS: ${AUTH_PROVIDERS:-oidc}
+      JWT_SECRET: ${JWT_SECRET}
+      SECRET_STORE_KEY: ${SECRET_STORE_KEY:-}
+      WORKER_ENABLED: "false"
+    ports: ["127.0.0.1:8012:8001"]
+    restart: "no"
