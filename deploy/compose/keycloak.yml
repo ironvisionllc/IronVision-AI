@@ -66,6 +66,8 @@ services:
     build:
       context: ./deploy/keycloak
       dockerfile: Dockerfile
+      args:
+        KEYCLOAK_IMAGE: ${KEYCLOAK_BASE_IMAGE:-quay.io/keycloak/keycloak:26.8.1}
     image: ironvision/keycloak:26.8.1
     command: !override ["start", "--optimized"]
     environment: !override

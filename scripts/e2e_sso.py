@@ -126,6 +126,10 @@ def main() -> int:
             h = {"Authorization": f"Bearer {d.json()['access_token']}"}
             s = app.post("/api/v1/sandbox/act-as", json={"role": "issm"}, headers=h)
             check("role switch → ISSM", s.status_code == 200 and s.json()["user"]["persona_role"] == "issm", str(s.status_code))
+            check(f"demo: protected {a.protected} → 200", app.get(a.protected, headers=h).status_code == 200)
+            check(f"demo: restricted {a.restricted} → 403", app.get(a.restricted, headers=h).status_code == 403)
+            app.post("/api/v1/auth/logout", headers=h)
+            check("demo: logout → app token rejected", app.get("/api/v1/auth/me", headers=h).status_code == 401)
     if a.json:
         print(json.dumps([{"step": n, "pass": ok, "detail": d} for n, ok, d in R], indent=1))
     else:

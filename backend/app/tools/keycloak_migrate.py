@@ -10,6 +10,7 @@ import getpass
 import hashlib
 import json
 import os
+import re
 import secrets
 import string
 import sys
@@ -48,13 +49,23 @@ def _kc_candidates(kc: KeycloakAdmin, email: str) -> list[dict]:
     return list(found.values())
 
 
+_NAME_BAD = re.compile(r"[<>&\"'$%!#?§;*~/\\|^=\[\]{}()@:\x00-\x1f]")
+
+
+def _person_name(name: str | None) -> str:
+    """Keycloak's person-name validator rejects these characters."""
+    return " ".join(_NAME_BAD.sub(" ", name or "").split())
+
+
 def build_plan(db, kc: KeycloakAdmin, reactivate: set[str]) -> list[dict]:
     issuer = _issuer()
     from app.services.sandbox import DEMO_EMAIL
     demo_handle = (os.environ.get("KEYCLOAK_DEMO_USERNAME") or "").lower()
     users = list(db.scalars(select(User).order_by(User.email)))
     dup = Counter(u.email.lower() for u in users)
-    orgs = {o.id: o.name for o in db.scalars(select(Organization))}
+    all_orgs = list(db.scalars(select(Organization)))
+    orgs = {o.id: o.name for o in all_orgs}
+    sandboxes = {o.id for o in all_orgs if o.is_sandbox}
     rows = []
     for u in users:
         email = u.email.lower()
@@ -87,6 +98,8 @@ def build_plan(db, kc: KeycloakAdmin, reactivate: set[str]) -> list[dict]:
                 action, why = "CONFLICT", "Keycloak username matches but its email differs"
             else:
                 action, why = "link", "demo launcher user (by handle)" if is_demo else "Keycloak user with this email exists"
+        elif u.org_id in sandboxes and not is_demo:
+            action, why = "skip", "demo-sandbox persona (reached via the role switcher, never logs in)"
         else:
             action, why = "create", "no Keycloak user yet"
         if action in ("create", "link") and not u.is_active:
@@ -148,7 +161,7 @@ def apply_plan(db, kc: KeycloakAdmin, rows: list[dict], *, create: bool, link: b
                              details={"email": user.email, "reason": "keycloak-migrate --reactivate"})
                 done["reactivated"] += 1
             if r["action"].endswith("create"):
-                first, _, last = (user.display_name or "").partition(" ")
+                first, _, last = _person_name(user.display_name).partition(" ")
                 kc_id = created_id(kc.post(f"/{realm}/users", {"username": r["email"], "email": r["email"], "emailVerified": True,
                                                                "firstName": first or r["email"], "lastName": last or "-", "enabled": True,
                                                                "attributes": {"ironvision_user_id": [str(user.id)]}}))

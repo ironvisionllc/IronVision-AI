@@ -293,3 +293,19 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
   600, never sourced, secrets untouched), dry-run diff by default, OIDC_CLIENT_ID only after live Keycloak confirms the client
   (else exit 3 + client list via `scripts/keycloak.sh … clients` + fix `./deploy.sh --apply-realm`).
 - Tests: backend 269 passed / 26 skipped (serial + parallel); shellcheck clean.
+
+## 2026-10-16 – Legacy `aegisrmf` containers + automated recovery (run / cutover / finalize)
+- `scripts/legacy_project.sh inspect|backup|stop|preserve-and-stop`: verdict SAFE_TO_STOP / PORT_CONFLICT /
+  PRODUCTION_DEPENDS_ON_LEGACY (DATABASE_URL/storage host, shared networks, mounts, ports); verified backups (pg_dump -Fc +
+  pg_restore -l, globals, docker inspect, read-only objsync MinIO export, SHA-256 manifests incl. every exported object);
+  graceful `docker stop` only, prints `docker start …`; never rm/down/-v.
+- `scripts/deploy.sh`: legacy gate – safe → continue with warning; conflict/dependency → exact fix command.
+- `recover.sh run` (read-only: inspect, backups, source selection preferring live legacy DB matching stated counts, preflight,
+  rehearsal, SSO probe, PLAN-HASH) → `cutover --plan-hash` (apply, switch, deploy, Keycloak link, verify, live SSO, doctor,
+  SeaweedFS restart; auto-rollback on failure) → `finalize` (reboot check, graceful legacy stop) ; `resolve-conflict`; `rollback`.
+- Fixes found in replica: catalog FK re-keying by natural key; sequence reset after merge; Keycloak person-name sanitising;
+  demo-sandbox personas skipped by keycloak-migrate; nested manifest paths.
+- Image pinning: SeaweedFS 4.48 + postgres/nginx/certbot/keycloak pinned by digest; check_env tag-only = warn (demo) / error (customer).
+- Verified locally: backend 285 passed/27 skipped; orchestration E2E 24/24; recovery E2E 2/2; live Keycloak 19 + 1 skipped; shellcheck clean.
+  NOT run on the customer Droplet. Legacy MinIO was a SeaweedFS stand-in.
+

@@ -125,6 +125,12 @@ otherwise it is kept and the fix (`./deploy.sh --apply-realm`) plus the realm's 
 `deploy/digitalocean/env.production.template` already carries these values (customer production: `env.customer-production.template`).
 Before the first run: DNS A record `demo.ironvisionai.com` → Droplet IPv4 (AAAA if IPv6), optional CAA `0 issue "letsencrypt.org"`, DO firewall 80/443 open. If OIDC values are still placeholders, the first run creates the env file and lists what to fill. Details: `docs/DIGITALOCEAN_DEPLOYMENT.md` §0 (Quick deploy) and §4 (TLS). The env file lives only on the Droplet; it is git-ignored and never committed.
 
+Old `aegisrmf` containers still running (kept for recovery): `./deploy.sh` inspects them (`scripts/legacy_project.sh inspect`)
+and proceeds when they are safe (no dependency, no port conflict); otherwise it stops with the exact fix. Data recovery:
+`sudo ./recover.sh run` (read-only; prints a plan hash) → `sudo ./recover.sh cutover --plan-hash <H>` (auto-rollback on
+failure) → optional `sudo ./recover.sh finalize`; `sudo ./recover.sh rollback` at any time. See `docs/RECOVERY_REPORT.md` §8.
+
+
 ## Docker Compose
 
 ```bash

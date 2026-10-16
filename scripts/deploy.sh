@@ -81,13 +81,15 @@ CV="$(docker compose version --short 2>/dev/null || true)"
 [ -n "$CV" ] || die "the Docker Compose plugin is missing (apt-get install -y docker-compose-plugin)"
 [ "$(printf '%s\n%s\n' 2.24.0 "${CV#v}" | sort -V | head -n 1)" = "2.24.0" ] || die "Docker Compose >= 2.24 is required (found $CV)"
 echo "docker compose $CV, operator=$OPERATOR"
-if [ -n "$(docker ps -q --filter "label=com.docker.compose.project=$LEGACY_PROJECT")" ]; then
-  die "containers of the old compose project '$LEGACY_PROJECT' are still running (they hold ports and confuse the stack).
-  Remove them first – named volumes are kept:
-    docker ps -aq --filter label=com.docker.compose.project=$LEGACY_PROJECT | xargs -r docker rm -f"
-fi
-if [ -n "$(docker ps -aq --filter "label=com.docker.compose.project=$LEGACY_PROJECT")" ]; then
-  warn "stopped containers of the old project '$LEGACY_PROJECT' exist; remove with: docker ps -aq --filter label=com.docker.compose.project=$LEGACY_PROJECT | xargs -r docker rm -f"
+if [ -n "$(docker ps -aq --filter "label=com.docker.compose.project=$LEGACY_PROJECT")$(docker ps -aq --filter "name=^$LEGACY_PROJECT-")" ]; then
+  step "legacy containers ($LEGACY_PROJECT)" "read-only analysis: sudo ./recover.sh run"
+  lrc=0; python3 scripts/legacy_project.py inspect "$LEGACY_PROJECT" --env-file "$ENV_FILE" || lrc=$?
+  case "$lrc" in
+    0) warn "legacy '$LEGACY_PROJECT' containers are RETAINED for recovery (no dependency, no port conflict) – continuing. Stop them after cutover with: sudo ./recover.sh finalize" ;;
+    10) die "PORT_CONFLICT: a legacy container holds a port the ironvision stack needs (see !! lines). Resolve it (verified backup first, then stops only that container): sudo ./recover.sh resolve-conflict" ;;
+    11) die "PRODUCTION_DEPENDS_ON_LEGACY: the live stack uses a legacy container (see !! lines) – do NOT stop it. Read-only analysis + plan: sudo ./recover.sh run" ;;
+    *) die "legacy inspection failed (exit $lrc) – fail-safe stop. Details: scripts/legacy_project.sh inspect $LEGACY_PROJECT" ;;
+  esac
 fi
 
 # ---------------------------------------------------------------- env validation

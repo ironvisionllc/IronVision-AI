@@ -86,7 +86,8 @@ def test_env_templates_cover_every_variable_the_code_reads():
     pat = re.compile(r"""(?:environ(?:\.get)?\(|environ\[|getenv\(|_opt\(|_req\(|_bool\()['"]([A-Z_0-9]+)['"]""")
     used = {m for f in (root / "backend/app").rglob("*.py") for m in pat.findall(f.read_text())}
     preview_only = {"EMERGENT_LLM_KEY", "EMERGENT_AI_VENDOR"}
-    compose_only = {"DATABASE_URL", "DOCS_ROOT", "CONTENT_DIR", "SAMPLES_DIR", "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER", "SUDO_USER"}
+    compose_only = {"DATABASE_URL", "DOCS_ROOT", "CONTENT_DIR", "SAMPLES_DIR", "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER", "SUDO_USER",
+                    "RECOVER_OBJECT_DIR", "RECOVER_OBJECT_ORIGIN", "RECOVER_SOURCE_ORIGIN"}  # per-run sources.env, not operator config
     for tpl in ("deploy/digitalocean/.env.production.example", "deploy/digitalocean/.env.staging.example"):
         keys = {l.split("=", 1)[0].lstrip("# ").strip() for l in (root / tpl).read_text().splitlines() if "=" in l}
         missing = used - keys - preview_only - compose_only

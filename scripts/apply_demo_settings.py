@@ -42,6 +42,7 @@ DEMO = {
     "SEED_DEMO_DATA": "false",
     "APP_ENV": "production",
     "OPENROUTER_SITE_URL": "https://demo.ironvisionai.com",
+    "SEAWEEDFS_IMAGE": "chrislusf/seaweedfs:4.48@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d",
 }
 assert not any(set_domain.is_secret(k) for k in DEMO), "DEMO must never contain secrets"
 FIX = "./deploy.sh --apply-realm   (creates/updates client ironvision-app in realm ironvision-demo), then: ./deploy.sh --apply-demo-settings --yes"

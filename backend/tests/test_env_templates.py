@@ -59,7 +59,9 @@ def test_deploy_templates_cover_every_variable_the_code_reads():
     pat = re.compile(r"""(?:environ(?:\.get)?\(|environ\[|getenv\(|_opt\(|_req\(|_bool\()['"]([A-Z_0-9]+)['"]""")
     used = {m for f in (ROOT / "backend/app").rglob("*.py") for m in pat.findall(f.read_text())}
     ignore = {"EMERGENT_LLM_KEY", "EMERGENT_AI_VENDOR", "DATABASE_URL", "DOCS_ROOT", "CONTENT_DIR", "SAMPLES_DIR",
-              "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER", "SUDO_USER"}
+              "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER", "SUDO_USER",
+              # written per run by recover.sh into <run>/sources.env, never operator config
+              "RECOVER_OBJECT_DIR", "RECOVER_OBJECT_ORIGIN", "RECOVER_SOURCE_ORIGIN"}
     for tpl in ("deploy/digitalocean/env.production.template", "deploy/digitalocean/env.staging.template",
                 "deploy/digitalocean/env.customer-production.template"):
         keys = {line.split("=", 1)[0].lstrip("# ").strip() for line in (ROOT / tpl).read_text().splitlines() if "=" in line}

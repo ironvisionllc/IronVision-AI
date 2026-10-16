@@ -27,6 +27,7 @@ services:
   recovery:
     profiles: ["recovery"]
     build: {context: ., dockerfile: deploy/recovery/Dockerfile}
+    image: ironvision/recovery:local
     environment: *recovery-env
     volumes:
       - ${RECOVER_PREDEPLOY_DIR:-/root/ironvision-predeploy}:/predeploy:ro

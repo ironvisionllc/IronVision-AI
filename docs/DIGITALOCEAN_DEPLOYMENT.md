@@ -66,11 +66,39 @@ The repo-root `./deploy.sh` replaces any hand-made wrapper. What it does:
 1. runs `check_env`;
 2. always uses `docker compose -p ironvision --env-file <file> -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml` plus the storage overlays (`deploy/compose/storage-s3.yml`, and `storage-seaweedfs.yml` for the built-in store);
 3. takes `COMPOSE_PROFILES` from the env file;
-4. refuses to run while containers of the old `aegisrmf` project are running;
+4. inspects containers of the old `aegisrmf` project (`scripts/legacy_project.sh inspect`): **SAFE_TO_STOP** (no dependency,
+   no port conflict) → continues automatically, the legacy containers are **retained for recovery** (warning printed);
+   **PORT_CONFLICT** → stops with `sudo ./recover.sh resolve-conflict`; **PRODUCTION_DEPENDS_ON_LEGACY** or an unknown state →
+   stops (fail-safe) with `sudo ./recover.sh run`. deploy.sh never stops or removes legacy containers itself;
 5. creates the `${DATA_ROOT}` directories with the right owners, whether run as root or as `ironvision`;
 6. runs `config -q` → pull → build → postgres → seaweedfs → `objectstore-init` → migrate → app → readiness check → summary.
 
 `scripts/deploy.sh deploy/digitalocean/.env.staging --staging` deploys staging. `--skip-edge-check` skips the TLS step and the public HTTPS check (rarely needed now – the certificate is obtained automatically, §4). Any wrapper script must not print "Deployment complete" when a step fails: call `deploy.sh` and check its exit code. **The "Cleaning unused images / Deployment complete" wrapper is not part of this repository.**
+
+### 0.0 Troubleshooting: `containers of the old compose project 'aegisrmf' are still running`
+That hard stop is gone. `aegisrmf-postgres-1` (old AegisRMF DB, possibly `aegisrmf_backup_test` / an early `ironvision` DB) and
+`aegisrmf-minio-recovery` are **kept on purpose** – they are recovery sources. What happens now:
+```bash
+scripts/legacy_project.sh inspect aegisrmf     # read-only: image, ports, mounts, networks, env (redacted), DBs + sizes + alembic
+                                               # revision + key counts, MinIO buckets + object counts, verdict per container
+./deploy.sh                                    # SAFE_TO_STOP → continues, legacy containers keep running (warning)
+sudo ./recover.sh resolve-conflict             # only if deploy.sh reports PORT_CONFLICT: verified backup, then `docker stop`
+                                               # of ONLY the conflicting container (restart command printed)
+sudo ./recover.sh finalize                     # after a successful cutover: graceful `docker stop` of the legacy containers
+```
+Never `docker rm`, `down` or `-v`: volumes stay; `docker start <names>` (printed and stored in the backup manifest) restores them.
+`scripts/legacy_project.sh preserve-and-stop aegisrmf --yes` does backup + stop in one step (refused if the live stack depends on
+a legacy container). Backups: `/root/ironvision-predeploy/legacy-<ts>/` (pg_dump -Fc per DB verified with `pg_restore -l`,
+`pg_dumpall --globals-only`, objsync export of every MinIO bucket under `objects/` with a SHA-256 manifest, `docker inspect` records).
+
+### 0.0b Troubleshooting: preflight `seaweedfs image not pinned`
+Bug in the first toolkit version: the check rejected every tag (`chrislusf/seaweedfs:4.48` included). Now images are pinned by
+digest (`SEAWEEDFS_IMAGE=chrislusf/seaweedfs:4.48@sha256:4e61d15f…`, set by `./deploy.sh --apply-demo-settings --yes`) and
+preflight compares the running container's `RepoDigests` with the pin (multi-arch index digest or one of its platform digests).
+Mismatch → `docker compose --env-file deploy/digitalocean/.env.production pull seaweedfs && docker compose --env-file … up -d seaweedfs`.
+Tag-only: warning on demo, error on customer production. Same for `POSTGRES_IMAGE`, `EDGE_NGINX_IMAGE`, `CERTBOT_IMAGE`,
+`KEYCLOAK_BASE_IMAGE` (pinned in the templates; on the existing demo Droplet only `SEAWEEDFS_IMAGE` is changed automatically –
+the others stay on their tags until you add the pinned values, so a cutover never swaps the Postgres image underneath you).
 
 ### 0.1 Troubleshooting: `"S3_ACCESS_KEY_ID" variable is not set`, no seaweedfs container, `objectstore-init` exit 1
 **Symptom:**

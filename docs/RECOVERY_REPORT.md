@@ -25,6 +25,11 @@
 | 5 | Restored real data could be purged by sandbox cleanup | Purge only checked inactivity | Migration 0013 `organizations.protected`; restored tenant marked protected; purge hard-refused for protected / non-sandbox / non-persona-role tenants |
 | 6 | Catalog equality too strict (found in replica) | The original org had imported STIG content (`stig_rules`, extra `catalog_versions`) | Rule: every production catalog row must exist in the restored DB by natural key (else STOP); backup-only content rows are kept and reported |
 | 7 | SSO never proven end-to-end | Only redirect tested | `scripts/e2e_sso.py`: browser-less real OIDC flow (see §6) |
+| 8 | `deploy.sh` stops: containers of old project `aegisrmf` running | Hard refusal of any legacy container | `scripts/legacy_project.sh inspect` decides: SAFE_TO_STOP → deploy proceeds (legacy kept running); PORT_CONFLICT / PRODUCTION_DEPENDS_ON_LEGACY → stop with the exact fix |
+| 9 | Merge stopped on prod demo-sandbox rows (found in replica) | Prod catalog UUIDs ≠ restored catalog UUIDs for the same natural keys | Catalog FKs of merged prod rows are re-keyed by natural key (unique matches only), counted in the report |
+| 10 | First app write after recovery fails (`audit_events` duplicate key) (found in replica) | Merge inserted explicit `seq` values; the sequence did not move | All serial/identity sequences reset to max+1 after the merge |
+| 11 | Keycloak refuses some restored users (found in replica) | Keycloak 26 person-name validator rejects `( ) < > & …` in names | Names sanitised for Keycloak only (app display name unchanged); demo-sandbox personas skipped (role switcher, no login) |
+| 12 | Backup verification of multi-bucket MinIO export (found in replica) | Manifest stored file name without its bucket dir | Paths relative to the backup dir; every exported object re-hashed against its objsync manifest before any stop |
 
 ## 3. Toolkit (`/opt/ironvision/IronVision-AI/recover.sh`)
 
@@ -130,19 +135,29 @@ origins, post-logout, secret equality (compared, never printed), PKCE S256, disc
 reachability (hairpin), session/cookie settings; demo vs customer-production separation (deployment kind, realms, DBs, buckets,
 client IDs differ; sign-up disabled for customer production).
 
-## 8. Exact Droplet commands (operator runs them; nothing is automatic)
+## 8. Exact Droplet commands
 
 ```bash
-cd /opt/ironvision/IronVision-AI && git pull
-sudo ./recover.sh preflight            # read-only; note PLAN-HASH; fix any FAIL first
-sudo ./recover.sh rehearse --e2e       # isolated; read /root/ironvision-recovery/report-<ts>.md – must be PASS
-sudo ./recover.sh apply --plan-hash <PLAN-HASH>     # backups → recovered DB → objects → switch → redeploy → verify
-sudo ./recover.sh link --plan-hash <KEYCLOAK-MIGRATE-HASH from the report>   # optional: Keycloak identities for the 8 users
-scripts/keycloak.sh deploy/digitalocean/.env.production doctor              # must end "0 failing check(s)"
-sudo reboot   # then:
-sudo ./recover.sh verify               # reboot persistence (DB + SeaweedFS objects)
-sudo ./recover.sh rehearse --cleanup   # optional, after acceptance: drop scratch DBs/bucket
+cd /opt/ironvision/IronVision-AI && git pull && ./deploy.sh --apply-demo-settings --yes   # pins SEAWEEDFS_IMAGE by digest; legacy containers kept
+sudo ./recover.sh run                          # READ-ONLY: legacy inspect + verified backups + preflight + rehearsal + SSO probe → report + PLAN-HASH
+sudo ./recover.sh cutover --plan-hash <PLAN-HASH>   # apply → switch → deploy → Keycloak link → verify + live SSO + doctor; failure → auto rollback
+sudo reboot && sudo ./recover.sh finalize      # optional: reboot persistence check, then graceful stop of the legacy containers
 ```
+If `./deploy.sh` reports PORT_CONFLICT: `sudo ./recover.sh resolve-conflict` (verified legacy backup first, then stops only that
+container; recovery then uses that backup / the backup files as its source). Building blocks (`preflight`, `rehearse`, `apply`,
+`verify`, `link`, `status`, `audit`) still work individually.
+
+**What `run` uses as sources** (written to `/root/ironvision-recovery/sources.env`, reused unchanged by `cutover`):
+the running legacy Postgres DB `aegisrmf` (read-only `pg_dump` snapshot) **if its key counts match the stated facts**, else any
+legacy DB that matches (e.g. `aegisrmf_backup_test`), else `aegisrmf-old-db.backup`; objects from the read-only objsync export of
+the running legacy MinIO (bucket `evidence` preferred), else the tarball. Every legacy DB's counts are compared with the stated
+facts (8/1/4/25/38/111/1,624/1,772) and discrepancies are listed in the report. After `run`, recovery no longer needs the legacy
+containers – everything is a verified snapshot.
+
+**Read-only guarantee of `run`:** production DB, live bucket and Keycloak users are never written (backups are `pg_dump` /
+listing / `cp`); the rehearsal SSO probe uses the server-side demo launcher only (a Keycloak session, no new user) against the
+private rehearsal backend and a scratch DB; self-registration (which creates a Keycloak user) runs only in `cutover`; the
+SeaweedFS restart check runs only in `cutover`.
 
 ### Rollback
 ```bash
@@ -152,6 +167,30 @@ sudo ./recover.sh rollback --remove-recovered-objects   # additionally delete on
 The recovered DB, the original DB and all backups stay on disk. The Keycloak migration (`link`) is rolled back per
 docs/KEYCLOAK.md §10 (env restore; mappings are inert without oidc).
 
-## 9. Production actions performed while building this
+## 9. Image pinning
+
+| Image | Pinned by digest in templates | Preflight check |
+|---|---|---|
+| SeaweedFS `chrislusf/seaweedfs:4.48@sha256:4e61d15f…7872d` (manifest list, read from the Docker Hub registry API) | yes | running container `RepoDigests`/image ID vs pin (manifest-list or platform digest accepted); mismatch → `docker compose pull seaweedfs && docker compose up -d seaweedfs` |
+| Postgres `postgres:16-alpine`, nginx `nginx:1.27-alpine`, certbot `certbot/certbot:v2.11.0`, Keycloak base `quay.io/keycloak/keycloak:26.8.1` | yes (`*_IMAGE=…@sha256:…`) | `check_env`: tag-only = warning (demo) / error (customer-production) |
+| Local helper `ironvision/recovery:local`, built `ironvision/keycloak:26.8.1` | built locally from the pinned bases, run with `--pull never` | – |
+
+## 10. Validated locally vs. on the Droplet
+
+| Step | Local replica (build pod) | Customer Droplet |
+|---|---|---|
+| `legacy_project.sh inspect` verdicts (safe / port conflict / dependency), preserve-and-stop backups + refusal paths | PASS (docker shim, real PostgreSQL) | not run |
+| `recover.sh run` ×3: legacy `aegisrmf` DB preferred (matches 8/1/4/25/38/111/1,624/1,772), legacy MinIO export used (SeaweedFS **stand-in** for MinIO), rehearsal + SSO probe, production DB/bucket/Keycloak users unchanged, legacy left running | PASS | not run |
+| `cutover`: wrong plan-hash refused; apply → switch → deploy → Keycloak link → verify + live SSO + doctor + SeaweedFS restart | PASS | not run |
+| `cutover` with a failing live check → automatic rollback | PASS | not run |
+| `rollback`, then re-`run` + re-`cutover` | PASS | not run |
+| `finalize` (reminder without reboot; graceful stop; nothing removed) | PASS | not run |
+| Docker never asked to rm / down / volume / prune / `-v` | PASS (every call recorded) | – |
+
+**The recovery on the customer Droplet has not been performed and is not claimed as successful.** The legacy
+MinIO in the local runs is SeaweedFS acting as an S3 stand-in; the real `aegisrmf-minio-recovery` is exercised
+for the first time by `run` on the Droplet (read-only).
+
+## 11. Production actions performed while building this
 
 None. No connection to the customer Droplet, no deployment, no data change anywhere outside the build pod's scratch replicas.

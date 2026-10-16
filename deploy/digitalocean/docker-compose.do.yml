@@ -36,7 +36,7 @@ x-do-env: &do-env
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
     volumes: !override
       - ${DATA_ROOT:?set DATA_ROOT}/postgres:/var/lib/postgresql/data
     ports: !override
@@ -90,7 +90,7 @@ services:
     logging: *logging
 
   edge:
-    image: nginx:1.27-alpine           # root master can read Let's Encrypt keys; workers run as nginx
+    image: ${EDGE_NGINX_IMAGE:-nginx:1.27-alpine}          # root master can read Let's Encrypt keys; workers run as nginx
     environment:
       APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN}
     volumes: !override
@@ -108,7 +108,7 @@ services:
 
   certbot:                              # docker compose ... run --rm certbot renew --webroot -w /var/www/certbot
     profiles: ["certbot"]
-    image: certbot/certbot:v2.11.0
+    image: ${CERTBOT_IMAGE:-certbot/certbot:v2.11.0}
     volumes:
       - ${DATA_ROOT}/certbot/www:/var/www/certbot
       - ${DATA_ROOT}/letsencrypt:/etc/letsencrypt

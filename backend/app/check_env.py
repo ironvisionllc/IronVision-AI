@@ -195,6 +195,12 @@ def validate(env: Mapping[str, str], deployed: bool = True) -> tuple[list[str], 
     kind = (env.get("DEPLOYMENT_KIND") or "").strip().lower()
     if kind and kind not in ("demo", "customer"):
         errors.append("DEPLOYMENT_KIND must be demo or customer")
+    if deployed:
+        for k in ("SEAWEEDFS_IMAGE", "POSTGRES_IMAGE", "EDGE_NGINX_IMAGE", "CERTBOT_IMAGE") + (("KEYCLOAK_BASE_IMAGE",) if env.get("AUTH_DOMAIN") else ()):
+            v = (env.get(k) or "").strip()
+            if "@sha256:" not in v:
+                (errors if kind == "customer" else warns).append(
+                    f"{k} is {'tag-only' if v else 'unset (compose default tag)'} – pin it by digest (repo:tag@sha256:…, see the env templates)")
     if profile == "production" and _true(env.get("ALLOW_DEMO_LOGIN")):
         if kind != "demo":
             errors.append("ALLOW_DEMO_LOGIN=true is refused in production unless DEPLOYMENT_KIND=demo (never on a customer deployment)")

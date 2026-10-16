@@ -146,7 +146,12 @@ def main(argv=None) -> int:
     a = sub.add_parser("ls"); a.add_argument("src")  # noqa: E702
     c = sub.add_parser("copy"); c.add_argument("src"); c.add_argument("dst"); c.add_argument("--manifest")  # noqa: E702
     v = sub.add_parser("verify"); v.add_argument("src"); v.add_argument("--manifest", required=True)  # noqa: E702
+    sub.add_parser("buckets").add_argument("src")
     ns = ap.parse_args(argv)
+    if ns.cmd == "buckets":  # read-only: names of all buckets visible to the source credentials
+        for b in target(ns.src).c.list_buckets().get("Buckets", []):
+            print(b["Name"])
+        return 0
     if ns.cmd == "ls":
         n = 0
         for k in target(ns.src).keys():

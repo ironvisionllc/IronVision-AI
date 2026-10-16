@@ -181,7 +181,7 @@ def test_recovery_end_to_end():
     cp = latest("apply")["result"]["objects"]["copy"]
     step("idempotent: second apply adds nothing, all identical", r.returncode == 0 and not cp["added"] and len(cp["present_identical"]) == 36, f"identical {len(cp['present_identical'])}")
 
-    subprocess.run(["/tmp/recweed/start.sh"], check=True)
+    subprocess.run(["bash", str(BACKEND.parent / "scripts" / "pod_seaweedfs.sh")], check=True)
     r = rec("verify", DATABASE_URL=u(db1.group(1)))
     step("SeaweedFS restart: objects intact", r.returncode == 0, "")
     print(rec("status").stdout)
