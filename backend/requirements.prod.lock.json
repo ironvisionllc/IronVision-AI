@@ -1,0 +1,708 @@
+{
+ "distributions": {
+  "alembic": {
+   "requires": [
+    "mako",
+    "sqlalchemy",
+    "typing-extensions"
+   ],
+   "version": "1.20.0"
+  },
+  "annotated-doc": {
+   "requires": [],
+   "version": "0.0.5"
+  },
+  "annotated-types": {
+   "requires": [],
+   "version": "0.8.0"
+  },
+  "anthropic": {
+   "requires": [
+    "anyio",
+    "docstring-parser",
+    "httpx2",
+    "jiter",
+    "pydantic",
+    "sniffio",
+    "typing-extensions"
+   ],
+   "version": "1.13.0"
+  },
+  "anyio": {
+   "requires": [
+    "idna",
+    "typing-extensions"
+   ],
+   "version": "4.15.1"
+  },
+  "attrs": {
+   "requires": [],
+   "version": "26.1.0"
+  },
+  "bcrypt": {
+   "requires": [],
+   "version": "4.1.3"
+  },
+  "boto3": {
+   "requires": [
+    "botocore",
+    "jmespath",
+    "s3transfer"
+   ],
+   "version": "1.43.108"
+  },
+  "botocore": {
+   "requires": [
+    "jmespath",
+    "python-dateutil",
+    "urllib3"
+   ],
+   "version": "1.43.108"
+  },
+  "certifi": {
+   "requires": [],
+   "version": "2026.7.22"
+  },
+  "cffi": {
+   "requires": [
+    "pycparser"
+   ],
+   "version": "2.1.1"
+  },
+  "charset-normalizer": {
+   "requires": [],
+   "version": "3.5.2"
+  },
+  "click": {
+   "requires": [],
+   "version": "8.5.0"
+  },
+  "cryptography": {
+   "requires": [
+    "cffi"
+   ],
+   "version": "50.0.2"
+  },
+  "defusedxml": {
+   "requires": [],
+   "version": "0.7.1"
+  },
+  "distro": {
+   "requires": [],
+   "version": "1.9.0"
+  },
+  "docstring-parser": {
+   "requires": [],
+   "version": "0.18.0"
+  },
+  "fastapi": {
+   "requires": [
+    "annotated-doc",
+    "opentelemetry-api",
+    "pydantic",
+    "starlette",
+    "typing-extensions",
+    "typing-inspection"
+   ],
+   "version": "0.143.0"
+  },
+  "h11": {
+   "requires": [],
+   "version": "0.16.0"
+  },
+  "httpcore": {
+   "requires": [
+    "certifi",
+    "h11"
+   ],
+   "version": "1.0.9"
+  },
+  "httpcore2": {
+   "requires": [
+    "h11",
+    "truststore"
+   ],
+   "version": "2.13.1"
+  },
+  "httpx": {
+   "requires": [
+    "anyio",
+    "certifi",
+    "httpcore",
+    "idna"
+   ],
+   "version": "0.28.1"
+  },
+  "httpx2": {
+   "requires": [
+    "anyio",
+    "httpcore2",
+    "idna",
+    "truststore",
+    "typing-extensions"
+   ],
+   "version": "2.13.1"
+  },
+  "hvac": {
+   "requires": [
+    "requests"
+   ],
+   "version": "2.4.0"
+  },
+  "idna": {
+   "requires": [],
+   "version": "3.20"
+  },
+  "iniconfig": {
+   "requires": [],
+   "version": "2.3.0"
+  },
+  "jiter": {
+   "requires": [],
+   "version": "0.17.0"
+  },
+  "jmespath": {
+   "requires": [],
+   "version": "1.1.0"
+  },
+  "jsonschema": {
+   "requires": [
+    "attrs",
+    "jsonschema-specifications",
+    "referencing",
+    "rpds-py"
+   ],
+   "version": "4.26.0"
+  },
+  "jsonschema-specifications": {
+   "requires": [
+    "referencing"
+   ],
+   "version": "2025.9.1"
+  },
+  "lxml": {
+   "requires": [],
+   "version": "6.1.3"
+  },
+  "mako": {
+   "requires": [
+    "markupsafe"
+   ],
+   "version": "1.4.3"
+  },
+  "markupsafe": {
+   "requires": [],
+   "version": "3.0.4"
+  },
+  "moto": {
+   "requires": [
+    "boto3",
+    "botocore",
+    "cryptography",
+    "requests",
+    "responses",
+    "werkzeug",
+    "xmltodict"
+   ],
+   "version": "5.2.3"
+  },
+  "msgpack": {
+   "requires": [],
+   "version": "1.2.3"
+  },
+  "openai": {
+   "requires": [
+    "anyio",
+    "distro",
+    "httpx",
+    "jiter",
+    "pydantic",
+    "sniffio",
+    "tqdm",
+    "typing-extensions"
+   ],
+   "version": "1.99.9"
+  },
+  "opentelemetry-api": {
+   "requires": [
+    "typing-extensions"
+   ],
+   "version": "1.45.1"
+  },
+  "packaging": {
+   "requires": [],
+   "version": "26.3"
+  },
+  "pillow": {
+   "requires": [],
+   "version": "12.3.0"
+  },
+  "pluggy": {
+   "requires": [],
+   "version": "1.6.0"
+  },
+  "prometheus-client": {
+   "requires": [],
+   "version": "0.26.0"
+  },
+  "psycopg": {
+   "requires": [
+    "typing-extensions"
+   ],
+   "version": "3.3.6"
+  },
+  "psycopg-binary": {
+   "requires": [],
+   "version": "3.3.6"
+  },
+  "py-partiql-parser": {
+   "requires": [],
+   "version": "0.6.3"
+  },
+  "pycparser": {
+   "requires": [],
+   "version": "3.0"
+  },
+  "pydantic": {
+   "requires": [
+    "annotated-types",
+    "pydantic-core",
+    "typing-extensions",
+    "typing-inspection"
+   ],
+   "version": "2.13.5"
+  },
+  "pydantic-core": {
+   "requires": [
+    "typing-extensions"
+   ],
+   "version": "2.46.5"
+  },
+  "pygments": {
+   "requires": [],
+   "version": "2.21.0"
+  },
+  "pyjwt": {
+   "requires": [],
+   "version": "2.15.1"
+  },
+  "pypdf": {
+   "requires": [],
+   "version": "6.20.0"
+  },
+  "pytest": {
+   "requires": [
+    "iniconfig",
+    "packaging",
+    "pluggy",
+    "pygments"
+   ],
+   "version": "9.1.1"
+  },
+  "python-dateutil": {
+   "requires": [
+    "six"
+   ],
+   "version": "2.9.0.post0"
+  },
+  "python-docx": {
+   "requires": [
+    "lxml",
+    "typing-extensions"
+   ],
+   "version": "1.2.0"
+  },
+  "python-dotenv": {
+   "requires": [],
+   "version": "1.2.4"
+  },
+  "python-multipart": {
+   "requires": [],
+   "version": "0.0.32"
+  },
+  "pyyaml": {
+   "requires": [],
+   "version": "6.0.3"
+  },
+  "referencing": {
+   "requires": [
+    "attrs",
+    "rpds-py",
+    "typing-extensions"
+   ],
+   "version": "0.37.0"
+  },
+  "regex": {
+   "requires": [],
+   "version": "2026.9.29"
+  },
+  "reportlab": {
+   "requires": [
+    "charset-normalizer",
+    "pillow"
+   ],
+   "version": "5.0.1"
+  },
+  "requests": {
+   "requires": [
+    "certifi",
+    "charset-normalizer",
+    "idna",
+    "urllib3"
+   ],
+   "version": "2.34.2"
+  },
+  "responses": {
+   "requires": [
+    "pyyaml",
+    "requests",
+    "urllib3"
+   ],
+   "version": "0.26.3"
+  },
+  "rpds-py": {
+   "requires": [],
+   "version": "2026.9.1"
+  },
+  "s3transfer": {
+   "requires": [
+    "botocore"
+   ],
+   "version": "0.19.2"
+  },
+  "six": {
+   "requires": [],
+   "version": "1.17.0"
+  },
+  "sniffio": {
+   "requires": [],
+   "version": "1.3.1"
+  },
+  "sqlalchemy": {
+   "requires": [
+    "typing-extensions"
+   ],
+   "version": "2.1.4"
+  },
+  "starlette": {
+   "requires": [
+    "anyio",
+    "typing-extensions"
+   ],
+   "version": "1.7.0"
+  },
+  "tqdm": {
+   "requires": [],
+   "version": "4.70.1"
+  },
+  "truststore": {
+   "requires": [],
+   "version": "0.10.4"
+  },
+  "typing-extensions": {
+   "requires": [],
+   "version": "4.16.0"
+  },
+  "typing-inspection": {
+   "requires": [
+    "typing-extensions"
+   ],
+   "version": "0.4.4"
+  },
+  "tzdata": {
+   "requires": [],
+   "version": "2026.5"
+  },
+  "urllib3": {
+   "requires": [],
+   "version": "2.8.0"
+  },
+  "uvicorn": {
+   "requires": [
+    "click",
+    "h11"
+   ],
+   "version": "0.25.0"
+  },
+  "watchfiles": {
+   "requires": [
+    "anyio"
+   ],
+   "version": "1.3.0"
+  },
+  "websockets": {
+   "requires": [],
+   "version": "16.1.1"
+  },
+  "werkzeug": {
+   "requires": [
+    "markupsafe"
+   ],
+   "version": "3.1.9"
+  },
+  "xmltodict": {
+   "requires": [],
+   "version": "1.0.4"
+  }
+ },
+ "generated_by": "python3 -m venv --clear /tmp/lock-prod && /tmp/lock-prod/bin/pip install --no-deps --index-url https://pypi.org/simple -r backend/requirements.prod.txt && /tmp/lock-prod/bin/python scripts/check_requirements.py --write-lock --target prod",
+ "manifest": "backend/requirements.prod.txt",
+ "manifest_sha256": "264ae85d68ef8dcea8ba53d9ca9713130c1f67b00c2fa4f72aff72c8004c0426",
+ "modules": {
+  "PIL": [
+   "pillow"
+  ],
+  "_cffi_backend": [
+   "cffi"
+  ],
+  "_pytest": [
+   "pytest"
+  ],
+  "_yaml": [
+   "pyyaml"
+  ],
+  "alembic": [
+   "alembic"
+  ],
+  "annotated_doc": [
+   "annotated-doc"
+  ],
+  "annotated_types": [
+   "annotated-types"
+  ],
+  "anthropic": [
+   "anthropic"
+  ],
+  "anyio": [
+   "anyio"
+  ],
+  "attr": [
+   "attrs"
+  ],
+  "attrs": [
+   "attrs"
+  ],
+  "bcrypt": [
+   "bcrypt"
+  ],
+  "boto3": [
+   "boto3"
+  ],
+  "botocore": [
+   "botocore"
+  ],
+  "certifi": [
+   "certifi"
+  ],
+  "cffi": [
+   "cffi"
+  ],
+  "charset_normalizer": [
+   "charset-normalizer"
+  ],
+  "click": [
+   "click"
+  ],
+  "cryptography": [
+   "cryptography"
+  ],
+  "dateutil": [
+   "python-dateutil"
+  ],
+  "defusedxml": [
+   "defusedxml"
+  ],
+  "distro": [
+   "distro"
+  ],
+  "docstring_parser": [
+   "docstring-parser"
+  ],
+  "docx": [
+   "python-docx"
+  ],
+  "dotenv": [
+   "python-dotenv"
+  ],
+  "fastapi": [
+   "fastapi"
+  ],
+  "h11": [
+   "h11"
+  ],
+  "httpcore": [
+   "httpcore"
+  ],
+  "httpcore2": [
+   "httpcore2"
+  ],
+  "httpx": [
+   "httpx"
+  ],
+  "httpx2": [
+   "httpx2"
+  ],
+  "hvac": [
+   "hvac"
+  ],
+  "idna": [
+   "idna"
+  ],
+  "iniconfig": [
+   "iniconfig"
+  ],
+  "jiter": [
+   "jiter"
+  ],
+  "jmespath": [
+   "jmespath"
+  ],
+  "jsonschema": [
+   "jsonschema"
+  ],
+  "jsonschema_specifications": [
+   "jsonschema-specifications"
+  ],
+  "jwt": [
+   "pyjwt"
+  ],
+  "lxml": [
+   "lxml"
+  ],
+  "mako": [
+   "mako"
+  ],
+  "markupsafe": [
+   "markupsafe"
+  ],
+  "moto": [
+   "moto"
+  ],
+  "msgpack": [
+   "msgpack"
+  ],
+  "multipart": [
+   "python-multipart"
+  ],
+  "openai": [
+   "openai"
+  ],
+  "opentelemetry": [
+   "opentelemetry-api"
+  ],
+  "packaging": [
+   "packaging"
+  ],
+  "pluggy": [
+   "pluggy"
+  ],
+  "prometheus_client": [
+   "prometheus-client"
+  ],
+  "psycopg": [
+   "psycopg"
+  ],
+  "psycopg_binary": [
+   "psycopg-binary"
+  ],
+  "py": [
+   "pytest"
+  ],
+  "py_partiql_parser": [
+   "py-partiql-parser"
+  ],
+  "pycparser": [
+   "pycparser"
+  ],
+  "pydantic": [
+   "pydantic"
+  ],
+  "pydantic_core": [
+   "pydantic-core"
+  ],
+  "pygments": [
+   "pygments"
+  ],
+  "pypdf": [
+   "pypdf"
+  ],
+  "pytest": [
+   "pytest"
+  ],
+  "python_multipart": [
+   "python-multipart"
+  ],
+  "referencing": [
+   "referencing"
+  ],
+  "regex": [
+   "regex"
+  ],
+  "reportlab": [
+   "reportlab"
+  ],
+  "requests": [
+   "requests"
+  ],
+  "responses": [
+   "responses"
+  ],
+  "rpds": [
+   "rpds-py"
+  ],
+  "s3transfer": [
+   "s3transfer"
+  ],
+  "six": [
+   "six"
+  ],
+  "sniffio": [
+   "sniffio"
+  ],
+  "sqlalchemy": [
+   "sqlalchemy"
+  ],
+  "starlette": [
+   "starlette"
+  ],
+  "tqdm": [
+   "tqdm"
+  ],
+  "truststore": [
+   "truststore"
+  ],
+  "typing_extensions": [
+   "typing-extensions"
+  ],
+  "typing_inspection": [
+   "typing-inspection"
+  ],
+  "tzdata": [
+   "tzdata"
+  ],
+  "urllib3": [
+   "urllib3"
+  ],
+  "uvicorn": [
+   "uvicorn"
+  ],
+  "watchfiles": [
+   "watchfiles"
+  ],
+  "websockets": [
+   "websockets"
+  ],
+  "werkzeug": [
+   "werkzeug"
+  ],
+  "xmltodict": [
+   "xmltodict"
+  ],
+  "yaml": [
+   "pyyaml"
+  ]
+ },
+ "platform": "linux-aarch64",
+ "python": "3.11.17",
+ "target": "prod"
+}

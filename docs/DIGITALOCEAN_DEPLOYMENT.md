@@ -127,6 +127,11 @@ in the rehearsal report and never counted as evidence.
 recovery image installs `deploy/recovery/requirements.recovery.txt` (public PyPI only, same pins as `requirements.prod.txt`);
 `python3 scripts/check_requirements.py` must PASS before a push.
 
+**`check_requirements.py` on the host reports hundreds of "missing" packages** (fixed). The default mode is a static manifest
+check (stdlib only, "host packages not used" in its output) based on the committed locks; it needs no app packages on the host.
+The installed packages are checked INSIDE the built images (`--in-env --target prod|recovery`), automatically by `deploy.sh`
+and `recover.sh`. After changing a manifest, regenerate its lock with the command the check prints (clean venv, `--no-deps`).
+
 ### 0.0b Troubleshooting: preflight `seaweedfs image not pinned`
 Bug in the first toolkit version: the check rejected every tag (`chrislusf/seaweedfs:4.48` included). Now images are pinned by
 digest (`SEAWEEDFS_IMAGE=chrislusf/seaweedfs:4.48@sha256:4e61d15f…`, set by `./deploy.sh --apply-demo-settings --yes`) and

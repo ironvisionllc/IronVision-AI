@@ -179,11 +179,17 @@ if [ "$PULL" -eq 1 ]; then
   step "pull images" "registry pull failed – check network/DNS and the image tags in $ENV_FILE (SEAWEEDFS_IMAGE)"
   "${DC[@]}" pull --ignore-buildable
 fi
+step "requirements: static manifest check (host – host packages not used)" "requirements check failed – fix the manifests/locks; regenerate a lock with the command printed above"
+python3 scripts/check_requirements.py
 step "build images" "image build failed – see the build output above"
 "${DC[@]}" build "${BUILD_ARGS[@]}"
 step "image self-check (imports every module, before anything starts)" "an import failed – a package is missing from backend/requirements.prod.txt; run: python3 scripts/check_requirements.py"
 "${DC[@]}" run --rm --no-deps -T backend python -m app.tools.selfcheck
 "${DC[@]}" run --rm --no-deps -T worker python -m app.tools.selfcheck
+step "image package check (inside backend + worker images: pip check, installed == pinned == lock)" "an image's installed packages differ from backend/requirements.prod.txt / its lock – see the errors above"
+for svc in backend worker; do
+  "${DC[@]}" run --rm --no-deps -T -v "$PWD:/repo:ro" "$svc" python /repo/scripts/check_requirements.py --in-env --target prod --app-dir /srv/backend
+done
 
 # ---------------------------------------------------------------- backup of the running deployment (before anything changes)
 if [ "$BACKUP" -eq 1 ] && [ -n "$("${DC[@]}" ps -q postgres 2>/dev/null)" ]; then

@@ -41,6 +41,14 @@ else
   RUNPY=()
 fi
 LEGACY_PROJECT=${RECOVER_LEGACY_PROJECT:-aegisrmf}
+image_gate() {  # host: static manifest check → build the recovery image → package check INSIDE the image (fail-safe)
+  [ "$LOCAL" = 1 ] && return 0
+  python3 scripts/check_requirements.py | tee -a "$LOG" || die "requirements static check (host) failed – nothing was built or changed"
+  "${DC[@]}" --profile recovery build recovery 2>&1 | tee -a "$LOG" || die "recovery image build failed – nothing was changed"
+  "${DC[@]}" --profile recovery run --rm --no-deps -T -v "$PWD:/repo:ro" recovery \
+    python /repo/scripts/check_requirements.py --in-env --target recovery --app-dir /app/backend | tee -a "$LOG" \
+    || die "recovery image package check (in image: pip check, installed == pinned == lock, imports) failed – nothing was changed"
+}
 cpath() {  # host path → path inside the recovery container
   if [ "$LOCAL" = 1 ]; then echo "$1"; return; fi
   case $1 in "$PRE"*) echo "/predeploy${1#"$PRE"}";; "$RDIR"*) echo "/recovery${1#"$RDIR"}";; *) echo "$1";; esac
@@ -166,6 +174,7 @@ case "$cmd" in
     switch_db "$db"; redeploy; py verify || die "verify failed after switch – run ./recover.sh rollback";;
   run)
     say "run: READ-ONLY against the production DB, bucket and Keycloak; legacy containers stay running"
+    image_gate
     lrc=0; legacy inspect "$LEGACY_PROJECT" | tee -a "$LOG" || lrc=$?
     say "legacy verdict exit $lrc (0 safe · 10 port conflict · 11 production depends on legacy) – nothing is stopped by run"
     lb=""
@@ -194,6 +203,7 @@ case "$cmd" in
   cutover)
     if [ "${1:-}" != --plan-hash ] || [ -z "${2:-}" ]; then die "usage: sudo ./recover.sh cutover --plan-hash H  (H printed by ./recover.sh run)"; fi
     h=$2; [ -f "$RDIR/sources.env" ] || die "no ./recover.sh run recorded – run it first"
+    image_gate
     switches() { find "$RDIR" -maxdepth 1 -name 'env-switch-*.json' ! -name '*rolled-back*' | wc -l; }
     before=$(switches)
     fail() {

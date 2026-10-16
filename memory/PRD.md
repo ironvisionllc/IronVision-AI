@@ -327,3 +327,8 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - MinIO export without network (docker exec -i mc cat / read-only docker cp + xl reader); host network; extras classified;
   xl.meta 1.0–1.3, newest version by MTime; present_in_production status.
 - Verified locally: clean public-PyPI venv selfcheck 114/114; orchestration E2E 29/29 using that venv; backend 321 passed.
+
+## 2026-10-16 – check_requirements host-independence (no deploy)
+- Root cause: checker used importlib.metadata of the running (host) interpreter. Now static stdlib-only mode with committed
+  locks (prod 78 / recovery 50, generated in clean --no-deps venvs, sha256 freshness); --in-env inside images; deploy.sh and
+  recover.sh run static → build → in-image checks. jsonschema 4.26.0 needs no pyrsistent.
