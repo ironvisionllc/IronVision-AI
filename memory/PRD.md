@@ -284,3 +284,12 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - P0: operator runs `./recover.sh preflight → rehearse --e2e → apply` on the Droplet; `doctor` must show 0 failing checks.
 - P1: real MinIO binary fixture validation of the archive reader; reboot persistence check on the Droplet.
 - P2: Option C ephemeral demo users; customer-production registration opt-in design.
+
+## 2026-10-16 – Demo defaults + `./deploy.sh --apply-demo-settings`
+- Demo template pair (env.production.template = .env.production.example) ships the demo.ironvisionai.com values (single
+  source: scripts/apply_demo_settings.py DEMO); secrets empty; KEYCLOAK_ADMIN_USERNAME=ironvision-admin (non-secret, needed by
+  check_env). Customer-production/staging keep placeholders; OIDC_CLIENT_ID=ironvision-app everywhere.
+- `scripts/apply_demo_settings.py` / `./deploy.sh --apply-demo-settings [--yes]`: in-place rewrite of only those keys (backup,
+  600, never sourced, secrets untouched), dry-run diff by default, OIDC_CLIENT_ID only after live Keycloak confirms the client
+  (else exit 3 + client list via `scripts/keycloak.sh … clients` + fix `./deploy.sh --apply-realm`).
+- Tests: backend 269 passed / 26 skipped (serial + parallel); shellcheck clean.

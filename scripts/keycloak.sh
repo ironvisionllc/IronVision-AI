@@ -43,6 +43,7 @@ case "$CMD" in
     exec "${RUN[@]}" python -m app.cli keycloak-migrate "${EXTRA[@]}" "$@" ;;
   user) exec "${RUN[@]}" python -m app.cli keycloak-user "$@" ;;
   identity-list) exec "${RUN[@]}" python -m app.cli identity-list ;;
+  clients) exec "${RUN[@]}" python -m app.tools.keycloak_config clients ;;
   doctor) exec "${DC[@]}" --profile keycloak-tools run --rm -T -e DOCTOR_ENV_FILE="$F" keycloak-config python -m app.tools.keycloak_doctor ;;
   rotate-demo)
     NEW="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')"

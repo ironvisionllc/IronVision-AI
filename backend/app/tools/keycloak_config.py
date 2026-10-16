@@ -492,12 +492,21 @@ def build_plan(kc: KeycloakAdmin) -> tuple[list[Step], bool]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m app.tools.keycloak_config")
-    ap.add_argument("action", choices=["plan", "apply"])
+    ap.add_argument("action", choices=["plan", "apply", "clients"])
     ap.add_argument("--if-realm-absent", action="store_true", help="apply only when the realm does not exist yet (deploy.sh default)")
     ap.add_argument("--yes", action="store_true", help="do not prompt (non-interactive apply)")
     a = ap.parse_args(argv)
     try:
         kc = KeycloakAdmin().login()
+        if a.action == "clients":
+            if kc.realm(realm_name()) is None:
+                print(f"[keycloak-config] realm {realm_name()}: ABSENT – create it with ./deploy.sh --apply-realm")
+                return 1
+            ids = sorted(c["clientId"] for c in kc.get(f"/{realm_name()}/clients"))
+            print(f"[keycloak-config] clients in realm {realm_name()}: {', '.join(ids)}")
+            want = os.environ.get("OIDC_CLIENT_ID") or "ironvision-app"
+            print(f"[keycloak-config] {want}: {'present' if want in ids else 'MISSING – fix: ./deploy.sh --apply-realm'}")
+            return 0
         steps, realm_absent = build_plan(kc)
     except (KeycloakError, KeyError) as e:
         print(f"[keycloak-config] ERROR: {e}", file=sys.stderr)

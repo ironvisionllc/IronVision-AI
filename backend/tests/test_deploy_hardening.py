@@ -10,7 +10,7 @@ GOOD = {
     "S3_BUCKET": "ironvision-evidence", "S3_REGION": "us-east-1", "JWT_SECRET": "k" * 8 + "Q7m2Rz9Xv4Lp1Ns6Bt3Wy8Hc5Jd0Gf",
     "SECRET_STORE_KEY": "ZmVybmV0LWtleS1mb3ItdGVzdHMtb25seS0wMTIzNDU=", "CORS_ORIGINS": "https://rmf.agency.test",
     "FRONTEND_URL": "https://rmf.agency.test", "AUTH_PROVIDERS": "oidc", "OIDC_ISSUER": "https://idp.agency.test/realms/x",
-    "OIDC_CLIENT_ID": "ironvision", "OIDC_CLIENT_SECRET": "Oc7Lm2Vw9Rz4Kp8Td3Nb6Hc1Jf5Yg0Ua9", "OIDC_REDIRECT_URI": "https://rmf.agency.test/api/v1/auth/oidc/callback", "TRUST_PROXY_HEADERS": "true",
+    "OIDC_CLIENT_ID": "ironvision-app", "OIDC_CLIENT_SECRET": "Oc7Lm2Vw9Rz4Kp8Td3Nb6Hc1Jf5Yg0Ua9", "OIDC_REDIRECT_URI": "https://rmf.agency.test/api/v1/auth/oidc/callback", "TRUST_PROXY_HEADERS": "true",
     "SEED_DEMO_DATA": "false", "AI_PROVIDER": "none",
 }
 

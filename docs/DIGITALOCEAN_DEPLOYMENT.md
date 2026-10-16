@@ -30,9 +30,27 @@ Push the repo to GitHub once. Then, on the Droplet, from the repository director
 cd /opt/ironvision/IronVision-AI
 mv deploy.sh deploy.sh.old 2>/dev/null || true    # an old hand-made, untracked deploy.sh would block the pull
 git pull
-./deploy.sh --set-domain demo.ironvisionai.com --email k.hill@theironvision.com   # first time / domain change
+./deploy.sh --apply-demo-settings --yes           # demo.ironvisionai.com values into the EXISTING env file, then deploy
 ./deploy.sh                                       # later deploys; optional: --no-cache, --force-tls, --no-systemd
 ```
+**`--apply-demo-settings`** (demo deployment only) rewrites only these non-secret keys in `deploy/digitalocean/.env.production`,
+in place: `APP_DOMAIN=demo.ironvisionai.com`, `FRONTEND_URL`/`CORS_ORIGINS=https://demo.ironvisionai.com`,
+`LETSENCRYPT_EMAIL=k.hill@theironvision.com`, `OIDC_REDIRECT_URI=…/api/v1/auth/oidc/callback`, `AUTH_DOMAIN=auth.demo.ironvisionai.com`,
+`OIDC_ISSUER=https://auth.demo.ironvisionai.com/realms/ironvision-demo`, `OIDC_POST_LOGOUT_REDIRECT_URI=…/login`,
+`OIDC_CLIENT_ID=ironvision-app`, `ALLOW_DEMO_LOGIN=true`, `KEYCLOAK_ALLOW_REGISTRATION=true`, `DEPLOYMENT_KIND=demo`,
+`ALLOW_SIGNUP=false`, `SEED_DEMO_DATA=false`, `APP_ENV=production`, `OPENROUTER_SITE_URL=https://demo.ironvisionai.com`.
+- Without `--yes` it is a dry run: it prints the before/after diff of those keys and exits (nothing written, nothing deployed).
+- With `--yes`: backup `.env.production.bak-<ts>` (mode 600), in-place rewrite (mode 600), the file is never sourced, secrets are
+  neither changed nor printed; then the normal deploy below runs (`gen_env_secrets` fills new empty secrets such as
+  `KEYCLOAK_BACKEND_CLIENT_SECRET`).
+- Before writing `OIDC_CLIENT_ID` it asks the live Keycloak (discovery + a PKCE authorization request). If Keycloak answers
+  "Client not found" (or is unreachable), `OIDC_CLIENT_ID` is **not** changed, exit code 3, the realm's clients are listed
+  (`scripts/keycloak.sh … clients`, admin API) and the fix is printed: `./deploy.sh --apply-realm`, then re-run.
+- Standalone: `python3 scripts/apply_demo_settings.py deploy/digitalocean/.env.production [--dry-run|--yes]`.
+- `deploy/digitalocean/env.production.template` (= `.env.production.example`) is the **demo** template and ships these values;
+  customer production uses `env.customer-production.template` (placeholders, sign-up/demo/registration off).
+
+First install / domain change on a fresh Droplet: `./deploy.sh --set-domain demo.ironvisionai.com --email k.hill@theironvision.com`.
 The repo-root `./deploy.sh` replaces any hand-made wrapper. What it does:
 - **No env file yet:** it creates `deploy/digitalocean/.env.production` from `env.production.template` (mode 600) and generates every secret. It then **stops** (exit 2) and lists the values you must set: `APP_DOMAIN`, `FRONTEND_URL`, `CORS_ORIGINS`, `OIDC_*` when OIDC is enabled, and `OPENAI_COMPAT_API_KEY` + `AI_MODEL` when AI is enabled. Edit the file and run `./deploy.sh` again.
 - **Env file exists:**

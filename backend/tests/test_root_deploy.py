@@ -52,8 +52,10 @@ def test_missing_env_file_is_created_and_deploy_stops(sim):
     r = _run(env, str(f))
     assert r.returncode == 2, r.stdout + r.stderr
     assert f.exists() and oct(f.stat().st_mode & 0o777) == "0o600"
-    assert "NOT deployed yet" in r.stdout and "- APP_DOMAIN" in r.stdout and "- CORS_ORIGINS" in r.stdout
+    assert "NOT deployed yet" in r.stdout
+    assert "- APP_DOMAIN" not in r.stdout and "- CORS_ORIGINS" not in r.stdout     # demo template ships demo.ironvisionai.com
     text = f.read_text()
+    assert "APP_DOMAIN=demo.ironvisionai.com" in text and "OIDC_CLIENT_ID=ironvision-app" in text
     assert "\nJWT_SECRET=\n" not in text and "POSTGRES_PASSWORD=" in text
     assert not (tmp / "docker.log").exists()                   # nothing was deployed
 
@@ -62,11 +64,10 @@ def test_existing_env_with_unquoted_scopes_is_fixed_then_deployed(sim):
     tmp, env = sim
     f = tmp / "prod.env"
     t = (ROOT / "deploy/digitalocean/env.production.template").read_text()
-    t = (t.replace("app.example.gov", "rmf.agency.test").replace("idp.example.gov", "idp.agency.test")
+    t = (t.replace("demo.ironvisionai.com", "rmf.agency.test")
           .replace('OIDC_SCOPES="openid profile email"', "OIDC_SCOPES=openid email profile")
-          .replace("OIDC_CLIENT_SECRET=\n", "OIDC_CLIENT_SECRET=oidc-client-secret-value\n")
-          .replace("DATA_ROOT=/srv/ironvision", f"DATA_ROOT={tmp}/data")
-          .replace("LETSENCRYPT_EMAIL=\n", "LETSENCRYPT_EMAIL=k.hill@theironvision.com\n"))
+          .replace("OIDC_CLIENT_SECRET=\n", "OIDC_CLIENT_SECRET=Oc7Lm2Vw9Rz4Kp8Td3Nb6Hc1Jf5Yg0Ua9Qe\n")
+          .replace("DATA_ROOT=/srv/ironvision", f"DATA_ROOT={tmp}/data"))
     f.write_text(t)
     r = _run(env, str(f), "--skip-edge-check", "--no-cache")
     out = r.stdout + r.stderr
@@ -87,7 +88,7 @@ def test_existing_env_with_unquoted_scopes_is_fixed_then_deployed(sim):
 def test_placeholders_block_deploy(sim):
     tmp, env = sim
     f = tmp / "ph.env"
-    shutil.copy(ROOT / "deploy/digitalocean/env.production.template", f)
+    shutil.copy(ROOT / "deploy/digitalocean/env.customer-production.template", f)   # the template that keeps placeholders
     r = _run(env, str(f))
     assert r.returncode == 2 and "placeholder" in r.stderr and "- APP_DOMAIN" in r.stderr
 

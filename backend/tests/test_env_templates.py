@@ -1,4 +1,5 @@
-"""Env templates ship in the repo (dot and non-dot copies), contain placeholders only, cover every variable, and are not git-ignored."""
+"""Env templates ship in the repo (dot and non-dot copies), hold no secrets, cover every variable, and are not git-ignored.
+Domain values: the DEMO template carries the demo.ironvisionai.com values; staging/customer-production keep placeholders."""
 import re
 import shutil
 import subprocess
@@ -76,3 +77,46 @@ def test_gitignore_keeps_templates_and_ignores_real_env_files():
     for real in (".env", "backend/.env", "frontend/.env", "backend/worker/.env", "deploy/digitalocean/.env.production",
                  "deploy/digitalocean/.env.staging", "prod.env", "server.key", "cert.pem", "credentials.json"):
         assert ignored(real), f"{real} must stay git-ignored"
+
+
+DOMAIN_KEYS = ("APP_DOMAIN", "FRONTEND_URL", "CORS_ORIGINS", "OIDC_ISSUER", "OIDC_REDIRECT_URI", "OIDC_POST_LOGOUT_REDIRECT_URI",
+               "AUTH_DOMAIN", "LETSENCRYPT_EMAIL", "OPENROUTER_SITE_URL")
+
+
+def _demo_settings() -> dict:
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("ads", ROOT / "scripts" / "apply_demo_settings.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m.DEMO
+
+
+def test_demo_template_carries_the_demo_deployment_values():
+    """The DEMO template (DEPLOYMENT_KIND=demo) ships the demo.ironvisionai.com values = apply_demo_settings.DEMO (single source)."""
+    kv = _kv(ROOT / "deploy/digitalocean/env.production.template")
+    assert {k: kv.get(k) for k in _demo_settings()} == _demo_settings()
+
+
+@pytest.mark.parametrize("tpl", ["deploy/digitalocean/env.staging.template", "deploy/digitalocean/env.customer-production.template"])
+def test_staging_and_customer_templates_keep_placeholders(tpl):
+    kv = _kv(ROOT / tpl)
+    for k in DOMAIN_KEYS:
+        assert "ironvisionai.com" not in kv.get(k, "") and "theironvision.com" not in kv.get(k, ""), f"{tpl}: {k} must stay a placeholder"
+    if "customer" in tpl:
+        assert kv["DEPLOYMENT_KIND"] == "customer" and kv["ALLOW_SIGNUP"] == "false" and kv["ALLOW_DEMO_LOGIN"] == "false"
+        assert kv["KEYCLOAK_ALLOW_REGISTRATION"] == "false"
+
+
+def test_app_client_id_is_ironvision_app_everywhere():
+    for tpl in ("env.production.template", "env.customer-production.template"):
+        assert _kv(ROOT / "deploy/digitalocean" / tpl)["OIDC_CLIENT_ID"] == "ironvision-app"
+
+
+def test_demo_template_passes_check_env_with_generated_secrets(tmp_path):
+    import sys
+    e = tmp_path / ".env.production"
+    shutil.copy(ROOT / "deploy/digitalocean/env.production.template", e)
+    e.chmod(0o600)
+    subprocess.run([sys.executable, str(ROOT / "scripts/gen_env_secrets.py"), str(e)], check=True, capture_output=True)
+    r = subprocess.run([sys.executable, str(ROOT / "scripts/check_env.py"), str(e)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout + r.stderr

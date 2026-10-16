@@ -120,7 +120,8 @@ def test_tls_refuses_same_app_and_auth_domain(tls):  # noqa: F811
 
 def _prod_env(tmp_path: Path) -> Path:
     f = tmp_path / ".env.production"
-    f.write_text((ROOT / "deploy/digitalocean/env.production.template").read_text().replace("POSTGRES_PASSWORD=", "POSTGRES_PASSWORD=keep-me-1234567890"))
+    t = (ROOT / "deploy/digitalocean/env.production.template").read_text().replace("POSTGRES_PASSWORD=", "POSTGRES_PASSWORD=keep-me-1234567890")
+    f.write_text(t.replace("\nAUTH_DOMAIN=auth.demo.ironvisionai.com\n", "\nAUTH_DOMAIN=\n"))   # an env from before Keycloak was added
     sd = _load("set_domain")
     assert sd.main([str(f), APP, "--email", "k.hill@theironvision.com"]) == 0
     return f

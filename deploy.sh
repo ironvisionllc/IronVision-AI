@@ -4,6 +4,8 @@
 #               [--skip-edge-check] [--no-cache] [--force-tls] [...]
 #   e.g. ./deploy.sh --set-domain demo.ironvisionai.com --email k.hill@theironvision.com
 #        ./deploy.sh --set-auth-domain auth.demo.ironvisionai.com      (adds Keycloak; sign-in mode is NOT switched – docs/KEYCLOAK.md)
+#        ./deploy.sh --apply-demo-settings [--yes]   demo.ironvisionai.com values into the EXISTING env file (dry run without
+#                                                    --yes; --yes writes in place with a backup, then deploys as usual)
 # ENV_FILE defaults to deploy/digitalocean/.env.production (git-ignored; lives only on the Droplet).
 #  - missing env file → created from deploy/digitalocean/env.production.template, secrets generated, then STOPS so the
 #    operator fills the non-secret values (never deploys placeholders);
@@ -18,9 +20,13 @@ if [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; then F="$1"; shift; fi
 DOMAIN_NEW=""
 EMAIL_NEW=""
 AUTH_NEW=""
+DEMO_SETTINGS=0
+DEMO_YES=0
 PASS=()
 while [ $# -gt 0 ]; do
   case "$1" in
+    --apply-demo-settings) DEMO_SETTINGS=1 ;;
+    --yes) DEMO_YES=1 ;;
     --set-domain) DOMAIN_NEW="${2:?--set-domain needs a hostname}"; shift ;;
     --email) EMAIL_NEW="${2:?--email needs an address}"; shift ;;
     --set-auth-domain) AUTH_NEW="${2:?--set-auth-domain needs a hostname}"; shift ;;
@@ -86,6 +92,17 @@ if [ ! -f "$F" ]; then
 fi
 
 chmod 600 "$F"
+if [ "$DEMO_SETTINGS" = 1 ]; then
+  demo_args=("$F"); [ "$DEMO_YES" = 1 ] && demo_args+=(--yes)
+  rc=0; python3 scripts/apply_demo_settings.py "${demo_args[@]}" || rc=$?
+  if [ "$rc" = 3 ]; then
+    printf '\n#### Clients in the Keycloak realm (admin API):\n'
+    scripts/keycloak.sh "$F" clients || printf '     (could not list – is Keycloak running? ./deploy.sh --apply-realm creates the realm and client)\n'
+  elif [ "$rc" != 0 ]; then
+    die "apply_demo_settings failed – $F unchanged"
+  fi
+  [ "$DEMO_YES" = 1 ] || { printf '\nDry run only – nothing written, nothing deployed. Apply + deploy: ./deploy.sh --apply-demo-settings --yes\n'; exit 0; }
+fi
 set_domain
 set_auth_domain
 python3 scripts/check_env.py --fix "$F" | grep -E "check_env --fix|FIXED|MANUAL" || true

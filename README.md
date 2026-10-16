@@ -112,9 +112,17 @@ yarn install && yarn start
 cd /opt/ironvision/IronVision-AI
 mv deploy.sh deploy.sh.old 2>/dev/null || true    # an old untracked deploy.sh would block the pull
 git pull
-./deploy.sh --set-domain demo.ironvisionai.com --email k.hill@theironvision.com
+./deploy.sh --apply-demo-settings                 # dry run: shows the before/after diff of the demo keys, writes nothing
+./deploy.sh --apply-demo-settings --yes           # writes them in place (backup, mode 600, secrets untouched), then deploys
 # later deploys: ./deploy.sh   (TLS certificate is obtained/renewed automatically)
 ```
+`--apply-demo-settings` sets only the non-secret demo.ironvisionai.com keys (`APP_DOMAIN`, `FRONTEND_URL`, `CORS_ORIGINS`,
+`LETSENCRYPT_EMAIL`, `OIDC_*` URLs, `AUTH_DOMAIN`, `OIDC_CLIENT_ID=ironvision-app`, `ALLOW_DEMO_LOGIN=true`,
+`KEYCLOAK_ALLOW_REGISTRATION=true`, `DEPLOYMENT_KIND=demo`, `ALLOW_SIGNUP=false`, `SEED_DEMO_DATA=false`, `APP_ENV=production`,
+`OPENROUTER_SITE_URL`). `OIDC_CLIENT_ID` is changed only after the live Keycloak realm confirms client `ironvision-app` exists;
+otherwise it is kept and the fix (`./deploy.sh --apply-realm`) plus the realm's client list are printed. Standalone:
+`python3 scripts/apply_demo_settings.py deploy/digitalocean/.env.production [--dry-run|--yes]`. New installs: the demo template
+`deploy/digitalocean/env.production.template` already carries these values (customer production: `env.customer-production.template`).
 Before the first run: DNS A record `demo.ironvisionai.com` → Droplet IPv4 (AAAA if IPv6), optional CAA `0 issue "letsencrypt.org"`, DO firewall 80/443 open. If OIDC values are still placeholders, the first run creates the env file and lists what to fill. Details: `docs/DIGITALOCEAN_DEPLOYMENT.md` §0 (Quick deploy) and §4 (TLS). The env file lives only on the Droplet; it is git-ignored and never committed.
 
 ## Docker Compose
