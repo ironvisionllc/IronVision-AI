@@ -76,7 +76,9 @@ def build_plan(db, kc: KeycloakAdmin, reactivate: set[str]) -> list[dict]:
         # the shared demo account maps to the launcher user, found by its unpublished handle (its e-mail is deliberately different)
         cands = kc.users_by(_realm(), username=demo_handle) if is_demo else _kc_candidates(kc, email)
         kc_id = cands[0]["id"] if len(cands) == 1 else None
-        if dup[email] > 1:
+        if u.persona_role and u.org_id in sandboxes and not is_demo:
+            action, why = "skip", "demo-sandbox persona (reached via the role switcher, never logs in; no identity is linked)"
+        elif dup[email] > 1:
             action, why = "CONFLICT", "duplicate email among app users"
         elif not u.is_active and email not in reactivate:
             action, why = "skip", "inactive (reactivate only with --reactivate)"
@@ -98,8 +100,6 @@ def build_plan(db, kc: KeycloakAdmin, reactivate: set[str]) -> list[dict]:
                 action, why = "CONFLICT", "Keycloak username matches but its email differs"
             else:
                 action, why = "link", "demo launcher user (by handle)" if is_demo else "Keycloak user with this email exists"
-        elif u.org_id in sandboxes and not is_demo:
-            action, why = "skip", "demo-sandbox persona (reached via the role switcher, never logs in)"
         else:
             action, why = "create", "no Keycloak user yet"
         if action in ("create", "link") and not u.is_active:

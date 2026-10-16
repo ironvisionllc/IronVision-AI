@@ -309,3 +309,14 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Verified locally: backend 285 passed/27 skipped; orchestration E2E 24/24; recovery E2E 2/2; live Keycloak 19 + 1 skipped; shellcheck clean.
   NOT run on the customer Droplet. Legacy MinIO was a SeaweedFS stand-in.
 
+
+## 2026-10-16 – Droplet `recover.sh run` legacy-backup fixes (no deploy)
+- Root cause reproduced: empty `postgres` maintenance DB → valid archive with 0 TOC entries, rejected as "unreadable". Now same-major
+  pg tools (container client or local postgres:<major> image), no TTY, PGDMP header + pg_restore -l + archive-version + sha256;
+  0-entry dumps only with catalog proof → `maintenance_db`; globals (--no-role-passwords) mandatory + verified; read-only sessions.
+- Dependency verdict evidence-based (mount mode/kind, env KEY host resolution on shared nets, published ports, data volumes); RO repo
+  binds no longer a dependency; legacy app containers reported as non-sources.
+- MinIO: endpoint from inspect (IP + internal port), *_FILE secrets, helper image fallback, `objsync probe` (short timeouts), mc
+  listing fallback; else tarball + "evidence NOT verified".
+- Verified locally: backend 301 passed/27 skipped; orchestration E2E 28/28 (incl. 3 Droplet failure cases); shellcheck clean.
+  NOT run on the Droplet.

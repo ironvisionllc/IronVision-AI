@@ -88,8 +88,33 @@ sudo ./recover.sh finalize                     # after a successful cutover: gra
 ```
 Never `docker rm`, `down` or `-v`: volumes stay; `docker start <names>` (printed and stored in the backup manifest) restores them.
 `scripts/legacy_project.sh preserve-and-stop aegisrmf --yes` does backup + stop in one step (refused if the live stack depends on
-a legacy container). Backups: `/root/ironvision-predeploy/legacy-<ts>/` (pg_dump -Fc per DB verified with `pg_restore -l`,
-`pg_dumpall --globals-only`, objsync export of every MinIO bucket under `objects/` with a SHA-256 manifest, `docker inspect` records).
+a legacy container). Backups: `/root/ironvision-predeploy/legacy-<ts>/` (pg_dump -Fc per DB, `pg_dumpall --globals-only
+--no-role-passwords`, objsync export of every MinIO bucket under `objects/` with a SHA-256 manifest, `docker inspect` records).
+
+**`run` stopped with `backup of aegisrmf-postgres-1/postgres is unreadable (pg_restore -l)`** (fixed). The `postgres`
+maintenance DB is empty; its valid archive lists 0 TOC entries and the old check treated "0 entries" as unreadable. Now every
+dump is made with the **same major version** as the server (the container's own `pg_dump`, else a local `postgres:<major>-alpine`
+image with `--pull never` – if missing: `docker pull postgres:<major>-alpine`), never through a TTY, written straight to a file,
+and verified: `PGDMP` header, `pg_restore -l` exit 0, archive "dumped from/by" versions = server major, sha256. A 0-entry dump is
+accepted only after a catalog query proves the DB has no user schemas/tables/large objects/functions/extensions; it is kept and
+recorded as `maintenance_db` ("verified, empty maintenance DB, no application data"). Every legacy session runs with
+`default_transaction_read_only=on`.
+
+**Verdict `PRODUCTION_DEPENDS_ON_LEGACY` for the legacy backend/migrate/worker** (fixed). `inspect` now lists every piece of
+evidence (container, mount source → target + rw/ro, env KEY names only, network) and why it is or is not a dependency. Not a
+dependency: shared read-only repo bind mounts (docs, samples, content), a shared network nobody references. Dependency (never
+downgraded): a live `*_URL`/`*_HOST`/`*_ENDPOINT` setting that names a legacy container/IP, resolves to it on a shared network,
+or reaches its published port; shared writable named volumes / DB or object data dirs; unclassified shared writable bind mounts
+(fail-safe). Legacy backend/migrate/worker are reported as "not a recovery source"; `finalize` stops them after verified backups,
+`resolve-conflict` if they hold a port; `run` never stops anything.
+
+**`aegisrmf-minio-recovery … bucket listing unavailable`** (fixed diagnosis). Endpoint = the container's IP on its network +
+MinIO's internal port (`--address` / `MINIO_ADDRESS`, default 9000) – a `docker run` container on the default bridge has no DNS
+name, which is why `http://aegisrmf-minio-recovery:9000` failed. Credentials: `MINIO_ROOT_USER/PASSWORD`, `MINIO_ACCESS_KEY/SECRET_KEY`
+or their `*_FILE` secrets (only key names are printed). The probe runs `python -m app.tools.objsync probe` in a local helper image
+(`ironvision/recovery:local`, else the live backend image) on the legacy network and reports endpoint, reachable, auth, buckets,
+object counts; `mc` inside the MinIO container is a listing-only fallback. If the objects cannot be read, recovery uses the
+tarball and the report says **evidence NOT verified** until the rehearsal SHA-256-matches every object to the evidence records.
 
 ### 0.0b Troubleshooting: preflight `seaweedfs image not pinned`
 Bug in the first toolkit version: the check rejected every tag (`chrislusf/seaweedfs:4.48` included). Now images are pinned by

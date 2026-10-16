@@ -38,8 +38,8 @@ def scenario(base_url: str, **over) -> dict:
         "ironvision-postgres-1": ctr("ironvision-postgres-1", "postgres:16-alpine", "postgres", "ironvision", nets={"ironvision_default": {"Aliases": ["postgres"], "IPAddress": "172.31.0.2"}},
                                      mounts=[{"Type": "bind", "Source": "/srv/ironvision/postgres", "Destination": "/var/lib/postgresql/data"}]),
         "ironvision-edge-1": ctr("ironvision-edge-1", "nginx:1.27-alpine", "edge", "ironvision", ports={"443/tcp": [{"HostIp": "0.0.0.0", "HostPort": "443"}]})},
-        "pg": {"container": "aegisrmf-postgres-1", "url": base_url, "dbmap": {"aegisrmf": make_url(base_url).database}},
-        "s3": {"from": "http://aegisrmf-minio-recovery:9000", "to": "http://127.0.0.1:1"}}
+        "pg": {"container": "aegisrmf-postgres-1", "url": base_url, "dbmap": {"aegisrmf": make_url(base_url).database, "postgres": EMPTY_DB}},
+        "s3": {"from": "http://172.17.0.3:9000", "to": "http://127.0.0.1:1"}}
     for k, v in over.items():
         s["containers"][k] = v
     return s
@@ -67,12 +67,16 @@ def shim(tmp_path, monkeypatch):
     return run
 
 
+EMPTY_DB = "legacy_maint_empty"
+
+
 @pytest.fixture
 def base_url():
     u = os.environ["DATABASE_URL"]
-    eng = create_engine(u)
+    eng = create_engine(make_url(u).set(database="postgres"), isolation_level="AUTOCOMMIT")
     with eng.connect() as c:
-        c.execute(text("select 1"))
+        if not c.execute(text("select 1 from pg_database where datname = :d"), {"d": EMPTY_DB}).first():
+            c.execute(text(f'CREATE DATABASE "{EMPTY_DB}" TEMPLATE template0'))
     eng.dispose()
     return u
 
@@ -90,7 +94,7 @@ def test_inspect_port_conflict(shim, base_url):
     s["containers"]["aegisrmf-minio-recovery"]["inspect"]["State"]["Running"] = True
     s["containers"]["aegisrmf-minio-recovery"]["inspect"]["NetworkSettings"]["Ports"] = {"9000/tcp": [{"HostIp": "0.0.0.0", "HostPort": "443"}]}
     r, _ = shim("inspect", scen=s)
-    assert r.returncode == 10 and "VERDICT: PORT_CONFLICT" in r.stdout and "port conflict 0.0.0.0:443" in r.stdout
+    assert r.returncode == 10 and "VERDICT: PORT_CONFLICT" in r.stdout and "!! PORT CONFLICT 0.0.0.0:443" in r.stdout
 
 
 @pytest.mark.parametrize("how", ["host", "network", "mount"])
@@ -221,3 +225,209 @@ def test_deploy_sh_legacy_gate(shim, base_url, case):
         assert r.returncode != 0 and "PORT_CONFLICT" in out and "sudo ./recover.sh resolve-conflict" in out, out[-1500:]
     else:
         assert r.returncode != 0 and "PRODUCTION_DEPENDS_ON_LEGACY" in out and "do NOT stop it" in out, out[-1500:]
+
+
+def _lp():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("lp", ROOT / "scripts" / "legacy_project.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def _pg(lp, s):
+    raw = s["containers"]["aegisrmf-postgres-1"]["inspect"]
+    return lp.info(raw)
+
+
+def test_backup_empty_maintenance_db_verified_and_globals_recorded(shim, base_url):
+    out = shim.tmp / "bk"
+    r, log = shim("backup", "--out", str(out), scen=scenario(base_url))
+    assert r.returncode == 0, r.stdout + r.stderr
+    m = json.loads((out / "manifest.json").read_text())
+    d = {f["database"]: f for f in m["files"] if f["kind"] == "pg-dump"}
+    assert d["postgres"]["class"] == "maintenance_db" and d["postgres"]["toc_entries"] == 0
+    assert d["postgres"]["note"] == "verified, empty maintenance DB, no application data"
+    assert d["postgres"]["user_objects"] == {"schemas": 0, "tables": 0, "large_objects": 0, "functions": 0, "extensions": 0}
+    assert d["aegisrmf"]["class"] == "application" and d["aegisrmf"]["toc_entries"] > 10
+    assert d["aegisrmf"]["dumped_by"].startswith("16") and "PostgreSQL 16" in d["aegisrmf"]["tool"]
+    g = next(f for f in m["files"] if f["kind"] == "pg-globals")
+    assert g["roles"] >= 1 and g["role_passwords"] is False
+    txt = (out / g["file"]).read_text()
+    assert "SCRAM-SHA-256$" not in txt and "PASSWORD '" not in txt
+    for f in d.values():
+        assert (out / f["file"]).read_bytes()[:5] == b"PGDMP"
+    pg_calls = [c for c in log.splitlines() if c.startswith("exec") and " aegisrmf-postgres-1 " in f" {c} "]
+    assert pg_calls and not any(c.split()[1] in ("-t", "-it", "-ti") for c in pg_calls)  # never a TTY
+    for c in pg_calls:
+        if " psql " in c or " pg_dump " in c and "--version" not in c or " pg_dumpall " in c:
+            assert "PGOPTIONS=-c default_transaction_read_only=on" in c, c  # every legacy session read-only
+    assert "Explicitly empty" not in r.stdout and "maintenance_db" in r.stdout
+
+
+def test_empty_dump_of_db_with_user_objects_is_rejected(shim, base_url, monkeypatch):
+    lp = _lp()
+    s = scenario(base_url)
+    (shim.tmp / "scenario.json").write_text(json.dumps(s))
+    i = _pg(lp, s)
+    tools = lp.PgTools(i)
+    monkeypatch.setattr(lp, "user_objects", lambda i, db: {"schemas": 0, "tables": 3, "large_objects": 0, "functions": 0, "extensions": 0})
+    with pytest.raises(RuntimeError, match="no TOC entries but the DB has user objects"):
+        lp.dump_db(i, {"name": "postgres"}, tools, shim.tmp / "x.dump")
+
+
+def test_tty_mangled_dump_is_rejected(shim, base_url):
+    lp = _lp()
+    s = scenario(base_url)
+    (shim.tmp / "scenario.json").write_text(json.dumps(s))
+    p = shim.tmp / "tty.dump"
+    with open(p, "wb") as f:  # what `docker exec -t … pg_dump -Fc > file` produces
+        subprocess.run(["docker", "exec", "-t", "aegisrmf-postgres-1", "pg_dump", "-Fc", "-d", "aegisrmf"], stdout=f, check=True)
+    assert b"\r\n" in p.read_bytes()
+    with pytest.raises(RuntimeError, match="pg_restore -l failed|TTY"):
+        lp.validate_dump(p, lp.PgTools(_pg(lp, s)))
+
+
+def test_version_mismatch_needs_same_major_tools(shim, base_url):
+    s = scenario(base_url)
+    s["pg"]["client_version"] = "15.8"
+    s["images"] = ["ironvision/recovery:local"]
+    r, log = shim("backup", "--out", str(shim.tmp / "bk1"), scen=s)
+    assert r.returncode == 1 and "server is PostgreSQL 16 but the container's pg_dump is 15" in r.stdout and "docker pull postgres:16-alpine" in r.stdout
+    assert not (shim.tmp / "bk1" / "manifest.json").exists()
+    s["images"].append("postgres:16-alpine")
+    r, log = shim("backup", "--out", str(shim.tmp / "bk2"), scen=s)
+    assert r.returncode == 0, r.stdout + r.stderr
+    runs = [c for c in log.splitlines() if c.startswith("run ") and "postgres:16-alpine" in c]
+    assert runs and all("--pull never" in c and "-e PGPASSWORD " in c and "never-printed" not in c for c in runs)
+    m = json.loads((shim.tmp / "bk2" / "manifest.json").read_text())
+    assert all("image postgres:16-alpine" in f["tool"] for f in m["files"] if f["kind"] in ("pg-dump", "pg-globals"))
+
+
+def test_archive_version_mismatch_is_rejected(shim, base_url):
+    lp = _lp()
+    s = scenario(base_url)
+    (shim.tmp / "scenario.json").write_text(json.dumps(s))
+    tools = lp.PgTools(_pg(lp, s))
+    p = shim.tmp / "ok.dump"
+    with open(p, "wb") as f:
+        tools.run("pg_dump", "-Fc", "-d", "aegisrmf", stdout=f)
+    assert lp.validate_dump(p, tools)["toc_entries"] > 10
+    tools.server = 15  # an archive from a different major than the server must never pass
+    with pytest.raises(RuntimeError, match="version mismatch"):
+        lp.validate_dump(p, tools)
+
+
+REPO = "/opt/ironvision/IronVision-AI"
+
+
+def _app(name, project, svc, mounts, env=(), nets=None):
+    c = ctr(name, "img-" + project, svc, project, nets=nets or {f"{project}_default": {"Aliases": [svc], "IPAddress": "10.0.0.9"}}, env=list(env))
+    c["inspect"]["Mounts"] = mounts
+    c["inspect"]["Config"]["Labels"]["com.docker.compose.project.working_dir"] = REPO
+    return c
+
+
+def test_shared_readonly_repo_binds_are_evidence_not_dependency(shim, base_url):
+    s = scenario(base_url)
+    docs = [{"Type": "bind", "Source": f"{REPO}/docs", "Destination": "/app/docs", "RW": False},
+            {"Type": "bind", "Source": f"{REPO}/samples", "Destination": "/samples", "RW": False}]
+    for svc in ("backend", "worker", "migrate"):
+        s["containers"][f"aegisrmf-{svc}-1"] = _app(f"aegisrmf-{svc}-1", "aegisrmf", svc, docs)
+    s["containers"]["ironvision-backend-1"]["inspect"]["Mounts"] = docs
+    r, log = shim("inspect", scen=s)
+    assert r.returncode == 0 and "VERDICT: SAFE_TO_STOP" in r.stdout, r.stdout
+    assert f"ok (no dep.) [mount] bind {REPO}/docs -> /app/docs (live ironvision-backend-1 -> /app/docs; legacy ro, live ro)" in r.stdout
+    assert r.stdout.count("NOT a recovery source") == 3 and "stop " not in log
+
+
+@pytest.mark.parametrize("how", ["data-volume", "rw-unknown-bind", "env-on-shared-net", "published-port", "storage-endpoint"])
+def test_real_dependencies_are_never_downgraded(shim, base_url, how):
+    s = scenario(base_url)
+    live = s["containers"]["ironvision-backend-1"]["inspect"]
+    if how == "data-volume":
+        live["Mounts"] = [{"Type": "volume", "Name": "aegisrmf_pgdata", "Destination": "/var/lib/postgresql/data", "RW": True}]
+        s["containers"]["ironvision-backend-1"]["inspect"] = live
+    elif how == "rw-unknown-bind":
+        b = {"Type": "bind", "Source": "/srv/shared/uploads", "Destination": "/uploads", "RW": True}
+        s["containers"]["aegisrmf-backend-1"] = _app("aegisrmf-backend-1", "aegisrmf", "backend", [b])
+        live["Mounts"] = [b]
+    elif how == "env-on-shared-net":  # the live backend is on the legacy network AND its DATABASE_URL names a legacy service
+        live["NetworkSettings"]["Networks"]["aegisrmf_default"] = {"Aliases": [], "IPAddress": "172.30.0.9"}
+        live["Config"]["Env"] = ["DATABASE_URL=postgresql+psycopg://iv:pw@postgres:5432/ironvision"]
+    elif how == "published-port":
+        live["Config"]["Env"] = ["DATABASE_URL=postgresql+psycopg://iv:pw@172.17.0.1:5433/ironvision"]
+    else:
+        s["containers"]["aegisrmf-minio-recovery"]["inspect"]["State"]["Running"] = True
+        shim.envf.write_text("DATABASE_URL=postgresql+psycopg://iv:pw@postgres:5432/ironvision\nS3_ENDPOINT_URL=http://172.17.0.3:9000\n")
+        s["images"] = []  # keep this case about the verdict (no S3 probe)
+    r, _ = shim("inspect", scen=s)
+    assert r.returncode == 11 and "VERDICT: PRODUCTION_DEPENDS_ON_LEGACY" in r.stdout and "!! DEPENDENCY" in r.stdout, r.stdout
+    assert "pw@" not in r.stdout and "never-printed" not in r.stdout  # env KEY names only
+
+
+def test_shared_network_without_reference_is_not_a_dependency(shim, base_url):
+    s = scenario(base_url)
+    live = s["containers"]["ironvision-backend-1"]["inspect"]
+    live["NetworkSettings"]["Networks"]["aegisrmf_default"] = {"Aliases": [], "IPAddress": "172.30.0.9"}
+    live["Config"]["Env"] = ["DATABASE_URL=postgresql+psycopg://iv:pw@ironvision-db:5432/ironvision"]
+    shim.envf.write_text("DATABASE_URL=postgresql+psycopg://iv:pw@ironvision-db:5432/ironvision\n")
+    r, _ = shim("inspect", scen=s)
+    assert r.returncode == 0 and "ok (no dep.) [network] shares network aegisrmf_default" in r.stdout, r.stdout
+
+
+def _minio(s, env, running=True):
+    m = s["containers"]["aegisrmf-minio-recovery"]["inspect"]
+    m["State"]["Running"] = running
+    m["Config"]["Env"] = env
+    return s
+
+
+def test_minio_diagnosis_without_credentials(shim, base_url):
+    s = _minio(scenario(base_url), ["MINIO_BROWSER=off"])
+    r, _ = shim("inspect", scen=s)
+    assert "minio endpoint http://172.17.0.3:9000 (network bridge, internal port 9000" in r.stdout
+    assert "no usable credentials in the container env (key names found: none)" in r.stdout and "evidence NOT verified" in r.stdout
+
+
+def test_minio_diagnosis_helper_image_missing(shim, base_url):
+    s = _minio(scenario(base_url), ["MINIO_ROOT_USER=legacyminio", "MINIO_ROOT_PASSWORD=legacy-minio-secret-0123456789"])
+    s["images"] = []
+    r, _ = shim("inspect", scen=s)
+    assert "no local helper image with app.tools.objsync" in r.stdout and "legacy-minio-secret" not in r.stdout
+
+
+def test_minio_unreachable_falls_back_to_mc_listing_and_says_not_verified(shim, base_url):
+    s = _minio(scenario(base_url), ["MINIO_ACCESS_KEY_FILE=ak", "MINIO_SECRET_KEY_FILE=/run/secrets/sk"])
+    s["containers"]["aegisrmf-minio-recovery"]["inspect"]["Config"]["Cmd"] = ["server", "/data", "--address", ":9100"]
+    s["files"] = {"aegisrmf-minio-recovery": {"/run/secrets/ak": "oldkey\n", "/run/secrets/sk": "old-secret-value-0123\n"}}
+    s["mc"] = {"aegisrmf-minio-recovery": {"host": "http://oldkey:old-secret-value-0123@127.0.0.1:9100", "buckets": {"evidence": 38}}}
+    r, _ = shim("inspect", scen=s)
+    assert "minio endpoint http://172.17.0.3:9100" in r.stdout and "credential key names: MINIO_ACCESS_KEY_FILE, MINIO_SECRET_KEY_FILE" in r.stdout
+    assert "reachable no" in r.stdout and '"name": "evidence", "objects": 38' in r.stdout and "listed by mc inside the MinIO container" in r.stdout
+    assert "evidence NOT verified" in r.stdout and "old-secret-value" not in r.stdout and "oldkey" not in r.stdout
+    out = shim.tmp / "bk"
+    r, log = shim("backup", "--out", str(out), scen=s)
+    m = json.loads((out / "manifest.json").read_text())
+    assert r.returncode == 0 and not m["buckets"] and any("objects NOT exported" in w for w in m["warnings"])
+    assert "old-secret-value" not in (out / "manifest.json").read_text() and "old-secret-value" not in log
+
+
+SEAWEED = "http://127.0.0.1:18333"
+
+
+def _seaweed_up() -> bool:
+    import urllib.request
+    try:
+        urllib.request.urlopen(SEAWEED, timeout=2)
+    except Exception as e:  # noqa: BLE001
+        return getattr(e, "code", None) is not None
+    return True
+
+
+def test_minio_wrong_credentials_reachable_but_auth_fails(shim, base_url):
+    assert _seaweed_up(), "SeaweedFS (S3 stand-in) must run: bash scripts/pod_seaweedfs.sh"
+    s = _minio(scenario(base_url), ["MINIO_ROOT_USER=legacyminio", "MINIO_ROOT_PASSWORD=wrong-password-xyz"])
+    s["s3"]["to"] = SEAWEED
+    r, _ = shim("inspect", scen=s)
+    assert "reachable yes, auth no" in r.stdout and "wrong-password" not in r.stdout, r.stdout

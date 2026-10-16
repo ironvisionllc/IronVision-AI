@@ -6,19 +6,22 @@ from app.services.storage.base import StorageService, StoredObject
 
 
 def s3_client(endpoint_url: str | None = None, region: str | None = None, access_key_id: str | None = None,
-              secret_access_key: str | None = None, addressing_style: str | None = None):
+              secret_access_key: str | None = None, addressing_style: str | None = None, quick: bool = False):
     """boto3 client for any S3-compatible backend (SeaweedFS, AWS S3, DigitalOcean Spaces, Garage, Ceph RGW).
-    Signature v4 always; addressing style from S3_ADDRESSING_STYLE (path for self-hosted, virtual for Spaces/AWS)."""
+    Signature v4 always; addressing style from S3_ADDRESSING_STYLE (path for self-hosted, virtual for Spaces/AWS).
+    quick=True: short timeouts and 2 attempts, for diagnosis probes."""
     style = (addressing_style or "path").lower()
     if style not in ("path", "virtual", "auto"):
         raise RuntimeError("S3_ADDRESSING_STYLE must be path, virtual or auto")
+    extra = {"connect_timeout": 5, "read_timeout": 20} if quick else {}
     return boto3.client(
         "s3",
         endpoint_url=endpoint_url or None,
         region_name=region or None,
         aws_access_key_id=access_key_id or None,
         aws_secret_access_key=secret_access_key or None,
-        config=Config(signature_version="s3v4", s3={"addressing_style": style}, retries={"max_attempts": 5, "mode": "standard"}),
+        config=Config(signature_version="s3v4", s3={"addressing_style": style},
+                      retries={"max_attempts": 2 if quick else 5, "mode": "standard"}, **extra),
     )
 
 

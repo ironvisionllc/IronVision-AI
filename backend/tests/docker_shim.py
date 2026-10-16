@@ -27,6 +27,28 @@ def pg_env(s: dict) -> dict:
     return {**os.environ, "PGHOST": u.hostname, "PGPORT": str(u.port or 5432), "PGUSER": u.username or "postgres", "PGPASSWORD": u.password or ""}
 
 
+def pg_exec(s: dict, cmd: list[str], extra: dict, tty: bool) -> int:
+    """Real local PostgreSQL client binaries against the mapped DBs; -U/-h dropped (the shim connects as the test role).
+    tty=True simulates `docker exec -t`: LF is turned into CRLF on stdout, as a pseudo-terminal does."""
+    cmd = list(cmd)
+    for flag in ("-U", "-h"):
+        if flag in cmd:
+            del cmd[cmd.index(flag):cmd.index(flag) + 2]
+    if "-d" in cmd:
+        k = cmd.index("-d") + 1
+        cmd[k] = s["pg"]["dbmap"].get(cmd[k], cmd[k])
+    if cmd[0] == "psql" and "from pg_database" in cmd[-1]:
+        print("\n".join(sorted(s["pg"]["dbmap"])))
+        return 0
+    env = {**pg_env(s), **{k: v for k, v in extra.items() if k == "PGOPTIONS"}}
+    if not tty:
+        return subprocess.run([f"{PG_BIN}/{cmd[0]}", *cmd[1:]], env=env, check=False).returncode
+    r = subprocess.run([f"{PG_BIN}/{cmd[0]}", *cmd[1:]], env=env, capture_output=True, check=False)
+    sys.stdout.buffer.write(r.stdout.replace(b"\n", b"\r\n"))
+    sys.stderr.buffer.write(r.stderr)
+    return r.returncode
+
+
 def main(a: list[str]) -> int:
     with open(os.environ["DOCKER_SHIM_LOG"], "a") as f:
         f.write(" ".join(a) + "\n")
@@ -58,33 +80,58 @@ def main(a: list[str]) -> int:
         SCN.write_text(json.dumps(s))
         return 0
     if a[0] == "image" and a[1] == "inspect":
+        if "images" in s and a[2] not in s["images"]:
+            print(f"Error: No such image: {a[2]}", file=sys.stderr)
+            return 1
         print(" ".join(s.get("repo_digests", {}).get(a[2], [])))
         return 0
     if a[0] == "exec":
-        rest = a[1:]
-        if rest[0] == "-i":
-            rest = rest[1:]
+        rest, extra, tty = a[1:], {}, False
+        while rest[0].startswith("-"):
+            if rest[0] == "-e":
+                k, _, v = rest[1].partition("=")
+                extra[k] = v if _ else os.environ.get(k, "")
+                rest = rest[2:]
+            else:
+                tty = tty or "t" in rest[0]
+                rest = rest[1:]
         name, cmd = rest[0], rest[1:]
-        if name != s["pg"]["container"] or not cs[name]["inspect"]["State"]["Running"]:
+        if name not in cs or not cs[name]["inspect"]["State"]["Running"]:
             print("Error: container not running", file=sys.stderr)
             return 1
         if cmd[0] == "printenv":
             env = dict(e.split("=", 1) for e in cs[name]["inspect"]["Config"]["Env"])
             print(env.get(cmd[1], ""))
             return 0 if cmd[1] in env else 1
-        dm = s["pg"]["dbmap"]
-        if cmd[0] == "psql" and "from pg_database" in cmd[-1]:
-            print("\n".join(sorted(dm)))
+        if cmd[0] == "cat":
+            f = s.get("files", {}).get(name, {}).get(cmd[1])
+            if f is None:
+                print(f"cat: {cmd[1]}: No such file or directory", file=sys.stderr)
+                return 1
+            sys.stdout.write(f)
             return 0
-        cmd = [x for x in cmd]
-        if "-U" in cmd:
-            del cmd[cmd.index("-U"):cmd.index("-U") + 2]
-        if "-d" in cmd:
-            i = cmd.index("-d") + 1
-            cmd[i] = dm.get(cmd[i], cmd[i])
-        return subprocess.run([f"{PG_BIN}/{cmd[0]}", *cmd[1:]], env=pg_env(s), check=False).returncode
+        if cmd[:2] == ["sh", "-c"] and "command -v mc" in cmd[2]:
+            return 0 if s.get("mc", {}).get(name) else 1
+        if cmd[0] == "mc":
+            mc = s.get("mc", {}).get(name) or {}
+            if extra.get("MC_HOST_legacy") != mc.get("host"):
+                print("mc: <ERROR> Access Denied.", file=sys.stderr)
+                return 1
+            target = cmd[-1]
+            if target == "legacy":
+                print("\n".join(json.dumps({"status": "success", "type": "folder", "key": b + "/"}) for b in mc["buckets"]))
+            else:
+                print("\n".join(json.dumps({"status": "success", "type": "file", "key": f"o{n}"}) for n in range(mc["buckets"][target.split("/", 1)[1]])))
+            return 0
+        if name != s["pg"]["container"]:
+            print(f"OCI runtime exec failed: {cmd[0]}: not found", file=sys.stderr)
+            return 127
+        if cmd[0] in ("pg_dump", "pg_restore", "pg_dumpall") and cmd[1:] == ["--version"] and s["pg"].get("client_version"):
+            print(f"{cmd[0]} (PostgreSQL) {s['pg']['client_version']}")
+            return 0
+        return pg_exec(s, cmd, extra, tty)
     if a[0] == "run":
-        i, env, vols = 1, dict(os.environ), {}
+        i, env, vols, image_at = 1, dict(os.environ), {}, None
         while a[i].startswith("-"):
             if a[i] == "-e":
                 k = a[i + 1].split("=", 1)
@@ -99,7 +146,12 @@ def main(a: list[str]) -> int:
                 i += 2
             else:
                 i += 1
-        cmd = a[i + 1:]
+        image_at, cmd = a[i], a[i + 1:]
+        if image_at.startswith("postgres:"):
+            if "images" in s and image_at not in s["images"]:
+                print(f"Unable to find image '{image_at}' locally (--pull never)", file=sys.stderr)
+                return 125
+            return pg_exec(s, cmd, {"PGOPTIONS": env.get("PGOPTIONS", "")}, False)
         for k, v in list(env.items()):
             if k.endswith("S3_ENDPOINT_URL") and s.get("s3") and v == s["s3"]["from"]:
                 env[k] = s["s3"]["to"]

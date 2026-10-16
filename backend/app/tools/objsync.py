@@ -125,6 +125,36 @@ def copy(src, dst, manifest_path: str | None) -> int:
     return 1 if bad else 0
 
 
+def probe(spec: str) -> dict:
+    from botocore.exceptions import BotoCoreError, ClientError, EndpointConnectionError
+    os.environ.setdefault(f"{spec[3:]}_S3_BUCKET" if spec.startswith("s3:") else "S3_BUCKET", "_")
+    t = target(spec)
+    from app.services.storage.s3 import s3_client
+    e = lambda k: os.environ.get(f"{t.env_prefix}{k}")  # noqa: E731
+    t.c = s3_client(t.endpoint, e("S3_REGION") or "us-east-1", e("S3_ACCESS_KEY_ID"), e("S3_SECRET_ACCESS_KEY"),
+                    e("S3_ADDRESSING_STYLE") or "path", quick=True)
+    res = {"endpoint": t.endpoint, "reachable": False, "auth": False, "buckets": None, "error": None}
+    try:
+        names = [b["Name"] for b in t.c.list_buckets().get("Buckets", [])]
+    except ClientError as e:
+        res["reachable"], res["error"] = True, e.response.get("Error", {}).get("Code") or str(e)[:200]
+        return res
+    except (EndpointConnectionError, BotoCoreError, OSError) as e:
+        res["error"] = f"{type(e).__name__}: {str(e)[:200]}"
+        return res
+    res["reachable"] = res["auth"] = True
+    res["buckets"] = []
+    for n in names:
+        t.bucket, cnt, size = n, 0, 0
+        for page in t.c.get_paginator("list_objects_v2").paginate(Bucket=n):
+            for o in page.get("Contents", []):
+                if o["Key"].endswith("/") or o["Key"].startswith("_bootstrap/"):  # same filter as S3Target.keys()
+                    continue
+                cnt, size = cnt + 1, size + o.get("Size", 0)
+        res["buckets"].append({"name": n, "objects": cnt, "bytes": size})
+    return res
+
+
 def verify(src, manifest_path: str) -> int:
     objs = json.loads(pathlib.Path(manifest_path).read_text())["objects"]
     bad = 0
@@ -147,7 +177,11 @@ def main(argv=None) -> int:
     c = sub.add_parser("copy"); c.add_argument("src"); c.add_argument("dst"); c.add_argument("--manifest")  # noqa: E702
     v = sub.add_parser("verify"); v.add_argument("src"); v.add_argument("--manifest", required=True)  # noqa: E702
     sub.add_parser("buckets").add_argument("src")
+    sub.add_parser("probe").add_argument("src")
     ns = ap.parse_args(argv)
+    if ns.cmd == "probe":  # read-only diagnosis as JSON: reachable / auth / buckets + object counts
+        print(json.dumps(probe(ns.src)))
+        return 0
     if ns.cmd == "buckets":  # read-only: names of all buckets visible to the source credentials
         for b in target(ns.src).c.list_buckets().get("Buckets", []):
             print(b["Name"])
