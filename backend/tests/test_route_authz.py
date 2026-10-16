@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.main import app
-from app.models import Finding, Poam, System
+from app.models import Finding, Poam, System, User
 from tests.conftest import auth
 
 PUBLIC = {("POST", "/api/v1/auth/login"), ("POST", "/api/v1/auth/refresh"), ("POST", "/api/v1/auth/mtls/login"),
@@ -45,7 +45,8 @@ def test_every_mutating_route_has_permission_dependency():
 
 def _finding(acr="LTP") -> Finding:
     with SessionLocal() as db:
-        sid = db.scalar(select(System.id).where(System.acronym == acr))
+        org = db.scalar(select(User.org_id).where(User.email == "isso@aegisrmf.demo"))  # sandbox orgs clone the demo acronyms
+        sid = db.scalar(select(System.id).where(System.acronym == acr, System.org_id == org))
         return db.scalar(select(Finding).where(Finding.system_id == sid, Finding.mapping_status == "unmapped", Finding.current_state == "open",
                                                Finding.disposition.is_(None)).limit(1))
 

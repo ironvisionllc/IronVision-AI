@@ -193,7 +193,8 @@ def world():
 
 
 def recover_env(**kw) -> dict:
-    e = {**os.environ, "PATH": f"{W / 'bin'}:{os.environ['PATH']}", "RECOVER_LOCAL": "1", "RECOVERY_DIR": str(RUN), "RECOVER_PREDEPLOY_DIR": str(PRE),
+    # scrubbed (env -i equivalent): recover.sh must not pass thanks to pod env (DATABASE_URL, secrets, …) – everything is explicit
+    e = {"HOME": os.environ.get("HOME", "/root"), "LANG": "C.UTF-8", "RECOVER_LOCAL": "1", "RECOVERY_DIR": str(RUN), "RECOVER_PREDEPLOY_DIR": str(PRE),
          "RECOVER_ENV_FILE": str(W / "env.production"), "DOCKER_SHIM_SCENARIO": str(W / "scenario.json"), "DOCKER_SHIM_LOG": str(W / "docker.log"),
          "RECOVER_DB_HOST": make_url(BASE).host, "RECOVER_DB_PORT": str(make_url(BASE).port or 5432), "RECOVERY_BASE": BASE,
          "RECOVER_ADMIN_DATABASE_URL": u("postgres"), "RECOVER_PROD_ROLLBACK_BACKUP": str(PRE / "ironvision-production-before-restore.backup"),
@@ -203,7 +204,7 @@ def recover_env(**kw) -> dict:
          "RECOVER_LIVE_URL": f"http://127.0.0.1:{LIVE}", "RECOVER_E2E_INSECURE": "1", "RECOVER_LOCAL_RESTART_CMD": f"bash {ROOT}/scripts/pod_seaweedfs.sh",
          "RECOVER_KEYCLOAK_DATABASE_URL": f"postgresql+psycopg://keycloak_test:{os.environ['KC_DB_PASSWORD']}@127.0.0.1:5432/keycloak_test",
          "RECOVER_S3_ADMIN_ACCESS_KEY_ID": ADMIN_S3[0], "RECOVER_S3_ADMIN_SECRET_ACCESS_KEY": ADMIN_S3[1], **live_env(u("rec_live_prod"), LIVE)}
-    e.pop("DATABASE_URL")  # recover.sh follows the env file
+    e.pop("DATABASE_URL", None)  # recover.sh follows the env file
     venv = os.environ.get("RECOVERY_VENV")  # the clean recovery-image venv (requirements.recovery.txt only)
     e["PATH"] = f"{W / 'bin'}:" + (f"{venv}/bin:" if venv else "") + os.environ["PATH"]  # docker shim first
     if venv:

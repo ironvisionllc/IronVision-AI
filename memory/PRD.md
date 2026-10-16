@@ -332,3 +332,10 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Root cause: checker used importlib.metadata of the running (host) interpreter. Now static stdlib-only mode with committed
   locks (prod 78 / recovery 50, generated in clean --no-deps venvs, sha256 freshness); --in-env inside images; deploy.sh and
   recover.sh run static → build → in-image checks. jsonschema 4.26.0 needs no pyrsistent.
+
+## 2026-10-16 – selfcheck independent of environment (#23, no deploy)
+- Root cause of Droplet 76/114: app/db.py built the engine at import (needs DATABASE_URL); pod passed because config.py
+  loads backend/.env. Engine/sessionmaker now lazy; selfcheck imports in a scrubbed, network-blocked child with a documented
+  build profile and classified failures; root .dockerignore excludes **/.env. Recovery 114/114 + prod 107/107 under env -i,
+  10 new negative tests, full workflow (scrubbed recover.sh env) PASS, suite 336 passed. Real docker build not run (no daemon).
+

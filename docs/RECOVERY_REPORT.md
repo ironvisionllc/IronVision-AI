@@ -218,3 +218,46 @@ for the first time by `run` on the Droplet (read-only).
 ## 11. Production actions performed while building this
 
 None. No connection to the customer Droplet, no deployment, no data change anywhere outside the build pod's scratch replicas.
+
+## 12. (#23) Build-time selfcheck independent of the environment
+
+**Droplet symptom (commit 8d57828):** `RUN python -m app.tools.selfcheck --recovery` → 76/114, 38 × `DATABASE_URL is not set`.
+
+**Root cause.** `app/db.py` built the SQLAlchemy engine at import time from `get_settings()`, so every module importing
+`app.db` required `DATABASE_URL` just to be imported. Local runs passed – even under `env -i` – because `app/config.py` loads
+`backend/.env` (present in the build pod, absent from the image). Reproduced exactly (76/114) by running the selfcheck on a
+copy of the tree without `.env` in an `env -i` shell.
+
+**Fix.**
+- `app/db.py`: engine + sessionmaker created lazily on first use (thread-safe). `SessionLocal()` and `app.db.engine` behave as
+  before. A missing `DATABASE_URL` still fails with the same clear message at the first DB use (startup / first request / job).
+- `app.main` (the ASGI entrypoint) still resolves settings at import **by design** – importing it *is* service startup and must
+  fail fast.
+- `app.tools.selfcheck` imports in a **child process** with a scrubbed environment (`PATH`, `HOME`, `LANG` + the documented
+  build profile only; nothing is written to an image `ENV`; `IRONVISION_SELFCHECK=1` stops `config.py` loading `backend/.env`)
+  and with **all network blocked** (`socket.connect` / `connect_ex` / `create_connection` / `getaddrinfo` raise).
+  - Build profile (allowlist): `DATABASE_URL=postgresql+psycopg://selfcheck:selfcheck@selfcheck.invalid:5432/selfcheck`
+    (never connected); prod target only, for the `app.main` entrypoint: dummy `JWT_SECRET`, `STORAGE_DRIVER=local`.
+  - Every failure fails the build, classified: `missing-module` (package/internal module missing), `import-config` (a required
+    setting read at import that the profile does not provide – a NEW required variable therefore surfaces), `import-network`,
+    `import-error` (syntax error etc., attributed to the module). Nothing is blanket-suppressed.
+- `check_requirements.py --in-env` runs the same selfcheck → same profile.
+- Root `.dockerignore` (new; only the recovery image builds from the repo root): `**/.env`, caches. Previously a `backend/.env`
+  on a build host would have been copied into the recovery image (secrets + masking exactly this bug).
+- Backend/worker Dockerfiles do **not** run the selfcheck at build (deploy.sh / verify_portability.sh run it in the built
+  containers); unchanged – they get the scrubbed child automatically. `recover.sh` and `deploy/recovery/Dockerfile` unchanged.
+
+| Check | Where | Result |
+|---|---|---|
+| Droplet failure reproduced (tree without `.env`, `env -i`) – before fix | pod, clean recovery venv | 76/114 FAIL (same 38 modules) |
+| Dockerfile steps emulated: fresh venv, `pip install --no-cache-dir --index-url https://pypi.org/simple -r requirements.recovery.txt`, `.dockerignore`-filtered copy (no `.env`), `env -i … selfcheck --recovery`, `pip check`, `--in-env --target recovery` | pod venv – **simulated, no Docker daemon** | 114/114 PASS, no broken requirements, PASS |
+| Prod selfcheck under `env -i` (prod `--no-deps` venv) | pod venv – simulated | 107/107 PASS |
+| Negative tests (`tests/test_selfcheck_profile.py`, all `env -i`, pod `.env` copied in and ignored): clean pass ×2 targets; hidden `msgpack` → `missing-module msgpack`; syntax error → module named; internal ImportError; network at import ×2; new required setting ×2 (even when set in `.env`); engine lazy + fail-fast | pod | 10/10 PASS |
+| Full workflow (run → cutover → rollback → failed cutover auto-rollback → cutover → finalize), `recover.sh` with a scrubbed env, clean recovery venv | pod, docker shim | PASS (251 s) |
+| Full backend suite / shellcheck / hadolint (recovery Dockerfile) / ruff on changed files | pod | 336 passed, 27 skipped / OK / OK / OK |
+| Real `docker build` of `deploy/recovery/Dockerfile`, `recover.sh run` | **customer Droplet** | **not run – to be done by the operator** |
+
+Also fixed: `tests/test_route_authz.py` picked any `LTP` system and could land on a sandbox clone under xdist
+(pre-existing flake, failed identically without these changes); now scoped to the demo org.
+
+**Production actions:** none.

@@ -6,7 +6,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BACKEND_DIR / ".env")
+if os.environ.get("IRONVISION_SELFCHECK") != "1":  # the selfcheck must see only its scrubbed build-time profile
+    load_dotenv(BACKEND_DIR / ".env")
 
 
 def _req(name: str) -> str:
