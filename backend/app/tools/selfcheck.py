@@ -13,7 +13,29 @@ PACKAGES = ("app", "worker")
 RUNTIME_MODULES = ("multipart", "uvicorn", "psycopg")   # implicit deps (FastAPI forms, container CMD, SQLAlchemy driver)
 
 
+def run_recovery() -> int:
+    """Recovery image: import every module of the recovery import closure (no Emergent/preview-only module is reachable)."""
+    from app.tools.import_closure import closure
+    local, third = closure()
+    failures = []
+    for name in sorted(local) + sorted(third) + ["psycopg"]:
+        try:
+            importlib.import_module(name)
+        except Exception as exc:
+            failures.append((name, f"{type(exc).__name__}: {exc}"))
+    for mod, err in failures:
+        print(f"[selfcheck --recovery] FAIL import {mod}: {err}")
+    leaked = sorted(m for m in sys.modules if m.split(".")[0] == "emergentintegrations")
+    if leaked:
+        print(f"[selfcheck --recovery] FAIL Emergent-only module imported: {leaked[0]}")
+    n = len(local) + len(third) + 1
+    print(f"[selfcheck --recovery] {n - len(failures)}/{n} modules import" + (" – RESULT: FAIL" if failures or leaked else " – RESULT: PASS"))
+    return 1 if failures or leaked else 0
+
+
 def run() -> int:
+    if "--recovery" in sys.argv:
+        return run_recovery()
     failures, count = [], 0
     for name in RUNTIME_MODULES:
         try:

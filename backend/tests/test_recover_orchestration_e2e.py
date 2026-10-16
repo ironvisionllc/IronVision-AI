@@ -161,10 +161,10 @@ def world():
     (W / "scenario.json").write_text(json.dumps({"containers": {
         "aegisrmf-postgres-1": ctr("aegisrmf-postgres-1", "postgres:16-alpine", ["POSTGRES_USER=aegis"], "postgres",
                                    nets={"aegisrmf_default": {"Aliases": ["postgres"], "IPAddress": "172.30.0.2"}}),
-        # Droplet layout: started with `docker run` on the default bridge (no DNS name), credentials as *_FILE secrets
+        # Droplet layout: `docker run --network none` (no IP on any network), credentials as *_FILE secrets, mc bundled
         "aegisrmf-minio-recovery": ctr("aegisrmf-minio-recovery", "minio/minio:RELEASE.2024-01-01T00-00-00Z",
                                        ["MINIO_ROOT_USER_FILE=minio_user", "MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_password"],
-                                       project="", nets={"bridge": {"Aliases": [], "IPAddress": "172.17.0.3"}}),
+                                       project="", nets={}),
         "aegisrmf-backend-1": ctr("aegisrmf-backend-1", "aegisrmf-backend", ["DATABASE_URL=postgresql://aegis:x@postgres:5432/aegisrmf"],
                                   "backend", nets=legacy_net, mounts=ro_docs),
         "aegisrmf-worker-1": ctr("aegisrmf-worker-1", "aegisrmf-backend", [], "worker", nets=legacy_net, mounts=ro_docs),
@@ -176,7 +176,13 @@ def world():
                                               "/run/secrets/minio_password": "legacy-minio-secret-0123456789\n"}},
         "pg": {"container": "aegisrmf-postgres-1", "url": BASE,
                "dbmap": {"aegisrmf": "rec_legacy_aegisrmf", "aegisrmf_backup_test": "rec_legacy_backup_test", "postgres": "rec_legacy_maint"}},
+        "mc": {"aegisrmf-minio-recovery": {"host": "http://legacyminio:legacy-minio-secret-0123456789@127.0.0.1:9000",
+                                           "s3": {"endpoint": "http://127.0.0.1:18333", "key": "legacyminio",
+                                                  "secret": "legacy-minio-secret-0123456789", "buckets": ["evidence"]}}},
         "s3": {"from": "http://172.17.0.3:9000", "to": "http://127.0.0.1:18333"}}))
+    sc = json.loads((W / "scenario.json").read_text())
+    sc["containers"]["aegisrmf-minio-recovery"]["inspect"]["HostConfig"] = {"NetworkMode": "none"}
+    (W / "scenario.json").write_text(json.dumps(sc))
     (W / "bin" / "docker").write_text(f"#!/bin/sh\nexec {sys.executable} {BACKEND / 'tests' / 'docker_shim.py'} \"$@\"\n")
     (W / "bin" / "docker").chmod(0o755)
     write_scripts()
@@ -198,7 +204,10 @@ def recover_env(**kw) -> dict:
          "RECOVER_KEYCLOAK_DATABASE_URL": f"postgresql+psycopg://keycloak_test:{os.environ['KC_DB_PASSWORD']}@127.0.0.1:5432/keycloak_test",
          "RECOVER_S3_ADMIN_ACCESS_KEY_ID": ADMIN_S3[0], "RECOVER_S3_ADMIN_SECRET_ACCESS_KEY": ADMIN_S3[1], **live_env(u("rec_live_prod"), LIVE)}
     e.pop("DATABASE_URL")  # recover.sh follows the env file
-    e["PATH"] = f"{W / 'bin'}:{os.environ['PATH']}"  # docker shim first
+    venv = os.environ.get("RECOVERY_VENV")  # the clean recovery-image venv (requirements.recovery.txt only)
+    e["PATH"] = f"{W / 'bin'}:" + (f"{venv}/bin:" if venv else "") + os.environ["PATH"]  # docker shim first
+    if venv:
+        e["RECOVER_SHIM_PYTHON"] = f"{venv}/bin/python"
     e.update(kw)
     return e
 
@@ -253,6 +262,10 @@ def test_recover_operator_flow(world):
     step("legacy backups: 3 DB dumps (header + pg_restore -l + same-major version verified) + MinIO export with SHA-256 manifest",
          len(m["databases"]) == 3 and ev["objects"] == world["legacy_objects"], json.dumps(m["databases"]) + json.dumps(m["buckets"]))
     pgd = {f["database"]: f for f in m["files"] if f["kind"] == "pg-dump"}
+    rh = json.loads(sorted(RUN.glob("rehearsal-*.json"))[-1].read_text())
+    osum = ((rh.get("result") or {}).get("objects") or {}).get("summary") or {}
+    step("evidence accounting: legacy objects SHA-256-matched; production-only evidence = present_in_production (read-only check), not 'missing'",
+         osum.get("recovered", 0) >= 36 and osum.get("present_in_production", 0) >= 1 and osum.get("missing", 0) <= 1, json.dumps(osum))
     step("failure case 1: empty `postgres` maintenance DB = verified maintenance_db (0 TOC entries, no user objects), dump kept",
          pgd["postgres"]["class"] == "maintenance_db" and pgd["postgres"]["toc_entries"] == 0 and "no application data" in pgd["postgres"]["note"]
          and pgd["aegisrmf"]["class"] == "application" and pgd["aegisrmf"]["toc_entries"] > 10, json.dumps(pgd["postgres"]))
@@ -266,8 +279,9 @@ def test_recover_operator_flow(world):
          insp.returncode == 0 and "VERDICT: SAFE_TO_STOP" in insp.stdout and "ok (no dep.) [mount] bind /opt/ironvision/IronVision-AI/docs" in insp.stdout
          and "NOT a recovery source" in insp.stdout, insp.stdout[-2500:] + out[-200:])
     mi = m["minio"][0]
-    step("failure case 3: MinIO on the default bridge with *_FILE secrets: endpoint by IP, key names only, reachable + auth, buckets counted",
-         mi["endpoint"] == "http://172.17.0.3:9000" and mi["reachable"] and mi["auth"] and mi["credential_keys"] == ["MINIO_ROOT_PASSWORD_FILE", "MINIO_ROOT_USER_FILE"]
+    step("failure case 3: MinIO with NO network (--network none) + *_FILE secrets: diagnosed, exported via docker exec -i mc cat with SHA-256 manifest",
+         mi["endpoint"] == "" and mi["network_mode"] == "none" and mi.get("listed_by") and ev.get("method") == "mc cat (docker exec -i)"
+         and mi["credential_keys"] == ["MINIO_ROOT_PASSWORD_FILE", "MINIO_ROOT_USER_FILE"]
          and "legacy-minio-secret" not in json.dumps(m) + insp.stdout, json.dumps(mi)[:1500])
     rh = json.loads(max(RUN.glob("rehearsal-*.json")).read_text())
     step("rehearsal passed; source counts cross-checked against the stated facts", rh["passed"] and all(x["ok"] for x in rh["source_facts"].values()),

@@ -113,7 +113,7 @@ def test_recovery_end_to_end():
     step("rehearse: isolated scratch DBs + bucket, no failures", r.returncode == 0, json.dumps(rh.get("failures")))
     summ = res["objects"]["summary"]
     step("objects: 36 recovered, 1 missing, 1 hash mismatch (MinIO inline + part.1)",
-         summ == {"recovered": 36, "missing": 1, "hash_mismatch": 1, "unreadable": 0} and res["objects"]["layout"].startswith("minio-xl-single"), json.dumps(summ))
+         {k: summ[k] for k in ("recovered", "missing", "hash_mismatch", "unreadable")} == {"recovered": 36, "missing": 1, "hash_mismatch": 1, "unreadable": 0} and res["objects"]["layout"].startswith("minio-xl-single"), json.dumps(summ))
     step("row-count reconciliation all explained", all(x["ok"] for x in res["reconciliation"]), "")
     tgt = {x["table"]: x["target"] for x in res["reconciliation"]}
     step("restored shape", (tgt["users"], tgt["organizations"], tgt["systems"], tgt["role_assignments"], tgt["evidence"], tgt["findings"]) == (9, 2, 4, 26, 38, 111),

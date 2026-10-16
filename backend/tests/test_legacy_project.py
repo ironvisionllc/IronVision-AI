@@ -404,12 +404,17 @@ def test_minio_unreachable_falls_back_to_mc_listing_and_says_not_verified(shim, 
     s["mc"] = {"aegisrmf-minio-recovery": {"host": "http://oldkey:old-secret-value-0123@127.0.0.1:9100", "buckets": {"evidence": 38}}}
     r, _ = shim("inspect", scen=s)
     assert "minio endpoint http://172.17.0.3:9100" in r.stdout and "credential key names: MINIO_ACCESS_KEY_FILE, MINIO_SECRET_KEY_FILE" in r.stdout
-    assert "reachable no" in r.stdout and '"name": "evidence", "objects": 38' in r.stdout and "listed by mc inside the MinIO container" in r.stdout
+    assert "reachable no" in r.stdout and '"name": "evidence", "objects": 38' in r.stdout and "listed by mc inside the MinIO container (export: docker exec -i" in r.stdout
     assert "evidence NOT verified" in r.stdout and "old-secret-value" not in r.stdout and "oldkey" not in r.stdout
     out = shim.tmp / "bk"
     r, log = shim("backup", "--out", str(out), scen=s)
     m = json.loads((out / "manifest.json").read_text())
-    assert r.returncode == 0 and not m["buckets"] and any("objects NOT exported" in w for w in m["warnings"])
+    assert r.returncode == 0 and m["buckets"] == [{"container": "aegisrmf-minio-recovery", "bucket": "evidence", "dir": "objects/evidence",
+                                                    "objects": 38, "method": "mc cat (docker exec -i)"}], r.stdout
+    mf = json.loads((out / "objects/evidence/.objsync-manifest.json").read_text())
+    assert len(mf["objects"]) == 38 and (out / "objects/evidence/o7").read_bytes() == b"o7"
+    cats = [c for c in log.splitlines() if " mc cat " in c]
+    assert len(cats) == 38 and all(c.startswith("exec -i -e MC_HOST_legacy ") for c in cats)  # -i only, never -t
     assert "old-secret-value" not in (out / "manifest.json").read_text() and "old-secret-value" not in log
 
 
@@ -431,3 +436,56 @@ def test_minio_wrong_credentials_reachable_but_auth_fails(shim, base_url):
     s["s3"]["to"] = SEAWEED
     r, _ = shim("inspect", scen=s)
     assert "reachable yes, auth no" in r.stdout and "wrong-password" not in r.stdout, r.stdout
+
+
+def _no_net_minio(s, mc=True, mode="none"):
+    m = s["containers"]["aegisrmf-minio-recovery"]["inspect"]
+    m["State"]["Running"] = True
+    m["Config"]["Env"] = ["MINIO_ROOT_USER=legacyminio", "MINIO_ROOT_PASSWORD=legacy-minio-secret-0123456789"]
+    m["NetworkSettings"]["Networks"] = {} if mode == "none" else {"host": {"Aliases": [], "IPAddress": ""}}
+    m["HostConfig"] = {"NetworkMode": mode}
+    if mc:
+        s["mc"] = {"aegisrmf-minio-recovery": {"host": "http://legacyminio:legacy-minio-secret-0123456789@127.0.0.1:9000",
+                                               "buckets": {"evidence": {"org/a.pdf": "A", "org/b.pdf": "B", "exports/q4.zip": "Z"}}}}
+    return s
+
+
+def test_minio_without_network_exported_with_mc_cat(shim, base_url):
+    s = _no_net_minio(scenario(base_url))
+    out = shim.tmp / "bk"
+    r, log = shim("backup", "--out", str(out), scen=s)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "no IP address on any network (network mode none)" in r.stdout and "3 objects exported via mc cat" in r.stdout
+    assert (out / "objects/evidence/org/b.pdf").read_bytes() == b"B"
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("lp", ROOT / "scripts" / "legacy_project.py")
+    lp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(lp)
+    assert lp.verify_backup(out) == []
+    (out / "objects/evidence/org/b.pdf").write_bytes(b"tampered")
+    assert lp.verify_backup(out) == ["objects/evidence/.objsync-manifest.json: object org/b.pdf missing or changed"]
+
+
+def test_minio_without_network_or_mc_copies_data_dir_read_only(shim, base_url, tmp_path):
+    s = _no_net_minio(scenario(base_url), mc=False)
+    data = tmp_path / "data"
+    (data / "evidence" / "org" / "a.pdf").mkdir(parents=True)
+    (data / "evidence" / "org" / "a.pdf" / "xl.meta").write_bytes(b"XL2 fixture")
+    (data / ".minio.sys").mkdir()
+    (data / ".minio.sys" / "format.json").write_text('{"format": "xl-single"}')
+    s["cp"] = {"aegisrmf-minio-recovery": {"/data": str(data)}}
+    out = shim.tmp / "bk"
+    r, log = shim("backup", "--out", str(out), scen=s)
+    assert r.returncode == 0, r.stdout + r.stderr
+    m = json.loads((out / "manifest.json").read_text())
+    assert m["minio_data"] == {"container": "aegisrmf-minio-recovery", "file": "aegisrmf-minio-recovery-data.tar", "data_dir": "/data"}
+    assert "copied read-only" in r.stdout and "evidence NOT verified" in r.stdout and "cp aegisrmf-minio-recovery:/data -" in log
+    r2 = subprocess.run([sys.executable, str(ROOT / "scripts/legacy_project.py"), "sources", "--backup", str(out), "--default-db", "/nonexistent",
+                         "--default-archive", "/nonexistent.tar.gz"], capture_output=True, text=True, check=False)
+    assert f"RECOVER_OBJECT_ARCHIVE={out}/aegisrmf-minio-recovery-data.tar" in r2.stdout and "evidence NOT verified" in r2.stdout
+
+
+def test_minio_host_network_uses_loopback(shim, base_url):
+    s = _no_net_minio(scenario(base_url), mc=False, mode="host")
+    r, _ = shim("inspect", scen=s)
+    assert "minio endpoint http://127.0.0.1:9000 (network host" in r.stdout, r.stdout

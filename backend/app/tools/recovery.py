@@ -402,7 +402,16 @@ def scan_dir(work: Path) -> dict:
     if metas:
         fmt = minio_xl.check_format(work)
         index = {d.relative_to(work).as_posix(): (lambda d=d: minio_xl.read_object(d)) for d in metas}
+        meta = {}
+        for d in metas:
+            try:
+                info = minio_xl.describe(d)
+            except minio_xl.MinioFormatError:
+                continue
+            if info["versions"] > 1 or info["latest_is_delete_marker"]:
+                meta[d.relative_to(work).as_posix()] = info
         layout = f"minio-xl-single ({fmt})"
+        return {"layout": layout, "index": index, "meta": meta}
     else:
         index = {f.relative_to(work).as_posix(): (lambda f=f: f.read_bytes()) for f in work.rglob("*") if f.is_file()
                  and ".minio.sys" not in f.parts and f.name != ".objsync-manifest.json"}
@@ -431,7 +440,32 @@ def match_evidence(url: str, scan: dict) -> dict:
         res.append({**e, "status": "recovered" if h == e["sha256"] else "hash_mismatch", "archive_path": cands[0],
                     "actual_sha256": h, "_data": data if h == e["sha256"] else None})
     orphans = sorted(set(scan["index"]) - used)
-    return {"evidence": res, "orphans": orphans}
+    return {"evidence": res, "orphans": orphans, "extra": classify_extra(scan, orphans, {e["sha256"]: e["storage_key"] for e in ev})}
+
+
+EXTRA_KINDS = (("_bootstrap/", "bootstrap marker"), ("exports/", "export file"), ("export/", "export file"), ("policies/", "policy upload"),
+               ("policy/", "policy upload"), ("tmp/", "temporary file"), ("multipart", "multipart temp"))
+
+
+def classify_extra(scan: dict, orphans: list[str], ev_sha: dict, limit: int = 500) -> list[dict]:
+    """Objects that match no evidence storage key: classified, never counted as evidence. One whose bytes equal an evidence
+    record's SHA-256 under a different key is reported as such (a copy), still not counted."""
+    out = []
+    for k in orphans[:limit]:
+        tail = k.split("/", 1)[1] if "/" in k else k
+        kind = next((lbl for pfx, lbl in EXTRA_KINDS if tail.startswith(pfx) or f"/{pfx}" in f"/{tail}"), "not referenced by any evidence record")
+        d = {"key": k, "kind": kind}
+        try:
+            data = scan["index"][k]()
+            d.update(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
+            if d["sha256"] in ev_sha:
+                d["kind"] = f"same bytes as evidence {ev_sha[d['sha256']]} under another key (not counted)"
+        except Exception as exc:  # noqa: BLE001
+            d["unreadable"] = str(exc)[:200]
+        if k in scan.get("meta", {}):
+            d["versions"] = scan["meta"][k]
+        out.append(d)
+    return out
 
 
 def copy_objects(bucket: str, matched: dict, admin: bool = False) -> dict:
@@ -459,6 +493,21 @@ def bucket_manifest(bucket: str, admin: bool = True) -> list[dict]:
             data = cl.get_object(Bucket=bucket, Key=o["Key"])["Body"].read()
             out.append({"key": o["Key"], "size": len(data), "sha256": hashlib.sha256(data).hexdigest()})
     return out
+
+
+def present_in_production(m: dict) -> None:
+    """Evidence absent from the legacy source (e.g. production-only rows merged in) whose key already exists in the production
+    bucket with the SAME SHA-256 is not missing: status present_in_production (read-only GET; not counted as recovered)."""
+    cl, prod_bucket = s3(), os.environ.get("S3_BUCKET")
+    for e in m["evidence"]:
+        if e["status"] != "missing" or not prod_bucket:
+            continue
+        try:
+            cur = cl.get_object(Bucket=prod_bucket, Key=e["storage_key"])["Body"].read()
+        except Exception:  # noqa: BLE001
+            continue
+        if hashlib.sha256(cur).hexdigest() == e["sha256"]:
+            e["status"] = "present_in_production"
 
 
 def verify_objects(url: str, bucket: str, admin: bool = False) -> dict:
@@ -594,11 +643,13 @@ def _run_recovery(t: str, prod_url: str, target_name: str, bucket: str, admin_bu
     scan = scan_dir(Path(os.environ["RECOVER_OBJECT_DIR"])) if os.environ.get("RECOVER_OBJECT_DIR") else \
         scan_archive(Path(os.environ.get("RECOVER_OBJECT_ARCHIVE") or PRE / "aegisrmf-minio-backup.tar.gz"), RDIR / "work" / f"objects-{t}")
     m = match_evidence(b["url"], scan)
+    present_in_production(m)
     copied = copy_objects(bucket, m, admin=admin_bucket)
-    st = {s: sum(1 for e in m["evidence"] if e["status"] == s) for s in ("recovered", "missing", "hash_mismatch", "unreadable")}
+    st = {s: sum(1 for e in m["evidence"] if e["status"] == s) for s in ("recovered", "present_in_production", "missing", "hash_mismatch", "unreadable")}
     return {"target_db": target_name, "build": {k: v for k, v in b.items() if k != "url"}, "reconciliation": rec,
             "fk": fk_orphans(b["url"]), "audit_chain": chain(b["url"]), "objects": {
-                "layout": scan["layout"], "bucket": bucket, "summary": st, "orphans": m["orphans"], "copy": copied,
+                "layout": scan["layout"], "bucket": bucket, "summary": {**st, "extra": len(m["orphans"])}, "orphans": m["orphans"],
+                "extra": m["extra"], "versioned": scan.get("meta", {}), "copy": copied,
                 "detail": [{k: v for k, v in e.items() if k != "_data"} for e in m["evidence"] if e["status"] != "recovered"]},
             "bucket_verify": verify_objects(b["url"], bucket, admin=admin_bucket)}
 
@@ -789,7 +840,8 @@ def cmd_verify(a) -> int:
               "objects": verify_objects(url, bucket)}
     ap = next((json.loads(f.read_text()) for f in sorted(RDIR.glob("apply-*.json"), reverse=True)
                if json.loads(f.read_text()).get("target_db") == checks["db"]), None)
-    known = {d["storage_key"] for d in ((ap or {}).get("result") or {}).get("objects", {}).get("detail", [])}
+    known = {d["storage_key"] for d in ((ap or {}).get("result") or {}).get("objects", {}).get("detail", [])
+             if d.get("status") in ("missing", "hash_mismatch", "unreadable")}
     checks["objects"]["known_unrecoverable"] = sorted(known)  # recorded by apply (missing/corrupt in the archive) – reported, not regressions
     checks["objects"]["problems"] = [p for p in checks["objects"]["problems"] if p["key"] not in known]
     eng = create_engine(url)

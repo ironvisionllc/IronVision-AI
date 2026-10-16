@@ -8,7 +8,12 @@ Rules (exit 1 on any violation):
   3. import coverage: every third-party module imported by container code (backend/app, backend/worker,
      backend/alembic) resolves (importlib.metadata.packages_distributions) to a distribution in requirements.prod.txt.
      Function-level (lazy) imports may instead resolve to an exclusion marked "[optional]" (preview-only paths);
-  4. implicit runtime dependencies (not visible as imports) are present.
+  4. implicit runtime dependencies (not visible as imports) are present;
+  5. recovery image (deploy/recovery/requirements.recovery.txt): every package pinned exactly as in requirements.prod.txt,
+     never a private/preview-only package (emergentintegrations lives only on Emergent's private index), every third-party
+     import of the recovery import closure covered, every dependency of a listed package listed too;
+  6. no Dockerfile installs backend/requirements.txt (dev/preview freeze) or uses a non-PyPI package index.
+     --pypi additionally asks pypi.org that every recovery pin exists there (network).
 Usage: python3 scripts/check_requirements.py [--quiet]"""
 import ast
 import importlib.metadata as md
@@ -16,7 +21,10 @@ import re
 import sys
 from pathlib import Path
 
-BACKEND = Path(__file__).resolve().parent.parent / "backend"
+ROOT = Path(__file__).resolve().parent.parent
+BACKEND = ROOT / "backend"
+RECOVERY_REQ = ROOT / "deploy" / "recovery" / "requirements.recovery.txt"
+PRIVATE = {"emergentintegrations"}  # Emergent private index only – never in a production or recovery image
 CONTAINER_CODE = ("app", "worker", "alembic")
 LOCAL_TOP = {"app", "worker", "tests"}
 IMPLICIT = {
@@ -113,6 +121,67 @@ def check_implicit(prod: dict) -> list[str]:
     return [f"{k} is required in requirements.prod.txt: {why}" for k, why in IMPLICIT.items() if norm(k) not in prod]
 
 
+def check_recovery(prod: dict, excl: dict, req: Path = RECOVERY_REQ, backend: Path = BACKEND) -> list[str]:
+    sys.path.insert(0, str(BACKEND))
+    from app.tools.import_closure import closure
+    rec, errors = parse_requirements(req), []
+    for name, ver in sorted(rec.items()):
+        if name in PRIVATE or "[optional]" in excl.get(name, ""):
+            errors.append(f"recovery: {name} is private/preview-only (not on public PyPI) – never in the recovery image")
+        elif name not in prod:
+            errors.append(f"recovery: {name}=={ver} is not in requirements.prod.txt (add it there first, same pin)")
+        elif prod[name] != ver:
+            errors.append(f"recovery: {name} version mismatch – requirements.recovery.txt {ver} vs requirements.prod.txt {prod[name]}")
+    errors += [f"recovery: {k} is required in requirements.recovery.txt: {why}" for k, why in IMPLICIT.items()
+               if k != "uvicorn" and norm(k) not in rec]  # app.api.v1 (Form routes) is in the closure via app.cli
+    _, third = closure(backend)
+    pd = md.packages_distributions()
+    for mod, files in sorted(third.items()):
+        dists = {norm(d) for d in pd.get(mod, [])}
+        if norm(mod) in PRIVATE or dists & PRIVATE:
+            errors.append(f"recovery: Emergent-only module '{mod}' is reachable from the recovery code ({sorted(files)[0]})")
+        elif not dists:
+            errors.append(f"recovery: '{mod}' (imported by {sorted(files)[0]}) is provided by no installed distribution")
+        elif not dists & set(rec):
+            errors.append(f"recovery: '{mod}' (imported by {sorted(files)[0]}) needs {', '.join(sorted(dists))} in requirements.recovery.txt")
+    from packaging.requirements import Requirement
+    for name in sorted(rec):
+        try:
+            reqs = md.distribution(name).requires or []
+        except md.PackageNotFoundError:
+            continue
+        for r in map(Requirement, reqs):
+            if (not r.marker or r.marker.evaluate({"extra": ""})) and norm(r.name) not in rec:
+                errors.append(f"recovery: {norm(r.name)} (required by {name}) is missing from requirements.recovery.txt")
+    return errors
+
+
+def check_dockerfiles(root: Path = ROOT) -> list[str]:
+    errors = []
+    for f in sorted(root.rglob("Dockerfile*")):
+        if {"node_modules", ".git"} & set(f.parts):
+            continue
+        txt, rel = "\n".join(ln for ln in f.read_text().splitlines() if not ln.lstrip().startswith("#")), f.relative_to(root)
+        if re.search(r"(?<![\w.-])requirements\.txt", txt):
+            errors.append(f"{rel}: installs requirements.txt (dev/preview freeze with private packages) – use requirements.prod.txt "
+                          "or deploy/recovery/requirements.recovery.txt")
+        for m in re.finditer(r"--(?:extra-)?index-url[ =](\S+)", txt):
+            if m.group(1) != "https://pypi.org/simple":
+                errors.append(f"{rel}: non-PyPI package index {m.group(1)}")
+    return errors
+
+
+def check_pypi(req: Path = RECOVERY_REQ) -> list[str]:
+    import urllib.request
+    errors = []
+    for name, ver in sorted(parse_requirements(req).items()):
+        try:
+            urllib.request.urlopen(f"https://pypi.org/pypi/{name}/{ver}/json", timeout=20)
+        except Exception as e:  # noqa: BLE001
+            errors.append(f"recovery: {name}=={ver} not found on public PyPI ({e})")
+    return errors
+
+
 def run(backend: Path = BACKEND, with_imports: bool = True) -> list[str]:
     dev = parse_requirements(backend / "requirements.txt")
     prod = parse_requirements(backend / "requirements.prod.txt")
@@ -120,11 +189,13 @@ def run(backend: Path = BACKEND, with_imports: bool = True) -> list[str]:
     errors += check_pins(dev, prod, excl) + check_implicit(prod)
     if with_imports:
         errors += check_imports(prod, excl)
+        if backend == BACKEND:
+            errors += check_recovery(prod, excl) + check_dockerfiles()
     return errors
 
 
 if __name__ == "__main__":
-    errs = run()
+    errs = run() + (check_pypi() if "--pypi" in sys.argv else [])
     for e in errs:
         print(f"  ERROR {e}")
     prod_n = len(parse_requirements(BACKEND / "requirements.prod.txt"))

@@ -116,6 +116,17 @@ or their `*_FILE` secrets (only key names are printed). The probe runs `python -
 object counts; `mc` inside the MinIO container is a listing-only fallback. If the objects cannot be read, recovery uses the
 tarball and the report says **evidence NOT verified** until the rehearsal SHA-256-matches every object to the evidence records.
 
+**MinIO container with no IP (`--network none`) or host networking.** Objects are exported without S3 networking: per object
+`docker exec -i aegisrmf-minio-recovery mc cat legacy/<bucket>/<key>` (MinIO's bundled client against its own loopback; never a
+TTY; stdout straight to a file; size checked against `mc ls`; SHA-256 manifest), or – without `mc` – a read-only
+`docker cp aegisrmf-minio-recovery:/data -` that the recovery image reads with the xl-single reader. Host networking uses
+`127.0.0.1:<port>`. A bucket listing (e.g. 44 objects) can exceed the evidence count (38): extra keys are listed and classified
+in the rehearsal report and never counted as evidence.
+
+**`recover.sh run` fails building the recovery image: `No matching distribution found for emergentintegrations`** (fixed). The
+recovery image installs `deploy/recovery/requirements.recovery.txt` (public PyPI only, same pins as `requirements.prod.txt`);
+`python3 scripts/check_requirements.py` must PASS before a push.
+
 ### 0.0b Troubleshooting: preflight `seaweedfs image not pinned`
 Bug in the first toolkit version: the check rejected every tag (`chrislusf/seaweedfs:4.48` included). Now images are pinned by
 digest (`SEAWEEDFS_IMAGE=chrislusf/seaweedfs:4.48@sha256:4e61d15f…`, set by `./deploy.sh --apply-demo-settings --yes`) and

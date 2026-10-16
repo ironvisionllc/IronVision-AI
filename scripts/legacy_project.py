@@ -69,6 +69,7 @@ def info(c: dict) -> dict:
     img = i["image"].split("/")[-1]
     i["kind"] = "postgres" if img.startswith("postgres") or i["service"] in ("postgres", "db") else "minio" if "minio" in i["image"] or "minio" in i["name"] else "other"
     i["working_dir"] = lab.get("com.docker.compose.project.working_dir", "")
+    i["network_mode"] = (c.get("HostConfig") or {}).get("NetworkMode") or ""
     i["_cmd"] = (c["Config"].get("Cmd") or []) + (c.get("Args") or [])
     i["role"] = {"postgres": "recovery source (database, read-only pg_dump)", "minio": "recovery source (objects, read-only S3 export)"}.get(
         i["kind"], "legacy application container – NOT a recovery source; stopped by finalize after verified backups "
@@ -250,10 +251,14 @@ def minio_target(i: dict, live: list[dict]) -> dict:
     addr = cmd[cmd.index("--address") + 1] if "--address" in cmd[:-1] else e.get("MINIO_ADDRESS", "")
     port = addr.rsplit(":", 1)[-1] if addr and addr.rsplit(":", 1)[-1].isdigit() else "9000"
     net, ip = next(((n, v["ip"]) for n, v in i["networks"].items() if v["ip"]), ("", ""))
+    if i["network_mode"] == "host":  # host networking: MinIO listens on the Droplet's own loopback
+        net, ip = "host", "127.0.0.1"
+    data = next((cmd[k + 1] for k, a in enumerate(cmd[:-1]) if a == "server" and cmd[k + 1].startswith("/")), None) \
+        or next((m["dest"] for m in i["mounts"] if m["dest"] in ("/data", "/export")), "/data")
     cands = [TOOL_IMAGE] + [c["image"] for c in live if c["service"] in ("backend", "worker")]
     helper = next((im for im in dict.fromkeys(cands) if docker("image", "inspect", im, check=False).returncode == 0), None)
     return {"endpoint": os.environ.get("LEGACY_MINIO_ENDPOINT") or (f"http://{ip}:{port}" if ip else ""), "network": net,
-            "internal_port": port, "published": [f"{p['host_ip']}:{p['host_port']}->{p['container']}" for p in i["ports"]],
+            "internal_port": port, "network_mode": i["network_mode"] or "default", "data_dir": data, "published": [f"{p['host_ip']}:{p['host_port']}->{p['container']}" for p in i["ports"]],
             "credential_keys": sorted(k for k in e if k.startswith("MINIO_") and k.endswith(("_USER", "_PASSWORD", "_ACCESS_KEY", "_SECRET_KEY", "_FILE"))),
             "credentials_found": bool(user and pw), "helper_image": helper, "_user": user, "_pw": pw}
 
@@ -287,11 +292,62 @@ def mc_list(i: dict, t: dict) -> dict | None:
     return {"buckets": bks}
 
 
+def _mc_env(t: dict) -> dict:
+    q = urllib.parse.quote
+    return {"MC_HOST_legacy": f"http://{q(t['_user'], safe='')}:{q(t['_pw'], safe='')}@127.0.0.1:{t['internal_port']}"}
+
+
+def _safe_key(k: str) -> bool:
+    return bool(k) and not k.startswith("/") and ".." not in k.split("/")
+
+
+def export_mc(i: dict, t: dict, bucket: str, od: Path) -> int:
+    """Stream every current object with the MinIO container's own mc (`docker exec -i`, never -t; stdout straight to a file),
+    check its size against the listing and record SHA-256 in an objsync-format manifest."""
+    env = _mc_env(t)
+    r = docker("exec", "-e", "MC_HOST_legacy", i["name"], "mc", "ls", "--recursive", "--json", f"legacy/{bucket}", env=env, check=False)
+    if r.returncode:
+        raise RuntimeError(f"mc ls legacy/{bucket} failed: {r.stderr.decode(errors='replace')[-200:]}")
+    items = [json.loads(x) for x in r.stdout.decode(errors="replace").splitlines() if x.strip().startswith("{")]
+    objs = {}
+    for it in (x for x in items if x.get("type") == "file"):
+        k = it["key"]
+        if not _safe_key(k):
+            raise RuntimeError(f"refusing unsafe object key {k!r} in bucket {bucket}")
+        f = od / k
+        f.parent.mkdir(parents=True, exist_ok=True)
+        with open(f, "wb") as fh:
+            rr = docker("exec", "-i", "-e", "MC_HOST_legacy", i["name"], "mc", "cat", f"legacy/{bucket}/{k}", stdout=fh, env=env, check=False)
+        if rr.returncode or f.stat().st_size != int(it.get("size", -1)):
+            raise RuntimeError(f"mc cat legacy/{bucket}/{k}: exit {rr.returncode}, {f.stat().st_size} bytes vs listed {it.get('size')}")
+        objs[k] = {"sha256": sha(f), "bytes": f.stat().st_size}
+    (od / ".objsync-manifest.json").write_text(json.dumps({"bucket": bucket, "source": "mc cat (docker exec -i)", "objects": objs},
+                                                          indent=1, sort_keys=True))
+    return len(objs)
+
+
+def export_cp(i: dict, t: dict, dst: Path) -> Path:
+    """Read-only copy of the MinIO data directory (`docker cp <ctr>:<dir> -` writes a tar stream; nothing in the container
+    changes). Parsed later by the recovery image's xl-single reader; evidence counts only on SHA-256 match."""
+    out = dst / f"{i['name']}-data.tar"
+    with open(out, "wb") as fh:
+        r = docker("cp", f"{i['name']}:{t['data_dir']}", "-", stdout=fh, check=False)
+    import tarfile
+    if r.returncode or not tarfile.is_tarfile(out):
+        raise RuntimeError(f"docker cp {i['name']}:{t['data_dir']} failed: {r.stderr.decode(errors='replace')[-200:]}")
+    with tarfile.open(out) as tf:
+        names = tf.getnames()
+    if not any(n.endswith("/xl.meta") for n in names):
+        raise RuntimeError(f"{out.name}: no xl.meta objects in {t['data_dir']} (not a MinIO data directory?)")
+    return out
+
+
 def minio_probe(i: dict, t: dict) -> dict:
     d = {k: v for k, v in t.items() if not k.startswith("_")}
     d.update(method=None, reachable=None, auth=None, buckets=None, exportable=False, error=None)
     if not t["endpoint"]:
-        d["error"] = "container has no IP address on any network"
+        d["error"] = (f"container has no IP address on any network (network mode {t['network_mode']}) – S3 over the network is "
+                      "impossible; objects are exported with `docker exec -i … mc cat` or a read-only `docker cp` of the data dir")
     elif not t["credentials_found"]:
         d["error"] = f"no usable credentials in the container env (key names found: {', '.join(t['credential_keys']) or 'none'})"
     elif not t["helper_image"]:
@@ -311,7 +367,7 @@ def minio_probe(i: dict, t: dict) -> dict:
         if mc:
             d["mc_fallback"] = mc
             if mc.get("buckets") is not None:
-                d["buckets"], d["listed_by"] = mc["buckets"], "mc inside the MinIO container (listing only; export still needs the S3 helper)"
+                d["buckets"], d["listed_by"] = mc["buckets"], "mc inside the MinIO container (export: docker exec -i … mc cat)"
     return d
 
 
@@ -498,24 +554,46 @@ def backup(rep: dict, dst: Path) -> dict:
         if i["kind"] == "minio":
             diag = i.get("minio") or {}
             man.setdefault("minio", []).append({"container": i["name"], **diag})
-            if not diag.get("exportable"):
+            t = i.get("_minio") or {}
+            if diag.get("exportable"):  # 1) S3 API through the helper image on the legacy network
+                for b in i.get("buckets") or []:
+                    od = dst / "objects" / b["name"]
+                    od.mkdir(parents=True, exist_ok=True)
+                    r = objsync(t, "copy", "s3:OLD", "dir:/out", bucket=b["name"], vol=str(od))
+                    mf = od / ".objsync-manifest.json"
+                    if r.returncode or not mf.exists():
+                        raise RuntimeError(f"MinIO export of bucket {b['name']} failed: {r.stderr.decode(errors='replace')[-300:]}")
+                    n = len(json.loads(mf.read_text())["objects"])
+                    if n != b["objects"]:
+                        raise RuntimeError(f"MinIO export of bucket {b['name']}: {n} objects exported, {b['objects']} listed")
+                    add(mf, kind="objsync-manifest", container=i["name"], bucket=b["name"], objects=n, method="objsync (S3 API)")
+                    man["buckets"].append({"container": i["name"], "bucket": b["name"], "dir": f"objects/{b['name']}", "objects": n,
+                                           "method": "objsync (S3 API)"})
+                continue
+            if diag.get("listed_by") and diag.get("buckets"):  # 2) no network: mc inside the container, streamed via docker exec -i
+                for b in diag["buckets"]:
+                    od = dst / "objects" / b["name"]
+                    od.mkdir(parents=True, exist_ok=True)
+                    n = export_mc(i, t, b["name"], od)
+                    if b.get("objects") is not None and n != b["objects"]:
+                        raise RuntimeError(f"mc export of bucket {b['name']}: {n} objects exported, {b['objects']} listed")
+                    add(od / ".objsync-manifest.json", kind="objsync-manifest", container=i["name"], bucket=b["name"], objects=n,
+                        method="mc cat (docker exec -i)")
+                    man["buckets"].append({"container": i["name"], "bucket": b["name"], "dir": f"objects/{b['name']}", "objects": n,
+                                           "method": "mc cat (docker exec -i)"})
+                    print(f"[legacy] {i['name']} bucket {b['name']}: {n} objects exported via mc cat, SHA-256 manifest written")
+                continue
+            try:  # 3) read-only copy of the data directory for the xl-single reader
+                tar = export_cp(i, t, dst)
+                add(tar, kind="minio-data-dir", container=i["name"], data_dir=t["data_dir"], method="docker cp (read-only)")
+                man["minio_data"] = {"container": i["name"], "file": tar.name, "data_dir": t["data_dir"]}
+                print(f"[legacy] {i['name']}: data dir {t['data_dir']} copied read-only ({tar.stat().st_size} bytes) – objects are read by the "
+                      "xl-single reader during rehearsal; evidence NOT verified until each SHA-256 matches")
+            except RuntimeError as e:
                 man.setdefault("warnings", []).append(
-                    f"{i['name']}: objects NOT exported ({diag.get('error')}) – recovery uses the tarball; evidence is NOT verified until the "
+                    f"{i['name']}: objects NOT exported ({diag.get('error')}; {e}) – recovery uses the tarball; evidence is NOT verified until the "
                     "rehearsal reads every object and SHA-256-matches it to the evidence records")
                 print(f"[legacy] WARN {man['warnings'][-1]}")
-                continue
-            for b in i.get("buckets") or []:
-                od = dst / "objects" / b["name"]
-                od.mkdir(parents=True, exist_ok=True)
-                r = objsync(i["_minio"], "copy", "s3:OLD", "dir:/out", bucket=b["name"], vol=str(od))
-                mf = od / ".objsync-manifest.json"
-                if r.returncode or not mf.exists():
-                    raise RuntimeError(f"MinIO export of bucket {b['name']} failed: {r.stderr.decode(errors='replace')[-300:]}")
-                n = len(json.loads(mf.read_text())["objects"])
-                if n != b["objects"]:
-                    raise RuntimeError(f"MinIO export of bucket {b['name']}: {n} objects exported, {b['objects']} listed")
-                add(mf, kind="objsync-manifest", container=i["name"], bucket=b["name"], objects=n)
-                man["buckets"].append({"container": i["name"], "bucket": b["name"], "dir": f"objects/{b['name']}", "objects": n})
     man["files"], man["verified"] = files, True
     (dst / "manifest.json").write_text(json.dumps(man, indent=1))
     os.chmod(dst / "manifest.json", 0o600)
@@ -583,7 +661,11 @@ def sources(bdir: Path | None, default_db: str, default_archive: str) -> int:
     bks = sorted((b for b in m["buckets"] if b.get("objects")), key=lambda b: b["bucket"] != bpref)
     if bks:
         out["RECOVER_OBJECT_DIR"] = str(bdir / bks[0]["dir"])
-        out["RECOVER_OBJECT_ORIGIN"] = f"running legacy {bks[0]['container']} bucket {bks[0]['bucket']} (read-only objsync export, SHA-256 manifest)"
+        out["RECOVER_OBJECT_ORIGIN"] = f"running legacy {bks[0]['container']} bucket {bks[0]['bucket']} (read-only {bks[0].get('method') or 'objsync'} export, SHA-256 manifest)"
+    elif m.get("minio_data"):
+        out["RECOVER_OBJECT_ARCHIVE"] = str(bdir / m["minio_data"]["file"])
+        out["RECOVER_OBJECT_ORIGIN"] = f"legacy {m['minio_data']['container']} data dir {m['minio_data']['data_dir']} (read-only docker cp, xl-single reader)"
+        notes.append("objects: MinIO data dir copy – evidence NOT verified until the rehearsal SHA-256-matches every object to the evidence records")
     else:
         out["RECOVER_OBJECT_ARCHIVE"], out["RECOVER_OBJECT_ORIGIN"] = default_archive, "archive " + default_archive
         notes.append("objects: no verified legacy MinIO export – tarball fallback; evidence NOT verified until the rehearsal reads every "

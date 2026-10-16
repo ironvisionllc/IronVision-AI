@@ -320,3 +320,10 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
   listing fallback; else tarball + "evidence NOT verified".
 - Verified locally: backend 301 passed/27 skipped; orchestration E2E 28/28 (incl. 3 Droplet failure cases); shellcheck clean.
   NOT run on the Droplet.
+
+## 2026-10-16 – Recovery image without private packages + network-free MinIO export (no deploy)
+- deploy/recovery/Dockerfile installs deploy/recovery/requirements.recovery.txt (50 prod pins, public PyPI, closure-generated),
+  runs `selfcheck --recovery`; check_requirements guards closure coverage, pin equality, private packages, Dockerfiles.
+- MinIO export without network (docker exec -i mc cat / read-only docker cp + xl reader); host network; extras classified;
+  xl.meta 1.0–1.3, newest version by MTime; present_in_production status.
+- Verified locally: clean public-PyPI venv selfcheck 114/114; orchestration E2E 29/29 using that venv; backend 321 passed.
