@@ -6,7 +6,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-if os.environ.get("IRONVISION_SELFCHECK") != "1":  # the selfcheck must see only its scrubbed build-time profile
+# the selfcheck must see only its scrubbed build-time profile; scratch rehearsal commands pass a complete explicit env
+# (IRONVISION_DOTENV=0) so a missing setting fails exactly as in an image (no .env there) instead of being filled from backend/.env
+if os.environ.get("IRONVISION_SELFCHECK") != "1" and os.environ.get("IRONVISION_DOTENV") != "0":
     load_dotenv(BACKEND_DIR / ".env")
 
 

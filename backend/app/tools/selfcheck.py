@@ -1,6 +1,9 @@
 """Image self-check: import every module (prod: app + worker; --recovery: the recovery import closure); exit 1 on any failure.
 
-    python -m app.tools.selfcheck [--recovery] [-v]
+    python -m app.tools.selfcheck [--recovery] [--startup] [-v]
+
+--startup (prod target; run by backend/Dockerfile = the live AND rehearsal backend image): additionally load `app.main:app`
+through uvicorn (the container CMD) and GET /api/v1/health/live in-process – no DB, network still blocked.
 
 The imports run in a CHILD process with a scrubbed environment: only PATH/HOME/LANG plus the documented BUILD PROFILE below
 (never written to an image ENV, backend/.env is not loaded) and with ALL network blocked (socket connect / create_connection /
@@ -95,8 +98,18 @@ def child(recovery: bool) -> int:
             res.append({"module": name, "ok": False, "class": _classify(exc), "error": f"{type(exc).__name__}: {exc}"[:300],
                         "trace": traceback.format_exc()[-1500:] if "-v" in sys.argv else ""})
     leaked = sorted(m for m in sys.modules if m.split(".")[0] == "emergentintegrations") if recovery else []
-    print("SELFCHECK-JSON " + json.dumps({"results": res, "leaked": leaked}))
+    startup = _startup_smoke() if "--startup" in sys.argv and not recovery else None
+    print("SELFCHECK-JSON " + json.dumps({"results": res, "leaked": leaked, "startup": startup}))
     return 0
+
+
+def _startup_smoke() -> dict:
+    """App-startup smoke (same scrubbed profile, network still blocked) – app.tools.startup_smoke, loaded by name: prod target
+    only, deliberately outside the recovery import closure (the recovery image has no uvicorn and never runs the app)."""
+    try:
+        return importlib.import_module("app.tools.startup_smoke").run()
+    except BaseException as exc:  # noqa: BLE001
+        return {"ok": False, "class": _classify(exc), "error": f"{type(exc).__name__}: {exc}"[:300]}
 
 
 def run() -> int:
@@ -104,7 +117,7 @@ def run() -> int:
     tag = "[selfcheck --recovery]" if recovery else "[selfcheck]"
     env = {"PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"), "HOME": "/nonexistent", "LANG": "C.UTF-8", **BUILD_PROFILE,
            **({} if recovery else PROD_ENTRYPOINT_PROFILE)}
-    r = subprocess.run([sys.executable, "-m", "app.tools.selfcheck", "--child", *(a for a in sys.argv[1:] if a in ("--recovery", "-v"))],
+    r = subprocess.run([sys.executable, "-m", "app.tools.selfcheck", "--child", *(a for a in sys.argv[1:] if a in ("--recovery", "--startup", "-v"))],
                        env=env, capture_output=True, text=True, check=False)
     line = next((ln for ln in r.stdout.splitlines() if ln.startswith("SELFCHECK-JSON ")), None)
     if line is None:
@@ -121,6 +134,11 @@ def run() -> int:
             print(x["trace"])
     for m in out["leaked"]:
         print(f"{tag} FAIL Emergent-only module imported: {m}")
+    su = out.get("startup")
+    if su is not None:
+        print(f"{tag} startup smoke (uvicorn {su.get('uvicorn', '?')} → app.main:app → GET /api/v1/health/live, no DB/network): "
+              + (f"PASS {su['status']}" if su["ok"] else f"FAIL {su.get('status') or su.get('class', '')} {su.get('error', '')}"))
+        bad = bad + ([] if su["ok"] else [{"module": "startup"}])
     n = len(out["results"])
     print(f"{tag} {n - len(bad)}/{n} modules import (scrubbed env + build profile {sorted(k for k in env if k not in ('PATH', 'HOME', 'LANG'))}, network blocked)"
           + (" – RESULT: FAIL" if bad or out["leaked"] else " – RESULT: PASS"))

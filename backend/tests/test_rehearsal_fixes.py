@@ -224,7 +224,9 @@ def test_scratch_sso_cleanup_runs_after_failed_setup_and_never_prints_secrets(tm
     f = run("cleanup-finish", "--container-rc", "0")
     body = json.loads((tmp_path / f"rehearsal-{ts}.json").read_text())
     assert body["passed"] is False and any("setup failed" in x for x in body["failures"])
-    assert body["scratch_sso"]["cleanup"][f"scratch Keycloak DB + role rec_kc_{ts} dropped"] is True
+    assert body["scratch_sso"]["cleanup_steps"]["3 scratch Keycloak DB + role dropped"]["status"] == "done"
+    assert body["scratch_sso"]["cleanup_steps"]["6 secret files + dir deleted (LAST)"]["status"] == "done"
+    assert list(body["scratch_sso"]["cleanup_steps"])[-1].startswith("6 ")   # secret files are removed LAST
     assert not (tmp_path / f"scratch-sso-{ts}").exists()
     from sqlalchemy import create_engine, text
 
@@ -269,3 +271,103 @@ def test_rejected_positive_login_is_a_fail(monkeypatch):
     assert st["negative: wrong password rejected by Keycloak (expected rejection, NOT a login)"] is True
     assert st["login: Keycloak accepted credentials → callback (auth code + PKCE)"] is False
 
+
+
+# ---------------- Droplet bugs: uvicorn missing in the rehearsal-backend image, JWT_SECRET unset, cleanup order ----------------
+def _ss(tmp_path, *a, **env):
+    e = {**os.environ, "RECOVERY_DIR": str(tmp_path), **env}
+    return subprocess.run([sys.executable, "-m", "app.tools.recovery", "scratch-sso", *a], cwd=ROOT / "backend", env=e,
+                          capture_output=True, text=True, timeout=120, check=False)
+
+
+def test_static_check_flags_uvicorn_missing_from_the_image_that_runs_it(tmp_path):
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_requirements as cr
+    cur = (ROOT / "deploy/compose/recovery.yml").read_text()
+    old = cur.replace("    build: {context: ./backend, dockerfile: Dockerfile}\n    image: ironvision/rehearsal-backend:local",
+                      '    image: ironvision/recovery:local\n    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]')
+    assert old != cur
+    (tmp_path / "recovery.yml").write_text(old)                       # the Droplet's config (commit before this fix)
+    errs = cr.check_entrypoints(compose=tmp_path / "recovery.yml")
+    assert errs and "rehearsal-backend" in errs[0] and "uvicorn is missing from deploy/recovery/requirements.recovery.txt" in errs[0]
+    assert cr.check_entrypoints() == []                               # now: backend/Dockerfile + requirements.prod.txt
+    svc = cr._compose_services(ROOT / "deploy/compose/recovery.yml")["rehearsal-backend"]
+    assert svc["dockerfile"] == "backend/Dockerfile" and "command" not in svc
+    assert "uvicorn app.main:app" in cr._dockerfile_cmd((ROOT / "backend/Dockerfile").read_text())
+    assert "RUN python -m app.tools.selfcheck --startup" in (ROOT / "backend/Dockerfile").read_text()
+
+
+def test_selfcheck_startup_imports_uvicorn_and_app_main_and_serves_health_live():
+    r = subprocess.run([sys.executable, "-m", "app.tools.selfcheck", "--startup"], cwd=ROOT / "backend", capture_output=True,
+                       text=True, timeout=180, check=False)
+    assert r.returncode == 0, r.stdout[-800:]
+    assert "startup smoke (uvicorn" in r.stdout and "PASS 200" in r.stdout and "RESULT: PASS" in r.stdout
+
+
+def test_scratch_app_env_reproduces_then_fixes_the_droplet_jwt_secret_failure(tmp_path):
+    from app.tools import scratch_sso as ss
+    code = "from app.config import get_settings; get_settings(); print('SETTINGS-OK')"
+    tgt = "postgresql+psycopg://u:p@127.0.0.1:5432/rec_target_20991231t235958"
+    base = {"PATH": os.environ["PATH"], "HOME": "/tmp", "IRONVISION_DOTENV": "0", "DATABASE_URL": tgt, "STORAGE_DRIVER": "local"}
+    r = subprocess.run([sys.executable, "-c", code], cwd=ROOT / "backend", env=base, capture_output=True, text=True, check=False)
+    assert r.returncode != 0 and "Required environment variable JWT_SECRET is not set" in r.stderr   # the Droplet failure
+    d = tmp_path / "scratch-sso-20991231t235958"
+    d.mkdir()
+    ss._env_file(d / "app.env", {"JWT_SECRET": "scratch-only-" + "x" * 40})
+    env = ss._scratch_app_env(d, tgt, {"FRONTEND_URL": "http://127.0.0.1:8001", "KEYCLOAK_URL": "http://rehearsal-keycloak:8080"})
+    assert env["IRONVISION_DOTENV"] == "0" and env["JWT_SECRET"].startswith("scratch-only-") and env["DATABASE_URL"] == tgt
+    assert os.environ.get("JWT_SECRET", "-") != env["JWT_SECRET"]
+    r = subprocess.run([sys.executable, "-c", code], cwd=ROOT / "backend", env=env, capture_output=True, text=True, check=False)
+    assert r.returncode == 0 and "SETTINGS-OK" in r.stdout, r.stderr[-400:]
+
+
+def test_scratch_guard_refuses_production_db_and_keycloak(monkeypatch):
+    from sqlalchemy.engine import make_url
+
+    from app.tools import recovery as rv
+    from app.tools import scratch_sso as ss
+    live = make_url(rv.live_url())
+    monkeypatch.setenv("KEYCLOAK_URL", "http://keycloak:8080")
+    monkeypatch.setenv("OIDC_ISSUER", "https://auth.demo.ironvisionai.com/realms/ironvision-demo")
+    monkeypatch.setenv("REHEARSAL_FORBIDDEN_HOSTS", "auth.demo.ironvisionai.com,demo.ironvisionai.com")
+    ok = rv.db_url("rec_target_20991231t235958")
+    ss.assert_scratch_targets("t", ok, "http://rehearsal-keycloak:8080")
+    for bad_db in (live.render_as_string(hide_password=False), rv.db_url("ironvision"), rv.db_url("keycloak")):
+        with pytest.raises(rv.RecoveryError, match="not a scratch rehearsal DB"):
+            ss.assert_scratch_targets("t", bad_db, None)
+    for bad_kc in ("http://keycloak:8080", "https://auth.demo.ironvisionai.com", "https://auth.demo.ironvisionai.com:443/x", "http://demo.ironvisionai.com"):
+        with pytest.raises(rv.RecoveryError, match="production Keycloak/app host"):
+            ss.assert_scratch_targets("t", None, bad_kc)
+
+
+def test_cleanup_admin_env_gone_users_moot_when_scratch_keycloak_and_db_dropped(tmp_path):
+    ts = "20991231t235957"
+    _ss(tmp_path, "cleanup-finish", "--ts", ts)
+    assert _ss(tmp_path, "prepare", "--ts", ts).returncode == 0
+    r = json.loads((tmp_path / f"scratch-sso-{ts}.json").read_text())
+    r["kc_users"] = {"e2e": {"username": "rehearsal-e2e-gone", "id": "00000000-0000-0000-0000-000000000000"}}
+    (tmp_path / f"scratch-sso-{ts}.json").write_text(json.dumps(r))
+    assert not (tmp_path / f"scratch-sso-{ts}" / "admin.env").exists()       # like Droplet 20261017t214603
+    lo = _ss(tmp_path, "leftovers")
+    assert ts in lo.stdout.split()
+    _ss(tmp_path, "cleanup-users", "--ts", ts, "--kc-url", "http://127.0.0.1:9")
+    f = _ss(tmp_path, "cleanup-finish", "--ts", ts, "--container-rc", "0")
+    st = json.loads((tmp_path / f"scratch-sso-{ts}.json").read_text())["cleanup_steps"]
+    assert st["1 scratch Keycloak users deleted"]["status"] == "moot" and "admin.env missing" in st["1 scratch Keycloak users deleted"]["detail"]
+    assert st["3 scratch Keycloak DB + role dropped"]["status"] == "done" and f.returncode == 0
+    f2 = _ss(tmp_path, "cleanup-finish", "--ts", ts, "--container-rc", "0")      # idempotent: everything already gone = success
+    st2 = json.loads((tmp_path / f"scratch-sso-{ts}.json").read_text())["cleanup_steps"]
+    assert f2.returncode == 0 and st2["3 scratch Keycloak DB + role dropped"]["status"] == "already-gone"
+    assert st2["6 secret files + dir deleted (LAST)"]["status"] == "already-gone"
+    assert ts not in _ss(tmp_path, "leftovers").stdout.split()
+    # a REAL leftover (DB still there because the container could not be removed) is never hidden
+    assert _ss(tmp_path, "prepare", "--ts", ts).returncode == 0
+    r = json.loads((tmp_path / f"scratch-sso-{ts}.json").read_text())
+    r["kc_users"] = {"e2e": {"username": "rehearsal-e2e-gone", "id": "x"}}
+    r.pop("cleanup_steps", None)
+    (tmp_path / f"scratch-sso-{ts}.json").write_text(json.dumps(r))
+    _ss(tmp_path, "cleanup-users", "--ts", ts, "--kc-url", "http://127.0.0.1:9")
+    f3 = _ss(tmp_path, "cleanup-finish", "--ts", ts, "--container-rc", "1")
+    st3 = json.loads((tmp_path / f"scratch-sso-{ts}.json").read_text())["cleanup_steps"]
+    assert f3.returncode == 1 and st3["1 scratch Keycloak users deleted"]["status"] == "failed"
+    assert st3["2 scratch Keycloak container removed"]["status"] == "failed"

@@ -347,11 +347,13 @@ def test_recover_operator_flow(world):
     step("scratch SSO: same keycloak_config code, ephemeral rehearsal-e2e-* user + scratch demo launcher, issuer = scratch Keycloak",
          ss.get("keycloak_config", {}).get("rc") == 0 and ss["kc_users"]["e2e"]["username"].startswith("rehearsal-e2e-")
          and ss.get("issuer", "").startswith(f"http://127.0.0.1:{SCRATCH_KC}/") and PROD_KC not in json.dumps(ss), json.dumps(ss)[:800])
-    step("scratch SSO cleanup recorded and complete: KC users, scratch container, scratch KC DB + role, secret files; restored users untouched",
-         ss.get("cleanup_ok") and ss["restored_before"] == ss["restored_after"] and ss["restored_before"]["users"] >= 8
+    step("scratch SSO cleanup recorded and complete (users → container → KC DB + role → app records → secrets LAST); restored users untouched",
+         ss.get("cleanup_ok") and ss["restored_before"]["sha256"] == ss["restored_after"]["sha256"] and ss["restored_before"]["users"] >= 9
+         and all(v["status"] in ("done", "already-gone") for v in ss["cleanup_steps"].values())
+         and list(ss["cleanup_steps"])[-1].startswith("6 ") and ss["demo_launcher_link"]["rc"] == 0
          and not list(RUN.glob("scratch-sso-*/")) and sql("postgres", f"select count(*) from pg_roles where rolname = 'rec_kc_{rh['ts']}'")[0][0] == 0
          and sql("postgres", f"select count(*) from pg_database where datname = 'rec_kc_{rh['ts']}'")[0][0] == 0
-         and subprocess.run(["pgrep", "-f", "--", f"--http-port {SCRATCH_KC}"], capture_output=True).returncode == 1, json.dumps(ss.get("cleanup")))
+         and subprocess.run(["pgrep", "-f", "--", f"--http-port {SCRATCH_KC}"], capture_output=True).returncode == 1, json.dumps(ss.get("cleanup_steps")))
     secrets_ = [s for s in (W / "captured-secrets").read_text().splitlines() if len(s) >= 12]
     blobs = {str(p): p.read_bytes() for p in [*RUN.rglob("*"), *W.glob("*.log")] if p.is_file()}
     leaks = [(f, s[:4]) for f, b in blobs.items() for s in secrets_ if s.encode() in b]
@@ -385,6 +387,7 @@ def test_recover_operator_flow(world):
          and "FAIL  " not in r.stdout, r.stdout[-1500:])
     r = recover("rollback")
     step("rollback → original DB, recovered DB kept", r.returncode == 0 and db_name() == prod and sql(rec_db, "select count(*) from users")[0][0] > 0, r.stdout[-400:])
+    _scratch_failure_paths()   # production back on the original DB; run 2 below creates the next passing rehearsal for cutover 2
     h2 = run_and_hash("2")
     r = cutover(h2, RECOVER_LIVE_URL="http://127.0.0.1:1")
     step("cutover 2 with a failing live check → AUTOMATIC rollback to the previous env/DB",
@@ -402,3 +405,53 @@ def test_recover_operator_flow(world):
     bad = destructive_calls(calls)
     step("docker never asked to rm / down / volume -v / prune / kill (only stop at finalize; run = recovery helper only)",
          not bad and sum(c.startswith("stop ") for c in calls) == 1, f"{len(calls)} calls; destructive={bad[:3]}")
+
+
+def _scratch_clean(ts: str) -> bool:
+    return (not (RUN / f"scratch-sso-{ts}").exists() and not (RUN / ".e2e-credentials").exists()
+            and sql("postgres", f"select count(*) from pg_roles where rolname = 'rec_kc_{ts}'")[0][0] == 0
+            and sql("postgres", f"select count(*) from pg_database where datname = 'rec_kc_{ts}'")[0][0] == 0
+            and subprocess.run(["pgrep", "-f", "--", f"--http-port {SCRATCH_KC}"], capture_output=True, check=False).returncode == 1)
+
+
+def _scratch_failure_paths() -> None:
+    """Real pod Postgres + a real scratch Keycloak 26.8.1 per case. Every failure → cleanup ran, JSON accurate, nothing left."""
+    prod_kc = kc_users()
+    bk = f"bash {W}/rehearsal-backend.sh"
+    cases = {
+        "backend fails to start": ({"RECOVER_LOCAL_REHEARSAL_BACKEND_CMD": "false"}, "rehearsal backend"),
+        "keycloak-migrate fails (JWT_SECRET removed = Droplet bug 2)": ({"RECOVER_SCRATCH_FAULT": "migrate"}, "setup failed"),
+        "login fails (wrong scratch password)": ({"RECOVER_SCRATCH_FAULT": "login"}, "login"),
+        "admin.env deleted mid-run (Droplet bug 3)": ({"RECOVER_LOCAL_REHEARSAL_BACKEND_CMD": f"rm -f {RUN}/scratch-sso-*/admin.env; {bk}"}, None),
+    }
+    for name, (env, why) in cases.items():
+        before = {p.name for p in RUN.glob("rehearsal-*.json")}
+        r = recover("rehearse", "--e2e", **env)
+        new = sorted({p.name for p in RUN.glob("rehearsal-*.json")} - before)
+        rh = json.loads((RUN / new[-1]).read_text()) if new else {}
+        ss = rh.get("scratch_sso") or {}
+        st = {k: v["status"] for k, v in (ss.get("cleanup_steps") or {}).items()}
+        fails = " | ".join(rh.get("failures", []))
+        if why:
+            ok = rh.get("passed") is False and why.lower() in fails.lower()
+        else:   # users cannot be deleted without admin.env → `moot` because the scratch Keycloak + its DB were removed
+            ok = st.get("1 scratch Keycloak users deleted") == "moot" and "admin.env missing" in ss["cleanup_steps"]["1 scratch Keycloak users deleted"]["detail"]
+        if "migrate" in name:
+            ok = ok and "JWT_SECRET is not set" in (ss.get("demo_launcher_link") or {}).get("output_tail", "") and ss["steps"].get("setup") is not True
+        step(f"failure path – {name}: cleanup ran, every step recorded, nothing left, restored users unchanged",
+             ok and ss.get("cleanup_ok") is True and len(st) == 6 and list(st)[-1].startswith("6 ") and _scratch_clean(rh["ts"])
+             and st.get("5 restored users unchanged (before == after)") in ("done", "already-gone") and kc_users() == prod_kc,
+             json.dumps({"st": st, "fails": fails[:500], "rc": r.returncode}) + r.stdout[-600:])
+    # interrupted run (like Droplet scratch-sso-20261017t214603): scratch DB/role + secret dir left, admin.env never written
+    ts = "20261017t214603"
+    e = recover_env()
+    subprocess.run([sys.executable, "-m", "app.tools.recovery", "scratch-sso", "prepare", "--ts", ts], cwd=BACKEND, env=e, check=True,
+                   capture_output=True)
+    (RUN / f"scratch-sso-{ts}.json").write_text(json.dumps({**json.loads((RUN / f"scratch-sso-{ts}.json").read_text()),
+                                                            "kc_users": {"e2e": {"username": "rehearsal-e2e-interrupted", "id": "x"}}}))
+    r = recover("scratch-cleanup")
+    st = json.loads((RUN / f"scratch-sso-{ts}.json").read_text())["cleanup_steps"]
+    step("recover.sh scratch-cleanup finishes an interrupted scratch run (scratch resources only); 2nd call: nothing left",
+         r.returncode == 0 and st["1 scratch Keycloak users deleted"]["status"] == "moot" and _scratch_clean(ts)
+         and "no unfinished scratch SSO run" in recover("scratch-cleanup").stdout and kc_users() == prod_kc,
+         json.dumps(st) + r.stdout[-800:])

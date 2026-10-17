@@ -42,13 +42,21 @@ else
   RUNPY=()
 fi
 LEGACY_PROJECT=${RECOVER_LEGACY_PROJECT:-aegisrmf}
-image_gate() {  # host: static manifest check → build the recovery image → package check INSIDE the image (fail-safe)
+image_gate() {  # host: static manifest check → (re)build BOTH images → package + import/startup check INSIDE each image (fail-safe)
   [ "$LOCAL" = 1 ] && return 0
+  [ -n "${RECOVER_IMAGES_BUILT:-}" ] && return 0   # already built by this run (`run` → `rehearse`)
   python3 scripts/check_requirements.py | tee -a "$LOG" || die "requirements static check (host) failed – nothing was built or changed"
   "${DC[@]}" --profile recovery build recovery 2>&1 | tee -a "$LOG" || die "recovery image build failed – nothing was changed"
   "${DC[@]}" --profile recovery run --rm --no-deps -T -v "$PWD:/repo:ro" recovery \
     python /repo/scripts/check_requirements.py --in-env --target recovery --app-dir /app/backend | tee -a "$LOG" \
     || die "recovery image package check (in image: pip check, installed == pinned == lock, imports) failed – nothing was changed"
+  # rehearsal backend = the production backend image definition (backend/Dockerfile, requirements.prod.txt, uvicorn CMD), rebuilt
+  # every run (never a stale image); its build runs selfcheck --startup, and the in-image check repeats it + pip/lock checks
+  "${DC[@]}" --profile recovery build rehearsal-backend 2>&1 | tee -a "$LOG" || die "rehearsal-backend image build failed – nothing was changed"
+  "${DC[@]}" --profile recovery run --rm --no-deps -T -u 0 -v "$PWD:/repo:ro" rehearsal-backend \
+    python /repo/scripts/check_requirements.py --in-env --target prod --app-dir /srv/backend | tee -a "$LOG" \
+    || die "rehearsal-backend image check (pip check, installed == pinned == lock, imports incl. uvicorn + app.main, startup smoke) failed – nothing was changed"
+  export RECOVER_IMAGES_BUILT=1
 }
 cpath() {  # host path → path inside the recovery container
   if [ "$LOCAL" = 1 ]; then echo "$1"; return; fi
@@ -142,10 +150,11 @@ sso_up() {  # $1 rts: isolated scratch Keycloak + ephemeral identities; SCRATCH_
   load_kv "$sd/backend.env"
 }
 
-sso_down() {  # always (pass, fail or abort): scratch users → scratch container → scratch DB/role + secret files → report
-  local rc=0
+sso_down() {  # always (pass, fail or abort): scratch users → scratch container → scratch DB/role → app records → secret files LAST
+  local rc=0 k=${kcu:-}
   trap - EXIT
-  py scratch-sso cleanup-users --ts "$1" --kc-url "${kcu:-}" || true
+  if [ -z "$k" ]; then if [ "$LOCAL" = 1 ]; then k=${RECOVER_SCRATCH_KC_URL:-}; else k=http://rehearsal-keycloak:8080; fi; fi
+  py scratch-sso cleanup-users --ts "$1" --kc-url "$k" || true
   if [ "$LOCAL" = 1 ]; then eval "${RECOVER_LOCAL_SCRATCH_KC_STOP:-true}" || rc=$?
   else "${DC[@]}" --profile recovery rm -sf rehearsal-keycloak >/dev/null 2>&1 || rc=$?; fi   # the scratch service only
   py scratch-sso cleanup-finish --ts "$1" --container-rc "$rc" | tee -a "$LOG" || true
@@ -161,7 +170,7 @@ rehearsal_diag() {  # $1 rehearsal ts, $2 OIDC issuer host: container, state, ne
   [ -n "$cid" ] && docker logs --tail 150 "$cid" 2>&1 | sed -E 's#(://[^:/@ ]+):[^@ ]+@#\1:***@#g' > "$RDIR/rehearsal-backend-$1.log" && chmod 600 "$RDIR/rehearsal-backend-$1.log"
   "${RUNPY[@]}" recovery python -m app.tools.netdiag --out "/recovery/netdiag-$1-recovery-container.json" rehearsal-backend postgres keycloak seaweedfs "$2" 2>&1 >/dev/null | tee -a "$LOG" || true
   if [ "$(docker inspect -f '{{.State.Running}}' "$cid" 2>/dev/null)" = true ]; then
-    "${DC[@]}" --profile recovery exec -T rehearsal-backend python -m app.tools.netdiag --out "/recovery/netdiag-$1.json" postgres keycloak seaweedfs "$2" 2>&1 >/dev/null | tee -a "$LOG" || true
+    "${DC[@]}" --profile recovery exec -T -u 0 rehearsal-backend python -m app.tools.netdiag --out "/recovery/netdiag-$1.json" postgres keycloak seaweedfs "$2" 2>&1 >/dev/null | tee -a "$LOG" || true
   fi
 }
 
@@ -190,6 +199,7 @@ case "$cmd" in
   preflight) host_checks; py preflight; "$0" audit || say "WARN audit reported problems (see above)";;
   rehearse)
     cleanup=0; e2e=""; for a in "$@"; do case $a in --cleanup) cleanup=1;; --e2e) e2e=--e2e;; esac; done
+    image_gate
     out=$(py rehearse | tee -a "$LOG"); echo "$out"
     rts=$(sed -n 's/^REHEARSAL_TS=//p' <<<"$out" | tail -1); [ -n "$rts" ] || die "rehearsal did not produce a report"
     piss=$(envget OIDC_ISSUER 2>/dev/null || true); piss=${piss:-${OIDC_ISSUER:-}}
@@ -202,7 +212,11 @@ case "$cmd" in
     fi
     if [ "$LOCAL" = 1 ]; then
       if [ -n "${RECOVER_LOCAL_REHEARSAL_BACKEND_CMD:-}" ]; then
-        export REHEARSAL_DB="rec_target_$rts" REHEARSAL_BUCKET="evidence-rehearsal-${rts/t/-}"; eval "$RECOVER_LOCAL_REHEARSAL_BACKEND_CMD"
+        export REHEARSAL_DB="rec_target_$rts" REHEARSAL_BUCKET="evidence-rehearsal-${rts/t/-}"
+        if ! eval "$RECOVER_LOCAL_REHEARSAL_BACKEND_CMD"; then   # same handling as the Docker path: record, then stop
+          py probe-unreachable --reason "local rehearsal backend did not start (RECOVER_LOCAL_REHEARSAL_BACKEND_CMD failed)" || true
+          die "rehearsal backend did not start – see the rehearsal report"
+        fi
       fi
       py rehearse-probe --url "${RECOVER_REHEARSAL_URL:?RECOVER_REHEARSAL_URL}" --where "local rehearsal backend (RECOVER_LOCAL=1)" $e2e || true
     else
@@ -217,7 +231,7 @@ case "$cmd" in
         die "rehearsal backend not healthy – see $RDIR/rehearsal-backend-$rts.log and netdiag-$rts*.json"
       fi
       rehearsal_diag "$rts" "$iss"
-      "${DC[@]}" --profile recovery exec -T -e RECOVERY_DIR=/recovery -e REHEARSAL_FORBIDDEN_HOSTS rehearsal-backend python -m app.tools.recovery rehearse-probe \
+      "${DC[@]}" --profile recovery exec -T -u 0 -e RECOVERY_DIR=/recovery -e REHEARSAL_FORBIDDEN_HOSTS rehearsal-backend python -m app.tools.recovery rehearse-probe \
         --url http://127.0.0.1:8001 --where "inside rehearsal-backend container; networks $(rb_nets)" --netdiag "/recovery/netdiag-$rts.json" $e2e | tee -a "$LOG" || true
       if [ "${RECOVER_SKIP_LIVE_RESTART:-0}" = 1 ]; then say "SeaweedFS restart check: deferred to cutover (run never restarts production services)"
       elif "${DC[@]}" restart seaweedfs && sleep 5 && py bucket-verify --db "rec_target_$rts" --bucket "evidence-rehearsal-${rts/t/-}"; then
@@ -226,8 +240,16 @@ case "$cmd" in
     fi
     [ -n "$piss" ] && { py scratch-sso prod-oidc-check --issuer "$piss" | tee -a "$LOG" || true; }
     [ -n "$e2e" ] && sso_down "$rts"
-    [ "$cleanup" = 1 ] && py cleanup-rehearsal
+    [ "$cleanup" = 1 ] && { py cleanup-rehearsal; "$0" scratch-cleanup; }
     py status;;
+  scratch-cleanup)  # finish interrupted scratch SSO cleanups – scratch resources ONLY (rec_kc_* DB/role, rehearsal-keycloak, scratch-sso-*)
+    tss=$(py scratch-sso leftovers "$@" | grep -E '^[0-9]{8}t[0-9]{6}$' || true)
+    [ -n "$tss" ] || { say "scratch-cleanup: no unfinished scratch SSO run"; exit 0; }
+    src=0
+    for t in $tss; do say "scratch-cleanup: finishing scratch SSO cleanup of $t"; kcu=""; sso_down "$t" || src=1
+      [ "$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("cleanup_ok"))' "$RDIR/scratch-sso-$t.json" 2>/dev/null)" = True ] || src=1; done
+    [ "$src" = 0 ] || die "scratch-cleanup INCOMPLETE – see $RDIR/scratch-sso-*.json (production untouched)"
+    say "scratch-cleanup: all scratch SSO leftovers removed";;
   apply)
     if [ "${1:-}" != --plan-hash ] || [ -z "${2:-}" ]; then die "usage: ./recover.sh apply --plan-hash H [--accept-evidence-exceptions E]"; fi
     ack=(); [ "${3:-}" = --accept-evidence-exceptions ] && [ -n "${4:-}" ] && ack=(--accept-evidence-exceptions "$4")

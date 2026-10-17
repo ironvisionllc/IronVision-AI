@@ -332,3 +332,54 @@ Cleanup was complete: Keycloak users deleted, scratch Keycloak stopped, scratch 
 cd /srv/ironvision/app && git pull && sudo ./recover.sh run
 ```
 **Production actions:** none.
+
+## 15. Droplet rehearsal bugs: rehearsal backend without uvicorn, scratch migrate without JWT_SECRET, cleanup order
+
+### Root causes
+| # | Symptom on the Droplet | Root cause | Fix |
+|---|---|---|---|
+| 1 | `ironvision-rehearsal-backend-1` (image `ironvision/recovery:local`) is Exited (1) because `import uvicorn` raises ModuleNotFoundError. netdiag then can't resolve `rehearsal-backend`; that was a consequence, not the cause. | `rehearsal-backend` reused the **recovery tool image**. Its manifest `requirements.recovery.txt` deliberately has no uvicorn, and `selfcheck --recovery` only imports the recovery closure, never what that container *runs*. | `rehearsal-backend` now builds and runs the **production backend image definition** (`backend/Dockerfile` + `requirements.prod.txt`, CMD `uvicorn app.main:app …`), tagged `ironvision/rehearsal-backend:local` so the live backend image is never replaced. The scratch env overrides are unchanged. It is **rebuilt on every `run`/`rehearse`** (`image_gate`), and nothing is patched inside a running container. See the guards below. |
+| 2 | Scratch `keycloak_migrate` fails in `app/config.py` because JWT_SECRET is unset. | Scratch app commands got only PATH/HOME plus the Keycloak values. In the pod, `backend/.env` silently filled the gap, so the failure never reproduced locally. | `_scratch_app_env` passes **every required setting** with scratch values (scratch DB, a fresh per-run `JWT_SECRET` in `scratch-sso-TS/app.env` mode 0600 that is never logged and is deleted at cleanup, local storage in the scratch dir) and `IRONVISION_DOTENV=0`, so `backend/.env` is never read. Nothing comes from production, and config validation is unchanged. |
+| 3 | Cleanup: `FileNotFoundError: /recovery/scratch-sso-20261017t214603/admin.env` | `admin.env` was **written only at the very end of setup**. The Keycloak users already existed, migrate (bug 2) failed in between, so the file never existed. | `admin.env` is written **before any user is created**. Cleanup runs in a fixed order, and each step is idempotent and recorded (see below). New command: `recover.sh scratch-cleanup`. |
+
+### Guards added
+- **`selfcheck --startup`** runs at build time (`RUN` in `backend/Dockerfile`) and in-image (`check_requirements --in-env --target prod` in `image_gate`). It imports every module including `uvicorn` and `app.main`, then has uvicorn load `app.main:app` exactly like the CMD does and GETs `/api/v1/health/live` in-process. It uses the scrubbed build profile, with the network blocked and no DB.
+- **Static host check** `check_entrypoints` (part of `scripts/check_requirements.py`): every Dockerfile CMD or compose `command:` that starts uvicorn must find uvicorn and fastapi in **that image's** manifest. The Droplet's old `recovery.yml` is flagged: `service rehearsal-backend runs python -m uvicorn … on image ironvision/recovery:local: uvicorn is missing from deploy/recovery/requirements.recovery.txt`.
+- **Target guard** `assert_scratch_targets` on setup (DB + Keycloak + issuer), cleanup-users (Keycloak) and cleanup-finish (DB). It refuses unless the DB name matches the scratch pattern and is not the production DB, and the Keycloak host is not a production Keycloak/app host (the container's `KEYCLOAK_URL`, `OIDC_ISSUER`, `REHEARSAL_FORBIDDEN_HOSTS`). Only target names are logged.
+
+### Cleanup order (each step: done / already-gone / moot / failed, stored in `scratch-sso-TS.json` and the report)
+1. Delete the scratch Keycloak users. This needs `admin.env`.
+2. Remove the scratch Keycloak container (`compose rm -sf rehearsal-keycloak`, the scratch service only).
+3. Drop the `rec_kc_<ts>` DB and role.
+4. Delete the scratch app records.
+5. Check that the restored users are unchanged (8 + admin record, fingerprint before == after).
+6. Delete the secret files and directory **last**.
+
+If step 1 failed but steps 2 and 3 succeeded, step 1 is reported as **moot**: the users died with the scratch Keycloak and its DB. Any other incomplete step fails the rehearsal and is never hidden.
+
+`recover.sh scratch-cleanup [--ts TS]`, also run by `rehearse --cleanup`, finishes interrupted runs. It finds them from leftover `scratch-sso-*` dirs, unfinished JSONs and `rec_kc_*` DBs/roles, and touches scratch resources only.
+
+### What ran for real vs. simulated (this pod has no Docker daemon)
+| Check | How | Result |
+|---|---|---|
+| Rehearsal-backend image environment | **Real:** fresh venv built only from `backend/requirements.prod.txt` (public PyPI, `--no-deps`) | `check_requirements --in-env --target prod` **PASS** (pip check, installed == pinned == lock, selfcheck `--startup`) |
+| `import uvicorn`, `app.main` | **Real**, in that venv | uvicorn 0.25.0, fastapi 0.143.0 |
+| uvicorn actually serving the app | **Real:** `uvicorn app.main:app` from that venv, scratch Postgres 16 DB (alembic head), `IRONVISION_DOTENV=0`, random JWT_SECRET | `/api/v1/health/live` **200**, `/api/v1/ready` **200** |
+| Build-time selfcheck `--startup` | **Real** (pod python) | 110/110 imports + startup smoke PASS 200; `--recovery` 116/116 |
+| Static: uvicorn missing for the container that runs it | **Real** (`check_entrypoints`) | old Droplet `recovery.yml` → flagged; current → clean |
+| Dockerfiles | **Static:** hadolint 2.12.0 | clean (`backend/Dockerfile:4` DL3008 apt pin warning was pre-existing; now `# hadolint ignore=DL3008`, as in the recovery Dockerfile) |
+| Compose wiring | **Static:** YAML parse | `rehearsal-backend` build `./backend/Dockerfile`, image `ironvision/rehearsal-backend:local`, no command override (image CMD = uvicorn), `e2e_sso.py` mounted read-only; `rehearsal-keycloak` publishes no ports |
+| `docker compose build/up`, in-image check, container DNS | **Not run** (no daemon) | first real execution happens on the Droplet (`image_gate` stops before any change if it fails) |
+| Bug 2 repro → fix | **Real:** `get_settings()` with an env without JWT_SECRET and `IRONVISION_DOTENV=0` | fails with `Required environment variable JWT_SECRET is not set`; passes with `_scratch_app_env` |
+| Scratch config → migrate link → login e2e → cleanup | **Real:** pod Postgres 16 + a second real Keycloak 26.8.1 process (:8091); "production" Keycloak = :8090 | 20/20 SSO steps PASS; all 6 cleanup steps `done` |
+| Failure paths: backend start fails, migrate fails (JWT_SECRET removed), login fails, admin.env deleted mid-run | **Real** (same stack; `RECOVER_SCRATCH_FAULT` test hook honoured only when `RECOVER_LOCAL=1`) | Cleanup ran every time. The JSON records each step and the precise failure; admin.env deleted → users step `moot`. Nothing left behind (no `rec_kc_*` DB/role, no scratch dir, no scratch Keycloak process). Restored users and production Keycloak users unchanged. |
+| Interrupted run like `scratch-sso-20261017t214603` | **Real:** `recover.sh scratch-cleanup` | users step `moot`, DB/role dropped, secrets deleted; 2nd call: "no unfinished scratch SSO run" |
+| Docker-only commands | **Simulated:** Docker shim | orchestration E2E 41/41 steps |
+
+### Droplet commands (from /opt/ironvision/IronVision-AI)
+```
+cd /opt/ironvision/IronVision-AI && git pull
+sudo ./recover.sh scratch-cleanup          # finishes the interrupted scratch-sso-20261017t214603 (scratch resources only)
+sudo ./recover.sh run                      # rebuilds both images, checks them in-image, then the read-only rehearsal
+```
+No production change in either command. Cutover still needs the plan hash from a fully passed rehearsal.

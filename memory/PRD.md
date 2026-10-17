@@ -364,3 +364,14 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - **e2e:** `--forbid-host`, wrong-password counted only as an expected rejection, session handling, Keycloak-session-ended check.
 - **Validated:** real pod run, 20/20 SSO steps, cleanup complete. Orchestration E2E passed; full suite 360 passed, 27 skipped. The Docker compose path was static-checked only.
 - **Droplet:** `sudo ./recover.sh run` (no inputs).
+
+## 2026-10-17 – Droplet rehearsal bugs: rehearsal backend uvicorn, scratch JWT_SECRET, cleanup order (no deploy)
+- **rehearsal-backend:** now builds and runs the production backend image definition (`backend/Dockerfile` + `requirements.prod.txt`) as `ironvision/rehearsal-backend:local`. It is rebuilt and checked in-image on every run, and the build runs `selfcheck --startup` (imports incl. uvicorn + app.main, uvicorn loads the app, health/live 200).
+- **Static check:** `check_entrypoints` flags uvicorn missing from the image that runs it.
+- **Scratch env:** a full scratch env for app-code commands (per-run JWT_SECRET in 0600 `app.env`, `IRONVISION_DOTENV=0`). `assert_scratch_targets` refuses production DB/Keycloak targets.
+- **Cleanup:** `admin.env` is written before any user is created. Cleanup steps run in a fixed order, are idempotent and recorded (users moot when the Keycloak container + DB are gone). New `recover.sh scratch-cleanup`.
+- **Validated:**
+  - orchestration E2E 41/41, including 4 failure paths and the interrupted-run cleanup
+  - full suite 367 passed / 27 skipped
+  - real uvicorn start from a clean prod venv
+- **Not run:** Docker build/up (no daemon in the pod).

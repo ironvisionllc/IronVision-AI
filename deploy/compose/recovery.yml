@@ -36,8 +36,11 @@ services:
 
   rehearsal-backend:
     profiles: ["recovery"]
-    image: ironvision/recovery:local
-    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    # The SAME image definition as the live backend (backend/Dockerfile + requirements.prod.txt, its CMD
+    # `uvicorn app.main:app …`, build-time selfcheck --startup), tagged separately so the live backend's image is never
+    # replaced. Rebuilt by recover.sh on every run (image_gate). NOT the recovery tool image: that one has no uvicorn.
+    build: {context: ./backend, dockerfile: Dockerfile}
+    image: ironvision/rehearsal-backend:local
     # Same configuration as the live backend (the production env file: OIDC redirect/issuer, demo launcher, CORS, …) with
     # scratch-only overrides below. recover.sh runs the probes INSIDE this container against 127.0.0.1:8001.
     env_file: ["${RECOVER_ENV_FILE:?RECOVER_ENV_FILE (set by recover.sh)}"]
@@ -77,6 +80,7 @@ services:
     depends_on: {}
     volumes:
       - ${RECOVERY_DIR:-/root/ironvision-recovery}:/recovery
+      - ./scripts/e2e_sso.py:/srv/scripts/e2e_sso.py:ro   # rehearse-probe (exec -u 0) runs it inside this container
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8001/api/v1/health/live', timeout=5)"]
       interval: 5s

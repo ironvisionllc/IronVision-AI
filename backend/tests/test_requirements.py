@@ -143,5 +143,7 @@ def test_deploy_and_recover_run_static_then_in_image_checks():
     rs, ds = (ROOT / "recover.sh").read_text(), (ROOT / "scripts" / "deploy.sh").read_text()
     g = rs[rs.index("image_gate() {"):rs.index("\n}\n", rs.index("image_gate() {"))]
     assert g.index("python3 scripts/check_requirements.py |") < g.index("build recovery") < g.index("--in-env --target recovery")
-    assert rs.count("    image_gate\n") == 2  # run + cutover, before anything else
+    # rehearsal backend = production backend image definition, rebuilt every run, then checked IN that image (uvicorn + app.main + startup)
+    assert g.index("--in-env --target recovery") < g.index("build rehearsal-backend") < g.index("--in-env --target prod --app-dir /srv/backend")
+    assert rs.count("    image_gate\n") == 3  # run + rehearse (standalone; no-op inside run) + cutover, before anything else
     assert ds.index("python3 scripts/check_requirements.py\n") < ds.index('"${DC[@]}" build') < ds.index("--in-env --target prod --app-dir /srv/backend")

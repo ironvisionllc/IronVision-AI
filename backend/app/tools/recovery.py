@@ -784,9 +784,10 @@ def write_report(kind: str, t: str, body: dict) -> None:
                   f"- issuer: `{ss.get('issuer')}`; scratch Keycloak DB/role: `{(ss.get('kc_db') or {}).get('database')}`",
                   (f"- e2e user: `{((ss.get('kc_users') or {}).get('e2e') or {}).get('username')}` (leadership_viewer, scratch org); "
                    f"demo launcher: `{((ss.get('kc_users') or {}).get('demo_launcher') or {}).get('username')}`"),
-                  f"- restored users before/after: {ss.get('restored_before')} / {ss.get('restored_after')}",
+                  "- restored users (8 + admin) before/after: " + " / ".join(
+                      f"{(ss.get(k) or {}).get('users')} users sha256 {str((ss.get(k) or {}).get('sha256'))[:12]}" for k in ("restored_before", "restored_after")),
                   "- cleanup: " + ("**OK**" if ss.get("cleanup_ok") else "**INCOMPLETE – see items; production untouched**")]
-        lines += [f"  - {k}: {'✓' if v else '✗'}" for k, v in (ss.get("cleanup") or {}).items() if isinstance(v, bool)]
+        lines += [f"  - {k}: **{v['status']}** – {v['detail']}" for k, v in (ss.get("cleanup_steps") or {}).items()]
     e2e = (body.get("backend_probe") or {}).get("e2e_sso") if isinstance(body.get("backend_probe"), dict) else None
     if e2e:
         lines += ["", "## SSO e2e steps (scratch stack)", "", "| step | result | detail |", "|---|---|---|"]

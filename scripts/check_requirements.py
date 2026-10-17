@@ -200,6 +200,82 @@ def check_dockerfiles(root: Path = ROOT) -> list[str]:
     return errors
 
 
+DOCKERFILE_MANIFEST = {"backend/Dockerfile": "backend/requirements.prod.txt",
+                       "deploy/recovery/Dockerfile": "deploy/recovery/requirements.recovery.txt"}
+SERVER_DISTS = ("uvicorn", "fastapi")  # a container whose command runs uvicorn needs these in ITS image's manifest
+RECOVERY_COMPOSE = ROOT / "deploy" / "compose" / "recovery.yml"
+
+
+def _dockerfile_cmd(txt: str) -> str:
+    cmds = re.findall(r"^CMD\s+(.+)$", txt, re.M)
+    return " ".join(re.findall(r'"([^"]*)"', cmds[-1])) or cmds[-1] if cmds else ""
+
+
+def _compose_services(path: Path) -> dict:
+    """Minimal line parser (host python has no PyYAML guarantee): services → image / build dockerfile / command."""
+    svcs, cur, in_svcs = {}, None, False
+    for ln in path.read_text().splitlines():
+        if re.match(r"^services:\s*$", ln):
+            in_svcs = True
+            continue
+        if re.match(r"^\S", ln):
+            in_svcs = False
+        if not in_svcs:
+            continue
+        m = re.match(r"^  ([\w.-]+):\s*$", ln)
+        if m:
+            cur = svcs.setdefault(m.group(1), {})
+            continue
+        m = re.match(r"^    (image|command|build):\s*(.+?)\s*$", ln)
+        if cur is not None and m:
+            k, v = m.groups()
+            if k == "build":
+                b = dict(re.findall(r"(context|dockerfile):\s*([^,}\s]+)", v))
+                cur["dockerfile"] = os.path.normpath(os.path.join(b.get("context", "."), b.get("dockerfile", "Dockerfile")))
+            elif k == "command":
+                cur["command"] = " ".join(re.findall(r'"([^"]*)"', v)) or v
+            else:
+                cur["image"] = v
+    return svcs
+
+
+def _server_deps(ctx: str, dockerfile: str, root: Path) -> list[str]:
+    man = DOCKERFILE_MANIFEST.get(dockerfile)
+    if not man:
+        return [f"{ctx}: no known requirements manifest for {dockerfile} (add it to DOCKERFILE_MANIFEST)"]
+    pins = parse_requirements(root / man)
+    return [f"{ctx}: {d} is missing from {man} – that container cannot start" for d in SERVER_DISTS if norm(d) not in pins]
+
+
+def check_entrypoints(root: Path = ROOT, compose: Path | None = None) -> list[str]:
+    """What each container RUNS must be installed in the image it runs on: a Dockerfile CMD or a compose `command:` that
+    starts uvicorn needs uvicorn + fastapi in that image's manifest (the Droplet's rehearsal-backend ran uvicorn on the recovery
+    image, whose manifest has no uvicorn – selfcheck --recovery never imports what that container runs)."""
+    errors, cmds = [], {}
+    for df, man in DOCKERFILE_MANIFEST.items():
+        p = root / df
+        if not p.is_file():
+            errors.append(f"{df}: missing")
+            continue
+        txt = p.read_text()
+        if Path(man).name not in txt:
+            errors.append(f"{df}: does not install {Path(man).name} (DOCKERFILE_MANIFEST out of date)")
+        cmds[df] = _dockerfile_cmd(txt)
+        if "uvicorn" in cmds[df]:
+            errors += _server_deps(f"{df} CMD `{cmds[df]}`", df, root)
+    compose = compose or (root / "deploy" / "compose" / "recovery.yml")
+    svcs = _compose_services(compose)
+    images = {s["image"]: s["dockerfile"] for s in svcs.values() if s.get("image") and s.get("dockerfile")}
+    for name, s in sorted(svcs.items()):
+        df = s.get("dockerfile") or images.get(s.get("image", ""))
+        if not df:
+            continue  # third-party image (keycloak, …)
+        cmd = s.get("command") or cmds.get(df, "")
+        if "uvicorn" in cmd:
+            errors += _server_deps(f"{compose.name}: service {name} runs `{cmd}` on image {s.get('image')} ({df})", df, root)
+    return errors
+
+
 def check_pypi(req: Path = RECOVERY_REQ) -> list[str]:
     import urllib.request
     errors = []
@@ -230,7 +306,7 @@ def run(backend: Path = BACKEND, with_imports: bool = True) -> list[str]:
             if lock and not errs:
                 errors += check_lock(target, pins, lock)
                 errors += check_imports(prod, excl, lock) if target == "prod" else check_recovery(prod, excl, lock)
-        errors += check_dockerfiles()
+        errors += check_dockerfiles() + check_entrypoints()
     return errors
 
 
@@ -287,7 +363,7 @@ def in_env(target: str, app_dir: Path) -> list[str]:
             errors.append(f"[{ctx}] {n}: installed {dists[n].version}, pinned {v}")
         elif lock and lock["distributions"].get(n, {}).get("version") != v:
             errors.append(f"[{ctx}] {n}: lock has {lock['distributions'].get(n, {}).get('version')}, pinned {v}")
-    flag = ["--recovery"] if target == "recovery" else []
+    flag = ["--recovery"] if target == "recovery" else ["--startup"]  # prod image = live + rehearsal backend: uvicorn startup smoke
     sc = subprocess.run([sys.executable, "-m", "app.tools.selfcheck", *flag], cwd=app_dir, capture_output=True, text=True)
     if sc.returncode:
         errors.append(f"[{ctx}] selfcheck failed: {(sc.stdout + sc.stderr).strip()[-600:]}")
