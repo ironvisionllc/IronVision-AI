@@ -53,6 +53,28 @@ services:
       WORKER_ENABLED: "false"
       SEED_DEMO_DATA: "false"
       RECOVERY_DIR: /recovery
+      # SSO → the isolated scratch Keycloak only (values exported by recover.sh from the 0600 scratch files; never in the env file).
+      # The production configurator/admin secrets from env_file are blanked: the rehearsal backend has no production Keycloak access.
+      KEYCLOAK_URL: http://rehearsal-keycloak:8080
+      OIDC_ISSUER: ${SCRATCH_OIDC_ISSUER:-http://rehearsal-keycloak:8080/realms/ironvision-demo}
+      OIDC_CLIENT_ID: ironvision-app
+      OIDC_CLIENT_SECRET: ${SCRATCH_OIDC_CLIENT_SECRET:-}
+      OIDC_REDIRECT_URI: http://127.0.0.1:8001/api/v1/auth/oidc/callback
+      OIDC_POST_LOGOUT_REDIRECT_URI: http://127.0.0.1:8001/login
+      FRONTEND_URL: http://127.0.0.1:8001
+      CORS_ORIGINS: http://127.0.0.1:8001
+      DEPLOYMENT_KIND: demo
+      ALLOW_DEMO_LOGIN: "true"
+      KEYCLOAK_DEMO_LAUNCHER_CLIENT_ID: ironvision-demo-launcher
+      KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET: ${SCRATCH_DEMO_LAUNCHER_CLIENT_SECRET:-}
+      KEYCLOAK_DEMO_USERNAME: ${SCRATCH_DEMO_USERNAME:-}
+      KEYCLOAK_DEMO_PASSWORD: ${SCRATCH_DEMO_PASSWORD:-}
+      KEYCLOAK_BACKEND_CLIENT_ID: ironvision-backend
+      KEYCLOAK_BACKEND_CLIENT_SECRET: ${SCRATCH_BACKEND_CLIENT_SECRET:-}
+      KEYCLOAK_CONFIGURATOR_CLIENT_SECRET: ""
+      KEYCLOAK_ADMIN_PASSWORD: ""
+      REHEARSAL_FORBIDDEN_HOSTS: ${REHEARSAL_FORBIDDEN_HOSTS:-}
+    depends_on: {}
     volumes:
       - ${RECOVERY_DIR:-/root/ironvision-recovery}:/recovery
     healthcheck:
@@ -62,4 +84,30 @@ services:
       retries: 40
       start_period: 10s
     ports: ["127.0.0.1:8012:8001"]
+    restart: "no"
+
+  # Isolated, throw-away Keycloak for the rehearsal SSO e2e: own scratch DB + role (rec_kc_<ts>, created by scratch_sso
+  # prepare), NO published ports, not behind the edge, removed by recover.sh after every rehearsal. Same image as production.
+  # KC_HOSTNAME = the internal URL used by BOTH the rehearsal backend and the e2e (which runs inside it) → issuer validation
+  # genuinely passes (nothing disabled).
+  rehearsal-keycloak:
+    profiles: ["recovery"]
+    image: ${REHEARSAL_KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.8.1}
+    command: ["start-dev", "--http-port=8080", "--health-enabled=true"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: ${KC_DB_URL:-jdbc:postgresql://postgres:5432/rec-kc-not-set}
+      KC_DB_USERNAME: ${KC_DB_USERNAME:-rec-kc-not-set}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-}
+      KC_HOSTNAME: http://rehearsal-keycloak:8080
+      KC_HOSTNAME_STRICT: "true"
+      KC_HTTP_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 20s
     restart: "no"

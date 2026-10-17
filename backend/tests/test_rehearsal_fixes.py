@@ -204,3 +204,68 @@ def test_e2e_redaction():
     s = e2e_sso.redact('GET https://kc/x?code=abc&state=def&session_state=ghi → 302 {"access_token": "eyJx", "id_token": "eyJy"} Bearer eyJz password=hunter2')
     for leak in ("abc", "def", "ghi", "eyJx", "eyJy", "eyJz", "hunter2"):
         assert leak not in s
+
+
+# ---------------- scratch SSO: cleanup on failure, no secret output, wrong-password accounting
+def test_scratch_sso_cleanup_runs_after_failed_setup_and_never_prints_secrets(tmp_path):
+    ts = "20991231t235959"
+    env = {**os.environ, "RECOVERY_DIR": str(tmp_path)}
+    run = lambda *a: subprocess.run([sys.executable, "-m", "app.tools.recovery", "scratch-sso", *a, "--ts", ts],  # noqa: E731
+                                    cwd=ROOT / "backend", env=env, capture_output=True, text=True, timeout=120)
+    run("cleanup-finish", "--container-rc", "0")  # leftovers of an earlier aborted test run
+    p = run("prepare")
+    assert p.returncode == 0, p.stderr
+    kc_env = (tmp_path / f"scratch-sso-{ts}" / "kc.env").read_text()
+    assert oct((tmp_path / f"scratch-sso-{ts}" / "kc.env").stat().st_mode)[-3:] == "600"
+    secret = re.search(r"KC_DB_PASSWORD=(\S+)", kc_env).group(1).strip("'")
+    (tmp_path / f"rehearsal-{ts}.json").write_text(json.dumps({"ts": ts, "plan_hash": "x", "failures": [], "passed": True}))
+    s = run("setup", "--kc-url", "http://127.0.0.1:1", "--app-url", "http://127.0.0.1:2")    # scratch Keycloak never came up
+    assert s.returncode != 0
+    f = run("cleanup-finish", "--container-rc", "0")
+    body = json.loads((tmp_path / f"rehearsal-{ts}.json").read_text())
+    assert body["passed"] is False and any("setup failed" in x for x in body["failures"])
+    assert body["scratch_sso"]["cleanup"][f"scratch Keycloak DB + role rec_kc_{ts} dropped"] is True
+    assert not (tmp_path / f"scratch-sso-{ts}").exists()
+    from sqlalchemy import create_engine, text
+
+    from app.tools import recovery as rv
+    with create_engine(rv.admin_url()).connect() as c:
+        assert c.execute(text("select count(*) from pg_roles where rolname = :r"), {"r": f"rec_kc_{ts}"}).scalar() == 0
+        assert c.execute(text("select count(*) from pg_database where datname = :r"), {"r": f"rec_kc_{ts}"}).scalar() == 0
+    for blob in [p.stdout + p.stderr, s.stdout + s.stderr, f.stdout + f.stderr, *(x.read_text() for x in tmp_path.rglob("*") if x.is_file())]:
+        assert secret not in blob
+
+
+def _fake_e2e(monkeypatch, wrong_accepted: bool, right_accepted: bool):
+    import httpx
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import e2e_sso as e
+    e.R.clear()
+    app = httpx.Client(base_url="http://reh", transport=httpx.MockTransport(
+        lambda r: httpx.Response(200, json={"oidc_enabled": True, "demo_login_enabled": False})))
+    monkeypatch.setattr(e, "client", lambda **kw: app)
+
+    def drive(_app, _b, _start, fields):
+        ok = right_accepted if not fields["password"].endswith("-wrong") else wrong_accepted
+        path = e.CALLBACK if ok else "/realms/x/login-actions/authenticate"
+        return httpx.Response(302 if ok else 200, headers={"location": "/c?oidc_code=1"} if ok else {},
+                              request=httpx.Request("GET", f"http://reh{path}"))
+    monkeypatch.setattr(e, "drive", drive)
+    monkeypatch.setattr(e, "exchange", lambda *_: None)
+    monkeypatch.setenv("E2E_PASSWORD", "pw")
+    a = type("A", (), {"base": "http://reh", "user": "u", "insecure_cookies": False, "no_wrong_password": False, "demo": False,
+                       "protected": "/p", "restricted": "/r", "register": False})()
+    e.run(a)
+    return {n: ok for n, ok, _ in e.R}
+
+
+def test_wrong_password_accepted_by_keycloak_is_a_fail_not_a_pass(monkeypatch):
+    st = _fake_e2e(monkeypatch, wrong_accepted=True, right_accepted=True)
+    assert st["negative: wrong password rejected by Keycloak (expected rejection, NOT a login)"] is False
+
+
+def test_rejected_positive_login_is_a_fail(monkeypatch):
+    st = _fake_e2e(monkeypatch, wrong_accepted=False, right_accepted=False)
+    assert st["negative: wrong password rejected by Keycloak (expected rejection, NOT a login)"] is True
+    assert st["login: Keycloak accepted credentials → callback (auth code + PKCE)"] is False
+

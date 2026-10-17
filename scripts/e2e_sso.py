@@ -142,12 +142,18 @@ def main() -> int:
     ap.add_argument("--rehearsal", action="store_true", help="target is the rehearsal backend: public callbacks go to it, never to production")
     ap.add_argument("--no-wrong-password", action="store_true", help="skip the wrong-password step (live Keycloak: no brute-force counter)")
     ap.add_argument("--transcript", default="")
+    ap.add_argument("--forbid-host", action="append", default=[], help="host[:port] that must never be contacted (production)")
     a = ap.parse_args()
     CTX["rehearsal"] = a.rehearsal
     try:
         run(a)
     except Exception as exc:  # noqa: BLE001 – any abort (DNS, TLS, unexpected body) is a FAILED step with the exact error
         check(f"aborted: {type(exc).__name__}", False, str(exc))
+    if a.forbid_host:
+        def norm(h: str) -> str:
+            return h.lower().replace("localhost", "127.0.0.1")
+        hit = sorted(c for c in CTX["contacted"] if any(norm(c) == norm(f) or norm(c).split(":")[0] == norm(f) for f in a.forbid_host))
+        check("production Keycloak + backend never contacted", not hit, f"forbidden {a.forbid_host}; contacted {sorted(CTX['contacted'])}")
     if a.rehearsal and CTX["public_hosts"]:
         check("rehearsal: production backend never contacted", not (CTX["contacted"] & CTX["public_hosts"]),
               f"public callback host(s) {sorted(CTX['public_hosts'])}; contacted {sorted(CTX['contacted'])}")
@@ -183,13 +189,15 @@ def run(a) -> None:
             r = drive(app, browser(a.insecure_cookies), "/api/v1/auth/oidc/register", {**reg, "username": f"e2e-dup-{secrets.token_hex(3)}", "email": email})
             check(label, "oidc_code=" not in r.headers.get("location", ""), r.headers.get("location", str(r.status_code))[-60:])
     if not pw:
-        check("login: probe credentials available", False, "set E2E_USER/E2E_PASSWORD (rehearsal: the existing demo-launcher account) – login not tested")
+        check("login: probe credentials available", False, "no e2e credentials (rehearsal: scratch_sso setup creates the scratch user)")
     if pw:
         if not a.no_wrong_password:
             bad = drive(app, browser(a.insecure_cookies), "/api/v1/auth/oidc/login", {"username": a.user, "password": pw + "-wrong"})
-            check("wrong password rejected by Keycloak", "oidc_code=" not in bad.headers.get("location", ""), str(bad.status_code))
-        cb = drive(app, browser(a.insecure_cookies), "/api/v1/auth/oidc/login", {"username": a.user, "password": pw})
-        check("login: Keycloak accepted credentials → callback", cb.request.url.path == CALLBACK, f"{cb.request.url.path} {cb.status_code}")
+            rejected = "oidc_code=" not in bad.headers.get("location", "") and bad.request.url.path != CALLBACK
+            check("negative: wrong password rejected by Keycloak (expected rejection, NOT a login)", rejected, str(bad.status_code))
+        b = browser(a.insecure_cookies)
+        cb = drive(app, b, "/api/v1/auth/oidc/login", {"username": a.user, "password": pw})
+        check("login: Keycloak accepted credentials → callback (auth code + PKCE)", cb.request.url.path == CALLBACK, f"{cb.request.url.path} {cb.status_code}")
         tok = exchange(app, cb)
         if check("callback → one-time code exchange", tok, cb.headers.get("location", str(cb.status_code))[-120:]):
             h = {"Authorization": f"Bearer {tok['access_token']}"}
@@ -197,12 +205,18 @@ def run(a) -> None:
             check("authenticated access: /auth/me", me.status_code == 200, me.json().get("email", "") if me.status_code == 200 else str(me.status_code))
             check(f"authenticated access: {a.protected} → 200", app.get(a.protected, headers=h).status_code == 200)
             check(f"authorization denial: {a.restricted} → 403", app.get(a.restricted, headers=h).status_code == 403)
+            m2 = app.get("/api/v1/auth/me", headers=h)
+            check("session handling: same session valid on a later request", m2.status_code == 200 and m2.json().get("email") == me.json().get("email"), str(m2.status_code))
             out = app.post("/api/v1/auth/logout", headers=h).json()
-            check("logout: app token rejected", app.get("/api/v1/auth/me", headers=h).status_code == 401)
+            check("logout: old app session rejected afterwards", app.get("/api/v1/auth/me", headers=h).status_code == 401)
             es = out.get("end_session_url")
             if check("logout returns Keycloak end-session URL", es, ""):
-                r = client().get(es, follow_redirects=False)
+                r = b.get(es, follow_redirects=False)
                 check("Keycloak end-session accepted", r.status_code in (200, 302, 303), str(r.status_code))
+                again = b.get(app.get("/api/v1/auth/oidc/login", follow_redirects=False).headers.get("location", ""), follow_redirects=False)
+                check("logout: Keycloak session ended (same browser must log in again, no silent SSO)",
+                      again.status_code == 200 and form(again.text) is not None and "oidc_code=" not in again.headers.get("location", ""),
+                      f"{again.status_code} {again.headers.get('location', '')[:80]}")
     if a.demo:
         if not check("demo login enabled (Explore Demo)", prov.get("demo_login_enabled"), json.dumps(prov.get("demo_login_enabled"))):
             return

@@ -349,3 +349,18 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
   (FAIL/WARN/INFO). Per-record evidence integrity + `--accept-evidence-exceptions`. TOOL_VERSION in the plan hash + rehearsal_gate.
 - Orchestration e2e 33/33, suite 359 passed. Real Docker paths (up --wait/exec/inspect) not executed here.
 
+
+## 2026-10-17 – Rehearsal SSO on an isolated scratch Keycloak (no deploy)
+- **Removed:** the operator probe-account path (`RECOVER_E2E_USER` / `RECOVER_E2E_PASSWORD_FILE`) and all production Keycloak admin use in rehearsal. The production `keycloak-migrate` dry run is gone from rehearsal; cutover still runs its own dry run before any change.
+- **Inspection:** the credentials CSV is written only by cutover/rotate (0600). It has no role metadata, and no recovery code reads it.
+- **New `app/tools/scratch_sso.py`** (`recovery.py scratch-sso prepare|setup|cleanup-users|cleanup-finish|prod-oidc-check`):
+  - own `rec_kc_<ts>` DB and role
+  - `keycloak_config apply` against the scratch Keycloak
+  - ephemeral `rehearsal-e2e-*` user, scratch org, `leadership_viewer`
+  - scratch demo launcher
+  - cleanup on every exit path, recorded in the report
+  - restored-user fingerprint compared before/after
+- **`recovery.yml`:** `rehearsal-keycloak` (26.8.1, no ports, project network only). The rehearsal backend uses scratch OIDC values.
+- **e2e:** `--forbid-host`, wrong-password counted only as an expected rejection, session handling, Keycloak-session-ended check.
+- **Validated:** real pod run, 20/20 SSO steps, cleanup complete. Orchestration E2E passed; full suite 360 passed, 27 skipped. The Docker compose path was static-checked only.
+- **Droplet:** `sudo ./recover.sh run` (no inputs).

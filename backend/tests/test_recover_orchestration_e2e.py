@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 import pytest
@@ -25,7 +26,7 @@ REP = Path("/tmp/recrep")
 W = Path("/tmp/recorch")
 RUN, PRE = W / "recovery", W / "predeploy"
 BASE = os.environ.get("RECOVERY_BASE_DATABASE_URL", "")
-LIVE, REH = 8014, 8015
+LIVE, REH, SCRATCH_KC = 8014, 8015, 8091
 ROWS: list[tuple[str, str, str]] = []
 ADMIN_S3 = ("recadmin", "rec-admin-secret-0123456789abcdef")
 
@@ -92,10 +93,27 @@ for _ in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:{LIVE}/api/v1/he
     (W / "rehearsal-backend.sh").write_text(f"""#!/bin/bash
 cd {BACKEND}
 pkill -f "uvicorn app.main:app --host 127.0.0.1 --port {REH}" || true; sleep 1
+# test-only: record every scratch secret (values exist only in this process env / 0600 files) so the test can grep all outputs
+printf '%s\\n' "$KC_DB_PASSWORD" "$KC_BOOTSTRAP_ADMIN_PASSWORD" "$SCRATCH_OIDC_CLIENT_SECRET" "$SCRATCH_DEMO_PASSWORD" \\
+  "$SCRATCH_DEMO_LAUNCHER_CLIENT_SECRET" "$SCRATCH_BACKEND_CLIENT_SECRET" "$(sed -n 2p "$RECOVERY_DIR/.e2e-credentials" 2>/dev/null)" >> {W}/captured-secrets
 DATABASE_URL="$(python3 -c 'import sys;from sqlalchemy.engine import make_url;print(make_url(sys.argv[1]).set(database=sys.argv[2]).render_as_string(hide_password=False))' "$RECOVERY_BASE" "$REHEARSAL_DB")" \\
   S3_BUCKET="$REHEARSAL_BUCKET" S3_ACCESS_KEY_ID={ADMIN_S3[0]} S3_SECRET_ACCESS_KEY={ADMIN_S3[1]} SEED_DEMO_DATA=false \\
+  KEYCLOAK_URL="$SCRATCH_KC_URL" OIDC_ISSUER="$SCRATCH_OIDC_ISSUER" OIDC_CLIENT_ID=ironvision-app OIDC_CLIENT_SECRET="$SCRATCH_OIDC_CLIENT_SECRET" \\
+  OIDC_REDIRECT_URI="$SCRATCH_APP_URL/api/v1/auth/oidc/callback" OIDC_POST_LOGOUT_REDIRECT_URI="$SCRATCH_APP_URL/login" FRONTEND_URL="$SCRATCH_APP_URL" \\
+  KEYCLOAK_DEMO_LAUNCHER_CLIENT_ID=ironvision-demo-launcher KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET="$SCRATCH_DEMO_LAUNCHER_CLIENT_SECRET" \\
+  KEYCLOAK_DEMO_USERNAME="$SCRATCH_DEMO_USERNAME" KEYCLOAK_DEMO_PASSWORD="$SCRATCH_DEMO_PASSWORD" KEYCLOAK_BACKEND_CLIENT_SECRET="$SCRATCH_BACKEND_CLIENT_SECRET" \\
+  KEYCLOAK_CONFIGURATOR_CLIENT_SECRET= ALLOW_DEMO_LOGIN=true DEPLOYMENT_KIND=demo \\
   setsid nohup {py} -m uvicorn app.main:app --host 127.0.0.1 --port {REH} > {W}/rehearsal.log 2>&1 < /dev/null &
 for _ in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:{REH}/api/v1/health/live && exit 0; sleep 1; done; exit 1
+""")
+    (W / "scratch-kc.sh").write_text(f"""#!/bin/bash
+# local stand-in for the rehearsal-keycloak compose service: a SECOND Keycloak 26.8.1 process (scratch DB via KC_DB_* env)
+case $1 in
+start) JAVA_HOME="$(. /opt/kc/kcenv.sh >/dev/null; echo "$JAVA_HOME")"; export JAVA_HOME; cd /opt/kc/keycloak  # ONLY JAVA_HOME: kcenv also exports the production pod Keycloak's KC_DB_*/bootstrap secrets
+  setsid nohup bin/kc.sh start-dev --http-port {SCRATCH_KC} --http-management-port 9091 --health-enabled=true > {W}/scratch-kc.log 2>&1 < /dev/null &
+  for _ in $(seq 1 150); do curl -sf -o /dev/null http://127.0.0.1:{SCRATCH_KC}/realms/master && exit 0; sleep 2; done; exit 1;;
+stop) pkill -f -- "--http-port {SCRATCH_KC}"; for _ in $(seq 1 40); do pgrep -f -- "--http-port {SCRATCH_KC}" >/dev/null || exit 0; sleep 1; done; exit 1;;
+esac
 """)
 
 
@@ -146,7 +164,6 @@ def world():
     for ku in httpx.get(adm, params={"max": 1000}, headers={"Authorization": f"Bearer {tok}"}).json():
         if (ku.get("username") or "").endswith("@aegisrmf.demo") or (ku.get("email") or "").endswith("@aegisrmf.demo"):
             httpx.delete(f"{adm}/{ku['id']}", headers={"Authorization": f"Bearer {tok}"})
-    ensure_probe_account()  # after hygiene: the operator's pre-existing probe account (before any run)
     pg = make_url(BASE)
     (W / "env.production").write_text(f"APP_ENV=production\nDEPLOYMENT_KIND=demo\nPOSTGRES_USER={pg.username}\nPOSTGRES_PASSWORD={pg.password}\n"
                                       f"DATABASE_URL={u('rec_live_prod')}\n")
@@ -208,7 +225,9 @@ def recover_env(**kw) -> dict:
          "RECOVER_LIVE_URL": f"http://127.0.0.1:{LIVE}", "RECOVER_E2E_INSECURE": "1", "RECOVER_LOCAL_RESTART_CMD": f"bash {ROOT}/scripts/pod_seaweedfs.sh",
          "RECOVER_KEYCLOAK_DATABASE_URL": f"postgresql+psycopg://keycloak_test:{os.environ['KC_DB_PASSWORD']}@127.0.0.1:5432/keycloak_test",
          "RECOVER_S3_ADMIN_ACCESS_KEY_ID": ADMIN_S3[0], "RECOVER_S3_ADMIN_SECRET_ACCESS_KEY": ADMIN_S3[1],
-         "RECOVER_E2E_USER": PROBE_USER, "RECOVER_E2E_PASSWORD": PROBE_PW, **live_env(u("rec_live_prod"), LIVE)}
+         "RECOVER_SCRATCH_KC_URL": f"http://127.0.0.1:{SCRATCH_KC}", "RECOVER_LOCAL_SCRATCH_KC_START": f"bash {W}/scratch-kc.sh start",
+         "RECOVER_LOCAL_SCRATCH_KC_STOP": f"bash {W}/scratch-kc.sh stop", "RECOVER_FORBIDDEN_HOSTS": f"{PROD_KC},127.0.0.1:{LIVE}",
+         **live_env(u("rec_live_prod"), LIVE)}
     e.pop("DATABASE_URL", None)  # recover.sh follows the env file
     venv = os.environ.get("RECOVERY_VENV")  # the clean recovery-image venv (requirements.recovery.txt only)
     e["PATH"] = f"{W / 'bin'}:" + (f"{venv}/bin:" if venv else "") + os.environ["PATH"]  # docker shim first
@@ -232,8 +251,10 @@ def snapshot() -> dict:
             "bucket": sorted(o["Key"] for o in s3().list_objects_v2(Bucket="evidence-live").get("Contents", []))}
 
 
-def kc_users() -> int:
-    return httpx.get(f"{os.environ['KEYCLOAK_URL']}/admin/realms/ironvision-demo/users/count", headers=kc_admin()).json()
+def kc_users() -> list:
+    """Fingerprint of every user in the PRODUCTION stand-in Keycloak (id, username, email, enabled, names) – must not change."""
+    us = httpx.get(f"{os.environ['KEYCLOAK_URL']}/admin/realms/ironvision-demo/users", headers=kc_admin(), params={"max": 1000}).json()
+    return sorted((x["id"], x["username"], x.get("email"), x.get("enabled"), x.get("firstName"), x.get("lastName")) for x in us)
 
 
 def kc_admin() -> dict:
@@ -243,17 +264,7 @@ def kc_admin() -> dict:
     return {"Authorization": f"Bearer {tok}"}
 
 
-PROBE_USER, PROBE_PW = "isso@aegisrmf.demo", f"Rehearsal-Probe-{os.urandom(6).hex()}!"  # fresh per session: realm password history
-
-
-def ensure_probe_account() -> None:
-    """Operator preparation (done BEFORE `run`, like on the Droplet): an existing non-admin Keycloak account for the rehearsal
-    login probe. The rehearsal itself never creates or modifies Keycloak users."""
-    base, h = f"{os.environ['KEYCLOAK_URL']}/admin/realms/ironvision-demo/users", kc_admin()
-    httpx.post(base, headers=h, json={"username": PROBE_USER, "email": PROBE_USER, "emailVerified": True, "enabled": True,
-                                     "firstName": "Probe", "lastName": "ISSO"})
-    uid = httpx.get(base, headers=h, params={"username": PROBE_USER, "exact": "true"}).json()[0]["id"]
-    httpx.put(f"{base}/{uid}/reset-password", headers=h, json={"type": "password", "value": PROBE_PW, "temporary": False}).raise_for_status()
+PROD_KC = urlparse(os.environ.get("KEYCLOAK_URL", "http://localhost:8090")).netloc
 
 
 def db_name() -> str:
@@ -324,13 +335,31 @@ def test_recover_operator_flow(world):
     need = {"login: Keycloak accepted credentials → callback", "callback → one-time code exchange", "authenticated access: /auth/me",
             "authorization denial: /api/v1/admin/identity-mappings → 403", "logout: app token rejected",
             "demo login (Explore Demo, Option B launcher)", "role switch → ISSM", "rehearsal: production backend never contacted"}
-    step("rehearsal SSO e2e: every step passed for real (login, callback, access, denial, logout, demo launcher, role switch; no faked pass)",
-         e2e.get("rc") == 0 and need <= names and all(s["pass"] for s in e2e["steps"]) and rh["probe_passed"] and rh["tool_version"],
-         json.dumps(e2e)[:1500])
+    need = {"login: Keycloak accepted credentials → callback (auth code + PKCE)", "callback → one-time code exchange", "authenticated access: /auth/me",
+            "authorization denial: /api/v1/admin/identity-mappings → 403", "session handling: same session valid on a later request",
+            "logout: old app session rejected afterwards", "logout: Keycloak session ended (same browser must log in again, no silent SSO)",
+            "negative: wrong password rejected by Keycloak (expected rejection, NOT a login)",
+            "demo login (Explore Demo, Option B launcher)", "role switch → ISSM", "production Keycloak + backend never contacted"}
+    step("rehearsal SSO e2e against the ISOLATED scratch Keycloak: every step passed for real (nothing skipped, no existing account)",
+         e2e.get("rc") == 0 and need <= names and all(s["pass"] for s in e2e["steps"]) and rh["probe_passed"] and rh["tool_version"]
+         and sum("accepted credentials" in s["step"] for s in e2e["steps"]) == 1, json.dumps(e2e)[:1500])
+    ss = rh.get("scratch_sso") or {}
+    step("scratch SSO: same keycloak_config code, ephemeral rehearsal-e2e-* user + scratch demo launcher, issuer = scratch Keycloak",
+         ss.get("keycloak_config", {}).get("rc") == 0 and ss["kc_users"]["e2e"]["username"].startswith("rehearsal-e2e-")
+         and ss.get("issuer", "").startswith(f"http://127.0.0.1:{SCRATCH_KC}/") and PROD_KC not in json.dumps(ss), json.dumps(ss)[:800])
+    step("scratch SSO cleanup recorded and complete: KC users, scratch container, scratch KC DB + role, secret files; restored users untouched",
+         ss.get("cleanup_ok") and ss["restored_before"] == ss["restored_after"] and ss["restored_before"]["users"] >= 8
+         and not list(RUN.glob("scratch-sso-*/")) and sql("postgres", f"select count(*) from pg_roles where rolname = 'rec_kc_{rh['ts']}'")[0][0] == 0
+         and sql("postgres", f"select count(*) from pg_database where datname = 'rec_kc_{rh['ts']}'")[0][0] == 0
+         and subprocess.run(["pgrep", "-f", "--", f"--http-port {SCRATCH_KC}"], capture_output=True).returncode == 1, json.dumps(ss.get("cleanup")))
+    secrets_ = [s for s in (W / "captured-secrets").read_text().splitlines() if len(s) >= 12]
+    blobs = {str(p): p.read_bytes() for p in [*RUN.rglob("*"), *W.glob("*.log")] if p.is_file()}
+    leaks = [(f, s[:4]) for f, b in blobs.items() for s in secrets_ if s.encode() in b]
+    step("no scratch secret / generated password in any report, transcript, json or log", len(secrets_) >= 7 and not leaks, json.dumps(leaks[:5]))
     tr = Path(e2e.get("transcript", "/nonexistent"))
     step("rehearsal e2e transcript + stdout/stderr saved in the report dir, secrets redacted",
-         tr.is_file() and Path(e2e["stdout_stderr"]).is_file() and "REHEARSAL: callback for" in tr.read_text()
-         and "access_token\": \"ey" not in tr.read_text() and PROBE_PW not in tr.read_text() and PROBE_PW not in Path(e2e["stdout_stderr"]).read_text()
+         tr.is_file() and Path(e2e["stdout_stderr"]).is_file() and "access_token\": \"ey" not in tr.read_text()
+         and not [ln for ln in tr.read_text().splitlines() if PROD_KC in ln and not ln.startswith("STEP ")]
          and not (RUN / ".e2e-credentials").exists(), str(tr))
     ig = rh["result"]["objects"]["integrity"]
     step("evidence integrity: every record mapped + SHA-256-checked; the replica's 2 planted defects are exact exceptions, not silently passed",

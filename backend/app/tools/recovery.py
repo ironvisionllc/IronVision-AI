@@ -33,11 +33,11 @@ CATALOG = {  # natural keys (+ content-version hashes) – UUIDs legitimately di
 }
 TRANSIENT = {"auth_sessions", "oidc_pending", "oidc_login_codes", "login_attempts", "worker_heartbeats"}
 VOLATILE = TRANSIENT | {"audit_events", "jobs", "notifications", "integrity_checks", "ai_interactions"}
-SCRATCH = re.compile(r"^(rec_(src|prod|target)_\d{8}t\d{6}|ironvision_recovered_\d{8}t\d{6})$")
+SCRATCH = re.compile(r"^(rec_(src|prod|target|kc)_\d{8}t\d{6}|ironvision_recovered_\d{8}t\d{6})$")
 # Part of every plan hash and recorded in every rehearsal: a plan/rehearsal produced by another tool version is refused by
 # apply/cutover (bumped when rehearsal semantics change – 2026.10.17: probes run inside the rehearsal backend's namespace,
 # full SSO e2e without a faked pass, per-record evidence integrity).
-TOOL_VERSION = "2026.10.17-rehearsal-v2"
+TOOL_VERSION = "2026.10.17-rehearsal-v3-scratch-sso"
 
 
 class RecoveryError(Exception):
@@ -751,15 +751,12 @@ def kc_dry_run(url: str, t: str) -> str:
     return redact((r.stdout + r.stderr)[-3000:])
 
 
-def kc_link_scratch(url: str, t: str) -> dict:
-    """The cutover's Keycloak step, run against the SCRATCH rehearsal DB only: `keycloak-migrate --apply --link` WITHOUT
-    --create-identities = Keycloak is only READ (admin API GETs); identity mappings + audit rows are written to the scratch DB.
-    Makes the rehearsal SSO / demo-launcher probes test exactly what cutover will produce – no faked pass."""
-    if not os.environ.get("KEYCLOAK_URL"):
-        return {"rc": 0, "output": "skipped (KEYCLOAK_URL not set)"}
+def kc_link_scratch(url: str, t: str, env: dict) -> dict:
+    """`keycloak-migrate --apply --link` (no --create-identities) into the SCRATCH rehearsal DB, against the SCRATCH Keycloak
+    given in `env` (scratch_sso.setup) – never the production Keycloak. Maps the scratch demo-launcher identity."""
     if not SCRATCH.match(make_url(url).database or "") or make_url(url).database == make_url(live_url()).database:
         raise RecoveryError(f"refusing Keycloak link into non-scratch DB {make_url(url).database}")
-    env, cwd = {**os.environ, "DATABASE_URL": url}, Path(__file__).resolve().parents[2]
+    env, cwd = {**env, "DATABASE_URL": url}, Path(__file__).resolve().parents[2]
     rep = RDIR / f"keycloak-link-scratch-{t}.json"
     r = subprocess.run([sys.executable, "-m", "app.cli", "keycloak-migrate", "--report", str(rep)], env=env, capture_output=True, text=True, cwd=cwd, check=False)
     if r.returncode:
@@ -781,6 +778,22 @@ def write_report(kind: str, t: str, body: dict) -> None:
     lines = [f"# IronVision recovery {kind} {t}", "", f"- plan-hash: `{body.get('plan_hash')}`", f"- result: **{'PASS' if body.get('passed') else 'FAIL'}**"]
     for w in body.get("failures", []):
         lines.append(f"  - {w}")
+    ss = body.get("scratch_sso")
+    if ss:
+        lines += ["", "## Scratch SSO stack (isolated Keycloak – production Keycloak not contacted)", "",
+                  f"- issuer: `{ss.get('issuer')}`; scratch Keycloak DB/role: `{(ss.get('kc_db') or {}).get('database')}`",
+                  (f"- e2e user: `{((ss.get('kc_users') or {}).get('e2e') or {}).get('username')}` (leadership_viewer, scratch org); "
+                   f"demo launcher: `{((ss.get('kc_users') or {}).get('demo_launcher') or {}).get('username')}`"),
+                  f"- restored users before/after: {ss.get('restored_before')} / {ss.get('restored_after')}",
+                  "- cleanup: " + ("**OK**" if ss.get("cleanup_ok") else "**INCOMPLETE – see items; production untouched**")]
+        lines += [f"  - {k}: {'✓' if v else '✗'}" for k, v in (ss.get("cleanup") or {}).items() if isinstance(v, bool)]
+    e2e = (body.get("backend_probe") or {}).get("e2e_sso") if isinstance(body.get("backend_probe"), dict) else None
+    if e2e:
+        lines += ["", "## SSO e2e steps (scratch stack)", "", "| step | result | detail |", "|---|---|---|"]
+        lines += [f"| {s['step']} | {'PASS' if s['pass'] else 'FAIL'} | {s['detail'][:120]} |" for s in e2e.get("steps", [])]
+    pc = body.get("production_keycloak_anonymous_check")
+    if pc:
+        lines += ["", "## Production Keycloak – anonymous read-only check (separate from the SSO e2e; no login)", "", f"- {json.dumps(pc)}"]
     if body.get("result"):
         r = body["result"]
         lines += ["", "## Row-count reconciliation", "", "| table | source | production | target | expected | ok | explanation |", "|---|---|---|---|---|---|---|"]
@@ -827,11 +840,8 @@ def cmd_rehearse(a) -> int:
     try:
         body["result"] = _run_recovery(t, db_url(prodc), f"rec_target_{t}", bucket, admin_bucket=True)
         body["failures"] = _passed(body["result"])
-        body["keycloak_migrate_dry_run"] = kc_dry_run(db_url(f"rec_target_{t}"), t)
-        body["keycloak_scratch_link"] = kc_link_scratch(db_url(f"rec_target_{t}"), t)
-        if body["keycloak_scratch_link"]["rc"]:
-            body["failures"].append(f"Keycloak link into the SCRATCH rehearsal DB failed (cutover would fail the same way): "
-                                    f"{body['keycloak_scratch_link']['output'][-300:]}")
+        # no production-Keycloak admin access in the rehearsal: identity planning/conflicts are checked by cutover's own
+        # keycloak-migrate dry run before any change; SSO is tested against an isolated scratch Keycloak (scratch_sso)
         sc = body["result"]["build"].get("source_counts") or {}
         body["source_facts"] = {k: {"expected": v, "actual": sc.get(k), "ok": sc.get(k) == v} for k, v in FACTS.items()}
         bad = {k: x for k, x in body["source_facts"].items() if not x["ok"]}
@@ -849,8 +859,10 @@ def cmd_rehearse(a) -> int:
 
 
 def cleanup(body: dict) -> None:
-    for d in body["scratch"]["dbs"]:
+    for d in [*body["scratch"]["dbs"], f"rec_kc_{body['ts']}"]:
         drop_scratch_db(d)
+    with create_engine(admin_url(), isolation_level="AUTOCOMMIT").connect() as c:  # scratch Keycloak role leftover
+        c.exec_driver_sql(f'drop role if exists "rec_kc_{body["ts"]}"') if SCRATCH.match(f"rec_kc_{body['ts']}") else None
     cl = s3(True)
     for o in bucket_manifest(body["scratch"]["bucket"]):
         cl.delete_object(Bucket=body["scratch"]["bucket"], Key=o["key"])
@@ -882,7 +894,7 @@ def cmd_rehearse_probe(a) -> int:
     body["probe_context"] = ctx
     if a.e2e:
         env = dict(os.environ)
-        cred = RDIR / ".e2e-credentials"  # written 0600 by recover.sh from RECOVER_E2E_USER + RECOVER_E2E_PASSWORD(_FILE); read once, deleted
+        cred = RDIR / ".e2e-credentials"  # written 0600 by scratch_sso setup (scratch user, random password); read once, deleted
         if cred.is_file():
             user, _, pw = cred.read_text().partition("\n")
             cred.unlink()
@@ -890,7 +902,9 @@ def cmd_rehearse_probe(a) -> int:
             ctx["login_account"] = user.strip()
         tr = RDIR / f"e2e-sso-{body['ts']}.transcript.log"
         cmd = [sys.executable, str(Path(__file__).resolve().parents[3] / "scripts" / "e2e_sso.py"), "--base", url, "--demo", "--json",
-               "--rehearsal", "--no-wrong-password", "--transcript", str(tr)]
+               "--rehearsal", "--transcript", str(tr), "--user", env.get("E2E_USER", "")]
+        for h in filter(None, (os.environ.get("REHEARSAL_FORBIDDEN_HOSTS") or "").split(",")):
+            cmd += ["--forbid-host", h.strip()]
         if (env.get("OIDC_ISSUER") or "").startswith("http://"):  # plain-http TEST Keycloak only (Secure cookies); never for https
             cmd.append("--insecure-cookies")
         r = subprocess.run(cmd, capture_output=True, text=True, check=False, env=env, timeout=600)
@@ -1187,5 +1201,9 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     t0 = time.time()
+    if sys.argv[1:2] == ["scratch-sso"]:  # recover.sh `py scratch-sso …` → isolated rehearsal SSO stack
+        from app.tools import scratch_sso
+        sys.argv = [sys.argv[0], *sys.argv[2:]]
+        sys.exit(scratch_sso.main())
     rc = main()
     sys.exit(rc)

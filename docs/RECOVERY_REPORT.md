@@ -276,13 +276,7 @@ Recovery image, static check, selfcheck 114/114, legacy backups and the 0009→0
 | 5 | "evidence NOT verified" despite 44 exported objects | That text was the *static* `sources` note ("not verified until the rehearsal…"). The rehearsal had no per-record result to show, and storage keys were matched only exactly or as a `/<key>` suffix. Bucket-prefixed (`evidence/<key>` vs bucket-relative export), `s3://bucket/` URL, leading-`/` and URL-encoded keys were all MISSING, and only the preferred bucket was used when several were exported. Exact Droplet cause not observable from here; the new report shows it per record. | Per evidence record: VERIFIED / MISSING / MISMATCH / UNREADABLE, with source object, how the key was matched (`matched_by`) and the actual SHA on mismatch. Identical bytes found under another key are reported as a key-mapping **hint**, never counted as verified. Every unreferenced object is listed with key, bytes and classification (older version, delete marker, thumbnail/export/policy, `.minio.sys`, same bytes as evidence…). The report gives exact counts (`records`, `verified`, `verified_from_source`, `verified_in_production`, `objects_in_source`, `orphans`). Multiple exported buckets are all given to the rehearsal. **Complete only if every record verifies.** Otherwise `run` prints the exceptions hash, and cutover/apply refuse unless `--accept-evidence-exceptions <hash>` matches exactly. |
 | 6 | plan-hash e4c831f4a432b3b4 must not be usable | Apply only checked "passed" + plan hash. | `TOOL_VERSION = 2026.10.17-rehearsal-v2` is part of every plan hash and recorded in every rehearsal. `rehearsal_gate()` refuses: no rehearsal for this hash, other/no tool version, any failure, no passing probe + SSO e2e. `evidence_gate()` refuses incomplete evidence without the exact ack. e4c831f4a432b3b4 (pre-v2, failed rehearsal) is therefore refused on two counts. |
 
-**What the rehearsal touches on the live Keycloak (auth.demo.ironvisionai.com, realm ironvision-demo)**
-- **Reads only (admin API GETs):** the `keycloak-migrate` dry run and scratch link.
-- **Login sessions:** one browser login with the operator-chosen probe account and one demo-launcher password grant. Both sessions are ended by the logout / end-session steps. Keycloak login events are recorded if event storage is enabled.
-- **No writes:** no user, credential, attribute, group or mapping is created or changed in Keycloak, and identity mappings are written only to the scratch rehearsal DB.
-- **No lockout risk:** there is no wrong-password attempt (`--no-wrong-password`), so brute-force counters are never incremented.
-- **Probe account:** an **existing non-admin** Keycloak account chosen by the operator (`RECOVER_E2E_USER` + `RECOVER_E2E_PASSWORD_FILE`). It is passed through a 0600 file in the report dir that is deleted on read, and never on a command line. Without it the login steps FAIL; they are not skipped. The demo-launcher account cannot be used: the browser flow denies it by design.
-- **Production DB:** never written. `run` is read-only, and the E2E proves the production DB, bucket and Keycloak user count are unchanged.
+**Superseded by §14.** The rehearsal no longer contacts production Keycloak for SSO, uses no operator probe account, and needs no `RECOVER_E2E_*` input.
 
 **What ran where (no Docker daemon in this pod)**
 
@@ -295,4 +289,46 @@ Recovery image, static check, selfcheck 114/114, legacy backups and the 0009→0
 | `up --wait`, healthcheck, `exec` inside rehearsal-backend, `docker inspect` networks | **not executed** (YAML + shellcheck only) – first real run is on the Droplet |
 | full workflow (run → cutover refused without/with wrong ack → cutover → rollback → failed cutover auto-rollback → run → cutover → finalize), Docker **shim** for legacy containers, real pod Postgres/Keycloak 26/SeaweedFS, clean `--no-deps` recovery venv | shim + real services |
 
+**Production actions:** none.
+
+## 14. Rehearsal SSO on an isolated scratch Keycloak (no restored users, no production Keycloak)
+
+**Inspection (report only, no password read):**
+- `keycloak-migrate` writes `/srv/ironvision/secrets/*.csv` only with `--create-identities` (cutover) or `rotate`.
+- Files are created 0600 with `O_EXCL` in a 0700 directory.
+- Columns: `email, keycloak_username, password, temporary`. There is **no role metadata**, so non-admins can only be identified by joining `role_assignments` in the app DB.
+- No recovery code reads these files; `recovery.py` only passes `--credentials-dir`.
+- The only password-input path was the operator probe account (`RECOVER_E2E_USER` / `RECOVER_E2E_PASSWORD_FILE`). It is **removed**.
+
+**Design:**
+
+| Piece | What it does |
+|---|---|
+| `deploy/compose/recovery.yml` → `rehearsal-keycloak` | Keycloak **26.8.1** (`REHEARSAL_KEYCLOAK_IMAGE`, default `quay.io/keycloak/keycloak:26.8.1`), `start-dev`, profile `recovery`, project network only, **no `ports:`**, not behind nginx. Hostname `http://rehearsal-keycloak:8080`, so issuer = `http://rehearsal-keycloak:8080/realms/ironvision-demo` for the setup tool, the rehearsal backend and the e2e browser alike. |
+| `scratch-sso prepare` | Creates its own DB **and** role `rec_kc_<ts>` (random password, matches the `SCRATCH` regex) on the rehearsal Postgres. Bootstrap admin is random. Secrets go to `RDIR/scratch-sso-<ts>/` (0700 dir, 0600 files), never to `.env.production`. |
+| `scratch-sso setup` | Runs the **production `keycloak_config apply`** code against the scratch Keycloak, in a controlled env that inherits no production `KEYCLOAK_*`/`OIDC_*` value. This sets up realm `ironvision-demo`, clients `ironvision-app` and `ironvision-demo-launcher`, and a scratch demo-launcher user. It then creates the `rehearsal-e2e-<hex>@rehearsal.invalid` user, a dedicated scratch org (`rehearsal-sso-<ts>`), and an app user with **only** `leadership_viewer`, mapped by (scratch issuer, sub). The demo launcher is linked in the scratch DB. |
+| rehearsal-backend | `OIDC_*`, `KEYCLOAK_*` and demo-launcher values are overridden with scratch values. Configurator/admin secrets are blanked. Issuer, audience, signature, state, nonce and PKCE validation are unchanged. |
+| e2e | `--forbid-host <prod OIDC host>,<APP_DOMAIN>` makes every request to a forbidden host fail the run. The wrong-password step is enabled; it counts only as an expected rejection, never as a login. |
+| `scratch-sso cleanup-users` / `cleanup-finish` | Run on **every** exit path (trap): delete the scratch Keycloak users, run `compose rm -sf rehearsal-keycloak` (scratch container only), remove the scratch org and user, drop the `rec_kc_<ts>` DB and role, delete the secret files. Each item is recorded in the rehearsal JSON/MD, and an incomplete cleanup is a rehearsal **FAIL**. |
+| Restored users | The fingerprint of users, roles and identities (excluding the scratch org, the demo user and sandbox personas) is taken before and after, and must be equal. |
+| Production Keycloak | Gets only an **anonymous** discovery + JWKS GET (`prod-oidc-check`), recorded separately. There is no login and no admin API use; the production `keycloak-migrate` dry run was removed from rehearsal, and cutover still runs its own dry run before any change. |
+
+**Real local run (preview pod, real Postgres 16 and a second real Keycloak 26.8.1 process on :8091 standing in for `rehearsal-keycloak`; "production" Keycloak = :8090):** all 20 SSO steps passed:
+- **Negative:** wrong password rejected (expected rejection, not a login).
+- **Login:** auth code + PKCE → callback → one-time code exchange.
+- **Authenticated access:** `/auth/me` and `/systems` both 200.
+- **Authorization denial:** `/admin/identity-mappings` → 403.
+- **Session handling:** the same session is still valid on a later request.
+- **Logout:** the old app session is rejected, Keycloak end-session returns 302, and the same browser must log in again (no silent SSO).
+- **Demo:** demo login, role switch → ISSM, protected 200, restricted 403, logout → app token rejected.
+- **Isolation:** production Keycloak and the live backend were never contacted (only `:8015` and `:8091`).
+
+Cleanup was complete: Keycloak users deleted, scratch Keycloak stopped, scratch DB and role dropped, secret files deleted, 9 restored users unchanged. No generated secret appears in any report, transcript, JSON or log.
+
+**Orchestration E2E:** `1 passed in 351.67s`. **Not executed here (no Docker daemon):** `rehearsal-keycloak` container start, `--wait` healthcheck and compose network DNS. Compose wiring was validated statically only (YAML parse, no `ports`, profile `recovery`, image 26.8.1, shellcheck of `recover.sh`).
+
+**Droplet command (no user/password inputs):**
+```
+cd /srv/ironvision/app && git pull && sudo ./recover.sh run
+```
 **Production actions:** none.

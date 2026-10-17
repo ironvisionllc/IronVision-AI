@@ -122,14 +122,34 @@ redeploy() {
   if [ "$LOCAL" = 1 ]; then eval "${RECOVER_REDEPLOY_CMD:-true}"; else ./deploy.sh "$ENV_FILE"; fi
 }
 
-e2e_credentials() {  # existing NON-admin Keycloak account chosen by the operator (the rehearsal never creates one)
-  local pw=${RECOVER_E2E_PASSWORD:-}
-  [ -n "${RECOVER_E2E_PASSWORD_FILE:-}" ] && pw=$(cat "$RECOVER_E2E_PASSWORD_FILE")
-  if [ -n "${RECOVER_E2E_USER:-}" ] && [ -n "$pw" ]; then
-    (umask 077; printf '%s\n%s\n' "$RECOVER_E2E_USER" "$pw" > "$RDIR/.e2e-credentials")
+load_kv() {  # export plain KEY=VALUE lines written by scratch_sso (0600); parsed, never sourced/executed
+  local k v
+  while IFS='=' read -r k v; do [[ $k =~ ^[A-Z_][A-Z0-9_]*$ ]] && export "$k=$v"; done < "$1"
+}
+
+sso_up() {  # $1 rts: isolated scratch Keycloak + ephemeral identities; SCRATCH_* exported for the rehearsal backend only (never in the env file)
+  local sd="$RDIR/scratch-sso-$1"
+  py scratch-sso prepare --ts "$1" || return 1
+  load_kv "$sd/kc.env"
+  if [ "$LOCAL" = 1 ]; then
+    kcu=${RECOVER_SCRATCH_KC_URL:?RECOVER_SCRATCH_KC_URL}; app=${RECOVER_REHEARSAL_URL:?RECOVER_REHEARSAL_URL}
+    eval "${RECOVER_LOCAL_SCRATCH_KC_START:?RECOVER_LOCAL_SCRATCH_KC_START}" || return 1
   else
-    rm -f "$RDIR/.e2e-credentials"; say "WARNING: RECOVER_E2E_USER / RECOVER_E2E_PASSWORD_FILE not set – the rehearsal login steps will FAIL (never skipped)"
+    kcu=http://rehearsal-keycloak:8080; app=http://127.0.0.1:8001
+    "${DC[@]}" --profile recovery up -d --no-deps --wait --wait-timeout 300 rehearsal-keycloak 2>&1 | tee -a "$LOG" || return 1
   fi
+  py scratch-sso setup --ts "$1" --kc-url "$kcu" --app-url "$app" || return 1
+  load_kv "$sd/backend.env"
+}
+
+sso_down() {  # always (pass, fail or abort): scratch users → scratch container → scratch DB/role + secret files → report
+  local rc=0
+  trap - EXIT
+  py scratch-sso cleanup-users --ts "$1" --kc-url "${kcu:-}" || true
+  if [ "$LOCAL" = 1 ]; then eval "${RECOVER_LOCAL_SCRATCH_KC_STOP:-true}" || rc=$?
+  else "${DC[@]}" --profile recovery rm -sf rehearsal-keycloak >/dev/null 2>&1 || rc=$?; fi   # the scratch service only
+  py scratch-sso cleanup-finish --ts "$1" --container-rc "$rc" | tee -a "$LOG" || true
+  unset KC_DB_PASSWORD KC_BOOTSTRAP_ADMIN_PASSWORD SCRATCH_OIDC_CLIENT_SECRET SCRATCH_DEMO_PASSWORD SCRATCH_DEMO_LAUNCHER_CLIENT_SECRET SCRATCH_BACKEND_CLIENT_SECRET
 }
 
 rb_cid() { "${DC[@]}" --profile recovery ps -aq rehearsal-backend 2>/dev/null | head -1; }
@@ -172,7 +192,14 @@ case "$cmd" in
     cleanup=0; e2e=""; for a in "$@"; do case $a in --cleanup) cleanup=1;; --e2e) e2e=--e2e;; esac; done
     out=$(py rehearse | tee -a "$LOG"); echo "$out"
     rts=$(sed -n 's/^REHEARSAL_TS=//p' <<<"$out" | tail -1); [ -n "$rts" ] || die "rehearsal did not produce a report"
-    [ -n "$e2e" ] && e2e_credentials
+    piss=$(envget OIDC_ISSUER 2>/dev/null || true); piss=${piss:-${OIDC_ISSUER:-}}
+    if [ "$LOCAL" = 1 ]; then forbid=${RECOVER_FORBIDDEN_HOSTS:-}
+    else h=${piss#*://}; forbid="${h%%/*},$(envget APP_DOMAIN)"; fi
+    export REHEARSAL_FORBIDDEN_HOSTS=$forbid
+    if [ -n "$e2e" ]; then
+      trap 'sso_down "$rts"' EXIT
+      sso_up "$rts" || say "FAIL scratch SSO stack setup (rehearsal will FAIL; cleanup follows)"
+    fi
     if [ "$LOCAL" = 1 ]; then
       if [ -n "${RECOVER_LOCAL_REHEARSAL_BACKEND_CMD:-}" ]; then
         export REHEARSAL_DB="rec_target_$rts" REHEARSAL_BUCKET="evidence-rehearsal-${rts/t/-}"; eval "$RECOVER_LOCAL_REHEARSAL_BACKEND_CMD"
@@ -190,13 +217,15 @@ case "$cmd" in
         die "rehearsal backend not healthy – see $RDIR/rehearsal-backend-$rts.log and netdiag-$rts*.json"
       fi
       rehearsal_diag "$rts" "$iss"
-      "${DC[@]}" --profile recovery exec -T -e RECOVERY_DIR=/recovery rehearsal-backend python -m app.tools.recovery rehearse-probe \
+      "${DC[@]}" --profile recovery exec -T -e RECOVERY_DIR=/recovery -e REHEARSAL_FORBIDDEN_HOSTS rehearsal-backend python -m app.tools.recovery rehearse-probe \
         --url http://127.0.0.1:8001 --where "inside rehearsal-backend container; networks $(rb_nets)" --netdiag "/recovery/netdiag-$rts.json" $e2e | tee -a "$LOG" || true
       if [ "${RECOVER_SKIP_LIVE_RESTART:-0}" = 1 ]; then say "SeaweedFS restart check: deferred to cutover (run never restarts production services)"
       elif "${DC[@]}" restart seaweedfs && sleep 5 && py bucket-verify --db "rec_target_$rts" --bucket "evidence-rehearsal-${rts/t/-}"; then
         say "OK   SeaweedFS survived 'docker compose restart seaweedfs' (rehearsal bucket intact)"; else say "FAIL SeaweedFS restart check"; fi
       "${DC[@]}" --profile recovery stop rehearsal-backend >/dev/null
     fi
+    [ -n "$piss" ] && { py scratch-sso prod-oidc-check --issuer "$piss" | tee -a "$LOG" || true; }
+    [ -n "$e2e" ] && sso_down "$rts"
     [ "$cleanup" = 1 ] && py cleanup-rehearsal
     py status;;
   apply)
