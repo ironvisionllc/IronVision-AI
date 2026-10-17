@@ -36,8 +36,11 @@ services:
 
   rehearsal-backend:
     profiles: ["recovery"]
-    build: {context: ., dockerfile: deploy/recovery/Dockerfile}
+    image: ironvision/recovery:local
     command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    # Same configuration as the live backend (the production env file: OIDC redirect/issuer, demo launcher, CORS, …) with
+    # scratch-only overrides below. recover.sh runs the probes INSIDE this container against 127.0.0.1:8001.
+    env_file: ["${RECOVER_ENV_FILE:?RECOVER_ENV_FILE (set by recover.sh)}"]
     environment:
       <<: *recovery-env
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${REHEARSAL_DB:-rehearsal-db-not-set}
@@ -48,5 +51,15 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       SECRET_STORE_KEY: ${SECRET_STORE_KEY:-}
       WORKER_ENABLED: "false"
+      SEED_DEMO_DATA: "false"
+      RECOVERY_DIR: /recovery
+    volumes:
+      - ${RECOVERY_DIR:-/root/ironvision-recovery}:/recovery
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8001/api/v1/health/live', timeout=5)"]
+      interval: 5s
+      timeout: 6s
+      retries: 40
+      start_period: 10s
     ports: ["127.0.0.1:8012:8001"]
     restart: "no"

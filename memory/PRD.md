@@ -339,3 +339,13 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
   build profile and classified failures; root .dockerignore excludes **/.env. Recovery 114/114 + prod 107/107 under env -i,
   10 new negative tests, full workflow (scrubbed recover.sh env) PASS, suite 336 passed. Real docker build not run (no daemon).
 
+
+## 2026-10-17 – Droplet rehearsal failures (commit 9b7b7f7, plan e4c831f4a432b3b4; no deploy)
+- Probes now run inside rehearsal-backend (127.0.0.1:8001, `up --wait` + healthcheck, env_file = production env + scratch
+  overrides) with netdiag diagnostics. SSO e2e: full redacted transcript, public callback delivered to the rehearsal backend
+  (production never contacted), separate login/callback/access/denial/logout/demo/role-switch steps, operator probe account
+  (RECOVER_E2E_USER + RECOVER_E2E_PASSWORD_FILE), Keycloak link into the scratch DB only, faked-pass removed.
+- compose audit → scripts/compose_audit.py; snippet compile tests on 3.11 + 3.12. Frontend audit → scripts/frontend_url_audit.py
+  (FAIL/WARN/INFO). Per-record evidence integrity + `--accept-evidence-exceptions`. TOOL_VERSION in the plan hash + rehearsal_gate.
+- Orchestration e2e 33/33, suite 359 passed. Real Docker paths (up --wait/exec/inspect) not executed here.
+

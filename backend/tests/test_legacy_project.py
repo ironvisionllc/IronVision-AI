@@ -482,7 +482,7 @@ def test_minio_without_network_or_mc_copies_data_dir_read_only(shim, base_url, t
     assert "copied read-only" in r.stdout and "evidence NOT verified" in r.stdout and "cp aegisrmf-minio-recovery:/data -" in log
     r2 = subprocess.run([sys.executable, str(ROOT / "scripts/legacy_project.py"), "sources", "--backup", str(out), "--default-db", "/nonexistent",
                          "--default-archive", "/nonexistent.tar.gz"], capture_output=True, text=True, check=False)
-    assert f"RECOVER_OBJECT_ARCHIVE={out}/aegisrmf-minio-recovery-data.tar" in r2.stdout and "evidence NOT verified" in r2.stdout
+    assert f"RECOVER_OBJECT_ARCHIVE={out}/aegisrmf-minio-recovery-data.tar" in r2.stdout and "verification PENDING" in r2.stdout
 
 
 def test_minio_host_network_uses_loopback(shim, base_url):

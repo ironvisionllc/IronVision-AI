@@ -17,16 +17,55 @@ import os
 import re
 import secrets
 import sys
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import httpx
 
 R: list[tuple[str, bool, str]] = []
+T: list[str] = []          # full HTTP transcript (redacted) – --transcript FILE
+CTX = {"rehearsal": False, "public_hosts": set(), "app_host": "", "contacted": set()}
+_RED = [(re.compile(r"(?i)\b(code|state|session_state|nonce|oidc_code|token|access_token|refresh_token|id_token|password|client_secret|"
+                    r"credentialId|execution|tab_id|session_code|client_data)=([^&\s\"']+)"), r"\1=***"),
+        (re.compile(r"(?i)\"(access_token|refresh_token|id_token|password|client_secret|end_session_url|code)\"\s*:\s*\"[^\"]*\""), r'"\1": "***"'),
+        (re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]+"), r"\1***"),
+        (re.compile(r"(?i)(name=\"(?:password|password-confirm)\"[^>]*value=\")[^\"]*"), r"\1***")]
+TITLE = re.compile(r"<title>(.*?)</title>", re.S)
+PAGE = re.compile(r'id="kc-page-title"[^>]*>(.*?)<', re.S)
+FEEDBACK = re.compile(r"(?:kc-feedback-text|input-error[\w-]*|alert-[\w-]+)[^>]*>\s*(?:<[^>]+>\s*)*([^<]{3,200})")
+FIELDS = re.compile(r'name="([^"]+)"')
+
+
+def redact(s: str) -> str:
+    for p, r in _RED:
+        s = p.sub(r, s)
+    return s
 
 
 def check(name: str, ok: bool, detail: str = "") -> bool:
-    R.append((name, bool(ok), detail[:160]))
+    R.append((name, bool(ok), redact(detail)[:300]))
+    T.append(f"STEP {'PASS' if ok else 'FAIL'}: {name} {redact(detail)[:300]}")
     return bool(ok)
+
+
+def _log(r: httpx.Response) -> None:
+    r.read()
+    CTX["contacted"].add(r.request.url.netloc.decode())
+    body = r.text[:1500] if "json" in r.headers.get("content-type", "") or r.status_code >= 400 else f"<{len(r.content)} bytes {r.headers.get('content-type', '')}>"
+    if "html" in r.headers.get("content-type", ""):  # Keycloak page: title, feedback/errors and form fields (no values)
+        t = r.text
+        body = (f"<html {len(r.content)} bytes> title={TITLE.findall(t)[:1]} page={[x.strip() for x in PAGE.findall(t)[:1]]} "
+                f"feedback={[x.strip() for x in FEEDBACK.findall(t)[:3]]} fields={sorted(set(FIELDS.findall(t)))[:15]}")
+    T.append(redact(f"{r.request.method} {r.request.url} → {r.status_code}"
+                    + (f" location={r.headers['location']}" if "location" in r.headers else "")
+                    + (f" set-cookie={[c.split('=', 1)[0] for c in r.headers.get_list('set-cookie')]}" if "set-cookie" in r.headers else "")
+                    + f"\n    {body}"))
+
+
+def client(**kw) -> httpx.Client:
+    c = httpx.Client(timeout=20, **kw)
+    c.event_hooks["response"] = [_log]
+    return c
 
 
 def form(page: str):
@@ -38,21 +77,35 @@ def form(page: str):
 
 
 def browser(insecure: bool) -> httpx.Client:
-    b = httpx.Client(timeout=20)
+    b = client()
     if insecure:  # plain-http test Keycloak marks cookies Secure
-        b.event_hooks["response"] = [lambda _r: [setattr(c, "secure", False) for c in b.cookies.jar]]
+        b.event_hooks["response"].append(lambda _r: [setattr(c, "secure", False) for c in b.cookies.jar])
     return b
 
 
+CALLBACK = "/api/v1/auth/oidc/callback"
+
+
 def drive(app: httpx.Client, b: httpx.Client, start: str, fields: dict) -> httpx.Response:
-    """Follow app → Keycloak → app; fill username/password/registration forms with `fields`. Returns the last response."""
-    r = b.get(app.get(start, follow_redirects=False).headers["location"])
+    """Follow app → Keycloak → app; fill username/password/registration forms with `fields`. Returns the last response.
+    --rehearsal: Keycloak redirects to the PUBLIC callback (the registered redirect URI); it is delivered to the rehearsal
+    backend (like a hosts-file override) and never to the production backend."""
+    first = app.get(start, follow_redirects=False)
+    if "location" not in first.headers:
+        check(f"{start} redirects to Keycloak", False, f"{first.status_code} {first.text[:200]}")
+        return first
+    r = b.get(first.headers["location"])
     base = str(app.base_url).rstrip("/")
     for _ in range(8):
         if r.status_code in (302, 303):
             loc = r.headers["location"]
             if loc.startswith(base):
                 return app.get(loc[len(base):], follow_redirects=False)
+            u = urlparse(loc)
+            if CTX["rehearsal"] and u.path == CALLBACK:
+                CTX["public_hosts"].add(u.netloc)
+                T.append(f"REHEARSAL: callback for {u.netloc} delivered to the rehearsal backend {base} (production backend NOT contacted)")
+                return app.get(f"{u.path}?{u.query}", follow_redirects=False)
             r = b.get(loc)
             continue
         f = form(r.text)
@@ -86,10 +139,36 @@ def main() -> int:
     ap.add_argument("--register", action="store_true")
     ap.add_argument("--insecure-cookies", action="store_true")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--rehearsal", action="store_true", help="target is the rehearsal backend: public callbacks go to it, never to production")
+    ap.add_argument("--no-wrong-password", action="store_true", help="skip the wrong-password step (live Keycloak: no brute-force counter)")
+    ap.add_argument("--transcript", default="")
     a = ap.parse_args()
+    CTX["rehearsal"] = a.rehearsal
+    try:
+        run(a)
+    except Exception as exc:  # noqa: BLE001 – any abort (DNS, TLS, unexpected body) is a FAILED step with the exact error
+        check(f"aborted: {type(exc).__name__}", False, str(exc))
+    if a.rehearsal and CTX["public_hosts"]:
+        check("rehearsal: production backend never contacted", not (CTX["contacted"] & CTX["public_hosts"]),
+              f"public callback host(s) {sorted(CTX['public_hosts'])}; contacted {sorted(CTX['contacted'])}")
+    if a.transcript:
+        Path(a.transcript).write_text("\n".join(T) + "\n")
+        os.chmod(a.transcript, 0o600)
+    if a.json:
+        print(json.dumps([{"step": n, "pass": ok, "detail": d} for n, ok, d in R], indent=1))
+    else:
+        for n, ok, d in R:
+            print(f"{'PASS' if ok else 'FAIL'}  {n}  {d}")
+    return 0 if R and all(ok for _, ok, _ in R) else 1
+
+
+def run(a) -> None:
     pw = os.environ.get("E2E_PASSWORD", "")
-    app = httpx.Client(base_url=a.base.rstrip("/"), timeout=20)
-    prov = app.get("/api/v1/auth/provider").json()
+    app = client(base_url=a.base.rstrip("/"))
+    p = app.get("/api/v1/auth/provider")
+    if not check("provider endpoint", p.status_code == 200, f"{p.status_code}"):
+        return
+    prov = p.json()
     check("provider: oidc enabled", prov.get("oidc_enabled"), json.dumps({k: prov.get(k) for k in ("oidc_enabled", "demo_login_enabled", "registration_enabled")}))
     if a.register and prov.get("registration_enabled"):
         n = secrets.token_hex(4)
@@ -103,25 +182,32 @@ def main() -> int:
         for label, email in (("duplicate e-mail ao@aegisrmf.demo refused", "ao@aegisrmf.demo"), ("reserved demo@ironvision.ai refused", "demo@ironvision.ai")):
             r = drive(app, browser(a.insecure_cookies), "/api/v1/auth/oidc/register", {**reg, "username": f"e2e-dup-{secrets.token_hex(3)}", "email": email})
             check(label, "oidc_code=" not in r.headers.get("location", ""), r.headers.get("location", str(r.status_code))[-60:])
+    if not pw:
+        check("login: probe credentials available", False, "set E2E_USER/E2E_PASSWORD (rehearsal: the existing demo-launcher account) – login not tested")
     if pw:
-        bad = drive(app, browser(a.insecure_cookies), "/api/v1/auth/oidc/login", {"username": a.user, "password": pw + "-wrong"})
-        check("wrong password rejected by Keycloak", "oidc_code=" not in bad.headers.get("location", ""), str(bad.status_code))
-        tok = exchange(app, drive(app, browser(a.insecure_cookies), "/api/v1/auth/oidc/login", {"username": a.user, "password": pw}))
-        if check("login → callback → one-time code exchange", tok, ""):
+        if not a.no_wrong_password:
+            bad = drive(app, browser(a.insecure_cookies), "/api/v1/auth/oidc/login", {"username": a.user, "password": pw + "-wrong"})
+            check("wrong password rejected by Keycloak", "oidc_code=" not in bad.headers.get("location", ""), str(bad.status_code))
+        cb = drive(app, browser(a.insecure_cookies), "/api/v1/auth/oidc/login", {"username": a.user, "password": pw})
+        check("login: Keycloak accepted credentials → callback", cb.request.url.path == CALLBACK, f"{cb.request.url.path} {cb.status_code}")
+        tok = exchange(app, cb)
+        if check("callback → one-time code exchange", tok, cb.headers.get("location", str(cb.status_code))[-120:]):
             h = {"Authorization": f"Bearer {tok['access_token']}"}
             me = app.get("/api/v1/auth/me", headers=h)
-            check("/auth/me", me.status_code == 200, me.json().get("email", "") if me.status_code == 200 else str(me.status_code))
-            check(f"protected {a.protected} → 200", app.get(a.protected, headers=h).status_code == 200)
-            check(f"restricted {a.restricted} → 403", app.get(a.restricted, headers=h).status_code == 403)
+            check("authenticated access: /auth/me", me.status_code == 200, me.json().get("email", "") if me.status_code == 200 else str(me.status_code))
+            check(f"authenticated access: {a.protected} → 200", app.get(a.protected, headers=h).status_code == 200)
+            check(f"authorization denial: {a.restricted} → 403", app.get(a.restricted, headers=h).status_code == 403)
             out = app.post("/api/v1/auth/logout", headers=h).json()
             check("logout: app token rejected", app.get("/api/v1/auth/me", headers=h).status_code == 401)
             es = out.get("end_session_url")
             if check("logout returns Keycloak end-session URL", es, ""):
-                r = httpx.get(es, follow_redirects=False, timeout=20)
+                r = client().get(es, follow_redirects=False)
                 check("Keycloak end-session accepted", r.status_code in (200, 302, 303), str(r.status_code))
-    if a.demo and prov.get("demo_login_enabled"):
+    if a.demo:
+        if not check("demo login enabled (Explore Demo)", prov.get("demo_login_enabled"), json.dumps(prov.get("demo_login_enabled"))):
+            return
         d = app.post("/api/v1/auth/demo-login")
-        ok = check("demo launcher login", d.status_code == 200, str(d.status_code))
+        ok = check("demo login (Explore Demo, Option B launcher)", d.status_code == 200, f"{d.status_code} {d.text[:200] if d.status_code != 200 else ''}")
         if ok:
             h = {"Authorization": f"Bearer {d.json()['access_token']}"}
             s = app.post("/api/v1/sandbox/act-as", json={"role": "issm"}, headers=h)
@@ -130,12 +216,6 @@ def main() -> int:
             check(f"demo: restricted {a.restricted} → 403", app.get(a.restricted, headers=h).status_code == 403)
             app.post("/api/v1/auth/logout", headers=h)
             check("demo: logout → app token rejected", app.get("/api/v1/auth/me", headers=h).status_code == 401)
-    if a.json:
-        print(json.dumps([{"step": n, "pass": ok, "detail": d} for n, ok, d in R], indent=1))
-    else:
-        for n, ok, d in R:
-            print(f"{'PASS' if ok else 'FAIL'}  {n}  {d}")
-    return 0 if all(ok for _, ok, _ in R) else 1
 
 
 if __name__ == "__main__":

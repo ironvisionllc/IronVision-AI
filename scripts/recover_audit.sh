@@ -48,9 +48,9 @@ if [ -f "$DATA_ROOT/compose.env" ]; then
   code=$(curl -s -o /dev/null -w '%{http_code}' "https://$AUTH/admin/master/console/"); [ "$code" = 404 ] || [ "$code" = 403 ] && ok "public /admin blocked ($code)" || bad "public /admin returns $code"
   code=$(curl -s -o /dev/null -w '%{http_code}' "https://$AUTH/realms/master/"); [ "$code" = 404 ] || [ "$code" = 403 ] && ok "public /realms/master blocked ($code)" || bad "public /realms/master returns $code"
 
-  echo "[audit] frontend bundle API base URL"
-  urls=$("${DC[@]}" exec -T frontend sh -c 'cat /usr/share/nginx/html/static/js/*.js 2>/dev/null' | grep -oE 'https?://[a-zA-Z0-9.:-]+' | sort -u | grep -vE 'w3\.org|reactjs|github|schema|mozilla|ietf|example' | head -20 | tr '\n' ' ')
-  if grep -qE 'localhost|127\.0\.0\.1|preview\.emergentagent|emergent' <<<"$urls"; then bad "bundle contains dev/preview URLs: $urls"; else ok "bundle URLs: ${urls:-(same-origin)}"; fi
+  echo "[audit] frontend bundle URLs (runtime/config dev URLs FAIL; library doc links INFO)"
+  if "${DC[@]}" exec -T frontend sh -c 'for f in /usr/share/nginx/html/index.html /usr/share/nginx/html/static/js/*.js; do echo "=== $f"; cat "$f"; done' \
+      2>/dev/null | python3 scripts/frontend_url_audit.py --stdin; then ok "frontend bundle: no dev/preview runtime URL"; else bad "frontend bundle uses a dev/preview runtime URL (see above)"; fi
 
   echo "[audit] routes via the edge"
   for p in /api/v1/health/live /api/v1/auth/provider; do c=$(curl -s -o /dev/null -w '%{http_code}' "https://$APP$p"); [ "$c" = 200 ] && ok "https://$APP$p → 200" || bad "https://$APP$p → $c"; done
@@ -60,16 +60,7 @@ if [ -f "$DATA_ROOT/compose.env" ]; then
   echo "[audit] docker networks"
   for c in $("${DC[@]}" ps -q); do docker inspect -f '  {{.Name}}: {{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$c"; done
   echo "[audit] effective compose config (redacted)"
-  "${DC[@]}" config --format json 2>/dev/null | python3 -c '
-import json,sys,re
-c=json.load(sys.stdin)
-for n,s in sorted(c["services"].items()):
-    e=s.get("environment") or {}
-    keep={k:("***" if re.search("SECRET|PASSWORD|_KEY$|TOKEN",k) else re.sub(r"://([^:/@]+):[^@]+@",r"://\1:***@",str(v))) for k,v in e.items()
-          if re.search("DATABASE_URL|S3_ENDPOINT|S3_BUCKET|DOMAIN|OIDC_ISSUER|OIDC_REDIRECT|KEYCLOAK_URL|AUTH_PROVIDERS|DEPLOYMENT_KIND|ALLOW_DEMO|REGISTRATION|APP_ENV",k)}
-    print(f"  {n}: image={s.get(\"image\",\"(build)\")} ports={[p.get(\"published\") and (p.get(\"host_ip\",\"0.0.0.0\")+\":\"+str(p[\"published\"])) for p in s.get(\"ports\",[])]}")
-    for k,v in sorted(keep.items()): print(f"      {k}={v}")
-'
+  "${DC[@]}" config --format json 2>/dev/null | python3 scripts/compose_audit.py || bad "effective compose config audit failed"
 else warn "$DATA_ROOT/compose.env missing – compose/edge/network checks skipped"; fi
 
 echo "[audit] demo vs customer-production separation"

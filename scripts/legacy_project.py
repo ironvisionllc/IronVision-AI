@@ -659,17 +659,21 @@ def sources(bdir: Path | None, default_db: str, default_archive: str) -> int:
         notes.append(f"WARN no legacy DB matches the stated facts and {default_db} is missing")
     bpref = os.environ.get("RECOVER_LEGACY_BUCKET") or "evidence"
     bks = sorted((b for b in m["buckets"] if b.get("objects")), key=lambda b: b["bucket"] != bpref)
-    if bks:
+    if len(bks) > 1:  # several exported buckets: give the rehearsal ALL of them (keys matched per evidence record, then SHA-256)
+        out["RECOVER_OBJECT_DIR"] = str(bdir / "objects")
+        out["RECOVER_OBJECT_ORIGIN"] = "running legacy MinIO buckets " + ", ".join(f"{b['bucket']} ({b['objects']})" for b in bks) + " (read-only export, SHA-256 manifests)"
+        notes.append("objects: exported buckets " + ", ".join(b["bucket"] for b in bks) + " – the rehearsal maps every evidence record by storage key and verifies its SHA-256 (report §Evidence integrity)")
+    elif bks:
         out["RECOVER_OBJECT_DIR"] = str(bdir / bks[0]["dir"])
         out["RECOVER_OBJECT_ORIGIN"] = f"running legacy {bks[0]['container']} bucket {bks[0]['bucket']} (read-only {bks[0].get('method') or 'objsync'} export, SHA-256 manifest)"
     elif m.get("minio_data"):
         out["RECOVER_OBJECT_ARCHIVE"] = str(bdir / m["minio_data"]["file"])
         out["RECOVER_OBJECT_ORIGIN"] = f"legacy {m['minio_data']['container']} data dir {m['minio_data']['data_dir']} (read-only docker cp, xl-single reader)"
-        notes.append("objects: MinIO data dir copy – evidence NOT verified until the rehearsal SHA-256-matches every object to the evidence records")
+        notes.append("objects: MinIO data dir copy – verification PENDING: the rehearsal maps every evidence record by storage key and verifies its SHA-256 (report §Evidence integrity)")
     else:
         out["RECOVER_OBJECT_ARCHIVE"], out["RECOVER_OBJECT_ORIGIN"] = default_archive, "archive " + default_archive
-        notes.append("objects: no verified legacy MinIO export – tarball fallback; evidence NOT verified until the rehearsal reads every "
-                     "object and SHA-256-matches it to the 38 evidence records")
+        notes.append("objects: no verified legacy MinIO export – tarball fallback; verification PENDING: the rehearsal maps every "
+                     "evidence record by storage key and verifies its SHA-256 (report §Evidence integrity)")
     for n in notes:
         print(f"# {n}")
     for k, v in out.items():

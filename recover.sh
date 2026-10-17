@@ -16,6 +16,7 @@
 set -Eeuo pipefail
 cd "$(dirname "$0")"
 ENV_FILE=${RECOVER_ENV_FILE:-deploy/digitalocean/.env.production}
+case $ENV_FILE in /*) RECOVER_ENV_FILE=$ENV_FILE;; *) RECOVER_ENV_FILE=$PWD/$ENV_FILE;; esac; export RECOVER_ENV_FILE  # rehearsal-backend env_file
 RDIR=${RECOVERY_DIR:-/root/ironvision-recovery}
 PRE=${RECOVER_PREDEPLOY_DIR:-/root/ironvision-predeploy}
 DATA_ROOT=${DATA_ROOT:-/srv/ironvision}
@@ -121,6 +122,29 @@ redeploy() {
   if [ "$LOCAL" = 1 ]; then eval "${RECOVER_REDEPLOY_CMD:-true}"; else ./deploy.sh "$ENV_FILE"; fi
 }
 
+e2e_credentials() {  # existing NON-admin Keycloak account chosen by the operator (the rehearsal never creates one)
+  local pw=${RECOVER_E2E_PASSWORD:-}
+  [ -n "${RECOVER_E2E_PASSWORD_FILE:-}" ] && pw=$(cat "$RECOVER_E2E_PASSWORD_FILE")
+  if [ -n "${RECOVER_E2E_USER:-}" ] && [ -n "$pw" ]; then
+    (umask 077; printf '%s\n%s\n' "$RECOVER_E2E_USER" "$pw" > "$RDIR/.e2e-credentials")
+  else
+    rm -f "$RDIR/.e2e-credentials"; say "WARNING: RECOVER_E2E_USER / RECOVER_E2E_PASSWORD_FILE not set – the rehearsal login steps will FAIL (never skipped)"
+  fi
+}
+
+rb_cid() { "${DC[@]}" --profile recovery ps -aq rehearsal-backend 2>/dev/null | head -1; }
+rb_state() { docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$(rb_cid)" 2>/dev/null || echo "no container"; }
+rb_nets() { docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}={{$v.IPAddress}} {{end}}' "$(rb_cid)" 2>/dev/null || true; }
+rehearsal_diag() {  # $1 rehearsal ts, $2 OIDC issuer host: container, state, networks, DNS seen from BOTH containers, backend log
+  local cid; cid=$(rb_cid)
+  say "rehearsal-backend: container ${cid:-<none>}, state $(rb_state), networks: $(rb_nets)"
+  [ -n "$cid" ] && docker logs --tail 150 "$cid" 2>&1 | sed -E 's#(://[^:/@ ]+):[^@ ]+@#\1:***@#g' > "$RDIR/rehearsal-backend-$1.log" && chmod 600 "$RDIR/rehearsal-backend-$1.log"
+  "${RUNPY[@]}" recovery python -m app.tools.netdiag --out "/recovery/netdiag-$1-recovery-container.json" rehearsal-backend postgres keycloak seaweedfs "$2" 2>&1 >/dev/null | tee -a "$LOG" || true
+  if [ "$(docker inspect -f '{{.State.Running}}' "$cid" 2>/dev/null)" = true ]; then
+    "${DC[@]}" --profile recovery exec -T rehearsal-backend python -m app.tools.netdiag --out "/recovery/netdiag-$1.json" postgres keycloak seaweedfs "$2" 2>&1 >/dev/null | tee -a "$LOG" || true
+  fi
+}
+
 switch_db() {  # $1 = database name; backs up the env file, sets DATABASE_URL in place
   local db=$1 u p
   u=$(envget POSTGRES_USER); p=$(envget POSTGRES_PASSWORD)
@@ -148,15 +172,26 @@ case "$cmd" in
     cleanup=0; e2e=""; for a in "$@"; do case $a in --cleanup) cleanup=1;; --e2e) e2e=--e2e;; esac; done
     out=$(py rehearse | tee -a "$LOG"); echo "$out"
     rts=$(sed -n 's/^REHEARSAL_TS=//p' <<<"$out" | tail -1); [ -n "$rts" ] || die "rehearsal did not produce a report"
+    [ -n "$e2e" ] && e2e_credentials
     if [ "$LOCAL" = 1 ]; then
       if [ -n "${RECOVER_LOCAL_REHEARSAL_BACKEND_CMD:-}" ]; then
         export REHEARSAL_DB="rec_target_$rts" REHEARSAL_BUCKET="evidence-rehearsal-${rts/t/-}"; eval "$RECOVER_LOCAL_REHEARSAL_BACKEND_CMD"
       fi
-      py rehearse-probe --url "${RECOVER_REHEARSAL_URL:?RECOVER_REHEARSAL_URL}" $e2e
+      py rehearse-probe --url "${RECOVER_REHEARSAL_URL:?RECOVER_REHEARSAL_URL}" --where "local rehearsal backend (RECOVER_LOCAL=1)" $e2e || true
     else
-      REHEARSAL_DB="rec_target_$rts" REHEARSAL_BUCKET="evidence-rehearsal-${rts/t/-}" "${DC[@]}" --profile recovery up -d --no-deps rehearsal-backend
-      for _ in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8012/api/v1/health/live && break; sleep 2; done
-      py rehearse-probe --url http://rehearsal-backend:8001 $e2e || true
+      # Probes run INSIDE the rehearsal-backend container → http://127.0.0.1:8001 (its own network namespace): no Docker DNS
+      # needed to reach the app. Before: probed http://rehearsal-backend:8001 from a separate `run` container, unchecked `up`.
+      export REHEARSAL_DB="rec_target_$rts" REHEARSAL_BUCKET="evidence-rehearsal-${rts/t/-}"
+      iss=$(envget OIDC_ISSUER); iss=${iss#*://}; iss=${iss%%[:/]*}
+      if ! "${DC[@]}" --profile recovery up -d --no-deps --wait --wait-timeout 240 rehearsal-backend 2>&1 | tee -a "$LOG"; then
+        rehearsal_diag "$rts" "$iss"
+        py probe-unreachable --reason "rehearsal-backend did not become healthy ($(rb_state); networks $(rb_nets))" --netdiag "/recovery/netdiag-$rts-recovery-container.json" || true
+        "${DC[@]}" --profile recovery stop rehearsal-backend >/dev/null 2>&1 || true
+        die "rehearsal backend not healthy – see $RDIR/rehearsal-backend-$rts.log and netdiag-$rts*.json"
+      fi
+      rehearsal_diag "$rts" "$iss"
+      "${DC[@]}" --profile recovery exec -T -e RECOVERY_DIR=/recovery rehearsal-backend python -m app.tools.recovery rehearse-probe \
+        --url http://127.0.0.1:8001 --where "inside rehearsal-backend container; networks $(rb_nets)" --netdiag "/recovery/netdiag-$rts.json" $e2e | tee -a "$LOG" || true
       if [ "${RECOVER_SKIP_LIVE_RESTART:-0}" = 1 ]; then say "SeaweedFS restart check: deferred to cutover (run never restarts production services)"
       elif "${DC[@]}" restart seaweedfs && sleep 5 && py bucket-verify --db "rec_target_$rts" --bucket "evidence-rehearsal-${rts/t/-}"; then
         say "OK   SeaweedFS survived 'docker compose restart seaweedfs' (rehearsal bucket intact)"; else say "FAIL SeaweedFS restart check"; fi
@@ -165,11 +200,15 @@ case "$cmd" in
     [ "$cleanup" = 1 ] && py cleanup-rehearsal
     py status;;
   apply)
-    if [ "${1:-}" != --plan-hash ] || [ -z "${2:-}" ]; then die "usage: ./recover.sh apply --plan-hash H"; fi
-    [ "$(py plan-hash | tail -1)" = "$2" ] || die "plan-hash mismatch – run preflight + rehearse again"
+    if [ "${1:-}" != --plan-hash ] || [ -z "${2:-}" ]; then die "usage: ./recover.sh apply --plan-hash H [--accept-evidence-exceptions E]"; fi
+    ack=(); [ "${3:-}" = --accept-evidence-exceptions ] && [ -n "${4:-}" ] && ack=(--accept-evidence-exceptions "$4")
+    [ "$(py plan-hash | tail -1)" = "$2" ] || die "plan-hash mismatch (or produced by an older recovery tool version) – run ./recover.sh run again"
     mkdir -p "$RDIR/backups/$TS"; cp -p "$ENV_FILE" "$RDIR/backups/$TS/env.pre-apply" 2>/dev/null || [ "$LOCAL" = 1 ] || die "env backup failed"
     snapshot_objects
-    out=$(py apply --plan-hash "$2" | tee -a "$LOG"); echo "$out"
+    if ! out=$(py apply --plan-hash "$2" "${ack[@]}" 2>&1 | tee -a "$LOG"); then
+      echo "$out"; die "apply refused or failed (reason above) – live system unchanged"
+    fi
+    echo "$out"
     db=$(sed -n 's/^RECOVERED_DB=//p' <<<"$out" | tail -1); [ -n "$db" ] || die "apply did not produce a recovered database – live system unchanged"
     switch_db "$db"; redeploy; py verify || die "verify failed after switch – run ./recover.sh rollback";;
   run)
@@ -198,11 +237,15 @@ case "$cmd" in
     passed=$(python3 -c 'import json,glob,sys;print(json.load(open(sorted(glob.glob(sys.argv[1]+"/rehearsal-*.json"))[-1]))["passed"])' "$RDIR")
     [ "$passed" = True ] || die "rehearsal did not pass – see $RDIR/report-*.md"
     ph=$(py plan-hash | tail -1)
+    read -r ev_ok ev_n ev_h < <(python3 -c 'import json,glob,sys;b=json.load(open(sorted(glob.glob(sys.argv[1]+"/rehearsal-*.json"))[-1]));i=b["result"]["objects"]["integrity"];print(i["verified"],i["records"],i["exceptions_hash"] or "-")' "$RDIR")
     say "PLAN-HASH $ph"
-    say "Review $(find "$RDIR" -maxdepth 1 -name 'report-*.md' | sort | tail -1), then run: sudo ./recover.sh cutover --plan-hash $ph";;
+    if [ "$ev_h" = - ]; then say "evidence integrity: $ev_ok/$ev_n VERIFIED – COMPLETE"; cut="sudo ./recover.sh cutover --plan-hash $ph"
+    else say "evidence integrity: $ev_ok/$ev_n VERIFIED – INCOMPLETE (exceptions listed in the report)"; cut="sudo ./recover.sh cutover --plan-hash $ph --accept-evidence-exceptions $ev_h"; fi
+    say "Review $(find "$RDIR" -maxdepth 1 -name 'report-*.md' | sort | tail -1), then run: $cut";;
   cutover)
-    if [ "${1:-}" != --plan-hash ] || [ -z "${2:-}" ]; then die "usage: sudo ./recover.sh cutover --plan-hash H  (H printed by ./recover.sh run)"; fi
-    h=$2; [ -f "$RDIR/sources.env" ] || die "no ./recover.sh run recorded – run it first"
+    if [ "${1:-}" != --plan-hash ] || [ -z "${2:-}" ]; then die "usage: sudo ./recover.sh cutover --plan-hash H [--accept-evidence-exceptions E]  (H, E printed by ./recover.sh run)"; fi
+    h=$2; ack=(); [ "${3:-}" = --accept-evidence-exceptions ] && [ -n "${4:-}" ] && ack=(--accept-evidence-exceptions "$4")
+    [ -f "$RDIR/sources.env" ] || die "no ./recover.sh run recorded – run it first"
     image_gate
     switches() { find "$RDIR" -maxdepth 1 -name 'env-switch-*.json' ! -name '*rolled-back*' | wc -l; }
     before=$(switches)
@@ -211,7 +254,7 @@ case "$cmd" in
       else say "cutover FAILED: $1 – before the DATABASE_URL switch, production unchanged"; fi
       exit 1
     }
-    "$0" apply --plan-hash "$h" || fail "apply / deploy / verify"
+    "$0" apply --plan-hash "$h" "${ack[@]}" || fail "apply / deploy / verify"
     if [ "$LOCAL" = 1 ]; then
       sync_db_env
       (cd backend && python -m app.cli keycloak-migrate --report "$RDIR/kc-migrate-$TS.json") >> "$LOG" 2>&1 || fail "keycloak-migrate dry run"

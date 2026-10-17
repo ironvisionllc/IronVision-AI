@@ -5,6 +5,7 @@ run → cutover → rollback → run → cutover (failing live check → AUTOMAT
 Run: RECOVERY_E2E=1 KEYCLOAK_LIVE_URL=… pytest -n 0 -s tests/test_recover_orchestration_e2e.py"""
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -62,7 +63,9 @@ def recreate(db: str, template: str) -> None:
 
 
 def live_env(db_url: str, port: int, **kw) -> dict:
-    e = {**os.environ, "DATABASE_URL": db_url, "AUTH_PROVIDERS": "oidc", "ALLOW_DEMO_LOGIN": "true", "DEPLOYMENT_KIND": "demo",
+    # explicit, not the pod env: PATH/HOME/LANG + the Keycloak/OIDC settings kcenv.sh exports (stand-in for the env file)
+    base = {k: v for k, v in os.environ.items() if k in ("PATH", "HOME", "LANG", "JAVA_HOME") or k.startswith(("KEYCLOAK_", "OIDC_", "KC_"))}
+    e = {**base, "DATABASE_URL": db_url, "AUTH_PROVIDERS": "oidc", "ALLOW_DEMO_LOGIN": "true", "DEPLOYMENT_KIND": "demo",
          "KEYCLOAK_ALLOW_REGISTRATION": "true", "DEMO_LOGIN_RATE_LIMIT": "1000/3600", "DEMO_LOGIN_GLOBAL_RATE_LIMIT": "1000/3600",
          "SIGNUP_RATE_LIMIT": "1000/3600", "WORKER_ENABLED": "false", "OIDC_REDIRECT_URI": f"http://127.0.0.1:{LIVE}/api/v1/auth/oidc/callback",
          "FRONTEND_URL": f"http://127.0.0.1:{LIVE}", "OIDC_POST_LOGOUT_REDIRECT_URI": f"http://127.0.0.1:{LIVE}/login",
@@ -90,7 +93,7 @@ for _ in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:{LIVE}/api/v1/he
 cd {BACKEND}
 pkill -f "uvicorn app.main:app --host 127.0.0.1 --port {REH}" || true; sleep 1
 DATABASE_URL="$(python3 -c 'import sys;from sqlalchemy.engine import make_url;print(make_url(sys.argv[1]).set(database=sys.argv[2]).render_as_string(hide_password=False))' "$RECOVERY_BASE" "$REHEARSAL_DB")" \\
-  S3_BUCKET="$REHEARSAL_BUCKET" S3_ACCESS_KEY_ID={ADMIN_S3[0]} S3_SECRET_ACCESS_KEY={ADMIN_S3[1]} \\
+  S3_BUCKET="$REHEARSAL_BUCKET" S3_ACCESS_KEY_ID={ADMIN_S3[0]} S3_SECRET_ACCESS_KEY={ADMIN_S3[1]} SEED_DEMO_DATA=false \\
   setsid nohup {py} -m uvicorn app.main:app --host 127.0.0.1 --port {REH} > {W}/rehearsal.log 2>&1 < /dev/null &
 for _ in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:{REH}/api/v1/health/live && exit 0; sleep 1; done; exit 1
 """)
@@ -143,6 +146,7 @@ def world():
     for ku in httpx.get(adm, params={"max": 1000}, headers={"Authorization": f"Bearer {tok}"}).json():
         if (ku.get("username") or "").endswith("@aegisrmf.demo") or (ku.get("email") or "").endswith("@aegisrmf.demo"):
             httpx.delete(f"{adm}/{ku['id']}", headers={"Authorization": f"Bearer {tok}"})
+    ensure_probe_account()  # after hygiene: the operator's pre-existing probe account (before any run)
     pg = make_url(BASE)
     (W / "env.production").write_text(f"APP_ENV=production\nDEPLOYMENT_KIND=demo\nPOSTGRES_USER={pg.username}\nPOSTGRES_PASSWORD={pg.password}\n"
                                       f"DATABASE_URL={u('rec_live_prod')}\n")
@@ -203,7 +207,8 @@ def recover_env(**kw) -> dict:
          "RECOVER_LOCAL_REHEARSAL_BACKEND_CMD": f"bash {W}/rehearsal-backend.sh", "RECOVER_REHEARSAL_URL": f"http://127.0.0.1:{REH}",
          "RECOVER_LIVE_URL": f"http://127.0.0.1:{LIVE}", "RECOVER_E2E_INSECURE": "1", "RECOVER_LOCAL_RESTART_CMD": f"bash {ROOT}/scripts/pod_seaweedfs.sh",
          "RECOVER_KEYCLOAK_DATABASE_URL": f"postgresql+psycopg://keycloak_test:{os.environ['KC_DB_PASSWORD']}@127.0.0.1:5432/keycloak_test",
-         "RECOVER_S3_ADMIN_ACCESS_KEY_ID": ADMIN_S3[0], "RECOVER_S3_ADMIN_SECRET_ACCESS_KEY": ADMIN_S3[1], **live_env(u("rec_live_prod"), LIVE)}
+         "RECOVER_S3_ADMIN_ACCESS_KEY_ID": ADMIN_S3[0], "RECOVER_S3_ADMIN_SECRET_ACCESS_KEY": ADMIN_S3[1],
+         "RECOVER_E2E_USER": PROBE_USER, "RECOVER_E2E_PASSWORD": PROBE_PW, **live_env(u("rec_live_prod"), LIVE)}
     e.pop("DATABASE_URL", None)  # recover.sh follows the env file
     venv = os.environ.get("RECOVERY_VENV")  # the clean recovery-image venv (requirements.recovery.txt only)
     e["PATH"] = f"{W / 'bin'}:" + (f"{venv}/bin:" if venv else "") + os.environ["PATH"]  # docker shim first
@@ -228,10 +233,27 @@ def snapshot() -> dict:
 
 
 def kc_users() -> int:
+    return httpx.get(f"{os.environ['KEYCLOAK_URL']}/admin/realms/ironvision-demo/users/count", headers=kc_admin()).json()
+
+
+def kc_admin() -> dict:
     tok = httpx.post(f"{os.environ['KEYCLOAK_URL']}/realms/master/protocol/openid-connect/token", data={
         "grant_type": "client_credentials", "client_id": os.environ["KEYCLOAK_CONFIGURATOR_CLIENT_ID"],
         "client_secret": os.environ["KEYCLOAK_CONFIGURATOR_CLIENT_SECRET"]}).json()["access_token"]
-    return httpx.get(f"{os.environ['KEYCLOAK_URL']}/admin/realms/ironvision-demo/users/count", headers={"Authorization": f"Bearer {tok}"}).json()
+    return {"Authorization": f"Bearer {tok}"}
+
+
+PROBE_USER, PROBE_PW = "isso@aegisrmf.demo", f"Rehearsal-Probe-{os.urandom(6).hex()}!"  # fresh per session: realm password history
+
+
+def ensure_probe_account() -> None:
+    """Operator preparation (done BEFORE `run`, like on the Droplet): an existing non-admin Keycloak account for the rehearsal
+    login probe. The rehearsal itself never creates or modifies Keycloak users."""
+    base, h = f"{os.environ['KEYCLOAK_URL']}/admin/realms/ironvision-demo/users", kc_admin()
+    httpx.post(base, headers=h, json={"username": PROBE_USER, "email": PROBE_USER, "emailVerified": True, "enabled": True,
+                                     "firstName": "Probe", "lastName": "ISSO"})
+    uid = httpx.get(base, headers=h, params={"username": PROBE_USER, "exact": "true"}).json()[0]["id"]
+    httpx.put(f"{base}/{uid}/reset-password", headers=h, json={"type": "password", "value": PROBE_PW, "temporary": False}).raise_for_status()
 
 
 def db_name() -> str:
@@ -248,7 +270,17 @@ def run_and_hash(label: str) -> str:
     step(f"{label}: run is read-only vs production DB / bucket / Keycloak users", before == after and kc_users() == kcb, json.dumps([before, after]))
     newlog = ((W / "docker.log").read_text())[len(log0):]
     step(f"{label}: legacy containers left running by run", "\nstop " not in "\n" + newlog, newlog[-300:])
-    return [ln for ln in r.stdout.splitlines() if "PLAN-HASH" in ln][-1].split()[-1]
+    h = [ln for ln in r.stdout.splitlines() if "PLAN-HASH" in ln][-1].split()[-1]
+    ACK[h] = re.findall(r"--accept-evidence-exceptions (\w+)", r.stdout)[-1:]
+    return h
+
+
+ACK: dict[str, list[str]] = {}
+
+
+def cutover(h: str, **kw) -> subprocess.CompletedProcess:
+    """The operator's cutover incl. the documented evidence-exception acknowledgement `run` printed."""
+    return recover("cutover", "--plan-hash", h, *(["--accept-evidence-exceptions", ACK[h][0]] if ACK.get(h) else []), **kw)
 
 
 def test_recover_operator_flow(world):
@@ -287,12 +319,34 @@ def test_recover_operator_flow(world):
     rh = json.loads(max(RUN.glob("rehearsal-*.json")).read_text())
     step("rehearsal passed; source counts cross-checked against the stated facts", rh["passed"] and all(x["ok"] for x in rh["source_facts"].values()),
          json.dumps(rh.get("source_facts")))
-    step("rehearsal SSO probe ran (demo launcher unmapped in prod = reported warning, not a failure)", rh.get("backend_probe", {}).get("e2e_sso", {}).get("rc") == 0,
-         json.dumps(rh.get("backend_probe"))[:400])
+    e2e = rh.get("backend_probe", {}).get("e2e_sso", {})
+    names = {s["step"] for s in e2e.get("steps", []) if s["pass"]}
+    need = {"login: Keycloak accepted credentials → callback", "callback → one-time code exchange", "authenticated access: /auth/me",
+            "authorization denial: /api/v1/admin/identity-mappings → 403", "logout: app token rejected",
+            "demo login (Explore Demo, Option B launcher)", "role switch → ISSM", "rehearsal: production backend never contacted"}
+    step("rehearsal SSO e2e: every step passed for real (login, callback, access, denial, logout, demo launcher, role switch; no faked pass)",
+         e2e.get("rc") == 0 and need <= names and all(s["pass"] for s in e2e["steps"]) and rh["probe_passed"] and rh["tool_version"],
+         json.dumps(e2e)[:1500])
+    tr = Path(e2e.get("transcript", "/nonexistent"))
+    step("rehearsal e2e transcript + stdout/stderr saved in the report dir, secrets redacted",
+         tr.is_file() and Path(e2e["stdout_stderr"]).is_file() and "REHEARSAL: callback for" in tr.read_text()
+         and "access_token\": \"ey" not in tr.read_text() and PROBE_PW not in tr.read_text() and PROBE_PW not in Path(e2e["stdout_stderr"]).read_text()
+         and not (RUN / ".e2e-credentials").exists(), str(tr))
+    ig = rh["result"]["objects"]["integrity"]
+    step("evidence integrity: every record mapped + SHA-256-checked; the replica's 2 planted defects are exact exceptions, not silently passed",
+         ig["records"] == ig["verified"] + 2 and ig["missing"] == 1 and ig["mismatch"] == 1 and not ig["complete"] and ig["exceptions_hash"]
+         and ig["verified_from_source"] >= 36 and ig["verified_in_production"] >= 1 and ACK[h] == [ig["exceptions_hash"]]
+         and "## Evidence integrity" in max(RUN.glob("report-*.md")).read_text(),
+         json.dumps({k: v for k, v in ig.items() if k != "per_record"})[:800])
+    # production DB read-only during run (incl. audit_events from the rehearsal e2e) is asserted by run_and_hash → snapshot()
     prod = db_name()
     r = recover("cutover", "--plan-hash", "0" * 16)
     step("cutover refuses a wrong plan-hash, production unchanged", r.returncode != 0 and db_name() == prod, r.stdout[-300:])
-    r = recover("cutover", "--plan-hash", h)
+    for extra in ([], ["--accept-evidence-exceptions", "0" * 16]):
+        r = recover("cutover", "--plan-hash", h, *extra)
+        step(f"cutover refuses incomplete evidence without the exact acknowledgement {extra[1:] or '(none)'}, production unchanged",
+             r.returncode != 0 and "INCOMPLETE" in r.stdout + r.stderr and db_name() == prod, (r.stdout + r.stderr)[-500:])
+    r = cutover(h)
     step("cutover 1: apply → switch → deploy → Keycloak link → verify + live SSO + doctor + SeaweedFS restart",
          r.returncode == 0 and "CUTOVER SUCCEEDED" in r.stdout and db_name().startswith("ironvision_recovered_"), r.stdout + r.stderr)
     rec_db = db_name()
@@ -303,11 +357,11 @@ def test_recover_operator_flow(world):
     r = recover("rollback")
     step("rollback → original DB, recovered DB kept", r.returncode == 0 and db_name() == prod and sql(rec_db, "select count(*) from users")[0][0] > 0, r.stdout[-400:])
     h2 = run_and_hash("2")
-    r = recover("cutover", "--plan-hash", h2, RECOVER_LIVE_URL="http://127.0.0.1:1")
+    r = cutover(h2, RECOVER_LIVE_URL="http://127.0.0.1:1")
     step("cutover 2 with a failing live check → AUTOMATIC rollback to the previous env/DB",
          r.returncode != 0 and "automatic rollback" in r.stdout and db_name() == prod, r.stdout[-800:])
     h3 = run_and_hash("3")
-    r = recover("cutover", "--plan-hash", h3)
+    r = cutover(h3)
     step("cutover 3 (re-cutover after rollback) succeeds", r.returncode == 0 and "CUTOVER SUCCEEDED" in r.stdout, r.stdout[-1500:])
     r = recover("finalize", RECOVER_BOOT_EPOCH=str(int(time.time()) - 10 ** 6))
     step("finalize without a reboot: reminder, legacy stopped gracefully", r.returncode == 0 and "REMINDER" in r.stdout

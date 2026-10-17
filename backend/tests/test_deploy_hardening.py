@@ -87,7 +87,7 @@ def test_env_templates_cover_every_variable_the_code_reads():
     used = {m for f in (root / "backend/app").rglob("*.py") for m in pat.findall(f.read_text())}
     preview_only = {"EMERGENT_LLM_KEY", "EMERGENT_AI_VENDOR"}
     compose_only = {"DATABASE_URL", "DOCS_ROOT", "CONTENT_DIR", "SAMPLES_DIR", "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER", "SUDO_USER",
-                    "RECOVER_OBJECT_DIR", "RECOVER_OBJECT_ORIGIN", "RECOVER_SOURCE_ORIGIN",  # per-run sources.env, not operator config
+                    "RECOVER_OBJECT_DIR", "RECOVER_OBJECT_ORIGIN", "RECOVER_SOURCE_ORIGIN", "RECOVER_LEGACY_BUCKET",  # per-run sources.env, not operator config
                     "IRONVISION_SELFCHECK", "PATH"}  # image-build selfcheck child process only
     for tpl in ("deploy/digitalocean/.env.production.example", "deploy/digitalocean/.env.staging.example"):
         keys = {l.split("=", 1)[0].lstrip("# ").strip() for l in (root / tpl).read_text().splitlines() if "=" in l}

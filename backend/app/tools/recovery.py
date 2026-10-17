@@ -34,6 +34,10 @@ CATALOG = {  # natural keys (+ content-version hashes) – UUIDs legitimately di
 TRANSIENT = {"auth_sessions", "oidc_pending", "oidc_login_codes", "login_attempts", "worker_heartbeats"}
 VOLATILE = TRANSIENT | {"audit_events", "jobs", "notifications", "integrity_checks", "ai_interactions"}
 SCRATCH = re.compile(r"^(rec_(src|prod|target)_\d{8}t\d{6}|ironvision_recovered_\d{8}t\d{6})$")
+# Part of every plan hash and recorded in every rehearsal: a plan/rehearsal produced by another tool version is refused by
+# apply/cutover (bumped when rehearsal semantics change – 2026.10.17: probes run inside the rehearsal backend's namespace,
+# full SSO e2e without a faked pass, per-record evidence integrity).
+TOOL_VERSION = "2026.10.17-rehearsal-v2"
 
 
 class RecoveryError(Exception):
@@ -416,7 +420,42 @@ def scan_dir(work: Path) -> dict:
         index = {f.relative_to(work).as_posix(): (lambda f=f: f.read_bytes()) for f in work.rglob("*") if f.is_file()
                  and ".minio.sys" not in f.parts and f.name != ".objsync-manifest.json"}
         layout = "plain object files"
-    return {"layout": layout, "index": index}
+    mans = objsync_manifests(work)
+    return {"layout": layout, "index": index, "buckets": [json.loads(p.read_text()).get("bucket") for p in mans]}
+
+
+def objsync_manifests(d: Path) -> list[Path]:
+    """One bucket export (<dir>/.objsync-manifest.json) or several (<dir>/<bucket>/.objsync-manifest.json)."""
+    return [d / ".objsync-manifest.json"] if (d / ".objsync-manifest.json").is_file() else sorted(d.glob("*/.objsync-manifest.json"))
+
+
+def key_variants(key: str, buckets: set[str]) -> list[tuple[str, str]]:
+    """Storage-key spellings seen in legacy data: exact, s3://bucket/ URL, leading '/', URL-encoded, '<bucket>/' prefix.
+    A variant only locates the object – it counts as VERIFIED solely on a SHA-256 match."""
+    from urllib.parse import unquote
+    out, s = [(key, "exact")], key
+    if s.startswith("s3://"):
+        s = s[5:].split("/", 1)[1] if "/" in s[5:] else ""
+        out.append((s, "s3:// URL prefix stripped"))
+    if s.startswith("/"):
+        s = s.lstrip("/")
+        out.append((s, "leading / stripped"))
+    if unquote(s) != s:
+        out.append((unquote(s), "URL-decoded"))
+    head, _, tail = s.partition("/")
+    if tail and head in buckets:
+        out.append((tail, f"bucket prefix '{head}/' stripped"))
+    return out
+
+
+def _locate(key: str, index: dict, buckets: set[str]) -> tuple[str | None, str | None]:
+    for v, how in key_variants(key, buckets):
+        if v in index:
+            return v, how
+        c = sorted((k for k in index if k.endswith("/" + v)), key=len)
+        if c:
+            return c[0], f"{how}; found under prefix {c[0][:-len(v)]}"
+    return None, None
 
 
 def match_evidence(url: str, scan: dict) -> dict:
@@ -424,20 +463,21 @@ def match_evidence(url: str, scan: dict) -> dict:
     with eng.connect() as c:
         ev = [dict(r._mapping) for r in c.execute(text("select id, storage_key, sha256, content_type from evidence"))]
     eng.dispose()
+    buckets = set(scan.get("buckets") or []) | {b for b in (os.environ.get("S3_BUCKET"), os.environ.get("RECOVER_LEGACY_BUCKET"), "evidence") if b}
     used, res = set(), []
     for e in ev:
-        cands = sorted((k for k in scan["index"] if k == e["storage_key"] or k.endswith("/" + e["storage_key"])), key=len)
-        if not cands:
+        k, how = _locate(e["storage_key"], scan["index"], buckets)
+        if k is None:
             res.append({**e, "status": "missing"})
             continue
-        used.add(cands[0])
+        used.add(k)
         try:
-            data = scan["index"][cands[0]]()
+            data = scan["index"][k]()
         except Exception as exc:  # noqa: BLE001
-            res.append({**e, "status": "unreadable", "archive_path": cands[0], "detail": str(exc)[:200]})
+            res.append({**e, "status": "unreadable", "archive_path": k, "matched_by": how, "detail": str(exc)[:200]})
             continue
         h = hashlib.sha256(data).hexdigest()
-        res.append({**e, "status": "recovered" if h == e["sha256"] else "hash_mismatch", "archive_path": cands[0],
+        res.append({**e, "status": "recovered" if h == e["sha256"] else "hash_mismatch", "archive_path": k, "matched_by": how,
                     "actual_sha256": h, "_data": data if h == e["sha256"] else None})
     orphans = sorted(set(scan["index"]) - used)
     return {"evidence": res, "orphans": orphans, "extra": classify_extra(scan, orphans, {e["sha256"]: e["storage_key"] for e in ev})}
@@ -466,6 +506,38 @@ def classify_extra(scan: dict, orphans: list[str], ev_sha: dict, limit: int = 50
             d["versions"] = scan["meta"][k]
         out.append(d)
     return out
+
+
+INTEGRITY = {"recovered": "VERIFIED", "present_in_production": "VERIFIED", "missing": "MISSING", "hash_mismatch": "MISMATCH",
+             "unreadable": "UNREADABLE"}
+
+
+def evidence_integrity(m: dict, scan: dict) -> dict:
+    """Per evidence record: VERIFIED (SHA-256 of the recovered – or already-present production – bytes == evidence.sha256),
+    MISSING, MISMATCH or UNREADABLE. Complete only when every record is VERIFIED; otherwise the exceptions are listed and
+    their hash must be acknowledged explicitly at cutover (--accept-evidence-exceptions H). Never passes silently."""
+    from collections import Counter
+    by_sha = {x["sha256"]: x["key"] for x in m["extra"] if x.get("sha256")}
+    recs = []
+    for e in m["evidence"]:
+        r = {"id": str(e["id"]), "storage_key": e["storage_key"], "sha256": e["sha256"], "status": INTEGRITY[e["status"]],
+             "source": e.get("archive_path") or ("production bucket (same SHA-256)" if e["status"] == "present_in_production" else None),
+             "matched_by": e.get("matched_by")}
+        if e["status"] == "hash_mismatch":
+            r["actual_sha256"] = e.get("actual_sha256")
+        if e["status"] == "missing" and e["sha256"] in by_sha:
+            r["hint"] = f"identical bytes exist in the source under key {by_sha[e['sha256']]} – key mapping problem, NOT counted"
+        if e.get("detail"):
+            r["detail"] = e["detail"]
+        recs.append(r)
+    exc = sorted([r["storage_key"], r["status"]] for r in recs if r["status"] != "VERIFIED")
+    n = Counter(r["status"] for r in recs)
+    return {"records": len(recs), "objects_in_source": len(scan["index"]), "verified": n["VERIFIED"], "missing": n["MISSING"],
+            "verified_from_source": sum(e["status"] == "recovered" for e in m["evidence"]),
+            "verified_in_production": sum(e["status"] == "present_in_production" for e in m["evidence"]),
+            "mismatch": n["MISMATCH"], "unreadable": n["UNREADABLE"], "orphans": len(m["orphans"]), "complete": not exc,
+            "exceptions": [{"storage_key": k, "status": s} for k, s in exc],
+            "exceptions_hash": hashlib.sha256(json.dumps(exc).encode()).hexdigest()[:16] if exc else None, "per_record": recs}
 
 
 def copy_objects(bucket: str, matched: dict, admin: bool = False) -> dict:
@@ -566,10 +638,11 @@ def inputs() -> dict:
     if os.environ.get("RECOVER_OBJECT_DIR"):
         files.pop("object_archive")
         d = Path(os.environ["RECOVER_OBJECT_DIR"])
-        m = d / ".objsync-manifest.json"
-        if not m.is_file():
-            raise RecoveryError(f"object_dir: {m} missing (objsync export incomplete)")
-        out["object_dir"] = {"path": str(d), "size": sum(f.stat().st_size for f in d.rglob("*") if f.is_file()), "sha256": sha256_file(m),
+        mans = objsync_manifests(d)
+        if not mans:
+            raise RecoveryError(f"object_dir: no .objsync-manifest.json in {d} or {d}/<bucket>/ (objsync export incomplete)")
+        out["object_dir"] = {"path": str(d), "size": sum(f.stat().st_size for f in d.rglob("*") if f.is_file()),
+                             "sha256": hashlib.sha256(b"".join(bytes.fromhex(sha256_file(m)) for m in mans)).hexdigest(),
                              "origin": os.environ.get("RECOVER_OBJECT_ORIGIN") or "objsync export"}
     for k, p in files.items():
         p = Path(p)
@@ -586,7 +659,7 @@ def plan() -> dict:
          "production": {"db": make_url(live_url()).database, "revision": revision(live_url()),
                         "stable_counts": {t: n for t, n in prod_counts.items() if t not in VOLATILE},
                         "catalogs": catalog_fingerprint(live_url())},
-         "bucket": os.environ.get("S3_BUCKET")}
+         "bucket": os.environ.get("S3_BUCKET"), "tool_version": TOOL_VERSION}
     p["plan_hash"] = hashlib.sha256(json.dumps(p, sort_keys=True, default=str).encode()).hexdigest()[:16]
     return p
 
@@ -601,7 +674,7 @@ def cmd_preflight(a) -> int:
     checks.append(("OK", "pg_restore -l source", f"{toc.count(' TABLE DATA ')} table-data entries"))
     pgtool("pg_restore", None, "-l", p["inputs"]["prod_rollback_backup"]["path"])
     if "object_dir" in p["inputs"]:
-        n = len(json.loads((Path(p["inputs"]["object_dir"]["path"]) / ".objsync-manifest.json").read_text())["objects"])
+        n = sum(len(json.loads(m.read_text())["objects"]) for m in objsync_manifests(Path(p["inputs"]["object_dir"]["path"])))
         checks.append(("OK", "object source", f"{p['inputs']['object_dir']['origin']}: {n} objects (SHA-256 manifest)"))
     else:
         with tarfile.open(p["inputs"]["object_archive"]["path"]) as tf:
@@ -644,12 +717,16 @@ def _run_recovery(t: str, prod_url: str, target_name: str, bucket: str, admin_bu
         scan_archive(Path(os.environ.get("RECOVER_OBJECT_ARCHIVE") or PRE / "aegisrmf-minio-backup.tar.gz"), RDIR / "work" / f"objects-{t}")
     m = match_evidence(b["url"], scan)
     present_in_production(m)
+    integrity = evidence_integrity(m, scan)
+    log(f"[objects] evidence integrity: {integrity['verified']}/{integrity['records']} VERIFIED, {integrity['missing']} MISSING, "
+        f"{integrity['mismatch']} MISMATCH, {integrity['unreadable']} UNREADABLE; {integrity['objects_in_source']} objects in source, "
+        f"{integrity['orphans']} not referenced by any evidence record")
     copied = copy_objects(bucket, m, admin=admin_bucket)
     st = {s: sum(1 for e in m["evidence"] if e["status"] == s) for s in ("recovered", "present_in_production", "missing", "hash_mismatch", "unreadable")}
     return {"target_db": target_name, "build": {k: v for k, v in b.items() if k != "url"}, "reconciliation": rec,
             "fk": fk_orphans(b["url"]), "audit_chain": chain(b["url"]), "objects": {
                 "layout": scan["layout"], "bucket": bucket, "summary": {**st, "extra": len(m["orphans"])}, "orphans": m["orphans"],
-                "extra": m["extra"], "versioned": scan.get("meta", {}), "copy": copied,
+                "extra": m["extra"], "versioned": scan.get("meta", {}), "copy": copied, "integrity": integrity,
                 "detail": [{k: v for k, v in e.items() if k != "_data"} for e in m["evidence"] if e["status"] != "recovered"]},
             "bucket_verify": verify_objects(b["url"], bucket, admin=admin_bucket)}
 
@@ -674,6 +751,31 @@ def kc_dry_run(url: str, t: str) -> str:
     return redact((r.stdout + r.stderr)[-3000:])
 
 
+def kc_link_scratch(url: str, t: str) -> dict:
+    """The cutover's Keycloak step, run against the SCRATCH rehearsal DB only: `keycloak-migrate --apply --link` WITHOUT
+    --create-identities = Keycloak is only READ (admin API GETs); identity mappings + audit rows are written to the scratch DB.
+    Makes the rehearsal SSO / demo-launcher probes test exactly what cutover will produce – no faked pass."""
+    if not os.environ.get("KEYCLOAK_URL"):
+        return {"rc": 0, "output": "skipped (KEYCLOAK_URL not set)"}
+    if not SCRATCH.match(make_url(url).database or "") or make_url(url).database == make_url(live_url()).database:
+        raise RecoveryError(f"refusing Keycloak link into non-scratch DB {make_url(url).database}")
+    env, cwd = {**os.environ, "DATABASE_URL": url}, Path(__file__).resolve().parents[2]
+    rep = RDIR / f"keycloak-link-scratch-{t}.json"
+    r = subprocess.run([sys.executable, "-m", "app.cli", "keycloak-migrate", "--report", str(rep)], env=env, capture_output=True, text=True, cwd=cwd, check=False)
+    if r.returncode:
+        return {"rc": r.returncode, "output": redact((r.stdout + r.stderr)[-3000:])}
+    h = json.loads(rep.read_text())["plan_hash"]
+    ref = RDIR / "backups" / f"scratch-{t}"
+    ref.mkdir(parents=True, exist_ok=True)
+    write_json(f"backups/scratch-{t}/manifest.json", {"kind": "scratch-rehearsal-db", "db": make_url(url).database, "note": "throw-away rehearsal DB",
+                                                      "created_at": datetime.now(timezone.utc).isoformat()})
+    r = subprocess.run([sys.executable, "-m", "app.cli", "keycloak-migrate", "--apply", "--link", "--plan-hash", h, "--backup-ref", str(ref),
+                        "--credentials-dir", str(RDIR / "credentials-scratch"), "--report", str(rep), "--yes"],
+                       env=env, capture_output=True, text=True, cwd=cwd, check=False)
+    return {"rc": r.returncode, "plan_hash": h, "db": make_url(url).database, "keycloak_writes": "none (link only, no --create-identities)",
+            "output": redact((r.stdout + r.stderr)[-3000:])}
+
+
 def write_report(kind: str, t: str, body: dict) -> None:
     write_json(f"{kind}-{t}.json", body)
     lines = [f"# IronVision recovery {kind} {t}", "", f"- plan-hash: `{body.get('plan_hash')}`", f"- result: **{'PASS' if body.get('passed') else 'FAIL'}**"]
@@ -689,6 +791,18 @@ def write_report(kind: str, t: str, body: dict) -> None:
                   f"- orphans in archive: {len(o['orphans'])}", (f"- copy: added {len(o['copy']['added'])}, present identical {len(o['copy']['present_identical'])}, "
                    f"conflicts {len(o['copy']['conflict_existing_differs'])}"), f"- bucket verify: {json.dumps({k: v for k, v in r['bucket_verify'].items() if k != 'problems'})}"]
         lines += [f"  - {d['storage_key']}: {d['status']}" for d in o["detail"]]
+        ig = o.get("integrity")
+        if ig:
+            lines += ["", "## Evidence integrity (storage key → SHA-256)", "",
+                      f"- **{ig['verified']}/{ig['records']} VERIFIED**, {ig['missing']} MISSING, {ig['mismatch']} MISMATCH, {ig['unreadable']} UNREADABLE"
+                      f" – {ig['objects_in_source']} objects in the source, {ig['orphans']} not referenced by any evidence record",
+                      "- evidence recovery: " + ("**COMPLETE**" if ig["complete"] else
+                                                 f"**INCOMPLETE** – cutover requires `--accept-evidence-exceptions {ig['exceptions_hash']}`"),
+                      "", "| evidence id | storage key | status | source object | matched by | note |", "|---|---|---|---|---|---|"]
+            lines += [f"| {r['id']} | `{r['storage_key']}` | {r['status']} | {r.get('source') or '-'} | {r.get('matched_by') or '-'} | "
+                      f"{r.get('hint') or r.get('detail') or (('actual ' + r['actual_sha256'][:16]) if r.get('actual_sha256') else '')} |" for r in ig["per_record"]]
+            lines += ["", f"### Objects not referenced by any evidence record ({len(o['extra'])})", "", "| key | bytes | classification |", "|---|---|---|"]
+            lines += [f"| `{x['key']}` | {x.get('bytes', '?')} | {x['kind']}{' (' + str(x['versions']) + ')' if x.get('versions') else ''} |" for x in o["extra"]]
         lines += ["", f"## Audit chain\n\n{json.dumps(r['audit_chain'])}", "", f"## FK integrity\n\n{json.dumps(r['fk'])}"]
     if body.get("keycloak_migrate_dry_run"):
         lines += ["", "## Keycloak migration dry-run (NOT applied – `./recover.sh link --plan-hash …`)", "", "```", body["keycloak_migrate_dry_run"], "```"]
@@ -709,11 +823,15 @@ def cmd_rehearse(a) -> int:
     restore(pd, create_db(prodc))
     bucket = f"evidence-rehearsal-{t.replace('t', '-')}"
     s3(True).create_bucket(Bucket=bucket)
-    body = {"plan_hash": p["plan_hash"], "ts": t, "scratch": {"dbs": [src, prodc, f"rec_target_{t}"], "bucket": bucket}}
+    body = {"plan_hash": p["plan_hash"], "tool_version": TOOL_VERSION, "ts": t, "scratch": {"dbs": [src, prodc, f"rec_target_{t}"], "bucket": bucket}}
     try:
         body["result"] = _run_recovery(t, db_url(prodc), f"rec_target_{t}", bucket, admin_bucket=True)
         body["failures"] = _passed(body["result"])
         body["keycloak_migrate_dry_run"] = kc_dry_run(db_url(f"rec_target_{t}"), t)
+        body["keycloak_scratch_link"] = kc_link_scratch(db_url(f"rec_target_{t}"), t)
+        if body["keycloak_scratch_link"]["rc"]:
+            body["failures"].append(f"Keycloak link into the SCRATCH rehearsal DB failed (cutover would fail the same way): "
+                                    f"{body['keycloak_scratch_link']['output'][-300:]}")
         sc = body["result"]["build"].get("source_counts") or {}
         body["source_facts"] = {k: {"expected": v, "actual": sc.get(k), "ok": sc.get(k) == v} for k, v in FACTS.items()}
         bad = {k: x for k, x in body["source_facts"].items() if not x["ok"]}
@@ -746,6 +864,8 @@ def latest(kind: str) -> dict | None:
 
 
 def cmd_rehearse_probe(a) -> int:
+    """Probes run WHERE the rehearsal backend is reachable without Docker DNS (recover.sh execs this inside the rehearsal-backend
+    container → http://127.0.0.1:8001). Every step must really pass; nothing is downgraded. Full e2e transcript → report dir."""
     import httpx
     fs = sorted(RDIR.glob("rehearsal-*.json"))
     body = json.loads(fs[-1].read_text())
@@ -755,25 +875,84 @@ def cmd_rehearse_probe(a) -> int:
         try:
             res[path] = httpx.get(url + path, timeout=15).status_code
         except httpx.HTTPError as exc:
-            res[path] = f"error {exc}"
+            res[path] = f"error {type(exc).__name__}: {exc}"
+    ctx = {"url": url, "runs_in": a.where or "unspecified"}
+    if a.netdiag and Path(a.netdiag).is_file():
+        ctx["netdiag"] = json.loads(Path(a.netdiag).read_text())
+    body["probe_context"] = ctx
     if a.e2e:
-        r = subprocess.run([sys.executable, str(Path(__file__).resolve().parents[3] / "scripts" / "e2e_sso.py"), "--base", url, "--demo", "--json"], capture_output=True, text=True, check=False)
-        res["e2e_sso"] = {"rc": r.returncode, "output": redact(r.stdout[-4000:])}
+        env = dict(os.environ)
+        cred = RDIR / ".e2e-credentials"  # written 0600 by recover.sh from RECOVER_E2E_USER + RECOVER_E2E_PASSWORD(_FILE); read once, deleted
+        if cred.is_file():
+            user, _, pw = cred.read_text().partition("\n")
+            cred.unlink()
+            env["E2E_USER"], env["E2E_PASSWORD"] = user.strip(), pw.rstrip("\n")
+            ctx["login_account"] = user.strip()
+        tr = RDIR / f"e2e-sso-{body['ts']}.transcript.log"
+        cmd = [sys.executable, str(Path(__file__).resolve().parents[3] / "scripts" / "e2e_sso.py"), "--base", url, "--demo", "--json",
+               "--rehearsal", "--no-wrong-password", "--transcript", str(tr)]
+        if (env.get("OIDC_ISSUER") or "").startswith("http://"):  # plain-http TEST Keycloak only (Secure cookies); never for https
+            cmd.append("--insecure-cookies")
+        r = subprocess.run(cmd, capture_output=True, text=True, check=False, env=env, timeout=600)
+        out = RDIR / f"e2e-sso-{body['ts']}.out"
+        out.write_text(redact(f"$ {' '.join(cmd[1:])}\nexit {r.returncode}\n--- stdout\n{r.stdout}\n--- stderr\n{r.stderr}\n"))
+        os.chmod(out, 0o600)
         try:
-            failed = [s for s in json.loads(r.stdout) if not s["pass"]]
+            steps = json.loads(r.stdout)
         except ValueError:
-            failed = None
-        if r.returncode and failed and all(s["step"] == "demo launcher login" and s["detail"] == "403" for s in failed):
-            res["e2e_sso"]["rc"] = 0  # pre-existing: production has no demo identity mapping yet; cutover's Keycloak link creates it
-            res["e2e_sso"]["note"] = "demo launcher not mapped in production yet (doctor FAIL) – cutover links it and its live e2e must pass"
-            body.setdefault("warnings", []).append(res["e2e_sso"]["note"])
+            steps = [{"step": "e2e_sso.py output", "pass": False, "detail": redact((r.stderr or r.stdout)[-300:])}]
+        res["e2e_sso"] = {"rc": r.returncode, "steps": steps, "stdout_stderr": str(out), "transcript": str(tr)}
     body["backend_probe"] = res
-    if any(v != 200 for k, v in res.items() if k.startswith("/")) or (a.e2e and res["e2e_sso"]["rc"]):
-        body["failures"].append(f"rehearsal backend probe failed: {json.dumps(res)[:300]}")
+    body["probe_passed"] = all(v == 200 for k, v in res.items() if k.startswith("/")) and (not a.e2e or res["e2e_sso"]["rc"] == 0)
+    body["e2e_ran"] = bool(a.e2e)
+    if not body["probe_passed"]:
+        bad = {k: v for k, v in res.items() if k.startswith("/") and v != 200}
+        bad.update({s["step"]: s["detail"] for s in (res.get("e2e_sso") or {}).get("steps", []) if not s["pass"]})
+        body["failures"].append(f"rehearsal backend probe failed ({ctx['runs_in']}, {url}): {json.dumps(bad)[:600]}")
     body["passed"] = not body["failures"]
     write_report("rehearsal", body["ts"], body)
-    log(f"[rehearse-probe] {'PASS' if body['passed'] else 'FAIL'} {json.dumps({k: (v if k.startswith('/') else v['rc']) for k, v in res.items()})}")
+    log(f"[rehearse-probe] {'PASS' if body['passed'] else 'FAIL'} at {url} ({ctx['runs_in']}): "
+        f"{json.dumps({k: (v if k.startswith('/') else v['rc']) for k, v in res.items()})}")
     return 0 if body["passed"] else 1
+
+
+def cmd_probe_unreachable(a) -> int:
+    """recover.sh: the rehearsal backend never became healthy – record the diagnostic as a rehearsal failure (no probe can pass)."""
+    fs = sorted(RDIR.glob("rehearsal-*.json"))
+    body = json.loads(fs[-1].read_text())
+    body["backend_probe"] = {"unreachable": a.reason}
+    body["probe_passed"] = False
+    if a.netdiag and Path(a.netdiag).is_file():
+        body["probe_context"] = {"netdiag": json.loads(Path(a.netdiag).read_text())}
+    body["failures"].append(f"rehearsal backend unreachable: {a.reason}")
+    body["passed"] = False
+    write_report("rehearsal", body["ts"], body)
+    return 1
+
+
+def rehearsal_gate(reh: dict | None, plan_hash: str) -> None:
+    """Explicit cutover gate: the rehearsal of THIS plan-hash, by THIS tool version, with every step (recovery, backend probes and
+    the full SSO e2e) passed. Older plan hashes (e.g. e4c831f4a432b3b4, pre-v2 tool) are refused."""
+    if not reh or reh.get("plan_hash") != plan_hash:
+        raise RecoveryError(f"no rehearsal recorded for plan-hash {plan_hash} – run ./recover.sh run")
+    if reh.get("tool_version") != TOOL_VERSION:
+        raise RecoveryError(f"plan-hash {plan_hash} was rehearsed by tool version {reh.get('tool_version') or '(pre-versioning)'}, "
+                            f"current is {TOOL_VERSION} – re-run ./recover.sh run")
+    if not reh.get("passed") or reh.get("failures"):
+        raise RecoveryError(f"the rehearsal of plan-hash {plan_hash} did not pass: {reh.get('failures')}")
+    if not reh.get("probe_passed") or not reh.get("e2e_ran"):
+        raise RecoveryError(f"the rehearsal of plan-hash {plan_hash} has no passing backend probe + SSO e2e")
+
+
+def evidence_gate(ig: dict | None, ack: str | None) -> None:
+    """Complete evidence (every record VERIFIED) passes; documented exceptions only with their exact hash acknowledged."""
+    if not ig:
+        raise RecoveryError("the rehearsal has no evidence-integrity result – re-run ./recover.sh run")
+    if not ig["complete"] and ack != ig["exceptions_hash"]:
+        raise RecoveryError(f"evidence recovery INCOMPLETE ({ig['verified']}/{ig['records']} VERIFIED; exceptions {json.dumps(ig['exceptions'])[:400]}) – "
+                            f"review the rehearsal report, then acknowledge explicitly: --accept-evidence-exceptions {ig['exceptions_hash']}")
+    if ig["complete"] and ack:
+        raise RecoveryError("--accept-evidence-exceptions given but evidence is complete – nothing to acknowledge")
 
 
 FACTS = {"users": 8, "organizations": 1, "systems": 4, "role_assignments": 25, "evidence": 38, "findings": 111, "jobs": 1624, "audit_events": 1772}
@@ -805,10 +984,11 @@ def cmd_apply(a) -> int:
     if a.plan_hash != p["plan_hash"]:
         raise RecoveryError(f"plan-hash mismatch: current plan is {p['plan_hash']} (inputs or production changed) – re-run preflight + rehearse")
     reh = latest("rehearsal")
-    if not reh or reh.get("plan_hash") != a.plan_hash or not reh.get("passed") or isinstance(reh.get("backend_probe"), str):
-        raise RecoveryError("no PASSING rehearsal (incl. backend probe) for this plan-hash – run ./recover.sh rehearse first")
+    rehearsal_gate(reh, a.plan_hash)
     if datetime.now(timezone.utc) - datetime.strptime(reh["ts"], "%Y%m%dt%H%M%S").replace(tzinfo=timezone.utc) > timedelta(hours=24):
         raise RecoveryError("the passing rehearsal is older than 24h – rehearse again")
+    ig = ((reh.get("result") or {}).get("objects") or {}).get("integrity")
+    evidence_gate(ig, a.accept_evidence_exceptions)
     t = ts()
     backups, man = take_backups(t, a.skip_keycloak_backup)
     target = f"ironvision_recovered_{t}"
@@ -970,8 +1150,14 @@ def main(argv=None) -> int:
     rp = sp.add_parser("rehearse-probe")
     rp.add_argument("--url", required=True)
     rp.add_argument("--e2e", action="store_true")
+    rp.add_argument("--where", default="")
+    rp.add_argument("--netdiag", default="")
+    pu = sp.add_parser("probe-unreachable")
+    pu.add_argument("--reason", required=True)
+    pu.add_argument("--netdiag", default="")
     x = sp.add_parser("apply")
     x.add_argument("--plan-hash", required=True)
+    x.add_argument("--accept-evidence-exceptions", default=None)
     x.add_argument("--skip-keycloak-backup", action="store_true")
     sp.add_parser("verify")
     bk = sp.add_parser("backup")
@@ -987,7 +1173,8 @@ def main(argv=None) -> int:
     ri.add_argument("--file", required=True)
     sp.add_parser("audit-keycloak")
     a = ap.parse_args(argv)
-    fn = {"preflight": cmd_preflight, "rehearse": cmd_rehearse, "rehearse-probe": cmd_rehearse_probe, "apply": cmd_apply, "verify": cmd_verify,
+    fn = {"preflight": cmd_preflight, "rehearse": cmd_rehearse, "rehearse-probe": cmd_rehearse_probe, "probe-unreachable": cmd_probe_unreachable,
+          "apply": cmd_apply, "verify": cmd_verify,
           "remove-recovered-objects": cmd_remove_recovered_objects, "status": cmd_status, "plan-hash": cmd_plan_hash,
           "bucket-verify": cmd_bucket_verify, "cleanup-rehearsal": cmd_cleanup_rehearsal, "restore-into-new": cmd_restore_into_new,
           "audit-keycloak": cmd_audit_keycloak, "backup": cmd_backup}[a.cmd]
