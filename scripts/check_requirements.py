@@ -16,7 +16,12 @@ Rules (exit 1 on any violation):
   6. no Dockerfile installs backend/requirements.txt or uses a non-PyPI index.
 --in-env --target prod|recovery [--app-dir DIR]: run INSIDE the image / clean venv: pip check, installed distributions ==
   manifest pins == lock (no unpinned transitive dependency), and every module imports (selfcheck).
---write-lock --target prod|recovery: (re)generate the lock in a clean venv after `pip install --no-deps -r <manifest>`.
+--write-lock --target prod|recovery: (re)generate the lock in a clean venv after `pip install --no-deps -r <manifest>`
+  (the supported lock-generation process; the exact command is regen_cmd() and is recorded in each lock as `generated_by`).
+  --no-deps proves the manifest is closed, but pip then never installs an extra's requirements, so write-lock also records
+  every requested extra's requirements (with markers) and refuses if one that applies on the image is not pinned.
+  Image-faithful verification: a clean venv with `pip install -r <manifest>` (dependency resolution, as the Dockerfiles do)
+  followed by --in-env must also PASS (installed == pinned == lock).
 --pypi: also ask pypi.org that every recovery pin exists (network).
 Usage: python3 scripts/check_requirements.py [--in-env|--write-lock --target T] [--pypi]"""
 import ast
@@ -57,6 +62,59 @@ def parse_requirements(path: Path) -> dict[str, str | None]:
         m = re.match(r"([A-Za-z0-9_.\-]+)(\[[^\]]*\])?\s*(?:==\s*([^\s;]+)|@\s*(\S+))?", line)
         out[norm(m.group(1))] = m.group(3) or m.group(4)
     return out
+
+
+def parse_extras(path: Path) -> dict[str, list[str]]:
+    """Requested extras per pinned distribution, e.g. uvicorn[standard] → {"uvicorn": ["standard"]}."""
+    out = {}
+    for raw in path.read_text().splitlines():
+        m = re.match(r"([A-Za-z0-9_.\-]+)\[([^\]]*)\]", raw.split("#", 1)[0].strip())
+        if m:
+            out[norm(m.group(1))] = sorted(norm(e.strip()) for e in m.group(2).split(",") if e.strip())
+    return out
+
+
+def _requirement_cls():
+    try:
+        from packaging.requirements import Requirement
+    except ImportError:  # clean venv: packaging may not be a pinned dependency; pip vendors it
+        from pip._vendor.packaging.requirements import Requirement
+    return Requirement
+
+
+def extra_requirements(dist, extra: str) -> list[dict]:
+    """Requirements an installed distribution adds for `extra` (marker names that extra), with markers; `on_image` = marker true
+    in THIS interpreter (lock generation and the in-image check run on the image's platform/python minor: linux, CPython 3.11)."""
+    req, out = _requirement_cls(), []
+    for r in dist.requires or []:
+        q = req(r)
+        if q.marker and _extra_named(str(q.marker), extra):
+            out.append({"name": norm(q.name), "specifier": str(q.specifier), "marker": str(q.marker),
+                        "on_image": q.marker.evaluate({"extra": extra})})
+    return sorted(out, key=lambda x: x["name"])
+
+
+def _extra_named(marker: str, extra: str) -> bool:
+    return bool(re.search(r"""extra\s*==\s*['"]""" + re.escape(extra) + r"""['"]""", marker))
+
+
+def check_extras(target: str, manifest: Path, pins: dict, lock: dict) -> list[str]:
+    """Static (host, stdlib only): every requested `pkg[extra]` must have its extra-requirements recorded in the lock, and each
+    one that applies on the image must be pinned in the manifest. pip --no-deps never installs extras, and pip check does not
+    know which extras were requested, so without this an unpinned extra dependency is invisible until the image is built."""
+    errors = []
+    for n, extras in sorted(parse_extras(manifest).items()):
+        meta = (lock["distributions"].get(n) or {}).get("extras")
+        for e in extras:
+            if meta is None or e not in meta:
+                errors.append(f"{target}: {n}[{e}] is requested in {manifest.name} but the lock records no metadata for that extra "
+                              f"– regenerate: {regen_cmd(target)}")
+                continue
+            for r in meta[e]:
+                if r["on_image"] and r["name"] not in pins:
+                    errors.append(f"{target}: {r['name']} (required by {n}[{e}], marker {r['marker']}) is not pinned in {manifest.name} "
+                                  f"– an image build resolving dependencies would install it unpinned")
+    return errors
 
 
 def parse_exclusions(path: Path) -> tuple[dict[str, str], list[str]]:
@@ -304,7 +362,7 @@ def run(backend: Path = BACKEND, with_imports: bool = True) -> list[str]:
             lock, errs = load_lock(target)
             errors += errs
             if lock and not errs:
-                errors += check_lock(target, pins, lock)
+                errors += check_lock(target, pins, lock) + check_extras(target, TARGETS[target], pins, lock)
                 errors += check_imports(prod, excl, lock) if target == "prod" else check_recovery(prod, excl, lock)
         errors += check_dockerfiles() + check_entrypoints()
     return errors
@@ -318,10 +376,7 @@ def _env_dists() -> dict:
 def write_lock(target: str) -> int:
     import importlib.metadata as md
 
-    try:
-        from packaging.requirements import Requirement
-    except ImportError:  # clean venv: packaging may not be a pinned dependency; pip vendors it
-        from pip._vendor.packaging.requirements import Requirement
+    Requirement = _requirement_cls()
     if subprocess.run([sys.executable, "-m", "pip", "check"]).returncode:
         print(f"[write-lock {target}] pip check failed – the manifest is not a complete, consistent closure")
         return 1
@@ -330,11 +385,18 @@ def write_lock(target: str) -> int:
         print(f"[write-lock {target}] environment != manifest: extra {sorted(set(dists) - set(pins))}, missing {sorted(set(pins) - set(dists))}"
               " – install with: pip install --no-deps -r <manifest> into a CLEAN venv")
         return 1
-    out = {}
+    missing = [f"{n}[{e}] → {r['name']} ({r['marker']})" for n, es in parse_extras(TARGETS[target]).items() for e in es
+               for r in extra_requirements(dists[n], e) if r["on_image"] and r["name"] not in pins]
+    if missing:  # --no-deps never installs extras: an extra's requirements must be pinned explicitly
+        print(f"[write-lock {target}] requested extras need unpinned distributions: {missing} – pin them in {TARGETS[target].name}")
+        return 1
+    out, req_extras = {}, parse_extras(TARGETS[target])
     for n, d in sorted(dists.items()):
         reqs = sorted({norm(Requirement(r).name) for r in d.requires or []
                        if not Requirement(r).marker or Requirement(r).marker.evaluate({"extra": ""})})
         out[n] = {"version": d.version, "requires": reqs}
+        if n in req_extras:
+            out[n]["extras"] = {e: extra_requirements(d, e) for e in req_extras[n]}
     mods = {m: sorted({norm(x) for x in ds} & set(out)) for m, ds in md.packages_distributions().items()}
     lock = {"target": target, "manifest": str(TARGETS[target].relative_to(ROOT)),
             "manifest_sha256": hashlib.sha256(TARGETS[target].read_bytes()).hexdigest(),
@@ -363,6 +425,12 @@ def in_env(target: str, app_dir: Path) -> list[str]:
             errors.append(f"[{ctx}] {n}: installed {dists[n].version}, pinned {v}")
         elif lock and lock["distributions"].get(n, {}).get("version") != v:
             errors.append(f"[{ctx}] {n}: lock has {lock['distributions'].get(n, {}).get('version')}, pinned {v}")
+    for n, es in sorted(parse_extras(TARGETS[target]).items()):   # requested extras: every applicable requirement installed + pinned
+        for e in es:
+            for r in extra_requirements(dists[n], e) if n in dists else []:
+                if r["on_image"] and (r["name"] not in dists or r["name"] not in pins):
+                    errors.append(f"[{ctx}] {n}[{e}] requires {r['name']} ({r['marker']}): "
+                                  + ("not installed" if r["name"] not in dists else f"installed {dists[r['name']].version} but not pinned"))
     flag = ["--recovery"] if target == "recovery" else ["--startup"]  # prod image = live + rehearsal backend: uvicorn startup smoke
     sc = subprocess.run([sys.executable, "-m", "app.tools.selfcheck", *flag], cwd=app_dir, capture_output=True, text=True)
     if sc.returncode:

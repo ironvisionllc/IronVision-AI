@@ -375,3 +375,10 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
   - full suite 367 passed / 27 skipped
   - real uvicorn start from a clean prod venv
 - **Not run:** Docker build/up (no daemon in the pod).
+
+## 2026-10-17 – Prod pin failure at Droplet 79e99af (httptools/uvloop via uvicorn[standard])
+- **Pins:** httptools==0.9.0 and uvloop==0.23.0 in requirements.prod.txt.
+- **Locks:** regenerated from fresh 3.11 venvs via regen_cmd and now record extras metadata (markers, on_image).
+- **Checker:** check_extras (host static), plus extras checks in write-lock and --in-env.
+- **Root cause of the blind spot:** --no-deps never installs extras, and pip check can't see requested extras.
+- **Validated:** image-faithful venvs (with deps) PASS --in-env for prod and recovery; suite 368 passed; orchestration 41/41.

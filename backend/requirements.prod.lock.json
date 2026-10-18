@@ -124,6 +124,10 @@
    ],
    "version": "2.13.1"
   },
+  "httptools": {
+   "requires": [],
+   "version": "0.9.0"
+  },
   "httpx": {
    "requires": [
     "anyio",
@@ -195,6 +199,22 @@
    "version": "3.0.4"
   },
   "moto": {
+   "extras": {
+    "s3": [
+     {
+      "marker": "extra == \"s3\"",
+      "name": "py-partiql-parser",
+      "on_image": true,
+      "specifier": "==0.6.3"
+     },
+     {
+      "marker": "extra == \"s3\"",
+      "name": "pyyaml",
+      "on_image": true,
+      "specifier": ">=5.1"
+     }
+    ]
+   },
    "requires": [
     "boto3",
     "botocore",
@@ -246,6 +266,16 @@
    "version": "0.26.0"
   },
   "psycopg": {
+   "extras": {
+    "binary": [
+     {
+      "marker": "implementation_name != \"pypy\" and extra == \"binary\"",
+      "name": "psycopg-binary",
+      "on_image": true,
+      "specifier": "==3.3.6"
+     }
+    ]
+   },
    "requires": [
     "typing-extensions"
    ],
@@ -418,11 +448,61 @@
    "version": "2.8.0"
   },
   "uvicorn": {
+   "extras": {
+    "standard": [
+     {
+      "marker": "sys_platform == \"win32\" and extra == \"standard\"",
+      "name": "colorama",
+      "on_image": false,
+      "specifier": ">=0.4"
+     },
+     {
+      "marker": "extra == \"standard\"",
+      "name": "httptools",
+      "on_image": true,
+      "specifier": ">=0.5.0"
+     },
+     {
+      "marker": "extra == \"standard\"",
+      "name": "python-dotenv",
+      "on_image": true,
+      "specifier": ">=0.13"
+     },
+     {
+      "marker": "extra == \"standard\"",
+      "name": "pyyaml",
+      "on_image": true,
+      "specifier": ">=5.1"
+     },
+     {
+      "marker": "(sys_platform != \"win32\" and (sys_platform != \"cygwin\" and platform_python_implementation != \"PyPy\")) and extra == \"standard\"",
+      "name": "uvloop",
+      "on_image": true,
+      "specifier": "!=0.15.0,!=0.15.1,>=0.14.0"
+     },
+     {
+      "marker": "extra == \"standard\"",
+      "name": "watchfiles",
+      "on_image": true,
+      "specifier": ">=0.13"
+     },
+     {
+      "marker": "extra == \"standard\"",
+      "name": "websockets",
+      "on_image": true,
+      "specifier": ">=10.4"
+     }
+    ]
+   },
    "requires": [
     "click",
     "h11"
    ],
    "version": "0.25.0"
+  },
+  "uvloop": {
+   "requires": [],
+   "version": "0.23.0"
   },
   "watchfiles": {
    "requires": [
@@ -447,7 +527,7 @@
  },
  "generated_by": "python3 -m venv --clear /tmp/lock-prod && /tmp/lock-prod/bin/pip install --no-deps --index-url https://pypi.org/simple -r backend/requirements.prod.txt && /tmp/lock-prod/bin/python scripts/check_requirements.py --write-lock --target prod",
  "manifest": "backend/requirements.prod.txt",
- "manifest_sha256": "264ae85d68ef8dcea8ba53d9ca9713130c1f67b00c2fa4f72aff72c8004c0426",
+ "manifest_sha256": "d29069943ca37cf8147b964104277e13621f3b9283954b1f8afd41015b56f4c3",
  "modules": {
   "PIL": [
    "pillow"
@@ -535,6 +615,9 @@
   ],
   "httpcore2": [
    "httpcore2"
+  ],
+  "httptools": [
+   "httptools"
   ],
   "httpx": [
    "httpx"
@@ -685,6 +768,9 @@
   ],
   "uvicorn": [
    "uvicorn"
+  ],
+  "uvloop": [
+   "uvloop"
   ],
   "watchfiles": [
    "watchfiles"

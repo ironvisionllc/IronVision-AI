@@ -160,6 +160,16 @@
    "version": "0.26.0"
   },
   "psycopg": {
+   "extras": {
+    "binary": [
+     {
+      "marker": "implementation_name != \"pypy\" and extra == \"binary\"",
+      "name": "psycopg-binary",
+      "on_image": true,
+      "specifier": "==3.3.6"
+     }
+    ]
+   },
    "requires": [
     "typing-extensions"
    ],

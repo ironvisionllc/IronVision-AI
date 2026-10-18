@@ -383,3 +383,45 @@ sudo ./recover.sh scratch-cleanup          # finishes the interrupted scratch-ss
 sudo ./recover.sh run                      # rebuilds both images, checks them in-image, then the read-only rehearsal
 ```
 No production change in either command. Cutover still needs the plan hash from a fully passed rehearsal.
+
+## 16. In-env prod pin failure at Droplet commit 79e99af (`httptools`, `uvloop` installed but not pinned)
+
+**Root cause.** `requirements.prod.txt` has `uvicorn[standard]==0.25.0`. The image build (`RUN pip install -r requirements.prod.txt`, with dependency resolution) installs the `[standard]` extra's requirements. httptools 0.9.0 and uvloop 0.23.0 were not pinned; watchfiles, websockets, python-dotenv and PyYAML already were. The pod venv has plain `uvicorn==0.25.0` and neither package.
+
+**Why the earlier verification missed it (honest account).**
+- The supported lock generation (`regen_cmd`) installs with `pip install --no-deps -r <manifest>`.
+- My earlier "fresh venv from requirements.prod.txt" (§15) also used `--no-deps`.
+- With `--no-deps`, pip installs `uvicorn` but **never installs an extra's requirements**, so that venv had no httptools/uvloop.
+- `pip check` cannot flag this: it does not know which extras were requested.
+- So installed == pinned == lock agreed in a venv that was **not** what the Dockerfile builds. The lock came from such a `--no-deps` venv, not from the pod venv. The checker also had no notion of extras.
+
+**Fix (manifests, locks, checker, tests only):**
+- **Pins:** `httptools==0.9.0` and `uvloop==0.23.0` are pinned in `backend/requirements.prod.txt`. Both exist on public PyPI, not yanked, with `cp311 manylinux` wheels for x86_64 (Droplet, python:3.11-slim) and aarch64.
+- **Write-lock:** now records each requested extra's requirements with **markers** and `on_image`. Example: uvloop `(sys_platform != "win32" and (sys_platform != "cygwin" and platform_python_implementation != "PyPy")) and extra == "standard"` → on_image true; colorama `win32` → false. Write-lock refuses if an applicable extra requirement is not pinned.
+- **Host static check:** `check_extras` fails if a requested `pkg[extra]` has no extras metadata in the lock, or if an applicable extra requirement is not pinned. On the 79e99af manifest and lock it now FAILS on the host (`uvicorn[standard]`, `moto[s3]`, `psycopg[binary]` had no metadata).
+- **In-env check:** also verifies every applicable extra requirement is installed **and** pinned.
+- **Locks regenerated** with the supported command (`regen_cmd`, recorded in each lock as `generated_by`): a fresh venv (`python3 -m venv --clear /tmp/lock-<target>`, CPython 3.11.17, `env -i`), `pip install --no-deps --index-url https://pypi.org/simple -r <manifest>`, then `check_requirements.py --write-lock --target <target>`.
+  - **prod:** +httptools, +uvloop, plus extras metadata; no version changes.
+  - **recovery:** no new distributions (it has no uvicorn), only `psycopg[binary]` extras metadata; no version changes.
+  - Lock platform: linux-aarch64 (this pod); the Droplet is x86_64. Same pins; the in-image check there verifies again.
+
+**Verification:**
+
+| Check | Real / simulated | Result |
+|---|---|---|
+| Reproduce: fresh 3.11 venv, `pip install -r` HEAD (79e99af) manifest with deps, `--in-env` | Real | FAIL with exactly the Droplet errors (httptools / uvloop installed but not pinned) |
+| Reproduce: host static check on HEAD manifest + lock | Real | FAIL (extras metadata missing) |
+| Static host check (new manifests/locks): prod/recovery pin parity, transitive closure, extras | Real | PASS |
+| Fresh 3.11 venv, `pip install -r` with deps (as the Dockerfiles do), `--in-env` prod and recovery under `env -i` | Real | PASS, both: pip check clean, installed == pinned == lock exactly, selfcheck `--startup` / `--recovery` pass |
+| Fresh 3.11 venv, `--no-deps` (lock generation), `--in-env` prod and recovery | Real | PASS, both |
+| Full suite | Real | 368 passed, 27 skipped |
+| Recovery orchestration e2e (incl. rollback, auto-rollback, re-cutover, scratch SSO failure paths) | Real Postgres/Keycloak/uvicorn; Docker = shim | 41/41 |
+| `docker build` on x86_64 | Not run (no daemon) | Happens in `image_gate` on the Droplet |
+
+**Droplet (from /opt/ironvision/IronVision-AI):**
+```
+cd /opt/ironvision/IronVision-AI && git pull
+python3 scripts/check_requirements.py      # host static check, now expands extras: must PASS
+sudo ./recover.sh scratch-cleanup          # no-op if nothing is left over
+sudo ./recover.sh run
+```

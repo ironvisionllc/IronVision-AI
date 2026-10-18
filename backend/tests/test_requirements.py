@@ -147,3 +147,27 @@ def test_deploy_and_recover_run_static_then_in_image_checks():
     assert g.index("--in-env --target recovery") < g.index("build rehearsal-backend") < g.index("--in-env --target prod --app-dir /srv/backend")
     assert rs.count("    image_gate\n") == 3  # run + rehearse (standalone; no-op inside run) + cutover, before anything else
     assert ds.index("python3 scripts/check_requirements.py\n") < ds.index('"${DC[@]}" build') < ds.index("--in-env --target prod --app-dir /srv/backend")
+
+
+def test_static_check_expands_extras_uvicorn_standard_droplet_79e99af():
+    """Droplet 79e99af: uvicorn[standard] pulled httptools + uvloop unpinned. --no-deps lock generation never installed them and
+    pip check cannot know requested extras, so only the in-image check saw it. The HOST static check must fail now."""
+    import json
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_requirements as cr
+    man = ROOT / "backend" / "requirements.prod.txt"
+    lock = json.loads((ROOT / "backend" / "requirements.prod.lock.json").read_text())
+    pins = cr.parse_requirements(man)
+    assert cr.parse_extras(man)["uvicorn"] == ["standard"] and pins["httptools"] == "0.9.0" and pins["uvloop"] == "0.23.0"
+    assert cr.check_extras("prod", man, pins, lock) == []
+    ext = {r["name"]: r for r in lock["distributions"]["uvicorn"]["extras"]["standard"]}
+    assert ext["uvloop"]["on_image"] and "platform_python_implementation" in ext["uvloop"]["marker"]   # marker kept in the lock
+    assert ext["colorama"]["on_image"] is False                                                          # win32-only: not required
+    today = {k: v for k, v in pins.items() if k not in ("httptools", "uvloop")}                          # the 79e99af manifest
+    errs = cr.check_extras("prod", man, today, lock)
+    assert len(errs) == 2 and any("httptools (required by uvicorn[standard]" in e for e in errs) and any("uvloop" in e for e in errs)
+    stripped = json.loads(json.dumps(lock))
+    stripped["distributions"]["uvicorn"].pop("extras")                                                    # the 79e99af lock
+    assert any("uvicorn[standard] is requested" in e and "records no metadata" in e for e in cr.check_extras("prod", man, pins, stripped))
+    assert any("check_extras" in ln for ln in (ROOT / "scripts/check_requirements.py").read_text().splitlines() if "check_lock(target" in ln)
