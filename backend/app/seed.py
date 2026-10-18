@@ -92,11 +92,20 @@ def demo_password() -> str:
     return pw
 
 
+def demo_launcher_decision(kind: str | None, allow_demo_login: str | bool | None, auth_providers: str | None) -> bool:
+    """The demo-deployment decision from raw settings values (env or env file): DEPLOYMENT_KIND=demo + ALLOW_DEMO_LOGIN + oidc.
+    Same parsing as config._bool and sessions.enabled_providers; used by app.seed and by the recovery cutover step."""
+    allow = allow_demo_login if isinstance(allow_demo_login, bool) else (allow_demo_login or "").strip().lower() in ("1", "true", "yes", "on")
+    providers = [p.strip() for p in (auth_providers or "dev_password").split(",") if p.strip()]
+    return (kind or "").lower() == "demo" and allow and "oidc" in providers
+
+
 def demo_deployment_launcher() -> bool:
     """DEPLOYMENT_KIND=demo + ALLOW_DEMO_LOGIN + oidc: the shared demo tenant is needed although SEED_DEMO_DATA stays off."""
     from app.security import sessions
-    return ((os.environ.get("DEPLOYMENT_KIND") or "").lower() == "demo" and get_settings().allow_demo_login
-            and "oidc" in sessions.enabled_providers())
+    if (os.environ.get("DEPLOYMENT_KIND") or "").lower() != "demo":
+        return False
+    return demo_launcher_decision(os.environ.get("DEPLOYMENT_KIND"), get_settings().allow_demo_login, ",".join(sessions.enabled_providers()))
 
 
 def ensure_demo_launcher_sandbox(db: Session) -> dict:

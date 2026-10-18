@@ -76,9 +76,26 @@ sync_db_env() {  # local/test mode: follow the env file's DATABASE_URL (the cuto
   [ "$LOCAL" = 1 ] || return 0
   local d; d=$(envget DATABASE_URL); [ -z "$d" ] || export DATABASE_URL="$d"
 }
+# x-recovery-env keys (deploy/compose/recovery.yml; a test keeps both in sync): local/test mode runs the tool with ONLY these
+# + recover plumbing, APP_ENV=production and no backend/.env – exactly what the recovery container gets
+RECOVERY_ENV_KEYS="DATABASE_URL STORAGE_DRIVER S3_ENDPOINT_URL S3_BUCKET S3_REGION S3_ADDRESSING_STYLE S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY RECOVER_S3_ADMIN_ACCESS_KEY_ID RECOVER_S3_ADMIN_SECRET_ACCESS_KEY KEYCLOAK_URL KEYCLOAK_REALM KEYCLOAK_CONFIGURATOR_CLIENT_ID KEYCLOAK_CONFIGURATOR_CLIENT_SECRET KEYCLOAK_DB_NAME OIDC_ISSUER OIDC_CLIENT_ID OIDC_CLIENT_SECRET APP_DOMAIN APP_ENV"
+prod_flags() {  # the ONLY production settings the tool gets beyond x-recovery-env: the demo decision inputs (safe env-file parser, no secrets)
+  printf '%s\n' "RECOVER_PRODENV_FILE=$RECOVER_ENV_FILE" "RECOVER_PRODENV_DEPLOYMENT_KIND=$(envget DEPLOYMENT_KIND)" \
+    "RECOVER_PRODENV_ALLOW_DEMO_LOGIN=$(envget ALLOW_DEMO_LOGIN)" "RECOVER_PRODENV_AUTH_PROVIDERS=$(envget AUTH_PROVIDERS)" \
+    "RECOVER_PRODENV_DEMO_LAUNCHER=$([ -n "$(envget KEYCLOAK_DEMO_USERNAME)" ] && echo yes || echo no)"
+}
 py() {
-  if [ "$LOCAL" = 1 ]; then sync_db_env; (cd backend && exec python -m app.tools.recovery "$@")
-  else "${RUNPY[@]}" "${SRC_E[@]}" recovery python -m app.tools.recovery "$@"; fi
+  local kv k pe=() te=(APP_ENV=production IRONVISION_DOTENV=0) de=()
+  while IFS= read -r kv; do pe+=("$kv"); done < <(prod_flags)
+  if [ "$LOCAL" = 1 ]; then
+    sync_db_env
+    for k in $RECOVERY_ENV_KEYS; do if [ "$k" != APP_ENV ] && [ -n "${!k+x}" ]; then te+=("$k=${!k}"); fi; done
+    while IFS= read -r k; do te+=("$k=${!k}"); done < <(compgen -e | grep -E '^(RECOVER_|RECOVERY_|REHEARSAL_|DOCKER_SHIM_|PATH$|HOME$|LANG$|PYTHONPATH$|JAVA_HOME$)' | grep -v '^RECOVER_PRODENV_' || true)
+    (cd backend && exec env -i "${te[@]}" "${pe[@]}" python -m app.tools.recovery "$@")
+  else
+    for kv in "${pe[@]}"; do de+=(-e "$kv"); done
+    "${RUNPY[@]}" "${SRC_E[@]}" "${de[@]}" recovery python -m app.tools.recovery "$@"
+  fi
 }
 legacy() { python3 scripts/legacy_project.py "$@" --env-file "$ENV_FILE"; }
 legacy_present() { [ -n "$(docker ps -aq --filter "label=com.docker.compose.project=$LEGACY_PROJECT" 2>/dev/null)$(docker ps -aq --filter "name=^$LEGACY_PROJECT-" 2>/dev/null)" ]; }

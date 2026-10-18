@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import shutil
 import subprocess
 import sys
@@ -37,7 +38,7 @@ SCRATCH = re.compile(r"^(rec_(src|prod|target|kc)_\d{8}t\d{6}|ironvision_recover
 # Part of every plan hash and recorded in every rehearsal: a plan/rehearsal produced by another tool version is refused by
 # apply/cutover (bumped when rehearsal semantics change – 2026.10.17: probes run inside the rehearsal backend's namespace,
 # full SSO e2e without a faked pass, per-record evidence integrity).
-TOOL_VERSION = "2026.10.17-rehearsal-v3-scratch-sso"
+TOOL_VERSION = "2026.10.18-rehearsal-v4-demo-account-env"
 
 
 class RecoveryError(Exception):
@@ -677,13 +678,42 @@ _FP_USERS = ("select count(*), md5(coalesce(string_agg(row_to_json(u)::text, ','
 _FP_ORGS = "select count(*), md5(coalesce(string_agg(row_to_json(o)::text, ',' order by o.id), '')) from organizations o where not o.is_sandbox"
 
 
+def prod_demo_flags() -> dict:
+    """Demo decision inputs from the PRODUCTION env file (recover.sh → scripts/envget.py → app.envfile), passed as RECOVER_PRODENV_*.
+    Never the tool process env: the recovery container only has x-recovery-env (no DEPLOYMENT_KIND/ALLOW_DEMO_LOGIN/…)."""
+    src = os.environ.get("RECOVER_PRODENV_FILE")
+    if not src:
+        raise RecoveryError("production deployment flags missing (RECOVER_PRODENV_*): run through ./recover.sh, which reads them from the "
+                            "production env file – the demo_account decision is never taken from the tool environment")
+    return {"source": f"{src} (app.envfile parser via recover.sh)", "DEPLOYMENT_KIND": os.environ.get("RECOVER_PRODENV_DEPLOYMENT_KIND", ""),
+            "ALLOW_DEMO_LOGIN": os.environ.get("RECOVER_PRODENV_ALLOW_DEMO_LOGIN", ""),
+            "AUTH_PROVIDERS": os.environ.get("RECOVER_PRODENV_AUTH_PROVIDERS", ""),
+            "demo_launcher_configured": os.environ.get("RECOVER_PRODENV_DEMO_LAUNCHER") == "yes"}
+
+
 def demo_step_plan() -> dict:
     """Cutover step `demo_account` (part of the plan → plan hash + dry-run report): on a demo deployment the recovered DB gets
     demo@ironvision.ai + its sandbox org/personas from the SAME function app.seed uses, then the strict keycloak-migrate --link."""
-    from app.seed import demo_deployment_launcher
+    from app.seed import demo_launcher_decision
+    f = prod_demo_flags()
+    req = demo_launcher_decision(f["DEPLOYMENT_KIND"], f["ALLOW_DEMO_LOGIN"], f["AUTH_PROVIDERS"])
     return {"step": "app.seed.ensure_demo_launcher_sandbox (= app.seed for DEPLOYMENT_KIND=demo) on the target DB, before the switch",
-            "email": DEMO_EMAIL, "required": demo_deployment_launcher(), "launcher_configured": bool(os.environ.get("KEYCLOAK_DEMO_USERNAME")),
+            "email": DEMO_EMAIL, "required": req, "decision_inputs": f,
+            "inconsistent": f["DEPLOYMENT_KIND"].lower() == "demo" and f["demo_launcher_configured"] and not req,
             "then": "keycloak-migrate --apply --link: exit 4 if the demo launcher would map 0 accounts; Explore Demo check after cutover"}
+
+
+def demo_account_state(url: str) -> dict | None:
+    """Separate read of what demo-login needs: the active demo user in a ready sandbox org (+ persona and mapping counts)."""
+    eng = create_engine(url)
+    with eng.connect() as c:
+        row = c.execute(text("select u.id, u.is_active, o.id as org_id, o.is_sandbox, o.sandbox_status, "
+                             "(select count(*) from users p where p.org_id = o.id and p.persona_role is not null) as personas, "
+                             "(select count(*) from users d where lower(d.email) = :e) as demo_users, "
+                             "(select count(*) from auth_identities ai where ai.user_id = u.id and ai.provider = 'oidc') as oidc_mappings "
+                             "from users u join organizations o on o.id = u.org_id where lower(u.email) = :e"), {"e": DEMO_EMAIL}).first()
+    eng.dispose()
+    return {k: (str(v) if k in ("id", "org_id") else v) for k, v in row._mapping.items()} if row else None
 
 
 def _fingerprint(url: str) -> list:
@@ -698,29 +728,35 @@ def demo_account_step(url: str, bucket: str, admin_bucket: bool) -> dict:
     """Runs for rehearse (scratch target, rehearsal bucket) and apply (recovered DB, production bucket) alike. Only the demo sandbox
     org changes: non-sandbox users + organizations (restored + admin) are fingerprinted before/after and must be identical."""
     d = demo_step_plan()
+    src = d["decision_inputs"]["source"]
+    if d["inconsistent"]:
+        return d | {"ran": False, "ok": False, "error": f"production env ({src}) says DEPLOYMENT_KIND=demo with the demo launcher configured, "
+                    f"but ALLOW_DEMO_LOGIN/AUTH_PROVIDERS make the demo_account step NOT required – refusing (Explore Demo would 403)"}
     if not d["required"]:
-        return d | {"ran": False, "ok": True, "detail": "not a demo deployment – no demo account"}
-    if os.environ.get("RECOVER_LOCAL") == "1" and os.environ.get("RECOVER_SCRATCH_FAULT") == "skip-demo-step":  # test: pre-fix behaviour
-        if SCRATCH.match(make_url(url).database or ""):  # + the Droplet state (no demo account), scratch targets only
-            eng = create_engine(url)
-            with eng.begin() as c:
-                c.execute(text("delete from auth_identities where user_id in (select id from users where email = :e)"), {"e": DEMO_EMAIL})
-                c.execute(text("update users set email = 'demo-removed@rehearsal.invalid' where email = :e"), {"e": DEMO_EMAIL})
-            eng.dispose()
-        return d | {"ran": False, "ok": True, "detail": "TEST FAULT skip-demo-step: step not run"}
+        return d | {"ran": False, "ok": True, "detail": f"not a demo deployment according to {src} – no demo account"}
     pre = "RECOVER_S3_ADMIN_" if admin_bucket and os.environ.get("RECOVER_S3_ADMIN_ACCESS_KEY_ID") else "S3_"
+    fl = d["decision_inputs"]
+    # the step's own process: production demo flags + a process-local JWT_SECRET (settings require one; the seed issues no tokens)
     env = {**os.environ, "DATABASE_URL": url, "S3_BUCKET": bucket, "S3_ACCESS_KEY_ID": os.environ.get(pre + "ACCESS_KEY_ID", ""),
-           "S3_SECRET_ACCESS_KEY": os.environ.get(pre + "SECRET_ACCESS_KEY", "")}
+           "S3_SECRET_ACCESS_KEY": os.environ.get(pre + "SECRET_ACCESS_KEY", ""), "DEPLOYMENT_KIND": fl["DEPLOYMENT_KIND"],
+           "ALLOW_DEMO_LOGIN": fl["ALLOW_DEMO_LOGIN"], "AUTH_PROVIDERS": fl["AUTH_PROVIDERS"],
+           "JWT_SECRET": os.environ.get("JWT_SECRET") or secrets.token_urlsafe(48), "IRONVISION_DOTENV": "0"}
     before = _fingerprint(url)
     p = subprocess.run([sys.executable, "-c", _DEMO_STEP], env=env, capture_output=True, text=True, cwd=Path(__file__).resolve().parents[2], check=False)
     m = re.search(r"^DEMO-STEP-JSON (.+)$", p.stdout, re.M)
     res = json.loads(m.group(1)) if m else None
     same = _fingerprint(url) == before
-    ok = p.returncode == 0 and bool(res) and res["sandbox_status"] == "ready" and same
-    out = d | {"ran": True, "ok": ok, "result": res, "bucket": bucket, "restored_users_and_orgs_unchanged": same}
+    st = demo_account_state(url)  # separate query: it must PERSIST in the target DB
+    persisted = bool(st and st["is_active"] and st["is_sandbox"] and st["sandbox_status"] == "ready" and st["demo_users"] == 1
+                     and res and st["org_id"] == res["org_id"])
+    ok = p.returncode == 0 and bool(res) and same and persisted
+    out = d | {"ran": True, "ok": ok, "result": res, "persisted": st, "bucket": bucket, "restored_users_and_orgs_unchanged": same}
     if not ok:
-        out["error"] = ("non-sandbox users/organizations changed" if not same else redact((p.stdout + p.stderr)[-600:]))
-    log(f"[demo_account] {'OK' if ok else 'FAILED'} {json.dumps(res)} restored users/orgs unchanged={same}")
+        out["error"] = ("non-sandbox users/organizations changed" if not same else
+                        f"demo account not persisted in the target DB: {json.dumps(st)}" if p.returncode == 0 and res else
+                        redact((p.stdout + p.stderr)[-600:]))
+    log(f"[demo_account] {'OK' if ok else 'FAILED'} {json.dumps(res)} persisted={json.dumps(st)} restored users/orgs unchanged={same} "
+        f"(decision from {src})")
     return out
 
 
@@ -1254,7 +1290,14 @@ def cmd_demo_check(a) -> int:
     return 0 if ok else 1
 
 
+def tool_process_defaults() -> None:
+    """The recovery container has only x-recovery-env: app settings still require JWT_SECRET (get_settings → verify_integrity →
+    get_storage). The tool signs nothing, so it gets a process-local throwaway value, never written anywhere."""
+    os.environ.setdefault("JWT_SECRET", secrets.token_urlsafe(48))
+
+
 def main(argv=None) -> int:
+    tool_process_defaults()
     ap = argparse.ArgumentParser(prog="recover")
     sp = ap.add_subparsers(dest="cmd", required=True)
     sp.add_parser("preflight")

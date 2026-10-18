@@ -169,8 +169,15 @@ def test_plan_hash_depends_on_tool_version(monkeypatch):
     from app.tools import recovery as rv
     for f, v in (("counts", {}), ("inputs", {}), ("revision", "0013"), ("catalog_fingerprint", {}), ("live_url", lambda: "postgresql://x@h/ironvision")):
         monkeypatch.setattr(rv, f, (lambda *a, _v=v: _v) if not callable(v) else v)
+    for k, v in {"FILE": "/x/.env.production", "DEPLOYMENT_KIND": "demo", "ALLOW_DEMO_LOGIN": "true", "AUTH_PROVIDERS": "oidc",
+                 "DEMO_LAUNCHER": "yes"}.items():
+        monkeypatch.setenv(f"RECOVER_PRODENV_{k}", v)
     h1 = rv.plan()["plan_hash"]
-    monkeypatch.setattr(rv, "TOOL_VERSION", "2026.10.16-old")
+    monkeypatch.setenv("RECOVER_PRODENV_ALLOW_DEMO_LOGIN", "false")     # the env-derived demo decision inputs are in the hash
+    assert rv.plan()["plan_hash"] != h1
+    monkeypatch.setenv("RECOVER_PRODENV_ALLOW_DEMO_LOGIN", "true")
+    assert rv.plan()["plan_hash"] == h1
+    monkeypatch.setattr(rv, "TOOL_VERSION", "2026.10.17-rehearsal-v3-scratch-sso")
     assert rv.plan()["plan_hash"] != h1 and h1 != "e4c831f4a432b3b4"
 
 
@@ -381,6 +388,7 @@ def test_demo_launcher_link_step_refuses_production_db_keycloak_and_issuer(monke
     monkeypatch.setenv("REHEARSAL_FORBIDDEN_HOSTS", "auth.demo.ironvisionai.com,demo.ironvisionai.com")
     called = []
     monkeypatch.setattr(rv, "kc_link_scratch", lambda *a, **k: called.append(a) or {"rc": 0, "issuer": "x"})
+    monkeypatch.setattr(rv, "demo_account_state", lambda url: {"id": "demo"})
     good = {"DATABASE_URL": rv.db_url("rec_target_20991231t235958"), "KEYCLOAK_URL": "http://rehearsal-keycloak:8080",
             "OIDC_ISSUER": "http://rehearsal-keycloak:8080/realms/ironvision-demo"}
     for bad in ({"DATABASE_URL": rv.db_url("ironvision")}, {"DATABASE_URL": rv.live_url()}, {"KEYCLOAK_URL": "http://keycloak:8080"},
@@ -428,3 +436,134 @@ def test_keycloak_migrate_link_exits_4_when_demo_launcher_would_map_0_accounts(m
     a.link = False                                                      # --create-identities alone is not blocked by the launcher check
     monkeypatch.setattr(km, "check_backup", lambda ref: None)
     assert km.migrate(a) == 0 and applied == [1]
+
+
+
+XR_KEYS = ("DATABASE_URL", "STORAGE_DRIVER", "S3_ENDPOINT_URL", "S3_BUCKET", "S3_REGION", "S3_ADDRESSING_STYLE", "S3_ACCESS_KEY_ID",
+           "S3_SECRET_ACCESS_KEY", "KEYCLOAK_URL", "KEYCLOAK_REALM", "KEYCLOAK_CONFIGURATOR_CLIENT_ID", "KEYCLOAK_DB_NAME", "OIDC_ISSUER",
+           "OIDC_CLIENT_ID", "APP_DOMAIN")
+
+
+def _droplet_tool_env(prod_file=None) -> dict:
+    """env -i + ONLY x-recovery-env keys (+ RECOVER_PRODENV_* exactly as recover.sh's prod_flags builds them from the env file)."""
+    import shutil
+    import subprocess
+    import sys
+    e = {"PATH": f"{Path(sys.executable).parent}:/usr/bin:/bin", "HOME": "/root", "LANG": "C.UTF-8", "APP_ENV": "production",
+         "IRONVISION_DOTENV": "0"} | {k: "x" for k in XR_KEYS} | {"DATABASE_URL": "postgresql+psycopg://u:p@postgres:5432/ironvision"}
+    if prod_file:
+        get = lambda k: subprocess.run([shutil.which("python3"), str(ROOT / "scripts/envget.py"), str(prod_file), k],  # noqa: E731
+                                       capture_output=True, text=True, check=True).stdout
+        e |= {"RECOVER_PRODENV_FILE": str(prod_file), "RECOVER_PRODENV_DEPLOYMENT_KIND": get("DEPLOYMENT_KIND"),
+              "RECOVER_PRODENV_ALLOW_DEMO_LOGIN": get("ALLOW_DEMO_LOGIN"), "RECOVER_PRODENV_AUTH_PROVIDERS": get("AUTH_PROVIDERS"),
+              "RECOVER_PRODENV_DEMO_LAUNCHER": "yes" if get("KEYCLOAK_DEMO_USERNAME") else "no"}
+    return e
+
+
+_DECIDE = """
+import json
+from app.tools import recovery as rv
+try:
+    d = rv.demo_step_plan()
+    s = rv.demo_account_step("postgresql+psycopg://u:p@127.0.0.1:1/rec_target_20991231t235959", "b", True) if not d["required"] or d["inconsistent"] else {}
+    print(json.dumps({"required": d["required"], "inconsistent": d["inconsistent"], "src": d["decision_inputs"]["source"], "step": s}))
+except rv.RecoveryError as e:
+    print(json.dumps({"error": str(e)}))
+"""
+
+
+def _decide(env) -> dict:
+    import json
+    import subprocess
+    import sys
+    r = subprocess.run([sys.executable, "-c", _DECIDE], env=env, cwd=ROOT / "backend", capture_output=True, text=True, check=True)
+    return json.loads(r.stdout.strip().splitlines()[-1])
+
+
+def test_demo_decision_comes_from_the_production_env_file_not_the_droplet_tool_env(tmp_path):
+    """Droplet rehearsal-20261018t201958: the recovery container has only x-recovery-env (no DEPLOYMENT_KIND …). The old code
+    (9fb3b34) decided required=False → ok 'not a demo deployment' without running; the decision now comes from the env file."""
+    f = tmp_path / ".env.production"
+    f.write_text("DEPLOYMENT_KIND=demo\nALLOW_DEMO_LOGIN=true\nAUTH_PROVIDERS=oidc\nKEYCLOAK_DEMO_USERNAME=launcher-x\nJWT_SECRET=not-passed\n")
+    d = _decide(_droplet_tool_env(f))
+    assert d["required"] is True and d["inconsistent"] is False and str(f) in d["src"]
+    assert "production deployment flags missing" in _decide(_droplet_tool_env())["error"]   # never from the tool env
+    f.write_text("DEPLOYMENT_KIND=customer\nALLOW_DEMO_LOGIN=false\nAUTH_PROVIDERS=oidc\n")
+    d = _decide(_droplet_tool_env(f))
+    assert d["required"] is False and d["step"]["ok"] is True and str(f) in d["step"]["detail"]   # genuinely not demo: passes, says why
+
+
+def test_demo_env_with_launcher_but_step_not_required_fails_loudly(tmp_path):
+    f = tmp_path / ".env.production"
+    f.write_text("DEPLOYMENT_KIND=demo\nALLOW_DEMO_LOGIN=false\nAUTH_PROVIDERS=oidc\nKEYCLOAK_DEMO_USERNAME=launcher-x\n")
+    d = _decide(_droplet_tool_env(f))
+    assert d["inconsistent"] is True and d["step"]["ok"] is False and "refusing" in d["step"]["error"]
+    from app.tools import recovery as rv
+    r = {"reconciliation": [], "fk": [{}], "audit_chain": {"valid": True}, "objects": {"copy": {"conflict_existing_differs": []}},
+         "demo_account": d["step"]}
+    assert any("demo account step failed" in w for w in rv._passed(r))                       # → rehearsal FAILS, listed
+
+
+def test_recover_sh_tool_env_keys_match_x_recovery_env():
+    import re
+    yml = (ROOT / "deploy/compose/recovery.yml").read_text().split("services:")[0]
+    keys = set(re.findall(r"^  ([A-Z0-9_]+):", yml, re.M))
+    sh = re.search(r'^RECOVERY_ENV_KEYS="([^"]+)"', (ROOT / "recover.sh").read_text(), re.M).group(1).split()
+    assert set(sh) == keys
+
+
+def test_link_before_demo_account_is_refused(monkeypatch):
+    from app.tools import recovery as rv
+    from app.tools import scratch_sso as ss
+    called = []
+    monkeypatch.setattr(rv, "kc_link_scratch", lambda *a, **k: called.append(a) or {"rc": 0})
+    monkeypatch.setattr(rv, "demo_account_state", lambda url: None)
+    good = {"DATABASE_URL": rv.db_url("rec_target_20991231t235958"), "KEYCLOAK_URL": "http://rehearsal-keycloak:8080",
+            "OIDC_ISSUER": "http://rehearsal-keycloak:8080/realms/ironvision-demo"}
+    with pytest.raises(rv.RecoveryError, match="wrong order"):
+        ss.link_demo_launcher("20991231t235958", good, [])
+    assert called == []
+
+
+def test_demo_account_step_function_and_mapping_are_idempotent():
+    from sqlalchemy import func, select
+
+    from app.db import SessionLocal
+    from app.models import AuthIdentity, Organization, User
+    from app.seed import ensure_demo_launcher_sandbox
+    from app.services import identity_map
+    from app.services.sandbox import DEMO_EMAIL
+
+    def snap(db):
+        u = db.scalar(select(User).where(User.email == DEMO_EMAIL))
+        return (db.scalar(select(func.count()).select_from(User).where(User.email == DEMO_EMAIL)),
+                db.scalar(select(func.count()).select_from(Organization).where(Organization.is_sandbox)),
+                db.scalar(select(func.count()).select_from(User).where(User.org_id == u.org_id)),
+                db.scalar(select(func.count()).select_from(AuthIdentity).where(AuthIdentity.user_id == u.id)))
+    with SessionLocal() as db:
+        r1 = ensure_demo_launcher_sandbox(db)
+        s1 = snap(db)
+        r2 = ensure_demo_launcher_sandbox(db)
+        assert r2["org_id"] == r1["org_id"] and r2["created"] is False and snap(db) == s1      # no duplicate user/org/personas
+        demo = db.scalar(select(User).where(User.email == DEMO_EMAIL))
+        iss = "http://rehearsal-keycloak:8080/realms/idempotency-test"
+        identity_map.map_identity(db, user=demo, issuer=iss, sub="kc-1", reason="t", actor="pytest", username="l")
+        db.commit()
+        n = snap(db)[3]
+        identity_map.map_identity(db, user=demo, issuer=iss, sub="kc-1", reason="t", actor="pytest", username="l")
+        db.commit()
+        assert snap(db)[3] == n                                                                # no duplicate mapping
+        db.query(AuthIdentity).filter(AuthIdentity.user_id == demo.id, AuthIdentity.subject.like(f"{iss}|%")).delete()
+        db.commit()
+
+
+def test_recovery_tool_settings_work_in_the_droplet_tool_env_without_jwt_secret():
+    """cutover verify + rollback (cmd_verify → verify_integrity → get_storage → get_settings) need JWT_SECRET, which the recovery
+    container does not have; the pod only passed because backend/.env filled it in."""
+    import subprocess
+    import sys
+    code = ("from app.config import get_settings\nfrom app.tools import recovery as rv\n"
+            "try:\n    get_settings()\n    print('UNEXPECTED')\nexcept RuntimeError as e:\n    print('BEFORE', e)\n"
+            "get_settings.cache_clear()\nrv.tool_process_defaults()\nget_settings()\nprint('AFTER ok')")
+    r = subprocess.run([sys.executable, "-c", code], env=_droplet_tool_env(), cwd=ROOT / "backend", capture_output=True, text=True, check=True)
+    assert "BEFORE Required environment variable JWT_SECRET is not set" in r.stdout and "AFTER ok" in r.stdout

@@ -503,3 +503,85 @@ sudo ./recover.sh run                      # read-only; rehearsal incl. the demo
 Read-only check of what production has today (optional):
 `sudo docker compose -f docker-compose.yml -f deploy/digitalocean/docker-compose.do.yml --env-file deploy/digitalocean/.env.production exec -T postgres psql -U "$(python3 scripts/envget.py deploy/digitalocean/.env.production POSTGRES_USER)" -d ironvision -c "select email, is_active from users where email = 'demo@ironvision.ai'"`
 
+
+## 18. Droplet 2026-10-18 (rehearsal-20261018t201958): scratch link refused "no app user demo@ironvision.ai"
+
+**Root cause (confirmed).**
+- `demo_account_step` runs inside `py rehearse`, i.e. in the `recovery` tool container. That container's environment is **only** `x-recovery-env` (deploy/compose/recovery.yml): no `DEPLOYMENT_KIND`, `ALLOW_DEMO_LOGIN`, `AUTH_PROVIDERS` or `KEYCLOAK_DEMO_USERNAME`, and the production env file is not mounted.
+- `app.seed.demo_deployment_launcher()` short-circuits on the missing `DEPLOYMENT_KIND`. So `required=False`, and the step returned `ok: true, "not a demo deployment"` **without running**, with the plan hash recording `required=False`.
+- Later, scratch_sso links with its own complete scratch env (launcher configured), so the strict link correctly refused (exit 4).
+- It passed in the pod because the test's tool process had those variables. This is the same class of bug as `JWT_SECRET`/`.env` before.
+- Also latent: the step's subprocess calls `get_settings()`, which requires `JWT_SECRET`. That is absent in the container too.
+- **Reproduced** with `env -i` + only `x-recovery-env` keys + `APP_ENV=production`, `IRONVISION_DOTENV=0`:
+  - old code 9fb3b34 → `required=False`, step `{"ran": false, "ok": true, "detail": "not a demo deployment – no demo account"}`;
+  - new code without the flags → `RecoveryError: production deployment flags missing`;
+  - new code with the flags from the env file → `required=True`.
+
+**Execution order (`recover.sh run` → `rehearse --e2e`, recover.sh:287):**
+
+| # | Step | Process / container | Environment |
+|---|---|---|---|
+| 1 | `py rehearse` → `cmd_rehearse` → `_run_recovery` | `recovery` container (local: `env -i` host python) | `x-recovery-env` + `RECOVER_SOURCE_*` (SRC_E) + `RECOVERY_DIR` + **`RECOVER_PRODENV_*`** (new: from the env file via `scripts/envget.py`) |
+| 1a | `build_target` (restore legacy → migrate → merge production rows) | same | same |
+| 1b | evidence matching + `copy_objects` (rehearsal bucket, admin key) | same | same |
+| 1c | **`demo_account`**: `app.seed.ensure_demo_launcher_sandbox` | subprocess of 1 | 1 + `DATABASE_URL`=target, rehearsal bucket + admin key, the three demo flags from the env file, a process-local `JWT_SECRET`, `IRONVISION_DOTENV=0` |
+| 1d | separate persistence query, restored-user/org fingerprint, FK / audit chain / bucket verify, report | same as 1 | same |
+| 2 | `sso_up` → `py scratch-sso setup`: scratch Keycloak, keycloak_config, e2e user, **order check** (demo account must exist), `keycloak-migrate --apply --link` (strict), mapping verification | `recovery` container + scratch Keycloak | scratch-only env built by scratch_sso (scratch DB, Keycloak, issuer, launcher; per-run secrets 0600) |
+| 3 | rehearsal-backend (production backend image) | `rehearsal-backend` | production env_file + scratch overrides (scratch DB, Keycloak, issuer, launcher, rehearsal bucket) |
+| 4 | probe + `scripts/e2e_sso.py --demo` | `rehearsal-backend` exec | same |
+| 5 | `sso_down` → `py scratch-sso cleanup` (always, also on failure) | `recovery` container | as 2 |
+
+Cutover (`apply`) runs the same 1c inside `_run_recovery` on the recovered DB (production bucket), then `keycloak.sh migrate --link` (env file) and `recovery demo-check`.
+
+**Fix:**
+- **Decision source:** `recover.sh prod_flags` reads `DEPLOYMENT_KIND`, `ALLOW_DEMO_LOGIN`, `AUTH_PROVIDERS` and whether `KEYCLOAK_DEMO_USERNAME` is set from the **production env file**, with the safe parser. It passes them as `RECOVER_PRODENV_*` to every tool call (`-e` in the container; plain env locally). No secrets are passed.
+- **Same decision everywhere:** `recovery.demo_step_plan()` decides with `app.seed.demo_launcher_decision`, the same function `app.seed` uses, and never reads the tool env.
+  - Missing flags → error.
+  - Env file says demo + launcher but the step would not be required → **error** (`ok: false`, rehearsal FAILS, listed).
+  - "Not a demo deployment" passes only when the env file genuinely says so, and the report names the file.
+- **Plan hash:** the decision inputs are in the plan (`demo_account.decision_inputs`) → plan hash. `TOOL_VERSION` = **`2026.10.18-rehearsal-v4-demo-account-env`**, so older rehearsals and plan hashes are refused.
+- **After the step:** a separate query checks that the active `demo@ironvision.ai` persists, in a `ready` sandbox org, with exactly one demo user. The restored users/orgs fingerprint must be unchanged.
+- **Order guard:** the scratch link refuses to run before the account exists ("wrong order").
+- **Same functions, no bypass:** rehearsal and cutover both use `ensure_demo_launcher_sandbox` and `keycloak-migrate --link`. The test-only `skip-demo-step` bypass was removed.
+- **Local mode emulates the container exactly:** `py()` runs `env -i` with only the `x-recovery-env` keys (a test keeps `RECOVERY_ENV_KEYS` in sync with recovery.yml) + recover plumbing + `APP_ENV=production`, `IRONVISION_DOTENV=0`.
+- **E2E demo path** now uses the switched ISSM token: launcher login 200 → ISSM → permitted 200 → restricted 403 → logout 401.
+
+**Env audit (recovery.py / scratch_sso.py reads that `x-recovery-env` does not provide):**
+- `KEYCLOAK_DEMO_USERNAME` and, via app.seed, `DEPLOYMENT_KIND` / `ALLOW_DEMO_LOGIN` / `AUTH_PROVIDERS`: **this bug**. Fixed via `RECOVER_PRODENV_*`.
+- `JWT_SECRET` (via `get_settings` in the demo-step subprocess): fixed with a process-local value. scratch_sso already generates its own.
+- `RECOVER_SOURCE_*`: passed by SRC_E.
+- `RECOVERY_DIR`, `RECOVER_PREDEPLOY_DIR`: passed by RUNPY `-e`.
+- `REHEARSAL_FORBIDDEN_HOSTS`: exported by recover.sh for the probe; the guards also read `KEYCLOAK_URL`/`OIDC_ISSUER`, which are in `x-recovery-env`.
+- `RECOVER_ADMIN_DATABASE_URL`, `RECOVER_KEYCLOAK_DATABASE_URL`, `RECOVER_PG_BIN`, `RECOVER_LEGACY_BUCKET`, `RECOVER_OBJECT_ARCHIVE`, `RECOVER_PROD_ROLLBACK_BACKUP`, `RECOVER_SCRATCH_*`: optional overrides with in-container defaults. Absence is the Droplet default, not a decision change.
+- `RECOVER_LOCAL`, `RECOVER_SCRATCH_FAULT`, `RECOVER_CUTOVER_FAULT`: local/test only (ignored unless `RECOVER_LOCAL=1`).
+
+**Second latent Droplet bug surfaced by the container-faithful env:**
+- **What:** `cmd_verify` → `verify_integrity` → `get_storage` → `get_settings()` requires `JWT_SECRET`. The recovery container has none. A real Droplet cutover would therefore have failed post-switch verify **and** its automatic rollback, which runs verify.
+- **Why the pod missed it:** the tool loaded `backend/.env`.
+- **Fix:** `recovery.tool_process_defaults()` gives the tool process a throwaway `JWT_SECRET`. The tool signs nothing, and the value is never written anywhere.
+
+**Verification (2026-10-18, pod; tool env = `env -i` + `x-recovery-env` keys + recover plumbing, `APP_ENV=production`, no backend/.env):**
+
+| Check | Real / simulated | Result |
+|---|---|---|
+| Droplet decision reproduced: old code 9fb3b34 with the Droplet tool env | Real (subprocess, `env -i`) | `required=False`, `ok: true "not a demo deployment"` without running |
+| New code, same env, flags from the production env file | Real | `required=True`, source = env file; missing flags → error; customer env → passes, says why |
+| Full rehearsal: build_target → evidence → **demo_account** → sso_up → strict link → rehearsal-backend → e2e → cleanup | Real pod Postgres, Keycloak 26 (scratch), uvicorn, SeaweedFS | PASS; order asserted from the run log; account created + persisted; restored users/orgs fingerprint unchanged |
+| E2E demo: launcher login 200 → ISSM → permitted 200 → restricted 403 → logout 401 | Real | PASS (scratch and cutover) |
+| Env file demo + launcher, `ALLOW_DEMO_LOGIN=false` | Real | demo_account FAILS, rehearsal FAILS listed, plan hash not eligible, nothing left behind |
+| Link before the account exists | Unit | refused ("wrong order"), keycloak-migrate not called |
+| Step + mapping run twice | Real test DB | same org, no duplicate user / org / personas / mapping |
+| Link fails / login fails / backend fails / admin.env deleted / mapping removed | Real | rehearsal FAILS listed, cleanup complete, restored users unchanged |
+| 0 linked accounts | Unit + real | exit 4; mapping verification; never reported as success |
+| Cutover 1 (demo_account → strict link → demo-check), rollback, auto-rollback, forced 403 → rollback, re-cutover, finalize ×2 | Real; Docker = shim | orchestration **47/47** |
+| Plan hash covers the decision inputs; TOOL_VERSION bump refuses old plans | Unit | PASS |
+| `RECOVERY_ENV_KEYS` (recover.sh) == `x-recovery-env` keys | Unit | PASS |
+| Full suite | Real | 378 passed, 26 skipped |
+| Docker Compose on the Droplet | Not run (no daemon) | next Droplet run |
+
+**Droplet (from /opt/ironvision/IronVision-AI):**
+```
+cd /opt/ironvision/IronVision-AI && git pull
+sudo ./recover.sh scratch-cleanup
+sudo ./recover.sh run          # = inspect + backups + preflight + rehearse --e2e (recover.sh:287); read-only
+```

@@ -31,7 +31,10 @@ def env(**kw) -> dict:
          "RECOVER_OBJECT_ARCHIVE": str(REP / "aegisrmf-minio-backup.tar.gz"), "RECOVER_SOURCE_INSPECT_URL": u("rec_replica_source"),
          "STORAGE_DRIVER": "s3", "S3_ENDPOINT_URL": "http://127.0.0.1:18333", "S3_BUCKET": "evidence-live", "S3_REGION": "us-east-1",
          "S3_ADDRESSING_STYLE": "path", "S3_ACCESS_KEY_ID": "recapp", "S3_SECRET_ACCESS_KEY": "rec-app-secret-0123456789abcdef",
-         "RECOVER_S3_ADMIN_ACCESS_KEY_ID": "recadmin", "RECOVER_S3_ADMIN_SECRET_ACCESS_KEY": "rec-admin-secret-0123456789abcdef", "PYTHONPATH": str(BACKEND)}
+         "RECOVER_S3_ADMIN_ACCESS_KEY_ID": "recadmin", "RECOVER_S3_ADMIN_SECRET_ACCESS_KEY": "rec-admin-secret-0123456789abcdef", "PYTHONPATH": str(BACKEND),
+         # engine-level test (no recover.sh): explicit, genuinely non-demo production flags – the demo_account step is covered by the orchestration e2e
+         "RECOVER_PRODENV_FILE": "test_recovery_e2e (customer deployment)", "RECOVER_PRODENV_DEPLOYMENT_KIND": "customer",
+         "RECOVER_PRODENV_ALLOW_DEMO_LOGIN": "false", "RECOVER_PRODENV_AUTH_PROVIDERS": "oidc", "RECOVER_PRODENV_DEMO_LAUNCHER": "no"}
     e.update(kw)
     return e
 

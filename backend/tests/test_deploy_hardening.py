@@ -88,7 +88,8 @@ def test_env_templates_cover_every_variable_the_code_reads():
     preview_only = {"EMERGENT_LLM_KEY", "EMERGENT_AI_VENDOR"}
     compose_only = {"DATABASE_URL", "DOCS_ROOT", "CONTENT_DIR", "SAMPLES_DIR", "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER", "SUDO_USER",
                     "RECOVER_OBJECT_DIR", "RECOVER_OBJECT_ORIGIN", "RECOVER_SOURCE_ORIGIN", "RECOVER_LEGACY_BUCKET", "REHEARSAL_FORBIDDEN_HOSTS",  # per-run sources.env / recover.sh-computed, not operator config
-                    "IRONVISION_DOTENV", "RECOVER_LOCAL", "RECOVER_SCRATCH_FAULT", "RECOVER_CUTOVER_FAULT",  # scratch-command / local-test switches
+                    "IRONVISION_DOTENV", "RECOVER_LOCAL", "RECOVER_SCRATCH_FAULT", "RECOVER_CUTOVER_FAULT", "RECOVER_PRODENV_FILE", "RECOVER_PRODENV_DEPLOYMENT_KIND",
+            "RECOVER_PRODENV_ALLOW_DEMO_LOGIN", "RECOVER_PRODENV_AUTH_PROVIDERS", "RECOVER_PRODENV_DEMO_LAUNCHER",  # set by recover.sh prod_flags  # scratch-command / local-test switches
                     "IRONVISION_SELFCHECK", "PATH"}  # image-build selfcheck child process only
     for tpl in ("deploy/digitalocean/.env.production.example", "deploy/digitalocean/.env.staging.example"):
         keys = {l.split("=", 1)[0].lstrip("# ").strip() for l in (root / tpl).read_text().splitlines() if "=" in l}

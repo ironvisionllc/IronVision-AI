@@ -171,7 +171,9 @@ def world():
         if (ku.get("username") or "").endswith("@aegisrmf.demo") or (ku.get("email") or "").endswith("@aegisrmf.demo"):
             httpx.delete(f"{adm}/{ku['id']}", headers={"Authorization": f"Bearer {tok}"})
     pg = make_url(BASE)
-    (W / "env.production").write_text(f"APP_ENV=production\nDEPLOYMENT_KIND=demo\nPOSTGRES_USER={pg.username}\nPOSTGRES_PASSWORD={pg.password}\n"
+    (W / "env.production").write_text(f"APP_ENV=production\nDEPLOYMENT_KIND=demo\nALLOW_DEMO_LOGIN=true\nAUTH_PROVIDERS=oidc\n"
+                                      f"KEYCLOAK_DEMO_USERNAME={os.environ.get('KEYCLOAK_DEMO_USERNAME', '')}\n"
+                                      f"POSTGRES_USER={pg.username}\nPOSTGRES_PASSWORD={pg.password}\n"
                                       f"DATABASE_URL={u('rec_live_prod')}\n")
     os.chmod(W / "env.production", 0o600)
     repo = "/opt/ironvision/IronVision-AI"
@@ -336,6 +338,12 @@ def test_recover_operator_flow(world):
     rh = json.loads(max(RUN.glob("rehearsal-*.json")).read_text())
     da = (rh.get("result") or {}).get("demo_account") or {}
     plans = [json.loads(p.read_text()) for p in RUN.glob("plan-*.json")]
+    runlog = (W / "out-00-run.log").read_text() if (W / "out-00-run.log").exists() else ""
+    i_demo, i_sso = runlog.find("[demo_account] OK"), runlog.find("[scratch-sso]")
+    step("order: py rehearse (build_target → evidence → demo_account) BEFORE sso_up/scratch link; decision from the production env file "
+         "with the Droplet tool env (x-recovery-env only)",
+         0 <= i_demo < i_sso and str(W / "env.production") in (da.get("decision_inputs") or {}).get("source", ""),
+         f"demo@{i_demo} sso@{i_sso} " + json.dumps(da.get("decision_inputs"))[:300])
     step("rehearsal ran the cutover step demo_account on the scratch copy: production has no demo@ironvision.ai → created by "
          "app.seed.ensure_demo_launcher_sandbox; restored users/orgs unchanged; step is part of the plan (hash)",
          da.get("ran") is True and da.get("ok") is True and (da.get("result") or {}).get("created") is True
@@ -467,30 +475,35 @@ def _scratch_failure_paths() -> None:
              and st.get("5 restored users unchanged (before == after)") in ("done", "already-gone") and kc_users() == prod_kc,
              json.dumps({"st": st, "fails": fails[:500], "rc": r.returncode}) + r.stdout[-600:])
     from app.tools import recovery as rv
-    demo_cases = (("Droplet 2026-10-18 pre-fix path: step demo_account skipped → no demo@ironvision.ai → strict link exits 4, setup FAILS",
-                   "skip-demo-step"),
-                  ("demo mapping removed after verification → e2e demo login 403", "demo-unmap"))
-    for name, fault in demo_cases:
+    # production env file says demo + launcher, but ALLOW_DEMO_LOGIN=false: the demo_account step must FAIL loudly (not "not a demo")
+    bad_env = W / "env.production.inconsistent"
+    bad_env.write_text((W / "env.production").read_text().replace("ALLOW_DEMO_LOGIN=true", "ALLOW_DEMO_LOGIN=false"))
+    os.chmod(bad_env, 0o600)
+    demo_cases = (("production env file demo + launcher but step not required (ALLOW_DEMO_LOGIN=false) → demo_account FAILS",
+                   {"RECOVER_ENV_FILE": str(bad_env)}),
+                  ("demo mapping removed after verification → e2e demo login 403", {"RECOVER_SCRATCH_FAULT": "demo-unmap"}))
+    for name, env in demo_cases:
         before = {p.name for p in RUN.glob("rehearsal-*.json")}
-        r = recover("rehearse", "--e2e", RECOVER_SCRATCH_FAULT=fault)
+        r = recover("rehearse", "--e2e", **env)
         rh = json.loads((RUN / sorted({p.name for p in RUN.glob("rehearsal-*.json")} - before)[-1]).read_text())
         ss = rh.get("scratch_sso") or {}
-        steps = [s for s in ((rh.get("backend_probe") or {}).get("e2e_sso") or {}).get("steps", []) if s["step"].startswith("demo login (Explore Demo")]
+        bp = rh.get("backend_probe") if isinstance(rh.get("backend_probe"), dict) else {}   # str when the probe did not run
+        steps = [s for s in (bp.get("e2e_sso") or {}).get("steps", []) if s["step"].startswith("demo login (Explore Demo")]
         fails = " | ".join(rh.get("failures", []))
         try:
             rv.rehearsal_gate(rh, rh["plan_hash"])
             gate = "ELIGIBLE"
         except rv.RecoveryError as exc:
             gate = str(exc)
-        lk = ss.get("demo_launcher_link") or {}
-        if fault == "skip-demo-step":
-            ok = lk.get("rc") == 4 and "would map 0 accounts" in lk.get("output_tail", "") and "setup failed" in fails
+        if "RECOVER_ENV_FILE" in env:
+            da = (rh.get("result") or {}).get("demo_account") or {}
+            ok = da.get("ok") is False and "refusing" in da.get("error", "") and "demo account step failed" in fails and str(bad_env) in json.dumps(da)
         else:
             ok = bool(steps) and not steps[0]["pass"] and "403" in steps[0]["detail"] and "demo login" in fails
+        clean = (ss.get("cleanup_ok") is True and ss["cleanup_steps"]["5 restored users unchanged (before == after)"]["status"] == "done") if ss else True
         step(f"demo path – {name}: rehearsal FAILS (listed, plan hash not cutover-eligible); cleanup complete",
-             ok and rh["passed"] is False and "did not pass" in gate and ss.get("cleanup_ok") is True and _scratch_clean(rh["ts"])
-             and kc_users() == prod_kc and ss["cleanup_steps"]["5 restored users unchanged (before == after)"]["status"] == "done",
-             json.dumps({"steps": steps, "fails": fails[:400], "link": lk.get("output_tail", "")[-300:]}, default=str)[:900] + r.stdout[-400:])
+             ok and rh["passed"] is False and "did not pass" in gate and clean and _scratch_clean(rh["ts"]) and kc_users() == prod_kc,
+             json.dumps({"steps": steps, "fails": fails[:400], "demo": (rh.get("result") or {}).get("demo_account")}, default=str)[:900] + r.stdout[-400:])
     # interrupted run (like Droplet scratch-sso-20261017t214603): scratch DB/role + secret dir left, admin.env never written
     ts = "20261017t214603"
     e = recover_env()

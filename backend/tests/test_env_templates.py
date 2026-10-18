@@ -62,7 +62,8 @@ def test_deploy_templates_cover_every_variable_the_code_reads():
               "CLAMAV_HOST", "CLAMAV_PORT", "AUTH_PROVIDER", "SUDO_USER",
               # written per run by recover.sh into <run>/sources.env, never operator config
               "RECOVER_OBJECT_DIR", "RECOVER_OBJECT_ORIGIN", "RECOVER_SOURCE_ORIGIN", "RECOVER_LEGACY_BUCKET", "REHEARSAL_FORBIDDEN_HOSTS",
-              "IRONVISION_DOTENV", "RECOVER_LOCAL", "RECOVER_SCRATCH_FAULT", "RECOVER_CUTOVER_FAULT",  # scratch-command / local-test switches, never operator config
+              "IRONVISION_DOTENV", "RECOVER_LOCAL", "RECOVER_SCRATCH_FAULT", "RECOVER_CUTOVER_FAULT", "RECOVER_PRODENV_FILE", "RECOVER_PRODENV_DEPLOYMENT_KIND",
+            "RECOVER_PRODENV_ALLOW_DEMO_LOGIN", "RECOVER_PRODENV_AUTH_PROVIDERS", "RECOVER_PRODENV_DEMO_LAUNCHER",  # set by recover.sh prod_flags  # scratch-command / local-test switches, never operator config
               # image-build selfcheck process only (scrubbed child env), never operator config
               "IRONVISION_SELFCHECK", "PATH"}
     for tpl in ("deploy/digitalocean/env.production.template", "deploy/digitalocean/env.staging.template",

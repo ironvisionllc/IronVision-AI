@@ -240,6 +240,9 @@ def link_demo_launcher(ts: str, env: dict, hide: list) -> dict:
     """The supported migrate/link path (keycloak-migrate --apply --link) – scratch DB and scratch Keycloak/issuer ONLY."""
     assert_scratch_targets("keycloak-migrate link", env["DATABASE_URL"], env["KEYCLOAK_URL"])
     assert_scratch_targets("keycloak-migrate link (OIDC issuer)", kc=env["OIDC_ISSUER"])
+    if rv.demo_account_state(env["DATABASE_URL"]) is None:   # order: cutover step demo_account (in py rehearse) BEFORE the link
+        raise rv.RecoveryError("wrong order: no demo@ironvision.ai in the scratch DB – the demo_account step must run before "
+                               "keycloak-migrate --link (it runs in `py rehearse`, before sso_up)")
     link = rv.kc_link_scratch(env["DATABASE_URL"], ts, env=env)
     return {k: v for k, v in link.items() if k != "output"} | {"output_tail": _redact(link.get("output", "")[-800:], hide)}
 

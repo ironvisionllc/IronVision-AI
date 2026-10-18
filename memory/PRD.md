@@ -389,3 +389,8 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - **Validated:** Droplet 403 reproduced on the pre-fix path; fixed path PASS; orchestration 44/44; suite 370 passed. `/auth/demo-login` and keycloak_migrate unchanged.
 - **Follow-up (same day):** demo-account creation is now the explicit cutover step `demo_account` (app.seed.ensure_demo_launcher_sandbox, in the plan hash, run by rehearse and apply alike; restored users/orgs fingerprinted). `keycloak-migrate --link` exits 4 when the demo launcher would map 0 accounts. Cutover runs `recovery demo-check` (Explore Demo 200), and a 403 triggers automatic rollback. Orchestration 46/46.
 
+
+### 2026-10-18: Droplet rehearsal-20261018t201958 (demo account silently skipped) fixed
+- **Root cause:** the recovery container env (`x-recovery-env` only) had no DEPLOYMENT_KIND etc., so demo_account decided "not a demo deployment" without running. The decision now comes from the production env file (recover.sh prod_flags → RECOVER_PRODENV_*), through the same app.seed.demo_launcher_decision. An inconsistent config or missing flags is an error. The inputs are in the plan hash; TOOL_VERSION 2026.10.18-rehearsal-v4-demo-account-env.
+- **Also fixed:** cutover verify/rollback needed JWT_SECRET in the container (now process-local in the tool). Added a persistence check after the step, an order guard before the link, and the ISSM-token e2e. Local py() runs exactly like the container (env -i + x-recovery-env).
+- **Validated:** orchestration 47/47; suite 378 passed.
