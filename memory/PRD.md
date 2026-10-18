@@ -382,3 +382,9 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - **Checker:** check_extras (host static), plus extras checks in write-lock and --in-env.
 - **Root cause of the blind spot:** --no-deps never installs extras, and pip check can't see requested extras.
 - **Validated:** image-faithful venvs (with deps) PASS --in-env for prod and recovery; suite 368 passed; orchestration 41/41.
+
+### 2026-10-18: Droplet scratch SSO demo-login 403 fixed
+- **Root cause:** the scratch DB had no `demo@ironvision.ai`. keycloak-migrate --link then planned no demo row, linked 0 rows with rc 0, and the e2e demo login got 403. Issuer, subject, provider and DB were identical on both sides.
+- **Fix:** scratch setup seeds the demo sandbox identity (seed_demo_account + provision) in the scratch DB, links through the unchanged migrate path (guarded to scratch DB, Keycloak and issuer), then verifies the exact mapping demo-login looks up and fails setup with a diagnostic if it is absent.
+- **Validated:** Droplet 403 reproduced on the pre-fix path; fixed path PASS; orchestration 44/44; suite 370 passed. `/auth/demo-login` and keycloak_migrate unchanged.
+

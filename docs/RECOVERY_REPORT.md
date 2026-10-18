@@ -425,3 +425,69 @@ python3 scripts/check_requirements.py      # host static check, now expands extr
 sudo ./recover.sh scratch-cleanup          # no-op if nothing is left over
 sudo ./recover.sh run
 ```
+
+
+## 17. Droplet 2026-10-18: scratch SSO e2e `POST /auth/demo-login` → 403 "The demo account is not mapped yet"
+
+**Side-by-side trace (scratch stack, Docker on the Droplet):**
+
+| | `/auth/demo-login` (rehearsal-backend) | `keycloak-migrate --apply --link` (scratch tool env) |
+|---|---|---|
+| Table / provider | `auth_identities`, `provider='oidc'` (`identity_map.by_subject`) | `auth_identities`, `provider='oidc'` (`identity_map.map_identity`) |
+| Subject | `OIDC_ISSUER.rstrip('/')` + `\|` + id_token `sub` (`demo_launcher.login`) | `OIDC_ISSUER.rstrip('/')` + `\|` + Keycloak id of `users?username=<KEYCLOAK_DEMO_USERNAME>&exact=true` |
+| Issuer value | `SCRATCH_OIDC_ISSUER` = `http://rehearsal-keycloak:8080/realms/ironvision-demo` (token `iss` = `KC_HOSTNAME` + realm, the same string) | the same string (`scratch_sso` builds both from one variable) |
+| DB | `postgres/${REHEARSAL_DB}` = `rec_target_<ts>` | `rv.db_url(target)` = `rec_target_<ts>` |
+| App user | must be an active `demo@ironvision.ai` | **only** the plan row of an existing app user `demo@ironvision.ai` |
+
+**The mismatch is not the key format.** Issuer, subject format, provider and DB are identical. The OIDC login of the e2e user proves it on the Droplet: its mapping was written with the same issuer into the same DB, and it worked. The difference is the target user. `build_plan` creates a demo row **only** for an existing `users.email = 'demo@ironvision.ai'`. When that user is absent, the plan has no demo row, `--link` applies **0 links and returns rc 0**, and setup reported success. The 403 came only later, in the e2e.
+
+**Why the Droplet differs from the pod.**
+- The pod fixture seeds the production replica with `app.seed`, so `demo@ironvision.ai` is always present and gets merged into the scratch DB.
+- On the Droplet, the scratch DB is the legacy backup plus whatever production really contains. The legacy facts have no such user. Production gets one only if its demo-deployment seed ran with `ALLOW_DEMO_LOGIN` and oidc enabled.
+- The Droplet artifacts were not accessible. So this cause was reproduced, not read from them: the pod run with `demo@ironvision.ai` removed from the scratch DB (the pre-fix code path) gives exactly the Droplet result: setup OK, OIDC/logout steps pass, then `403 {"detail":"The demo account is not mapped yet (operator: scripts/keycloak.sh migrate)."}`.
+- The new verification records the demo plan row (action and reason) in `scratch-sso-TS.json`. If the Droplet's cause were anything else, the next run shows it there instead of an e2e 403.
+
+**Production migrate.**
+- The subject/issuer/provider logic is correct and unchanged.
+- One shared weakness: `--link` also links 0 rows with rc 0 when production has no `demo@ironvision.ai`. In production the demo-deployment seed creates that user before migrate runs (`deploy.sh` → `app.seed`), but **check it after cutover**: Explore Demo must return 200, which it does only with the mapping.
+- `keycloak_migrate.py` was not changed.
+
+**Fix (rehearsal only; `/auth/demo-login` unchanged):**
+1. **Create the demo sandbox identity.** `ensure_demo_sandbox` calls `sandbox.seed_demo_account(db, None)` + `provision` in the **scratch DB**. These are the calls production's demo-deployment seed makes. No role accounts, no password, no `retire_role_accounts`. An existing demo user is left as-is.
+2. **Link through the supported path.** `link_demo_launcher` runs the unchanged `keycloak-migrate --apply --link` (`kc_link_scratch`). Before it runs, `assert_scratch_targets` checks `DATABASE_URL`, `KEYCLOAK_URL` and `OIDC_ISSUER` and refuses production DBs and Keycloak.
+3. **Verify the result.** `verify_demo_mapping` signs in as the launcher exactly like the endpoint (`demo_launcher.login()` with the same env) and looks up `auth_identities(provider='oidc', subject=<expected>)`. That row must point to an active `demo@ironvision.ai` with sandbox `ready`. Otherwise setup **fails** and records:
+   - the expected subject and the stored oidc subjects of the demo user;
+   - the demo user's state;
+   - the link issuer, the demo plan rows and `links_planned`.
+   
+   Secrets are redacted. A link that maps 0 rows can no longer pass setup.
+
+**Report and gate:**
+- Any failed e2e step, setup step or cleanup step sets `passed=False` and is listed in `failures`.
+- `rehearsal_gate` refuses that plan hash for cutover.
+- Cleanup always runs (`finally`).
+
+**Verification (2026-10-18, this pod):**
+
+| Check | Real / simulated | Result |
+|---|---|---|
+| Reproduce: scratch DB without `demo@ironvision.ai`, pre-fix path (fault `droplet-no-demo-user`) | Real pod Keycloak 26 (scratch realm), Postgres, uvicorn backend, `scripts/e2e_sso.py` | Exactly the Droplet result: OIDC/logout steps pass, `demo login` → `403 not mapped`, rehearsal FAILS with it listed, gate refuses the plan hash, cleanup complete |
+| Same state with the fix (fault `no-demo-user`) | Real | Demo sandbox seeded in the scratch DB, linked, verified; Explore Demo 200 + role switch; rehearsal PASSES |
+| Mapping deleted after verification (fault `demo-unmap`) | Real | e2e `demo login` 403 → rehearsal FAILS, listed, not cutover-eligible, cleanup complete |
+| Normal scratch SSO e2e (every step incl. demo login and role switch) | Real | PASS |
+| `/auth/demo-login` keycloak mode: no mapping / other-issuer mapping / exact mapping | Real endpoint + test DB, launcher token mocked | 403 / 403 / 200 + session + role switch |
+| Link-step guard: production DB name, live DB URL, production Keycloak, production issuer | Unit | refused before keycloak-migrate runs |
+| Full recovery orchestration (rollback, auto-rollback, re-cutover, finalize, scratch cleanup, failure paths) | Real Postgres/Keycloak/uvicorn; Docker = shim | 44/44 |
+| Restored users (8) + admin unchanged; production Keycloak users unchanged | Real (fingerprint before == after, every rehearsal) | PASS |
+| Full suite | Real | 370 passed, 26 skipped |
+| Docker Compose rehearsal on the Droplet (`rehearsal-keycloak` hostname) | Not run (no daemon) | Next Droplet run; the scratch-sso json then contains `demo_sandbox` + `demo_mapping` |
+
+**Droplet (from /opt/ironvision/IronVision-AI):**
+```
+cd /opt/ironvision/IronVision-AI && git pull
+python3 scripts/check_requirements.py
+sudo ./recover.sh scratch-cleanup          # no-op if nothing is left over
+sudo ./recover.sh rehearse --e2e           # must PASS; demo login 200 + role switch
+sudo ./recover.sh run
+```
+

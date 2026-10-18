@@ -371,3 +371,21 @@ def test_cleanup_admin_env_gone_users_moot_when_scratch_keycloak_and_db_dropped(
     st3 = json.loads((tmp_path / f"scratch-sso-{ts}.json").read_text())["cleanup_steps"]
     assert f3.returncode == 1 and st3["1 scratch Keycloak users deleted"]["status"] == "failed"
     assert st3["2 scratch Keycloak container removed"]["status"] == "failed"
+
+
+def test_demo_launcher_link_step_refuses_production_db_keycloak_and_issuer(monkeypatch):
+    from app.tools import recovery as rv
+    from app.tools import scratch_sso as ss
+    monkeypatch.setenv("KEYCLOAK_URL", "http://keycloak:8080")
+    monkeypatch.setenv("OIDC_ISSUER", "https://auth.demo.ironvisionai.com/realms/ironvision-demo")
+    monkeypatch.setenv("REHEARSAL_FORBIDDEN_HOSTS", "auth.demo.ironvisionai.com,demo.ironvisionai.com")
+    called = []
+    monkeypatch.setattr(rv, "kc_link_scratch", lambda *a, **k: called.append(a) or {"rc": 0, "issuer": "x"})
+    good = {"DATABASE_URL": rv.db_url("rec_target_20991231t235958"), "KEYCLOAK_URL": "http://rehearsal-keycloak:8080",
+            "OIDC_ISSUER": "http://rehearsal-keycloak:8080/realms/ironvision-demo"}
+    for bad in ({"DATABASE_URL": rv.db_url("ironvision")}, {"DATABASE_URL": rv.live_url()}, {"KEYCLOAK_URL": "http://keycloak:8080"},
+                {"OIDC_ISSUER": "https://auth.demo.ironvisionai.com/realms/ironvision-demo"}):
+        with pytest.raises(rv.RecoveryError):
+            ss.link_demo_launcher("20991231t235958", {**good, **bad}, [])
+    assert called == []                                       # refused BEFORE keycloak-migrate runs
+    assert ss.link_demo_launcher("20991231t235958", good, [])["rc"] == 0 and len(called) == 1

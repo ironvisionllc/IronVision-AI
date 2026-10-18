@@ -282,3 +282,60 @@ def test_check_env_refuses_demo_login_in_production():
     assert not any("ALLOW_DEMO_LOGIN" in e for e in errs) and any("ALLOW_DEMO_LOGIN" in w for w in warns)
     errs, _ = validate({"APP_ENV": "production", "ALLOW_DEMO_LOGIN": "true", "DEPLOYMENT_KIND": "demo", "AUTH_PROVIDERS": "oidc"})
     assert any("KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET is required" in e for e in errs)
+
+
+def test_demo_login_keycloak_mode_needs_the_exact_issuer_mapping(client, monkeypatch):
+    """Explore Demo (Option B launcher): 403 without a mapping, 403 when only another issuer's mapping exists, 200 + session +
+    role switch with the exact <OIDC_ISSUER>|<sub> mapping. The endpoint is not relaxed for any case."""
+    from sqlalchemy import delete
+
+    from app.config import get_settings
+    from app.models import AuthIdentity
+    from app.security import demo_launcher
+    from app.services import identity_map
+    from app.services import sandbox as sbx
+    iss, other, sub = "http://scratch-kc.test/realms/ironvision-demo", "https://auth.other.test/realms/ironvision-demo", str(uuid.uuid4())
+    for k, v in {"ALLOW_DEMO_LOGIN": "true", "AUTH_PROVIDERS": "oidc", "OIDC_ISSUER": iss, "KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET": "x",
+                 "KEYCLOAK_DEMO_PASSWORD": "x", "KEYCLOAK_DEMO_USERNAME": "launcher", "DEMO_LOGIN_RATE_LIMIT": "1000/60"}.items():
+        monkeypatch.setenv(k, v)
+    get_settings.cache_clear()
+    monkeypatch.setattr(demo_launcher, "login", lambda: {"subject": f"{iss}|{sub}", "email": sbx.DEMO_EMAIL})
+
+    def oidc_identities(db, demo):
+        db.execute(delete(AuthIdentity).where(AuthIdentity.user_id == demo.id, AuthIdentity.provider == "oidc"))
+        db.commit()
+    try:
+        with SessionLocal() as db:
+            org = sbx.seed_demo_account(db, None)
+            db.commit()
+            if org.sandbox_status != "ready":
+                sbx.provision(db, org.id)
+            demo = db.scalar(select(User).where(User.email == sbx.DEMO_EMAIL))
+            oidc_identities(db, demo)
+        r = client.post("/api/v1/auth/demo-login")
+        assert r.status_code == 403 and "not mapped" in r.text                       # mapping absent
+        with SessionLocal() as db:
+            demo = db.scalar(select(User).where(User.email == sbx.DEMO_EMAIL))
+            identity_map.map_identity(db, user=demo, issuer=other, sub=sub, reason="test: other issuer", actor="pytest", username="launcher")
+            db.commit()
+        r = client.post("/api/v1/auth/demo-login")
+        assert r.status_code == 403 and "not mapped" in r.text                       # another issuer's mapping grants nothing
+        with SessionLocal() as db:
+            demo = db.scalar(select(User).where(User.email == sbx.DEMO_EMAIL))
+            oidc_identities(db, demo)
+            identity_map.map_identity(db, user=demo, issuer=iss, sub=sub, reason="test: exact issuer", actor="pytest", username="launcher")
+            db.commit()
+        r = client.post("/api/v1/auth/demo-login")
+        assert r.status_code == 200, r.text                                           # exact mapping → session
+        tok = r.json()["access_token"]
+        assert client.get("/api/v1/sandbox/status", headers=auth(tok)).json()["operator"]["email"] == sbx.DEMO_EMAIL
+        sw = client.post("/api/v1/sandbox/act-as", json={"role": "issm"}, headers=auth(tok))
+        assert sw.status_code == 200 and sw.json()["access_token"]                    # role switch
+    finally:
+        with SessionLocal() as db:
+            demo = db.scalar(select(User).where(User.email == sbx.DEMO_EMAIL))
+            if demo:
+                oidc_identities(db, demo)
+        for k in ("ALLOW_DEMO_LOGIN", "KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET"):
+            monkeypatch.delenv(k, raising=False)
+        get_settings.cache_clear()

@@ -762,6 +762,8 @@ def kc_link_scratch(url: str, t: str, env: dict) -> dict:
     if r.returncode:
         return {"rc": r.returncode, "output": redact((r.stdout + r.stderr)[-3000:])}
     h = json.loads(rep.read_text())["plan_hash"]
+    dry = json.loads(rep.read_text())
+    demo_rows = [u for u in dry.get("users", []) if (u.get("email") or "").lower() == "demo@ironvision.ai"]
     ref = RDIR / "backups" / f"scratch-{t}"
     ref.mkdir(parents=True, exist_ok=True)
     write_json(f"backups/scratch-{t}/manifest.json", {"kind": "scratch-rehearsal-db", "db": make_url(url).database, "note": "throw-away rehearsal DB",
@@ -769,8 +771,10 @@ def kc_link_scratch(url: str, t: str, env: dict) -> dict:
     r = subprocess.run([sys.executable, "-m", "app.cli", "keycloak-migrate", "--apply", "--link", "--plan-hash", h, "--backup-ref", str(ref),
                         "--credentials-dir", str(RDIR / "credentials-scratch"), "--report", str(rep), "--yes"],
                        env=env, capture_output=True, text=True, cwd=cwd, check=False)
+    out = redact((r.stdout + r.stderr)[-3000:])
     return {"rc": r.returncode, "plan_hash": h, "db": make_url(url).database, "keycloak_writes": "none (link only, no --create-identities)",
-            "output": redact((r.stdout + r.stderr)[-3000:])}
+            "issuer": dry.get("issuer"), "demo_plan_rows": demo_rows,
+            "links_planned": sum(1 for u in dry.get("users", []) if u.get("action") == "link"), "output": out}
 
 
 def write_report(kind: str, t: str, body: dict) -> None:

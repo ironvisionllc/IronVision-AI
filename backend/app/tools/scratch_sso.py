@@ -211,6 +211,88 @@ def _fault() -> str:
     return os.environ.get("RECOVER_SCRATCH_FAULT", "") if os.environ.get("RECOVER_LOCAL") == "1" else ""
 
 
+DEMO_EMAIL = "demo@ironvision.ai"
+_DEMO_SEED = r'''
+import json
+from sqlalchemy import select
+from app.db import SessionLocal
+from app.models import Organization, User
+from app.services import sandbox as sbx
+with SessionLocal() as db:
+    b = db.scalar(select(User).where(User.email == sbx.DEMO_EMAIL))
+    st = {"existed_before": b is not None, "active_before": bool(b and b.is_active)}
+    org = sbx.seed_demo_account(db, None)
+    db.commit()
+    if org.sandbox_status != "ready":
+        sbx.provision(db, org.id)
+    db.commit()
+    u = db.scalar(select(User).where(User.email == sbx.DEMO_EMAIL))
+    st.update({"org_id": str(u.org_id), "sandbox_status": db.get(Organization, u.org_id).sandbox_status, "active": u.is_active})
+    print("DEMO-SEED-JSON " + json.dumps(st))
+'''
+_DEMO_LOGIN = r'''
+import json
+from app.security import demo_launcher
+c = demo_launcher.login()
+print("DEMO-LOGIN-JSON " + json.dumps({"subject": c["subject"], "email": c["email"]}))
+'''
+
+
+def _sql(db: str, q: str, params: dict) -> None:
+    assert_scratch_targets("scratch SQL", db_url=rv.db_url(db))
+    eng = create_engine(rv.db_url(db))
+    with eng.begin() as c:
+        c.execute(text(q), params)
+    eng.dispose()
+
+
+def _py(code: str, env: dict, tag: str, hide: list) -> dict:
+    p = subprocess.run([sys.executable, "-c", code], env=env, cwd=BACKEND_DIR, capture_output=True, text=True, check=False)
+    m = re.search(rf"^{tag} (.+)$", p.stdout, re.M)
+    if p.returncode or not m:
+        raise rv.RecoveryError(f"{tag.split('-JSON')[0].lower()} failed (rc={p.returncode}): " + _redact((p.stdout + p.stderr)[-600:], hide))
+    return json.loads(m.group(1))
+
+
+def ensure_demo_sandbox(env: dict, hide: list) -> dict:
+    """The demo sandbox identity demo@ironvision.ai in the SCRATCH DB, via the same calls production's demo-deployment seed makes
+    (app.seed.run → sandbox.seed_demo_account(db, None) + provision; no role accounts, no password, restored users untouched).
+    The Droplet's scratch DB had no such user, so keycloak-migrate planned no demo row and linked 0 rows with rc=0."""
+    assert_scratch_targets("demo sandbox seed", db_url=env["DATABASE_URL"])
+    return _py(_DEMO_SEED, env, "DEMO-SEED-JSON", hide) | {"path": "app.services.sandbox.seed_demo_account(db, None) + provision (= app.seed demo deployment)"}
+
+
+def link_demo_launcher(ts: str, env: dict, hide: list) -> dict:
+    """The supported migrate/link path (keycloak-migrate --apply --link) – scratch DB and scratch Keycloak/issuer ONLY."""
+    assert_scratch_targets("keycloak-migrate link", env["DATABASE_URL"], env["KEYCLOAK_URL"])
+    assert_scratch_targets("keycloak-migrate link (OIDC issuer)", kc=env["OIDC_ISSUER"])
+    link = rv.kc_link_scratch(env["DATABASE_URL"], ts, env=env)
+    return {k: v for k, v in link.items() if k != "output"} | {"output_tail": _redact(link.get("output", "")[-800:], hide)}
+
+
+def verify_demo_mapping(env: dict, target: str, link: dict, hide: list) -> dict:
+    """After linking: sign in as the launcher exactly like /auth/demo-login (demo_launcher.login() with the backend's OIDC_ISSUER
+    and launcher credentials), then look up EXACTLY what the endpoint looks up – auth_identities(provider='oidc',
+    subject=<issuer>|<sub>) → an active demo@ironvision.ai user. Absent → setup fails with expected vs stored subjects."""
+    exp = _py(_DEMO_LOGIN, env, "DEMO-LOGIN-JSON", hide)["subject"]
+    eng = create_engine(rv.db_url(target))
+    with eng.connect() as c:
+        hit = c.execute(text("select u.email, u.is_active from auth_identities ai join users u on u.id = ai.user_id "
+                             "where ai.provider = 'oidc' and ai.subject = :s"), {"s": exp}).first()
+        stored = list(c.execute(text("select ai.subject from auth_identities ai join users u on u.id = ai.user_id "
+                                     "where u.email = :e and ai.provider = 'oidc' order by 1"), {"e": DEMO_EMAIL}).scalars())
+        demo = c.execute(text("select u.is_active, o.sandbox_status from users u join organizations o on o.id = u.org_id "
+                              "where u.email = :e"), {"e": DEMO_EMAIL}).first()
+    eng.dispose()
+    res = {"lookup": "auth_identities WHERE provider='oidc' AND subject=<expected> → user.email == demo@ironvision.ai, active",
+           "expected_subject": exp, "db": target, "mapped_to": hit.email if hit else None,
+           "stored_oidc_subjects_for_demo_user": stored, "demo_user": dict(demo._mapping) if demo else None,
+           "link_issuer": link.get("issuer"), "demo_plan_rows": link.get("demo_plan_rows"), "links_planned": link.get("links_planned")}
+    if not (hit and hit.email == DEMO_EMAIL and hit.is_active and demo and demo.sandbox_status == "ready"):
+        raise rv.RecoveryError("demo-launcher mapping NOT usable – /auth/demo-login would 403/503: " + _redact(json.dumps(res), hide)[:900])
+    return res | {"verified": True}
+
+
 def cmd_setup(a) -> int:
     d, kc, app = sdir(a.ts), a.kc_url.rstrip("/"), a.app_url.rstrip("/")
     target = f"rec_target_{a.ts}"
@@ -262,11 +344,23 @@ def cmd_setup(a) -> int:
     r["scratch_org_id"] = str(org_id)
     _save(a.ts, r)
     lenv = {k2: v for k2, v in env.items() if not (k2 == "JWT_SECRET" and _fault() == "migrate")}  # test: Droplet failure
-    link = rv.kc_link_scratch(env["DATABASE_URL"], a.ts, env=lenv)
-    r["demo_launcher_link"] = {k2: v for k2, v in link.items() if k2 != "output"} | {"output_tail": _redact(link.get("output", "")[-800:], hide)}
-    if link["rc"]:
+    if _fault() in ("droplet-no-demo-user", "no-demo-user"):  # test: the Droplet's scratch DB had no demo@ironvision.ai user
+        _sql(target, "update users set email = 'demo-removed@rehearsal.invalid' where email = :e", {"e": DEMO_EMAIL})
+    if _fault() != "droplet-no-demo-user":  # (that fault = the pre-fix behaviour: no sandbox step, no verification)
+        r["demo_sandbox"] = ensure_demo_sandbox(env, hide)
         _save(a.ts, r)
-        raise rv.RecoveryError("keycloak-migrate (demo-launcher link) into the scratch DB failed (see scratch-sso json)")
+    r["demo_launcher_link"] = link_demo_launcher(a.ts, lenv, hide)
+    _save(a.ts, r)
+    if r["demo_launcher_link"]["rc"]:
+        raise rv.RecoveryError("keycloak-migrate (demo-launcher link) into the scratch DB failed (see scratch-sso json): "
+                               + r["demo_launcher_link"]["output_tail"][-300:])
+    if _fault() != "droplet-no-demo-user":
+        try:
+            r["demo_mapping"] = verify_demo_mapping(lenv, target, r["demo_launcher_link"], hide)
+        finally:
+            _save(a.ts, r)
+    if _fault() == "demo-unmap":  # test: the e2e demo login must then FAIL the rehearsal (cleanup still runs)
+        _sql(target, "delete from auth_identities where provider = 'oidc' and subject = :s", {"s": r["demo_mapping"]["expected_subject"]})
     _env_file(d / "backend.env", {"SCRATCH_KC_URL": kc, "SCRATCH_OIDC_ISSUER": issuer, "SCRATCH_OIDC_CLIENT_SECRET": s["OIDC_CLIENT_SECRET"],
                                   "SCRATCH_APP_URL": app, "SCRATCH_DEMO_USERNAME": demo_user, "SCRATCH_DEMO_PASSWORD": s["KEYCLOAK_DEMO_PASSWORD"],
                                   "SCRATCH_DEMO_LAUNCHER_CLIENT_SECRET": s["KEYCLOAK_DEMO_LAUNCHER_CLIENT_SECRET"],

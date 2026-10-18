@@ -442,6 +442,33 @@ def _scratch_failure_paths() -> None:
              ok and ss.get("cleanup_ok") is True and len(st) == 6 and list(st)[-1].startswith("6 ") and _scratch_clean(rh["ts"])
              and st.get("5 restored users unchanged (before == after)") in ("done", "already-gone") and kc_users() == prod_kc,
              json.dumps({"st": st, "fails": fails[:500], "rc": r.returncode}) + r.stdout[-600:])
+    from app.tools import recovery as rv
+    demo_cases = (("Droplet 2026-10-18 reproduced: no demo@ironvision.ai in the scratch DB, pre-fix path → e2e demo login 403",
+                   "droplet-no-demo-user", False),
+                  ("demo mapping removed after verification → e2e demo login 403", "demo-unmap", False),
+                  ("no demo@ironvision.ai in the scratch DB, fix active → demo sandbox seeded + mapped + verified", "no-demo-user", True))
+    for name, fault, want_pass in demo_cases:
+        before = {p.name for p in RUN.glob("rehearsal-*.json")}
+        r = recover("rehearse", "--e2e", RECOVER_SCRATCH_FAULT=fault)
+        rh = json.loads((RUN / sorted({p.name for p in RUN.glob("rehearsal-*.json")} - before)[-1]).read_text())
+        ss = rh.get("scratch_sso") or {}
+        steps = [s for s in ((rh.get("backend_probe") or {}).get("e2e_sso") or {}).get("steps", []) if s["step"].startswith("demo login (Explore Demo")]
+        fails = " | ".join(rh.get("failures", []))
+        if want_pass:
+            ok = (rh["passed"] is True and ss["demo_sandbox"]["existed_before"] is False and ss["demo_mapping"]["verified"]
+                  and steps and steps[0]["pass"])
+        else:
+            try:
+                rv.rehearsal_gate(rh, rh["plan_hash"])
+                gate = "ELIGIBLE"
+            except rv.RecoveryError as exc:
+                gate = str(exc)
+            ok = (rh["passed"] is False and steps and not steps[0]["pass"] and "403" in steps[0]["detail"] and "demo login" in fails
+                  and "did not pass" in gate)
+        step(f"demo path – {name}: rehearsal {'PASSES' if want_pass else 'FAILS (listed, plan hash not cutover-eligible)'}; cleanup complete",
+             ok and ss.get("cleanup_ok") is True and _scratch_clean(rh["ts"]) and kc_users() == prod_kc
+             and ss["cleanup_steps"]["5 restored users unchanged (before == after)"]["status"] == "done",
+             json.dumps({"steps": steps, "fails": fails[:400], "map": ss.get("demo_mapping")}, default=str)[:900] + r.stdout[-400:])
     # interrupted run (like Droplet scratch-sso-20261017t214603): scratch DB/role + secret dir left, admin.env never written
     ts = "20261017t214603"
     e = recover_env()
