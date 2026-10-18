@@ -659,9 +659,69 @@ def plan() -> dict:
          "production": {"db": make_url(live_url()).database, "revision": revision(live_url()),
                         "stable_counts": {t: n for t, n in prod_counts.items() if t not in VOLATILE},
                         "catalogs": catalog_fingerprint(live_url())},
-         "bucket": os.environ.get("S3_BUCKET"), "tool_version": TOOL_VERSION}
+         "bucket": os.environ.get("S3_BUCKET"), "tool_version": TOOL_VERSION, "demo_account": demo_step_plan()}
     p["plan_hash"] = hashlib.sha256(json.dumps(p, sort_keys=True, default=str).encode()).hexdigest()[:16]
     return p
+
+
+DEMO_EMAIL = "demo@ironvision.ai"
+_DEMO_STEP = r'''
+import json
+from app.db import SessionLocal
+from app.seed import ensure_demo_launcher_sandbox
+with SessionLocal() as db:
+    print("DEMO-STEP-JSON " + json.dumps(ensure_demo_launcher_sandbox(db)))
+'''
+_FP_USERS = ("select count(*), md5(coalesce(string_agg(row_to_json(u)::text, ',' order by u.id), '')) from users u "
+             "join organizations o on o.id = u.org_id where not o.is_sandbox")
+_FP_ORGS = "select count(*), md5(coalesce(string_agg(row_to_json(o)::text, ',' order by o.id), '')) from organizations o where not o.is_sandbox"
+
+
+def demo_step_plan() -> dict:
+    """Cutover step `demo_account` (part of the plan → plan hash + dry-run report): on a demo deployment the recovered DB gets
+    demo@ironvision.ai + its sandbox org/personas from the SAME function app.seed uses, then the strict keycloak-migrate --link."""
+    from app.seed import demo_deployment_launcher
+    return {"step": "app.seed.ensure_demo_launcher_sandbox (= app.seed for DEPLOYMENT_KIND=demo) on the target DB, before the switch",
+            "email": DEMO_EMAIL, "required": demo_deployment_launcher(), "launcher_configured": bool(os.environ.get("KEYCLOAK_DEMO_USERNAME")),
+            "then": "keycloak-migrate --apply --link: exit 4 if the demo launcher would map 0 accounts; Explore Demo check after cutover"}
+
+
+def _fingerprint(url: str) -> list:
+    eng = create_engine(url)
+    with eng.connect() as c:
+        out = [list(c.execute(text(q)).first()) for q in (_FP_USERS, _FP_ORGS)]
+    eng.dispose()
+    return out
+
+
+def demo_account_step(url: str, bucket: str, admin_bucket: bool) -> dict:
+    """Runs for rehearse (scratch target, rehearsal bucket) and apply (recovered DB, production bucket) alike. Only the demo sandbox
+    org changes: non-sandbox users + organizations (restored + admin) are fingerprinted before/after and must be identical."""
+    d = demo_step_plan()
+    if not d["required"]:
+        return d | {"ran": False, "ok": True, "detail": "not a demo deployment – no demo account"}
+    if os.environ.get("RECOVER_LOCAL") == "1" and os.environ.get("RECOVER_SCRATCH_FAULT") == "skip-demo-step":  # test: pre-fix behaviour
+        if SCRATCH.match(make_url(url).database or ""):  # + the Droplet state (no demo account), scratch targets only
+            eng = create_engine(url)
+            with eng.begin() as c:
+                c.execute(text("delete from auth_identities where user_id in (select id from users where email = :e)"), {"e": DEMO_EMAIL})
+                c.execute(text("update users set email = 'demo-removed@rehearsal.invalid' where email = :e"), {"e": DEMO_EMAIL})
+            eng.dispose()
+        return d | {"ran": False, "ok": True, "detail": "TEST FAULT skip-demo-step: step not run"}
+    pre = "RECOVER_S3_ADMIN_" if admin_bucket and os.environ.get("RECOVER_S3_ADMIN_ACCESS_KEY_ID") else "S3_"
+    env = {**os.environ, "DATABASE_URL": url, "S3_BUCKET": bucket, "S3_ACCESS_KEY_ID": os.environ.get(pre + "ACCESS_KEY_ID", ""),
+           "S3_SECRET_ACCESS_KEY": os.environ.get(pre + "SECRET_ACCESS_KEY", "")}
+    before = _fingerprint(url)
+    p = subprocess.run([sys.executable, "-c", _DEMO_STEP], env=env, capture_output=True, text=True, cwd=Path(__file__).resolve().parents[2], check=False)
+    m = re.search(r"^DEMO-STEP-JSON (.+)$", p.stdout, re.M)
+    res = json.loads(m.group(1)) if m else None
+    same = _fingerprint(url) == before
+    ok = p.returncode == 0 and bool(res) and res["sandbox_status"] == "ready" and same
+    out = d | {"ran": True, "ok": ok, "result": res, "bucket": bucket, "restored_users_and_orgs_unchanged": same}
+    if not ok:
+        out["error"] = ("non-sandbox users/organizations changed" if not same else redact((p.stdout + p.stderr)[-600:]))
+    log(f"[demo_account] {'OK' if ok else 'FAILED'} {json.dumps(res)} restored users/orgs unchanged={same}")
+    return out
 
 
 # ---------------- commands ----------------
@@ -722,8 +782,9 @@ def _run_recovery(t: str, prod_url: str, target_name: str, bucket: str, admin_bu
         f"{integrity['mismatch']} MISMATCH, {integrity['unreadable']} UNREADABLE; {integrity['objects_in_source']} objects in source, "
         f"{integrity['orphans']} not referenced by any evidence record")
     copied = copy_objects(bucket, m, admin=admin_bucket)
+    demo = demo_account_step(b["url"], bucket, admin_bucket)  # after evidence matching: its synthetic evidence is not legacy data
     st = {s: sum(1 for e in m["evidence"] if e["status"] == s) for s in ("recovered", "present_in_production", "missing", "hash_mismatch", "unreadable")}
-    return {"target_db": target_name, "build": {k: v for k, v in b.items() if k != "url"}, "reconciliation": rec,
+    return {"target_db": target_name, "build": {k: v for k, v in b.items() if k != "url"}, "reconciliation": rec, "demo_account": demo,
             "fk": fk_orphans(b["url"]), "audit_chain": chain(b["url"]), "objects": {
                 "layout": scan["layout"], "bucket": bucket, "summary": {**st, "extra": len(m["orphans"])}, "orphans": m["orphans"],
                 "extra": m["extra"], "versioned": scan.get("meta", {}), "copy": copied, "integrity": integrity,
@@ -739,6 +800,8 @@ def _passed(r: dict) -> list[str]:
         why.append(f"audit chain invalid at seq {r['audit_chain']['first_invalid_seq']}")
     if r["objects"]["copy"]["conflict_existing_differs"]:
         why.append("existing bucket keys differ from recovered bytes")
+    if not r["demo_account"]["ok"]:
+        why.append(f"demo account step failed: {r['demo_account'].get('error') or r['demo_account'].get('result')}")
     return why
 
 
@@ -1160,6 +1223,37 @@ def cmd_audit_keycloak(a) -> int:
     return 1 if any(x[0] == "FAIL" for x in out) else 0
 
 
+def cmd_demo_check(a) -> int:
+    """After cutover: Explore Demo against the production backend must return 200 (+ role switch); else cutover fails → rollback."""
+    import httpx
+    t, d = ts(), demo_step_plan()
+    if not d["required"]:
+        log("[demo-check] SKIP not a demo deployment (Explore Demo disabled)")
+        return 0
+    if os.environ.get("RECOVER_LOCAL") == "1" and os.environ.get("RECOVER_CUTOVER_FAULT") == "demo-403":  # test only: forced 403
+        eng = create_engine(live_url())
+        with eng.begin() as c:
+            c.execute(text("delete from auth_identities where provider = 'oidc' and user_id in (select id from users where email = :e)"),
+                      {"e": DEMO_EMAIL})
+        eng.dispose()
+    res: dict = {"url": a.url}
+    try:
+        with httpx.Client(base_url=a.url, timeout=30) as c:
+            r = c.post("/api/v1/auth/demo-login")
+            res |= {"demo_login": r.status_code, "detail": r.text[:200] if r.status_code != 200 else ""}
+            if r.status_code == 200:
+                h = {"Authorization": f"Bearer {r.json()['access_token']}"}
+                res["role_switch"] = c.post("/api/v1/sandbox/act-as", json={"role": "issm"}, headers=h).status_code
+                c.post("/api/v1/auth/logout", headers=h)
+    except httpx.HTTPError as exc:
+        res["error"] = f"{type(exc).__name__}: {exc}"
+    ok = res.get("demo_login") == 200 and res.get("role_switch") == 200
+    write_json(f"demo-check-{t}.json", {**res, "ts": t, "passed": ok})
+    log(f"[demo-check] {'PASS' if ok else 'FAIL'} Explore Demo against {a.url}: demo-login {res.get('demo_login')}, role switch "
+        f"{res.get('role_switch')} {res.get('detail') or res.get('error') or ''}")
+    return 0 if ok else 1
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="recover")
     sp = ap.add_subparsers(dest="cmd", required=True)
@@ -1191,9 +1285,11 @@ def main(argv=None) -> int:
     ri = sp.add_parser("restore-into-new")
     ri.add_argument("--file", required=True)
     sp.add_parser("audit-keycloak")
+    dc = sp.add_parser("demo-check")
+    dc.add_argument("--url", required=True)
     a = ap.parse_args(argv)
     fn = {"preflight": cmd_preflight, "rehearse": cmd_rehearse, "rehearse-probe": cmd_rehearse_probe, "probe-unreachable": cmd_probe_unreachable,
-          "apply": cmd_apply, "verify": cmd_verify,
+          "apply": cmd_apply, "verify": cmd_verify, "demo-check": cmd_demo_check,
           "remove-recovered-objects": cmd_remove_recovered_objects, "status": cmd_status, "plan-hash": cmd_plan_hash,
           "bucket-verify": cmd_bucket_verify, "cleanup-rehearsal": cmd_cleanup_rehearsal, "restore-into-new": cmd_restore_into_new,
           "audit-keycloak": cmd_audit_keycloak, "backup": cmd_backup}[a.cmd]

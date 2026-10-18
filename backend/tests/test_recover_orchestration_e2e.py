@@ -156,6 +156,12 @@ def world():
     kc = {**os.environ, "OIDC_REDIRECT_URI": seed_env["OIDC_REDIRECT_URI"], "FRONTEND_URL": seed_env["FRONTEND_URL"],
           "OIDC_POST_LOGOUT_REDIRECT_URI": seed_env["OIDC_POST_LOGOUT_REDIRECT_URI"]}
     subprocess.run([sys.executable, "-m", "app.tools.keycloak_config", "apply", "--yes"], cwd=BACKEND, env=kc, check=True, capture_output=True, timeout=300)
+    # the Droplet's production has NO demo@ironvision.ai (rehearsal 2026-10-18): the cutover step demo_account must create it
+    eng = create_engine(u("rec_live_prod"))
+    with eng.begin() as c:
+        c.execute(text("delete from auth_identities where user_id in (select id from users where email = 'demo@ironvision.ai')"))
+        c.execute(text("update users set email = 'demo-predeploy@removed.invalid' where email = 'demo@ironvision.ai'"))
+    eng.dispose()
     # test realm hygiene: identities left by earlier test runs (incl. test_recovery_e2e's deliberate conflict user) are removed
     tok = httpx.post(f"{os.environ['KEYCLOAK_URL']}/realms/master/protocol/openid-connect/token", data={
         "grant_type": "client_credentials", "client_id": os.environ["KEYCLOAK_CONFIGURATOR_CLIENT_ID"],
@@ -328,6 +334,13 @@ def test_recover_operator_flow(world):
          and mi["credential_keys"] == ["MINIO_ROOT_PASSWORD_FILE", "MINIO_ROOT_USER_FILE"]
          and "legacy-minio-secret" not in json.dumps(m) + insp.stdout, json.dumps(mi)[:1500])
     rh = json.loads(max(RUN.glob("rehearsal-*.json")).read_text())
+    da = (rh.get("result") or {}).get("demo_account") or {}
+    plans = [json.loads(p.read_text()) for p in RUN.glob("plan-*.json")]
+    step("rehearsal ran the cutover step demo_account on the scratch copy: production has no demo@ironvision.ai → created by "
+         "app.seed.ensure_demo_launcher_sandbox; restored users/orgs unchanged; step is part of the plan (hash)",
+         da.get("ran") is True and da.get("ok") is True and (da.get("result") or {}).get("created") is True
+         and da.get("restored_users_and_orgs_unchanged") is True and bool(plans) and all(p.get("demo_account", {}).get("required") for p in plans),
+         json.dumps(da)[:600] + f" plans={len(plans)}")
     step("rehearsal passed; source counts cross-checked against the stated facts", rh["passed"] and all(x["ok"] for x in rh["source_facts"].values()),
          json.dumps(rh.get("source_facts")))
     e2e = rh.get("backend_probe", {}).get("e2e_sso", {})
@@ -381,6 +394,13 @@ def test_recover_operator_flow(world):
     step("cutover 1: apply → switch → deploy → Keycloak link → verify + live SSO + doctor + SeaweedFS restart",
          r.returncode == 0 and "CUTOVER SUCCEEDED" in r.stdout and db_name().startswith("ironvision_recovered_"), r.stdout + r.stderr)
     rec_db = db_name()
+    ap = json.loads(max(RUN.glob("apply-*.json")).read_text())
+    da = (ap.get("result") or {}).get("demo_account") or {}
+    step("cutover 1: step demo_account created demo@ironvision.ai in the recovered DB before the switch, strict link mapped the production "
+         "launcher, Explore Demo check PASS",
+         da.get("ok") is True and (da.get("result") or {}).get("created") is True and "[demo-check] PASS" in r.stdout
+         and sql(rec_db, "select count(*) from auth_identities ai join users u on u.id = ai.user_id "
+                         "where u.email = 'demo@ironvision.ai' and ai.provider = 'oidc'")[0][0] == 1, json.dumps(da)[:500] + r.stdout[-300:])
     n_users = sql(rec_db, "select count(*) from users where email like '%@aegisrmf.demo'")[0][0]
     step("recovered DB: original users present + identities linked", n_users >= 8 and sql(rec_db, "select count(*) from auth_identities")[0][0] >= 8, str(n_users))
     step("live e2e SSO incl. self-registration + launcher + role switch + logout", "PASS  self-registration" in r.stdout and "PASS  role switch" in r.stdout
@@ -392,6 +412,10 @@ def test_recover_operator_flow(world):
     r = cutover(h2, RECOVER_LIVE_URL="http://127.0.0.1:1")
     step("cutover 2 with a failing live check → AUTOMATIC rollback to the previous env/DB",
          r.returncode != 0 and "automatic rollback" in r.stdout and db_name() == prod, r.stdout[-800:])
+    r = cutover(h2, RECOVER_CUTOVER_FAULT="demo-403")
+    step("cutover with a forced Explore Demo 403 → Explore Demo check FAILS → AUTOMATIC rollback to the previous env/DB",
+         r.returncode != 0 and "[demo-check] FAIL" in r.stdout and "demo-login 403" in r.stdout and "Explore Demo check" in r.stdout
+         and "automatic rollback" in r.stdout and db_name() == prod, r.stdout[-900:])
     h3 = run_and_hash("3")
     r = cutover(h3)
     step("cutover 3 (re-cutover after rollback) succeeds", r.returncode == 0 and "CUTOVER SUCCEEDED" in r.stdout, r.stdout[-1500:])
@@ -443,32 +467,30 @@ def _scratch_failure_paths() -> None:
              and st.get("5 restored users unchanged (before == after)") in ("done", "already-gone") and kc_users() == prod_kc,
              json.dumps({"st": st, "fails": fails[:500], "rc": r.returncode}) + r.stdout[-600:])
     from app.tools import recovery as rv
-    demo_cases = (("Droplet 2026-10-18 reproduced: no demo@ironvision.ai in the scratch DB, pre-fix path → e2e demo login 403",
-                   "droplet-no-demo-user", False),
-                  ("demo mapping removed after verification → e2e demo login 403", "demo-unmap", False),
-                  ("no demo@ironvision.ai in the scratch DB, fix active → demo sandbox seeded + mapped + verified", "no-demo-user", True))
-    for name, fault, want_pass in demo_cases:
+    demo_cases = (("Droplet 2026-10-18 pre-fix path: step demo_account skipped → no demo@ironvision.ai → strict link exits 4, setup FAILS",
+                   "skip-demo-step"),
+                  ("demo mapping removed after verification → e2e demo login 403", "demo-unmap"))
+    for name, fault in demo_cases:
         before = {p.name for p in RUN.glob("rehearsal-*.json")}
         r = recover("rehearse", "--e2e", RECOVER_SCRATCH_FAULT=fault)
         rh = json.loads((RUN / sorted({p.name for p in RUN.glob("rehearsal-*.json")} - before)[-1]).read_text())
         ss = rh.get("scratch_sso") or {}
         steps = [s for s in ((rh.get("backend_probe") or {}).get("e2e_sso") or {}).get("steps", []) if s["step"].startswith("demo login (Explore Demo")]
         fails = " | ".join(rh.get("failures", []))
-        if want_pass:
-            ok = (rh["passed"] is True and ss["demo_sandbox"]["existed_before"] is False and ss["demo_mapping"]["verified"]
-                  and steps and steps[0]["pass"])
+        try:
+            rv.rehearsal_gate(rh, rh["plan_hash"])
+            gate = "ELIGIBLE"
+        except rv.RecoveryError as exc:
+            gate = str(exc)
+        lk = ss.get("demo_launcher_link") or {}
+        if fault == "skip-demo-step":
+            ok = lk.get("rc") == 4 and "would map 0 accounts" in lk.get("output_tail", "") and "setup failed" in fails
         else:
-            try:
-                rv.rehearsal_gate(rh, rh["plan_hash"])
-                gate = "ELIGIBLE"
-            except rv.RecoveryError as exc:
-                gate = str(exc)
-            ok = (rh["passed"] is False and steps and not steps[0]["pass"] and "403" in steps[0]["detail"] and "demo login" in fails
-                  and "did not pass" in gate)
-        step(f"demo path – {name}: rehearsal {'PASSES' if want_pass else 'FAILS (listed, plan hash not cutover-eligible)'}; cleanup complete",
-             ok and ss.get("cleanup_ok") is True and _scratch_clean(rh["ts"]) and kc_users() == prod_kc
-             and ss["cleanup_steps"]["5 restored users unchanged (before == after)"]["status"] == "done",
-             json.dumps({"steps": steps, "fails": fails[:400], "map": ss.get("demo_mapping")}, default=str)[:900] + r.stdout[-400:])
+            ok = bool(steps) and not steps[0]["pass"] and "403" in steps[0]["detail"] and "demo login" in fails
+        step(f"demo path – {name}: rehearsal FAILS (listed, plan hash not cutover-eligible); cleanup complete",
+             ok and rh["passed"] is False and "did not pass" in gate and ss.get("cleanup_ok") is True and _scratch_clean(rh["ts"])
+             and kc_users() == prod_kc and ss["cleanup_steps"]["5 restored users unchanged (before == after)"]["status"] == "done",
+             json.dumps({"steps": steps, "fails": fails[:400], "link": lk.get("output_tail", "")[-300:]}, default=str)[:900] + r.stdout[-400:])
     # interrupted run (like Droplet scratch-sso-20261017t214603): scratch DB/role + secret dir left, admin.env never written
     ts = "20261017t214603"
     e = recover_env()

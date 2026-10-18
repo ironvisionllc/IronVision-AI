@@ -389,3 +389,42 @@ def test_demo_launcher_link_step_refuses_production_db_keycloak_and_issuer(monke
             ss.link_demo_launcher("20991231t235958", {**good, **bad}, [])
     assert called == []                                       # refused BEFORE keycloak-migrate runs
     assert ss.link_demo_launcher("20991231t235958", good, [])["rc"] == 0 and len(called) == 1
+
+
+def _rows(action=None, reason="r"):
+    base = {"name": "n", "org": "o", "user_id": "u", "active": True, "roles": [], "identities": [], "keycloak_user_id": None}
+    return [{**base, "email": "a@aegisrmf.demo", "action": "create", "reason": "x"}] + (
+        [{**base, "email": "demo@ironvision.ai", "action": action, "reason": reason}] if action else [])
+
+
+def test_strict_link_demo_launcher_zero_accounts_is_a_problem(monkeypatch):
+    from app.tools import keycloak_migrate as km
+    monkeypatch.delenv("KEYCLOAK_DEMO_USERNAME", raising=False)
+    assert km.demo_link_problem(_rows()) is None                       # no launcher configured (customer deployment)
+    monkeypatch.setenv("KEYCLOAK_DEMO_USERNAME", "launcher")
+    assert "no app user demo@ironvision.ai" in km.demo_link_problem(_rows())
+    assert "would map 0 accounts" in km.demo_link_problem(_rows("skip", "demo launcher user is created by keycloak_config"))
+    assert "CONFLICT" in km.demo_link_problem(_rows("CONFLICT", "Keycloak user already mapped to another app user"))
+    for ok in ("link", "ok", "reactivate+link"):
+        assert km.demo_link_problem(_rows(ok)) is None
+
+
+def test_keycloak_migrate_link_exits_4_when_demo_launcher_would_map_0_accounts(monkeypatch, tmp_path, capsys):
+    import argparse
+
+    from app.tools import keycloak_migrate as km
+    monkeypatch.setenv("KEYCLOAK_DEMO_USERNAME", "launcher")
+    monkeypatch.setattr(km, "KeycloakAdmin", lambda: type("K", (), {"login": lambda self: self})())
+    monkeypatch.setattr(km, "build_plan", lambda db, kc, re: _rows())
+    monkeypatch.setattr(km, "_realm", lambda: "ironvision-demo")
+    monkeypatch.setattr(km, "_issuer", lambda: "http://kc/realms/ironvision-demo")
+    applied = []
+    monkeypatch.setattr(km, "apply_plan", lambda *a, **k: applied.append(1) or {})
+    a = argparse.Namespace(reactivate="", report=str(tmp_path / "r.json"), apply=True, allow_conflicts=False, create_identities=True,
+                           link=True, yes=True, plan_hash=km.plan_hash(_rows()), backup_ref=str(tmp_path), credentials_dir=str(tmp_path),
+                           temporary=True, actor="pytest")
+    assert km.migrate(a) == 4 and applied == []                         # refused before anything is applied
+    assert "would map 0 accounts" in capsys.readouterr().err
+    a.link = False                                                      # --create-identities alone is not blocked by the launcher check
+    monkeypatch.setattr(km, "check_backup", lambda ref: None)
+    assert km.migrate(a) == 0 and applied == [1]

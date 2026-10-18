@@ -447,15 +447,25 @@ sudo ./recover.sh run
 - The Droplet artifacts were not accessible. So this cause was reproduced, not read from them: the pod run with `demo@ironvision.ai` removed from the scratch DB (the pre-fix code path) gives exactly the Droplet result: setup OK, OIDC/logout steps pass, then `403 {"detail":"The demo account is not mapped yet (operator: scripts/keycloak.sh migrate)."}`.
 - The new verification records the demo plan row (action and reason) in `scratch-sso-TS.json`. If the Droplet's cause were anything else, the next run shows it there instead of an e2e 403.
 
-**Production migrate.**
-- The subject/issuer/provider logic is correct and unchanged.
-- One shared weakness: `--link` also links 0 rows with rc 0 when production has no `demo@ironvision.ai`. In production the demo-deployment seed creates that user before migrate runs (`deploy.sh` → `app.seed`), but **check it after cutover**: Explore Demo must return 200, which it does only with the mapping.
-- `keycloak_migrate.py` was not changed.
+**What cutover did before this change (fact, traced in code):**
+- **Where the demo account came from:** `recover.sh cutover` = `apply` (recovered DB = legacy backup + production rows) → `switch_db` → `redeploy` (`./deploy.sh`) → the compose `migrate` service runs `alembic upgrade head && python -m app.seed`.
+- **When it was created:** `app.seed` creates `demo@ironvision.ai` + its sandbox org/personas **only if** `demo_deployment_launcher()` is true **at that moment** (`DEPLOYMENT_KIND=demo` + `ALLOW_DEMO_LOGIN` + oidc; `SEED_DEMO_DATA` plays no part). That is implicit, outside the plan hash and the dry-run report, and the rehearsal never ran it (it does not redeploy).
+- **Link step:** the cutover link ran after redeploy. It mapped the production launcher only if that seed had run. Otherwise it linked 0 rows with rc 0.
+- **`demo_rows` (recovery.py, `kc_link_scratch`):** only reports. When the account is absent it is `[]`, and nothing failed.
+- **Net effect:** the rehearsal tested a DB without the account, while cutover depended on a side effect of redeploy. Only the cutover's live e2e (`--demo`) would have caught a missing account, by rolling back.
 
-**Fix (rehearsal only; `/auth/demo-login` unchanged):**
-1. **Create the demo sandbox identity.** `ensure_demo_sandbox` calls `sandbox.seed_demo_account(db, None)` + `provision` in the **scratch DB**. These are the calls production's demo-deployment seed makes. No role accounts, no password, no `retire_role_accounts`. An existing demo user is left as-is.
-2. **Link through the supported path.** `link_demo_launcher` runs the unchanged `keycloak-migrate --apply --link` (`kc_link_scratch`). Before it runs, `assert_scratch_targets` checks `DATABASE_URL`, `KEYCLOAK_URL` and `OIDC_ISSUER` and refuses production DBs and Keycloak.
-3. **Verify the result.** `verify_demo_mapping` signs in as the launcher exactly like the endpoint (`demo_launcher.login()` with the same env) and looks up `auth_identities(provider='oidc', subject=<expected>)`. That row must point to an active `demo@ironvision.ai` with sandbox `ready`. Otherwise setup **fails** and records:
+**Fix (supported cutover step; `/auth/demo-login` unchanged):**
+1. **Cutover step `demo_account`.**
+   - `recovery._run_recovery`, shared by rehearse and apply, runs `app.seed.ensure_demo_launcher_sandbox`. It is the same function `app.seed` now calls for `DEPLOYMENT_KIND=demo`.
+   - It runs on the target DB **before the switch**, after evidence matching. It writes objects to the rehearsal bucket during rehearse and to the production bucket during apply, the same rule as `copy_objects`.
+   - It creates only `demo@ironvision.ai` + its sandbox org/personas and is idempotent.
+   - Non-sandbox users and organizations (restored users + admin) are fingerprinted (`row_to_json` md5) before and after. Any difference fails the step.
+   - The step is in `plan()` → plan hash + plan report, and its result is in the rehearsal/apply report (`result.demo_account`).
+2. **Rehearsal = the same step.** The scratch-only demo creation was removed. The scratch link uses the account the cutover step created on the scratch copy, and `scratch-sso-TS.json` says so.
+3. **Strict link.** `keycloak-migrate --apply --link` **exits 4** (in production and in scratch alike) when `KEYCLOAK_DEMO_USERNAME` is set but no demo row would be linked or is already linked. The message gives the reason (no app user / the row's action and reason). The dry run prints the same text as a WARNING.
+4. **Post-cutover check.** `recover.sh cutover` runs `recovery demo-check --url <production>` after the link: `POST /auth/demo-login` must return 200 and the role switch must work. Otherwise `fail` → automatic rollback (existing rules). It is skipped on non-demo deployments.
+5. **Link through the supported path, scratch only.** `link_demo_launcher` runs `keycloak-migrate --apply --link` (`kc_link_scratch`). Before it runs, `assert_scratch_targets` checks `DATABASE_URL`, `KEYCLOAK_URL` and `OIDC_ISSUER` and refuses production DBs and Keycloak.
+6. **Verify the result.** `verify_demo_mapping` signs in as the launcher exactly like the endpoint (`demo_launcher.login()` with the same env) and looks up `auth_identities(provider='oidc', subject=<expected>)`. That row must point to an active `demo@ironvision.ai` with sandbox `ready`. Otherwise setup **fails** and records:
    - the expected subject and the stored oidc subjects of the demo user;
    - the demo user's state;
    - the link issuer, the demo plan rows and `links_planned`.
@@ -471,23 +481,25 @@ sudo ./recover.sh run
 
 | Check | Real / simulated | Result |
 |---|---|---|
-| Reproduce: scratch DB without `demo@ironvision.ai`, pre-fix path (fault `droplet-no-demo-user`) | Real pod Keycloak 26 (scratch realm), Postgres, uvicorn backend, `scripts/e2e_sso.py` | Exactly the Droplet result: OIDC/logout steps pass, `demo login` → `403 not mapped`, rehearsal FAILS with it listed, gate refuses the plan hash, cleanup complete |
-| Same state with the fix (fault `no-demo-user`) | Real | Demo sandbox seeded in the scratch DB, linked, verified; Explore Demo 200 + role switch; rehearsal PASSES |
-| Mapping deleted after verification (fault `demo-unmap`) | Real | e2e `demo login` 403 → rehearsal FAILS, listed, not cutover-eligible, cleanup complete |
-| Normal scratch SSO e2e (every step incl. demo login and role switch) | Real | PASS |
-| `/auth/demo-login` keycloak mode: no mapping / other-issuer mapping / exact mapping | Real endpoint + test DB, launcher token mocked | 403 / 403 / 200 + session + role switch |
+| Production state reproduced: prod replica **without** `demo@ironvision.ai` (as on the Droplet) | Real pod Postgres | rehearsal: step `demo_account` created it on the scratch copy, restored users/orgs fingerprint unchanged, step is in the plan (hash) |
+| Scratch SSO e2e, every step incl. demo login + role switch | Real pod Keycloak 26 (scratch realm), Postgres, uvicorn backend, `scripts/e2e_sso.py` | PASS |
+| Pre-fix path (fault `skip-demo-step`: step not run, no demo account) | Real | strict link **exit 4** "would map 0 accounts", setup FAILS, rehearsal FAILS listed, gate refuses the plan hash, cleanup complete |
+| Mapping deleted after verification (fault `demo-unmap`) | Real | e2e `demo login` 403 → rehearsal FAILS listed, not cutover-eligible, cleanup complete |
+| Cutover 1: `demo_account` on the recovered DB before the switch → strict link maps the production launcher → `demo-check` | Real (pod Keycloak = "production" Keycloak, live uvicorn backend) | PASS (demo-login 200, role switch 200) |
+| Cutover with a forced Explore Demo 403 (fault `demo-403`) | Real | `[demo-check] FAIL demo-login 403` → automatic rollback, production back on the previous DB |
+| Rollback, cutover 2 auto-rollback (live check unreachable), cutover 3 re-cutover, finalize (no reboot / after reboot), scratch-cleanup | Real Postgres/Keycloak/uvicorn; Docker = shim | PASS, orchestration **46/46** |
+| Restored users (8) + admin unchanged; production Keycloak users unchanged | Real (fingerprints before == after) | PASS |
+| `keycloak-migrate --link` strictness (exit 4, nothing applied; `--create-identities` alone unaffected; customer deployment unaffected) | Unit (Keycloak + plan stubbed) | PASS |
+| `/auth/demo-login`: no mapping / other-issuer mapping / exact mapping | Real endpoint + test DB, launcher token mocked | 403 / 403 / 200 + session + role switch |
 | Link-step guard: production DB name, live DB URL, production Keycloak, production issuer | Unit | refused before keycloak-migrate runs |
-| Full recovery orchestration (rollback, auto-rollback, re-cutover, finalize, scratch cleanup, failure paths) | Real Postgres/Keycloak/uvicorn; Docker = shim | 44/44 |
-| Restored users (8) + admin unchanged; production Keycloak users unchanged | Real (fingerprint before == after, every rehearsal) | PASS |
-| Full suite | Real | 370 passed, 26 skipped |
-| Docker Compose rehearsal on the Droplet (`rehearsal-keycloak` hostname) | Not run (no daemon) | Next Droplet run; the scratch-sso json then contains `demo_sandbox` + `demo_mapping` |
+| Docker Compose on the Droplet (`./deploy.sh`, real `migrate` service, https demo-check) | Not run (no daemon) | Next Droplet run |
 
-**Droplet (from /opt/ironvision/IronVision-AI):**
+**Droplet (from /opt/ironvision/IronVision-AI):** `recover.sh run` already runs `rehearse --e2e` (recover.sh:287), so do not run it separately.
 ```
 cd /opt/ironvision/IronVision-AI && git pull
-python3 scripts/check_requirements.py
 sudo ./recover.sh scratch-cleanup          # no-op if nothing is left over
-sudo ./recover.sh rehearse --e2e           # must PASS; demo login 200 + role switch
-sudo ./recover.sh run
+sudo ./recover.sh run                      # read-only; rehearsal incl. the demo_account step, scratch SSO e2e, demo login + role switch
 ```
+Read-only check of what production has today (optional):
+`sudo docker compose -f docker-compose.yml -f deploy/digitalocean/docker-compose.do.yml --env-file deploy/digitalocean/.env.production exec -T postgres psql -U "$(python3 scripts/envget.py deploy/digitalocean/.env.production POSTGRES_USER)" -d ironvision -c "select email, is_active from users where email = 'demo@ironvision.ai'"`
 

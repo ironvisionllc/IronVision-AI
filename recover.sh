@@ -312,6 +312,7 @@ case "$cmd" in
       kh=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("plan_hash",""))' "$RDIR/kc-migrate-$TS.json")
       bk=$(dirname "$(find "$RDIR/backups" -maxdepth 2 -name manifest.json | sort | tail -1)")
       (cd backend && python -m app.cli keycloak-migrate --apply --create-identities --link --plan-hash "$kh" --backup-ref "$bk" --credentials-dir "$RDIR/credentials" --report "$RDIR/kc-link-$TS.json" --yes) | tee -a "$LOG" || fail "Keycloak identity link"
+      py demo-check --url "${RECOVER_LIVE_URL:?RECOVER_LIVE_URL}" | tee -a "$LOG" || fail "Explore Demo check (POST /api/v1/auth/demo-login must return 200)"
       python3 scripts/e2e_sso.py --base "${RECOVER_LIVE_URL:?RECOVER_LIVE_URL}" --register --demo ${RECOVER_E2E_INSECURE:+--insecure-cookies} | tee -a "$LOG" || fail "live end-to-end SSO"
       (cd backend && python -m app.tools.keycloak_doctor) | tee -a "$LOG" || fail "keycloak doctor"
       eval "${RECOVER_LOCAL_RESTART_CMD:-true}" || fail "SeaweedFS restart"
@@ -320,6 +321,7 @@ case "$cmd" in
       kh=$(grep -oE -- '--plan-hash [0-9a-f]+' <<<"$out" | tail -1 | awk '{print $2}')
       if [ -n "$kh" ]; then scripts/keycloak.sh "$ENV_FILE" migrate --apply --create-identities --link --plan-hash "$kh" --yes | tee -a "$LOG" || fail "Keycloak identity link"
       else say "keycloak-migrate: nothing to link"; fi
+      py demo-check --url "https://$(envget APP_DOMAIN)" | tee -a "$LOG" || fail "Explore Demo check (POST /api/v1/auth/demo-login must return 200)"
       "${DC[@]}" --profile recovery run --rm -T recovery python /app/scripts/e2e_sso.py --base "https://$(envget APP_DOMAIN)" --register --demo | tee -a "$LOG" || fail "live end-to-end SSO"
       scripts/keycloak.sh "$ENV_FILE" doctor | tee -a "$LOG" || fail "keycloak doctor"
       "${DC[@]}" restart seaweedfs >/dev/null || fail "SeaweedFS restart"; sleep 10

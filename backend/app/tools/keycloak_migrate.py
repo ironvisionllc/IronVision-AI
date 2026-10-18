@@ -109,6 +109,19 @@ def build_plan(db, kc: KeycloakAdmin, reactivate: set[str]) -> list[dict]:
     return rows
 
 
+def demo_link_problem(rows: list[dict]) -> str | None:
+    """Demo launcher configured (KEYCLOAK_DEMO_USERNAME) but no row maps/keeps it on demo@ironvision.ai → Explore Demo would 403."""
+    from app.services.sandbox import DEMO_EMAIL
+    if not os.environ.get("KEYCLOAK_DEMO_USERNAME"):
+        return None
+    d = [r for r in rows if r["email"] == DEMO_EMAIL]
+    if any(r["action"] in ("ok", "link", "reactivate+link") for r in d):
+        return None
+    why = f"{d[0]['action']}: {d[0]['reason']}" if d else (f"no app user {DEMO_EMAIL} in this database – create it with the demo "
+                                                           "account step (app.seed / recover.sh cutover step demo_account)")
+    return f"the demo launcher is configured (KEYCLOAK_DEMO_USERNAME) but --link would map 0 accounts to it, Explore Demo would return 403 ({why})"
+
+
 def plan_hash(rows: list[dict]) -> str:
     canon = json.dumps([[r["email"], r["action"], r["keycloak_user_id"]] for r in rows], sort_keys=True)
     return hashlib.sha256(canon.encode()).hexdigest()[:16]
@@ -194,6 +207,9 @@ def migrate(a) -> int:
         report.write_text(json.dumps({"plan_hash": h, "realm": _realm(), "issuer": _issuer(), "users": rows}, indent=1))
         os.chmod(report, 0o600)
         print(f"plan hash: {h}\nreport: {report}")
+        demo_problem = demo_link_problem(rows)
+        if demo_problem:
+            print(f"WARNING: {demo_problem}", file=sys.stderr)
         if not a.apply:
             print("DRY RUN – nothing changed. To apply: --apply --create-identities --link [--reactivate a@x,b@y] "
                   f"--backup-ref <dir> --yes --plan-hash {h}")
@@ -204,6 +220,9 @@ def migrate(a) -> int:
         if not (a.create_identities or a.link):
             print("nothing to apply: pass --create-identities and/or --link", file=sys.stderr)
             return 2
+        if a.link and demo_problem:
+            print(f"refusing to apply: {demo_problem}", file=sys.stderr)
+            return 4
         if a.yes:
             if a.plan_hash != h:
                 print(f"refusing to apply: --plan-hash {a.plan_hash!r} != current plan {h} (state changed since review)", file=sys.stderr)

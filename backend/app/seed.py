@@ -99,6 +99,20 @@ def demo_deployment_launcher() -> bool:
             and "oidc" in sessions.enabled_providers())
 
 
+def ensure_demo_launcher_sandbox(db: Session) -> dict:
+    """DEPLOYMENT_KIND=demo: ONLY demo@ironvision.ai + its synthetic sandbox org/personas (no password). Idempotent.
+    Used by app.seed and by the recovery cutover step `demo_account` (recovery._run_recovery)."""
+    from app.services import sandbox as sbx
+    existed = db.scalar(select(User.id).where(User.email == sbx.DEMO_EMAIL)) is not None
+    org = sbx.seed_demo_account(db, None)
+    db.commit()
+    if org.sandbox_status != "ready":
+        sbx.provision(db, org.id)
+    db.commit()
+    return {"email": sbx.DEMO_EMAIL, "created": not existed, "org_id": str(org.id),
+            "sandbox_status": db.get(Organization, org.id).sandbox_status}
+
+
 def run() -> None:
     from app.check_env import production_guard
 
@@ -117,14 +131,9 @@ def run() -> None:
             retire_role_accounts(db)
             log.info("Demo seed complete (single demo account %s with a private sandbox)", sbx.DEMO_EMAIL)
         elif demo_deployment_launcher():
-            from app.services import sandbox as sbx
-
             ensure_reference_content(db)  # Keycloak demo deployment: ONLY the synthetic demo sandbox, no role accounts, no password
-            org = sbx.seed_demo_account(db, None)
-            db.commit()
-            if org.sandbox_status != "ready":
-                sbx.provision(db, org.id)
-            log.info("Demo deployment: demo sandbox %s ready for the Explore-the-demo launcher", sbx.DEMO_EMAIL)
+            r = ensure_demo_launcher_sandbox(db)
+            log.info("Demo deployment: demo sandbox %s ready for the Explore-the-demo launcher", r["email"])
         else:
             ensure_reference_content(db)
             log.info("SEED_DEMO_DATA is off: reference content only, no demo accounts")

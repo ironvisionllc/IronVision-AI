@@ -212,24 +212,6 @@ def _fault() -> str:
 
 
 DEMO_EMAIL = "demo@ironvision.ai"
-_DEMO_SEED = r'''
-import json
-from sqlalchemy import select
-from app.db import SessionLocal
-from app.models import Organization, User
-from app.services import sandbox as sbx
-with SessionLocal() as db:
-    b = db.scalar(select(User).where(User.email == sbx.DEMO_EMAIL))
-    st = {"existed_before": b is not None, "active_before": bool(b and b.is_active)}
-    org = sbx.seed_demo_account(db, None)
-    db.commit()
-    if org.sandbox_status != "ready":
-        sbx.provision(db, org.id)
-    db.commit()
-    u = db.scalar(select(User).where(User.email == sbx.DEMO_EMAIL))
-    st.update({"org_id": str(u.org_id), "sandbox_status": db.get(Organization, u.org_id).sandbox_status, "active": u.is_active})
-    print("DEMO-SEED-JSON " + json.dumps(st))
-'''
 _DEMO_LOGIN = r'''
 import json
 from app.security import demo_launcher
@@ -252,14 +234,6 @@ def _py(code: str, env: dict, tag: str, hide: list) -> dict:
     if p.returncode or not m:
         raise rv.RecoveryError(f"{tag.split('-JSON')[0].lower()} failed (rc={p.returncode}): " + _redact((p.stdout + p.stderr)[-600:], hide))
     return json.loads(m.group(1))
-
-
-def ensure_demo_sandbox(env: dict, hide: list) -> dict:
-    """The demo sandbox identity demo@ironvision.ai in the SCRATCH DB, via the same calls production's demo-deployment seed makes
-    (app.seed.run → sandbox.seed_demo_account(db, None) + provision; no role accounts, no password, restored users untouched).
-    The Droplet's scratch DB had no such user, so keycloak-migrate planned no demo row and linked 0 rows with rc=0."""
-    assert_scratch_targets("demo sandbox seed", db_url=env["DATABASE_URL"])
-    return _py(_DEMO_SEED, env, "DEMO-SEED-JSON", hide) | {"path": "app.services.sandbox.seed_demo_account(db, None) + provision (= app.seed demo deployment)"}
 
 
 def link_demo_launcher(ts: str, env: dict, hide: list) -> dict:
@@ -344,21 +318,17 @@ def cmd_setup(a) -> int:
     r["scratch_org_id"] = str(org_id)
     _save(a.ts, r)
     lenv = {k2: v for k2, v in env.items() if not (k2 == "JWT_SECRET" and _fault() == "migrate")}  # test: Droplet failure
-    if _fault() in ("droplet-no-demo-user", "no-demo-user"):  # test: the Droplet's scratch DB had no demo@ironvision.ai user
-        _sql(target, "update users set email = 'demo-removed@rehearsal.invalid' where email = :e", {"e": DEMO_EMAIL})
-    if _fault() != "droplet-no-demo-user":  # (that fault = the pre-fix behaviour: no sandbox step, no verification)
-        r["demo_sandbox"] = ensure_demo_sandbox(env, hide)
-        _save(a.ts, r)
+    r["demo_account"] = ("NOT created here: the cutover step demo_account (recovery._run_recovery → app.seed.ensure_demo_launcher_sandbox) "
+                         "ran on this scratch target exactly as apply runs it – see the rehearsal report result.demo_account")
     r["demo_launcher_link"] = link_demo_launcher(a.ts, lenv, hide)
     _save(a.ts, r)
     if r["demo_launcher_link"]["rc"]:
         raise rv.RecoveryError("keycloak-migrate (demo-launcher link) into the scratch DB failed (see scratch-sso json): "
                                + r["demo_launcher_link"]["output_tail"][-300:])
-    if _fault() != "droplet-no-demo-user":
-        try:
-            r["demo_mapping"] = verify_demo_mapping(lenv, target, r["demo_launcher_link"], hide)
-        finally:
-            _save(a.ts, r)
+    try:
+        r["demo_mapping"] = verify_demo_mapping(lenv, target, r["demo_launcher_link"], hide)
+    finally:
+        _save(a.ts, r)
     if _fault() == "demo-unmap":  # test: the e2e demo login must then FAIL the rehearsal (cleanup still runs)
         _sql(target, "delete from auth_identities where provider = 'oidc' and subject = :s", {"s": r["demo_mapping"]["expected_subject"]})
     _env_file(d / "backend.env", {"SCRATCH_KC_URL": kc, "SCRATCH_OIDC_ISSUER": issuer, "SCRATCH_OIDC_CLIENT_SECRET": s["OIDC_CLIENT_SECRET"],
