@@ -460,11 +460,80 @@ exec bash {W}/redeploy.sh
          and "docker start aegisrmf-backend-1 aegisrmf-minio-recovery aegisrmf-postgres-1 aegisrmf-worker-1" in r.stdout, r.stdout[-600:])
     r = recover("finalize", RECOVER_BOOT_EPOCH=str(int(time.time()) + 10))
     step("finalize after a (simulated) reboot: reboot persistence OK, nothing left to stop", r.returncode == 0 and "OK   reboot persistence" in r.stdout, r.stdout[-400:])
+    _restore_from_fault_paths(prod)
     calls = (W / "docker.log").read_text().splitlines()
     from tests.docker_safety import destructive_calls
     bad = destructive_calls(calls)
     step("docker never asked to rm / down / volume -v / prune / kill (only stop at finalize; run = recovery helper only)",
          not bad and sum(c.startswith("stop ") for c in calls) == 1, f"{len(calls)} calls; destructive={bad[:3]}")
+
+
+def _restore_from_fault_paths(prod: str) -> None:
+    """rollback --restore-db-from: corrupt, checksum mismatch, pg_restore failing midway, interrupted re-run, success.
+    Each: report written, app healthy on a KNOWN DB (verified), recovered DB kept, no database ever dropped."""
+    import hashlib
+    cur, sha_c = db_name(), env_sha()   # after cutover 3 + finalize: app on the recovered DB
+
+    def dbs(prefix: str) -> set:
+        return {x[0] for x in sql("postgres", f"select datname from pg_database where datname like '{prefix}%'")}
+
+    def last_report() -> dict:
+        return json.loads(max(RUN.glob("rollback-*.json"), key=lambda p: p.stat().st_mtime).read_text())
+
+    def refused_ok(r) -> bool:   # env untouched, app VERIFIED healthy on the unchanged DB, recovered DB kept, failed report
+        rep = last_report()
+        return (r.returncode != 0 and env_sha() == sha_c and db_name() == cur and f"[health] PASS app on db={cur}" in r.stdout
+                and cur in dbs("ironvision_recovered_") and rep["passed"] is False
+                and [x["step"] for x in rep["steps"]][:2] == ["restore-db", "health"] and rep["steps"][1]["status"] == "OK")
+    man = max(RUN.glob("backups/*/manifest.json"), key=lambda p: p.stat().st_mtime)
+    good = Path(json.loads(man.read_text())["files"]["prod_db"]["path"])
+    orig, restored0 = good.read_bytes(), dbs("ironvision_restored_")
+
+    bad = W / "corrupt.dump"
+    bad.write_bytes(os.urandom(8192))
+    r = recover("rollback", "--restore-db-from", str(bad), "--sha256", hashlib.sha256(bad.read_bytes()).hexdigest())
+    step("restore-from (1) corrupt backup → refused before any DB is created; env unchanged, app healthy on the current DB, report",
+         refused_ok(r) and "not a readable pg_dump archive" in r.stdout + r.stderr and dbs("ironvision_restored_") == restored0, r.stdout[-700:])
+
+    good.write_bytes(orig + b"\0")   # tampered after apply recorded its checksum
+    try:
+        r = recover("rollback", "--restore-db-from", str(good))
+    finally:
+        good.write_bytes(orig)
+    unrec = W / "unrecorded.dump"
+    unrec.write_bytes(orig)
+    r2 = recover("rollback", "--restore-db-from", str(unrec))
+    step("restore-from (2) checksum mismatch vs the apply manifest → refused; a backup with no recorded checksum → refused",
+         refused_ok(r) and "checksum mismatch" in r.stdout + r.stderr and "recorded at apply" in r.stdout + r.stderr
+         and refused_ok(r2) and "no recorded checksum" in r2.stdout + r2.stderr and dbs("ironvision_restored_") == restored0, r.stdout[-500:])
+
+    tr = W / "truncated.dump"
+    tr.write_bytes(orig[: len(orig) * 2 // 3])
+    tsha = hashlib.sha256(tr.read_bytes()).hexdigest()
+    r = recover("rollback", "--restore-db-from", str(tr), "--sha256", tsha)
+    partial = dbs("ironvision_restored_") - restored0
+    st = json.loads((RUN / f"restore-{tsha[:16]}.json").read_text())
+    step("restore-from (3) pg_restore fails midway (truncated data) → FAILED, partial DB kept + reported (never used), env unchanged, app healthy",
+         refused_ok(r) and "FAILED" in r.stdout + r.stderr and len(partial) == 1 and st["status"] == "failed"
+         and st["partial_db_kept"] in partial and db_name() == cur, json.dumps(st)[:400] + r.stdout[-400:])
+
+    r = recover("rollback", "--restore-db-from", str(good), RECOVER_REDEPLOY_CMD="false")
+    restored = dbs("ironvision_restored_") - restored0 - partial
+    step("restore-from (4) interrupted after the verified restore + switch (redeploy fails) → stops with a report; restored + recovered DBs kept",
+         r.returncode != 0 and "rollback step 'redeploy' failed" in r.stdout and len(restored) == 1 and last_report()["passed"] is False
+         and cur in dbs("ironvision_recovered_"), r.stdout[-600:])
+    rdb = next(iter(restored)) if restored else "-"
+    r = recover("rollback", "--restore-db-from", str(good))
+    step("restore-from (4) re-run converges: completed restore REUSED (no 2nd DB), env-switch SKIP, health VERIFIED on the restored DB "
+         "and NOT on the recovered DB, recovered DB kept",
+         r.returncode == 0 and "reused completed restore" in r.stdout and "env-switch: SKIP" in r.stdout and f"[health] PASS app on db={rdb}" in r.stdout
+         and "ROLLBACK COMPLETE" in r.stdout and dbs("ironvision_restored_") - restored0 - partial == restored and db_name() == rdb
+         and cur in dbs("ironvision_recovered_") and last_report()["passed"] is True, r.stdout[-900:])
+    r = recover("rollback", "--restore-db-from", str(good))
+    step("restore-from (5) success is idempotent: nothing new created, app healthy on the restored DB; no database was ever dropped",
+         r.returncode == 0 and "ROLLBACK COMPLETE" in r.stdout and dbs("ironvision_restored_") - restored0 - partial == restored
+         and db_name() == rdb and {cur} <= dbs("ironvision_recovered_") and partial <= dbs("ironvision_restored_")
+         and sql("postgres", f"select count(*) from pg_database where datname = '{prod}'")[0][0] == 1, r.stdout[-500:])
 
 
 def _scratch_clean(ts: str) -> bool:

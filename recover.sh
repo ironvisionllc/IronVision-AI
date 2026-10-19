@@ -380,15 +380,27 @@ case "$cmd" in
     legacy stop "$LEGACY_PROJECT" --backup "$lb" --only-conflicting --yes | tee -a "$LOG" || die "not stopped (see above)";;
   verify) py verify;;
   rollback)  # idempotent: re-running converges (env restore skipped when already equal; switch record marked only at the end)
-    rm_obj=0; restore_from=""; while [ $# -gt 0 ]; do case $1 in --remove-recovered-objects) rm_obj=1;; --restore-db-from) restore_from=$2; shift;; esac; shift; done
+    rm_obj=0; restore_from=""; rsha=""; while [ $# -gt 0 ]; do case $1 in --remove-recovered-objects) rm_obj=1;; --restore-db-from) restore_from=$2; shift;; --sha256) rsha=$2; shift;; esac; shift; done
     RB="$RDIR/rollback-$TS.steps"; : > "$RB"; chmod 600 "$RB"
     rstep() { printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$RB"; say "rollback step $1: $2${3:+ – $3}"; }
     rreport() { python3 scripts/rollback_report.py "$RB" "$TS" "$RDIR/rollback-$TS.json" "$RDIR/rollback-$TS.md"; }
     rfail() { rstep "$1" FAIL "$2"; rreport; die "rollback step '$1' failed: $2 – fix it, then re-run: sudo ./recover.sh rollback (idempotent)"; }
     last=""; new=""
     if [ -n "$restore_from" ]; then
-      out=$(py restore-into-new --file "$restore_from"); echo "$out"; prev=$(sed -n 's/^NEW_DB=//p' <<<"$out" | tail -1)
-      switch_db "$prev"; rstep restore-db OK "restored $restore_from into new DB $prev"
+      sync_db_env; cur=$(dbname "$(envget DATABASE_URL)")
+      if ! out=$(py restore-into-new --file "$restore_from" ${rsha:+--sha256 "$rsha"}); then
+        echo "$out"
+        rstep restore-db FAIL "restore of $restore_from refused/failed – env NOT switched (see restore-*.json / recover.log)"
+        if py health --url "$(health_url)" --expect-db "$cur" --tries 10; then rstep health OK "app still healthy on $cur (unchanged)"
+        else rstep health FAIL "app not healthy on $cur"; fi
+        rreport; die "rollback --restore-db-from failed before any switch – app stays on $cur; fix the backup, then re-run"
+      fi
+      echo "$out"; prev=$(sed -n 's/^NEW_DB=//p' <<<"$out" | tail -1); new=$(sed -n 's/^FROM_DB=//p' <<<"$out" | tail -1)
+      rstep restore-db OK "$(grep -q '^REUSED=1' <<<"$out" && echo "reused completed restore" || echo "restored $restore_from") → $prev (sha256-verified)"
+      if [ "$cur" = "$prev" ]; then rstep env-switch SKIP "env already on $prev (re-run)"
+      else switch_db "$prev"; rstep env-switch OK "$cur → $prev"; fi
+      last=$(grep -l "\"new_db\":\"$prev\"" $(find "$RDIR" -maxdepth 1 -name 'env-switch-*.json' ! -name '*rolled-back*' | sort) /dev/null 2>/dev/null | tail -1 || true)
+      [ "$new" != "$prev" ] || new=""
     else
       last=$(find "$RDIR" -maxdepth 1 -name 'env-switch-*.json' ! -name '*rolled-back*' | sort | tail -1)
       if [ -z "$last" ]; then

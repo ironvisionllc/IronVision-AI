@@ -805,3 +805,72 @@ ls -t /root/ironvision-recovery/rehearsal-*.md | head -1 | xargs sudo cat   # PL
 sudo ./recover.sh rollback               # safe check: with no switch recorded it is a NO-OP ("nothing to roll back")
 ```
 Do not run `cutover`/`apply`/`finalize` until the rehearsal report passes and is reviewed.
+
+## 22. Coverage gaps closed (follow-up on d9b677f) – RUNTIME CHANGED, tool v8
+
+### 22.1 test_recovery_e2e runs its full apply path again (no skip, no gate bypass)
+- **Rehearsal e2e:** the engine-level test now drives the **same scratch-SSO life cycle `recover.sh rehearse --e2e` uses**, step by step through the real tool:
+  1. `scratch-sso prepare`;
+  2. a scratch Keycloak 26.8.1 process (`kc.sh start-dev`, env from `kc.env` only; never the pod Keycloak's `KC_*`);
+  3. `scratch-sso setup`;
+  4. a rehearsal backend with the scratch OIDC env from `backend.env`;
+  5. `rehearse-probe --e2e` with `REHEARSAL_FORBIDDEN_HOSTS` set to the pod "production" Keycloak;
+  6. `cleanup-users`, then stop Keycloak, then `cleanup-finish`.
+  
+  It does this for the rehearsal **and** the re-rehearsal, and asserts `probe_passed`, `e2e_ran`, Explore Demo and scratch cleanup. The gate is satisfied legitimately; there is no test-only flag in recovery.py.
+- **Demo flags:** it now uses the Droplet's demo-deployment flags. `rehearse-probe --e2e` always runs `e2e_sso.py --demo` (recovery.py:1091), so only a demo deployment can pass the gate. **Open finding (not changed):** a customer deployment without the demo launcher could never pass the gate. This doesn't affect the Droplet.
+- **Apply acknowledgement:** every apply passes `--accept-evidence-exceptions <hash from the rehearsal report>`, exactly as an operator does.
+- **Assertions updated with exact values:**
+  - The audit chain must be valid, with `checked` equal to the target's audit count. The extra events over the reconciled count must appear exactly when the demo step provisioned the sandbox (sandbox orgs 0→1).
+  - The post-SeaweedFS-restart verify targets the **current** recovered DB. `db1` was rolled back with `--remove-recovered-objects`, so its objects are rightly gone; verify on it correctly reports 25 missing.
+- **Runs again with assertions:** copy-only, purge refusal, `--remove-recovered-objects`, idempotent re-apply and rehearsal cleanup.
+
+### 22.2 Runtime bugs found while closing the gaps (fixed, TOOL_VERSION → `2026.10.20-rehearsal-v8-verified-restore`)
+1. **Restore checksum:** `rollback --restore-db-from` restored any file without checking it.
+   - `restore-into-new` now requires the file's SHA-256 to equal the checksum apply recorded in `backups/*/manifest.json`, or the operator's `--sha256`; otherwise it refuses ("no recorded checksum").
+   - It requires `pg_restore -l` to read the archive.
+   - Both checks run **before any database is created**.
+   - The manifest lookup tolerates the other manifest kinds without `files`. My first version crashed on them with `KeyError: 'files'`; the orchestration caught that.
+2. **Failed restore:** it previously exited under `set -e` with no report and no health check. Now:
+   - the rollback report records `restore-db FAIL`;
+   - `health` **verifies** the app on the unchanged DB;
+   - the env is not switched.
+   
+   A pg_restore failing midway marks `restore-<sha16>.json` as `failed` and keeps the partial DB (reported, never used). The next attempt uses a fresh DB.
+3. **Interrupted re-run:** it previously restored into a second DB and switched again. Now:
+   - a completed restore is recorded per checksum and **reused**;
+   - the switch is **skipped** if the env already points to it;
+   - the pending switch record is found and marked only at the end.
+4. **Health after a restore-from:** it now also asserts the app is **not** on the DB it rolled back from, and that this DB is **retained**.
+5. **Demo sandbox objects:** on a demo deployment, apply's demo_account step stores ~25 sandbox evidence objects in the **live** bucket that were missing from `recovery_added_keys`. `rollback --remove-recovered-objects` left them behind as orphans. The build now diffs the bucket around the demo step and records them with SHA-256, so rollback removes them only if the bytes are unchanged.
+
+### 22.3 `rollback --restore-db-from` fault injection (orchestration, after finalize; app live on the recovered DB)
+| Case | Expected and asserted |
+|---|---|
+| (1) corrupt file (random bytes, matching `--sha256`) | refused ("not a readable pg_dump archive") before any DB is created; env sha unchanged; `[health] PASS` on the current DB; report `restore-db FAIL`, `health OK` |
+| (2) checksum mismatch (recorded backup tampered after apply) / backup with no recorded checksum | refused ("checksum mismatch … recorded at apply" / "no recorded checksum"); same guarantees |
+| (3) pg_restore fails midway (truncated data, matching `--sha256`) | `FAILED`; partial DB kept and listed in `restore-*.json` (`failed`, `partial_db_kept`); env unchanged; app healthy |
+| (4) interrupted (redeploy fails after the verified restore + switch), then re-run | first run stops with a failed report, with restored and recovered DBs kept; the re-run **reuses** the restore (no second DB), env-switch SKIP, health on the restored DB and not on the recovered DB, report passed |
+| (5) success again | idempotent: nothing new created; app on the restored DB; recovered, partial and previous (`rec_live_prod`) DBs all still exist; no DB ever dropped |
+
+### 22.4 Verification (2026-10-19, pod)
+| Check | Real / simulated | Result |
+|---|---|---|
+| `test_recovery_e2e` engine test, incl. 2× real scratch-SSO e2e, copy-only, purge refusal, `--remove-recovered-objects`, idempotent re-apply, rehearsal cleanup, post-restart verify | Real Postgres / scratch Keycloak 26.8.1 / uvicorn / SeaweedFS | **2 passed, 0 skipped (27/27 steps)** |
+| Orchestration (all earlier steps, a–e, + restore-from 1–5) | Real; Docker compose = shim | **58/58 steps, 1 passed (715s)** |
+| Read-only verify, envset, live Keycloak, protected fingerprint | Real | 55 passed, 1 skipped (`KEYCLOAK_LIVE_RESTART_CMD` not set: restart test, pre-existing env gate) |
+| Full suite `tests/` | Real | **396 passed, 33 skipped**. One earlier run had 3 order-dependent flakes (`test_route_authz` ×2, `test_legacy_project::test_tty_mangled_dump_is_rejected`, all in files this change does not touch); 43/43 twice in isolation, and the whole-suite rerun was clean |
+
+**Skips in the suite run:** all are environment gates, and every recovery or live-Keycloak one runs in the dedicated runs above:
+- 19 `test_keycloak_live` plus 1 `test_apply_demo_settings`: `KEYCLOAK_LIVE_URL` not set.
+- 6 `test_recovery_verify_readonly`, 2 `test_recovery_e2e` and 1 orchestration: `RECOVERY_E2E` not set.
+- 1 `test_keycloak_infra`: needs nginx and live Keycloak.
+- 1 `test_keycloak_live` restart test.
+- 1 `test_storage`: live S3.
+- 1 `test_ai_openrouter`: live LLM.
+
+**There are no skips inside recovery tests.**
+
+**Pod housekeeping:** the run filled `/app` (Postgres data); 185 accumulated scratch DBs from the recovery test runs were dropped (prefix-matched `rec_*`, `rv_*`, `repro_*`, `ironvision_recovered_*`, `ironvision_restored_*`, scratch Keycloak). `aegisrmf`, `aegisrmf_test*`, `aegisrmf_restore`, `keycloak_test`, `legacy_maint_empty` and `postgres` were kept. Nothing on the Droplet is affected.
+
+**The user must re-run the read-only rehearsal on this commit:** tool v8 refuses plans rehearsed by v7 (d9b677f). Commands are as in §21.4.

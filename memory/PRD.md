@@ -414,3 +414,8 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Env switch and rollback: atomic, fsynced envset; checksummed backup; idempotent rollback with a per-step report, an env sha256 equal to the pre-cutover value, a verified health check (live/ready plus the app's pg connections on the previous DB) and the recovered DB retained. Points a–e are tested in the orchestration.
 - Pre-existing failures fixed: keycloak_migrate checked the demo-link problem before the plan hash (code bug); test setup gaps; nginx port collision with SeaweedFS; stale test_recovery_e2e assertions.
 - Results: suite 396 passed / 33 skipped; orchestration 52/52; Keycloak live 36 passed.
+
+### 2026-10-19: Coverage gaps closed, tool v8 (runtime changed, no deploy)
+- test_recovery_e2e runs the real scratch-SSO e2e (same life cycle as recover.sh) with no skip. Copy-only, purge refusal, remove-recovered-objects, idempotent re-apply and cleanup run again.
+- Runtime fixes in `rollback --restore-db-from`: a checksum check (apply manifest or --sha256) and pg_restore -l before any DB is created; a report and verified health on every failure; reuse of a completed restore and a skipped switch on re-run; partial DBs kept. Demo sandbox objects are now recorded in recovery_added_keys.
+- Results: orchestration 58/58 (incl. restore-from 1–5); engine e2e 27/27; suite 396 passed / 33 env-gated skips.

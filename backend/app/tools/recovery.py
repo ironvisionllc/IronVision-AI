@@ -38,7 +38,7 @@ SCRATCH = re.compile(r"^(rec_(src|prod|target|kc)_\d{8}t\d{6}|ironvision_recover
 # Part of every plan hash and recorded in every rehearsal: a plan/rehearsal produced by another tool version is refused by
 # apply/cutover (bumped when rehearsal semantics change – 2026.10.17: probes run inside the rehearsal backend's namespace,
 # full SSO e2e without a faked pass, per-record evidence integrity).
-TOOL_VERSION = "2026.10.20-rehearsal-v7-readonly-verify"
+TOOL_VERSION = "2026.10.20-rehearsal-v8-verified-restore"
 
 
 class RecoveryError(Exception):
@@ -894,7 +894,10 @@ def _run_recovery(t: str, prod_url: str, target_name: str, bucket: str, admin_bu
         f"{integrity['mismatch']} MISMATCH, {integrity['unreadable']} UNREADABLE; {integrity['objects_in_source']} objects in source, "
         f"{integrity['orphans']} not referenced by any evidence record")
     copied = copy_objects(bucket, m, admin=admin_bucket)
+    pre = {o["key"] for o in bucket_manifest(bucket)}
     demo = demo_account_step(b["url"], bucket, admin_bucket)  # after evidence matching: its synthetic evidence is not legacy data
+    if demo.get("ran") is not False:   # sandbox evidence the step stored: recovery-added too (removed by rollback --remove-recovered-objects)
+        demo["objects_added"] = [{"key": o["key"], "sha256": o["sha256"]} for o in bucket_manifest(bucket) if o["key"] not in pre]
     st = {s: sum(1 for e in m["evidence"] if e["status"] == s) for s in ("recovered", "present_in_production", "missing", "hash_mismatch", "unreadable")}
     return {"target_db": target_name, "build": {k: v for k, v in b.items() if k != "url"}, "reconciliation": rec, "demo_account": demo,
             "fk": fk_orphans(b["url"]), "audit_chain": chain(b["url"]), "objects": {
@@ -1203,7 +1206,8 @@ def cmd_apply(a) -> int:
         body["failures"] = _passed(body["result"])
     except RecoveryError as exc:
         body["failures"] = [str(exc)]
-    body["recovery_added_keys"] = (body.get("result") or {}).get("objects", {}).get("copy", {}).get("added", [])
+    res = body.get("result") or {}
+    body["recovery_added_keys"] = res.get("objects", {}).get("copy", {}).get("added", []) + (res.get("demo_account") or {}).get("objects_added", [])
     body["passed"] = not body["failures"]
     write_report("apply", t, body)
     if not body["passed"]:
@@ -1398,11 +1402,63 @@ def cmd_cleanup_rehearsal(a) -> int:
     return 0
 
 
+def db_exists(name: str) -> bool:
+    eng = ro_engine(admin_url())
+    with eng.connect() as c:
+        n = c.execute(text("select count(*) from pg_database where datname = :n"), {"n": name}).scalar()
+    eng.dispose()
+    return bool(n)
+
+
 def cmd_restore_into_new(a) -> int:
+    """rollback --restore-db-from: VERIFIED backup → NEW database; no existing database is touched or dropped.
+    Refuses before creating anything unless the file's SHA-256 matches the checksum apply recorded (backups/*/manifest.json)
+    or the operator's --sha256, and pg_restore can read its table of contents. Idempotent per checksum: a completed restore is
+    reused (re-run converges). A failed restore keeps its partial DB (reported, never used) and the next run uses a fresh DB."""
+    f = Path(a.file)
+    if not f.is_file() or f.stat().st_size == 0:
+        raise RecoveryError(f"backup {f} missing or empty – nothing restored, nothing switched")
+    sha = sha256_file(f)
+    recorded = next((x["sha256"] for m in sorted(RDIR.glob("backups/*/manifest.json"))   # other manifest kinds have no "files"
+                     for x in (json.loads(m.read_text()).get("files") or {}).values()
+                     if isinstance(x, dict) and x.get("path") and Path(x["path"]).resolve() == f.resolve()), None)
+    want = a.sha256 or recorded
+    if not want:
+        raise RecoveryError(f"no recorded checksum for {f} (not in any backups/*/manifest.json) – pass --sha256 <expected sha256>")
+    if sha != want:
+        raise RecoveryError(f"backup checksum mismatch: {f} sha256 {sha} != expected {want} ({'--sha256' if a.sha256 else 'recorded at apply'})"
+                            " – refusing to restore")
+    try:
+        pgtool("pg_restore", None, "-l", str(f))
+    except RecoveryError as e:
+        raise RecoveryError(f"backup {f} is not a readable pg_dump archive (corrupt/truncated) – nothing restored: {e}") from None
+    sf = f"restore-{sha[:16]}.json"
+    prior = json.loads((RDIR / sf).read_text()) if (RDIR / sf).exists() else {}
+    if prior.get("status") == "complete" and db_exists(prior["new_db"]):
+        log(f"[rollback] {f} (sha256 {sha[:16]}…) already restored into {prior['new_db']} – reusing it (re-run converges)")
+        print(f"NEW_DB={prior['new_db']}\nFROM_DB={prior['from_db']}\nREUSED=1")
+        return 0
     name = f"ironvision_restored_{ts()}"
-    restore(Path(a.file), create_db(name))
-    log(f"[rollback] {a.file} restored into NEW database {name} (no existing database touched)")
-    print(f"NEW_DB={name}")
+    body = {"file": str(f), "sha256": sha, "checksum_source": "--sha256" if a.sha256 else "apply manifest", "new_db": name,
+            "from_db": prior.get("from_db") or make_url(live_url()).database, "status": "started",
+            "earlier_attempts": prior.get("earlier_attempts", []) + ([{k: prior.get(k) for k in ("new_db", "status", "error")}] if prior else [])}
+    write_json(sf, body)
+    try:
+        restore(f, create_db(name))
+        rev = revision(db_url(name))
+        if not rev:
+            raise RecoveryError("restored database has no alembic revision")
+        eng = ro_engine(db_url(name))
+        with eng.connect() as c:
+            users = c.execute(text("select count(*) from users")).scalar()
+        eng.dispose()
+    except Exception as e:  # noqa: BLE001
+        write_json(sf, body | {"status": "failed", "error": redact(f"{type(e).__name__}: {e}")[:400], "partial_db_kept": name})
+        raise RecoveryError(f"restore of {f} into {name} FAILED – env NOT switched; partial DB {name} kept (never used): "
+                            f"{redact(str(e))[:300]}") from None
+    write_json(sf, body | {"status": "complete", "revision": rev, "users": users})
+    log(f"[rollback] {f} (sha256 {sha[:16]}…) restored into NEW database {name} @{rev}, {users} users (no existing database touched)")
+    print(f"NEW_DB={name}\nFROM_DB={body['from_db']}")
     return 0
 
 
@@ -1536,6 +1592,7 @@ def main(argv=None) -> int:
     sp.add_parser("cleanup-rehearsal")
     ri = sp.add_parser("restore-into-new")
     ri.add_argument("--file", required=True)
+    ri.add_argument("--sha256", default="")
     sp.add_parser("audit-keycloak")
     sp.add_parser("samples-check")
     dc = sp.add_parser("demo-check")
