@@ -81,7 +81,7 @@ def _seed_config(db: Session, org: Organization, providers: bool = True) -> None
     db.flush()
     from app.services.responsibility import seed_matrix
 
-    seed_matrix(db)
+    seed_matrix(db, org.id)
 
 
 def _user(db, email):
@@ -115,13 +115,13 @@ def seed_phase1(db: Session, org: Organization, samples_dir: str) -> None:
         from app.models import Poam
         if not db.scalar(select(Poam.id).where(Poam.org_id == org.id).limit(1)):
             seed_phase2(db, org)
-            take_snapshots(db, trigger="seed_phase2")
+            take_snapshots(db, trigger="seed_phase2", org_id=org.id)
         from app.models import Policy
         if not db.scalar(select(Policy.id).where(Policy.org_id == org.id).limit(1)):
             from app.seed_phase3 import seed_phase3
             seed_phase3(db, org, samples_dir)
             evaluate_system(db, db.scalar(select(System.id).where(System.org_id == org.id, System.acronym == "LTP")))
-            take_snapshots(db, trigger="seed_phase3")
+            take_snapshots(db, trigger="seed_phase3", org_id=org.id)
         from app.seed_phase4 import seed_phase4
         seed_phase4(db, org)
         return
@@ -188,7 +188,8 @@ def seed_phase1(db: Session, org: Organization, samples_dir: str) -> None:
             adapter_for(st).collect(db, src)
             src.last_run_at = datetime.now(timezone.utc)
             src.next_run_at = src.last_run_at + timedelta(hours=src.schedule_hours or 24)
-    evaluate_freshness(db)
+    for sid in list(db.scalars(select(System.id).where(System.org_id == org.id))):  # this org only: never re-evaluate restored evidence
+        evaluate_freshness(db, sid)
     seed_phase2(db, org)
     from app.seed_phase3 import seed_phase3
     seed_phase3(db, org, samples_dir)
@@ -196,7 +197,7 @@ def seed_phase1(db: Session, org: Organization, samples_dir: str) -> None:
     seed_phase4(db, org)
     for s_ in db.scalars(select(System).where(System.org_id == org.id)):
         evaluate_system(db, s_.id)
-    take_snapshots(db, trigger="seed")
+    take_snapshots(db, trigger="seed", org_id=org.id)
     base = datetime.now(timezone.utc)
     for w in range(8, 0, -1):
         ts = base - timedelta(weeks=w)

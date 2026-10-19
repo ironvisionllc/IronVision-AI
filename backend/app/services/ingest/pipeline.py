@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models import (Asset, EvidenceSource, Implementation, Cci, CciControlMap, ContentVersion, ControlAssignment, DedupRule, Evidence,
                         EvidenceControl, Finding, FindingControlMap, FindingObservation, IngestRun, OrgMappingRule,
-                        StigRuleCci)
+                        StigRuleCci, System)
 from app.services import audit
 from app.services.ingest.parsers import MAX_BYTES, PARSERS, SOURCE_TYPE, ParseError, detect_format
 from app.services.evaluation import apply_freshness
@@ -282,7 +282,7 @@ def process_run(db: Session, run_id: uuid.UUID) -> dict:
     run.status, run.finished_at = "completed", now()
     db.flush()
     evaluate_system(db, run.system_id)
-    take_snapshots(db, trigger="ingest")
+    take_snapshots(db, trigger="ingest", org_id=db.scalar(select(System.org_id).where(System.id == run.system_id)))
     audit.record(db, action="ingest.completed", entity_type="ingest_run", entity_id=str(run.id), actor_user_id=run.requested_by,
                  details={"total": run.total, "mapped": mapped, "unmapped": unmapped, "controls_touched": len(assignments)})
     return {"run_id": str(run.id), "total": run.total, "mapped": mapped, "unmapped": unmapped, "controls_touched": len(assignments)}

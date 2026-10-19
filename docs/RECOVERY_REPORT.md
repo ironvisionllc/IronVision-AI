@@ -650,3 +650,78 @@ sudo -E docker compose --env-file deploy/digitalocean/.env.production --profile 
 sudo ./recover.sh scratch-cleanup
 sudo ./recover.sh run      # image_gate runs samples-check in recovery + rehearsal-backend, then rehearse --e2e; read-only
 ```
+
+## 20. Droplet plan 6294cf78e70166ca: demo_account FAILED "non-sandbox users/organizations/role assignments/evidence changed"
+
+**Symptom.** `demo@ironvision.ai` was created, the sandbox reached `ready`, sandbox orgs went 0 → 1, the FK and audit-chain checks passed, and all 63 evidence objects passed bucket verification. But the opaque `[count, md5]` ×4 fingerprint compare came back false, so the step failed and cutover was blocked (correctly).
+
+**Root cause (reproduced, not assumed).** Sandbox provisioning (`sandbox.provision` → `seed_phase1`) ran **tenant-global** maintenance code. Inside the step's process:
+
+- `seed_phase1.py:191` called `evaluate_freshness(db)` with **no `system_id`**. `evaluation.py:63-75` then re-evaluates **every evidence row in the database**: `apply_freshness` → `ev.state, ev.freshness_window_days = state, window` (evaluation.py:59), and `evaluate_system` runs on each of those systems.
+- Freshness depends on `now() - collected_at`. Restored legacy evidence still carries the `state` computed while the legacy app was running (the legacy stack is stopped, so its daily freshness job no longer runs). Recomputing at rehearsal time therefore changes `state`, for example `current` → `expired`. SQLAlchemy writes the change, and `CoreMixin.updated_at` (`onupdate=func.now()`) bumps it. So **evidence** rows of the restored org changed, while their content, SHA-256 and objects did not (which is why the FK, audit-chain and bucket checks all passed).
+- Why the pod didn't catch it: the pod replicas' evidence is created minutes before the step, so the recomputed `state` equals the stored one. SQLAlchemy writes nothing and the fingerprint is equal. "No prior demo account" alone is **not** the cause: a pod replica with no demo account and 0 sandbox orgs passes with the old code too, as long as the evidence is fresh.
+- The same review found two more global writes into restored tenants in the same path. Neither is in the fingerprinted categories, but both are still writes into protected tenants:
+  - `take_snapshots(db, trigger)` (evaluation.py:266) inserts RiskSnapshots for **every** org. It's called from `seed_phase1` (:118, :124, :199) and from every ingest (`pipeline.py:285`).
+  - `seed_matrix(db)` (responsibility.py:35) fills `provider_responsibility`/`system_responsibility` on **every** `ProviderControl` with NULL text, in any org.
+- Creation itself is correctly scoped, which the reproduction confirms:
+  - `create_sandbox` inserts the org with `is_sandbox=True` and flushes before any user exists.
+  - The personas and the demo user get `org_id=org.id`, and their role assignments are scoped to the sandbox org/systems.
+  - Evidence is created only under sandbox systems.
+  - No existing user, org or role-assignment row is touched (users, organizations and role_assignments are all unchanged in the repro).
+- The protected-scope definition is unchanged. It was right; provisioning was wrong.
+
+**Reproduction (Droplet state: replica with NO demo account, 0 sandbox orgs; protected evidence aged 60 days like a stopped legacy app; tool env `env -i` + `RECOVER_PRODENV_*` + `SAMPLES_DIR`):**
+
+| Run | Result |
+|---|---|
+| Old committed code (05af3f2, `2026.10.19-rehearsal-v5-samples-dir`) | `ok False`, sandbox orgs `[0, 1]`, `restored_users_and_orgs_unchanged False`: **"non-sandbox users/organizations/role assignments/evidence changed"** (the Droplet message) |
+| New fingerprint, old provisioning | users 8→8 unchanged; organizations 1→1 unchanged; role_assignments 25→25 unchanged; **evidence 25→25 CHANGED: added 0, removed 0, modified 21, changed columns `["state", "updated_at"]`**, with the modified evidence ids listed (no contents) |
+| New fingerprint + fixed provisioning | all 4 categories unchanged (evidence sha256 identical before/after); sandbox orgs `[0, 1]`, sandbox `ready`; risk snapshots of the restored org 130 → 130 |
+
+**Fix (root cause, no safeguard weakened, fingerprint scope and rows unchanged):**
+
+- **`seed_phase1`:**
+  - Freshness is evaluated only for the org's own systems: `for sid in systems of org: evaluate_freshness(db, sid)`.
+  - `take_snapshots(..., org_id=org.id)` at all three call sites.
+  - `seed_matrix(db, org.id)`.
+- **`evaluation.take_snapshots(db, trigger, org_id=None)`:** optional org scope. `None` keeps the existing all-org behaviour for the scheduler and API callers.
+- **`pipeline.process_run`:** snapshots only the ingesting system's org.
+- **`responsibility.seed_matrix(db, org_id)`:** only that org's provider controls.
+- **`recovery._fingerprint`:** now returns a **named structure**, `{users, organizations, role_assignments, evidence}` → `{before: {count, sha256}, after: {count, sha256}, changed}`.
+  - It uses the same row selection, joins and id ordering, and the same serialization (`row_to_json` joined by `,` in id order, which equals the old `string_agg`), hashed with SHA-256.
+  - For a changed category there is a **safe diff**: the ids added, removed and modified, and for modified rows only the **names** of changed columns (capped at 50 ids). It never includes emails, row contents, evidence contents or secrets.
+  - A fingerprint collection error, before or after, **fails the step** with a redacted error. Provisioning never runs without a before-snapshot.
+  - The hard failure stays. The error names the categories and the diff summary, and both reports carry it: the json has `protected_fingerprint` + `changed_categories`, the md has a new "Protected (non-sandbox) data fingerprint" table plus the failure line. Cutover stays blocked through the existing rehearsal gate.
+- **`TOOL_VERSION` = `2026.10.19-rehearsal-v6-protected-fingerprint`.** It is part of the plan hash, so `rehearsal_gate` refuses 6294cf78e70166ca and every older plan ("re-run ./recover.sh run"). All other plan safeguards are unchanged.
+
+**Regression tests (`backend/tests/test_protected_fingerprint.py`, real test DB):**
+- A new sandbox org with personas and role assignments passes; the named structure and 64-hex SHA-256 are checked.
+- A changed protected user / organization / role assignment / evidence row each fails (4 parametrized tests). Each names exactly that category with `modified {id: [column]}`, and the summary contains no contents or emails.
+- A collection error before and after: the step fails, the error is redacted, and provisioning never runs without the before-snapshot.
+- Droplet-state reproduction: aged protected evidence plus a fresh sandbox through `seed_phase1` gives all categories unchanged and no snapshots in restored orgs. The old global `evaluate_freshness(db)` gives `evidence` changed with `["state", "updated_at"]`, and the old opaque list compare is False.
+- `TOOL_VERSION` refuses plan 6294cf78e70166ca rehearsed by v5.
+
+**Verification (2026-10-19, pod; tool env = `env -i` + `x-recovery-env` keys incl. `SAMPLES_DIR` + `RECOVER_PRODENV_*` + recover plumbing, `APP_ENV=production`, no backend/.env):**
+
+| Check | Real / simulated | Result |
+|---|---|---|
+| Droplet state (no demo account, 0 sandbox orgs, aged restored evidence): old 05af3f2 step | Real pod Postgres, subprocess step | FAILED with the Droplet message, sandbox orgs `[0, 1]` |
+| Same state, new fingerprint | Real | only `evidence` changed: modified 21/25, columns `state`, `updated_at`; users/orgs/role_assignments unchanged |
+| Same state, fixed provisioning | Real | all 4 categories unchanged; sandbox `ready`; restored-org risk snapshots unchanged |
+| New regression tests (`test_protected_fingerprint.py`) | Real test DB | 8 passed |
+| Full orchestration: rehearse + scratch SSO e2e, rollback, auto-rollback, forced 403 rollback, re-cutover, finalize, scratch cleanup | Real pod Postgres / Keycloak 26 / uvicorn / SeaweedFS; Docker = shim | **1 passed (651.75s)**. The rehearsal md shows the new per-category table, all `no` |
+| Full suite (`tests/`, same scope as the 383/26 baseline) | Real | **391 passed, 27 skipped** (one earlier run had 2 order-dependent flakes in `test_route_authz`, 8/8 in isolation, clean on rerun) |
+| `test_recovery_e2e` engine test, and `test_keycloak_live` / `test_keycloak_infra` against the live pod Keycloak | Real | fail **identically on untouched HEAD 05af3f2**: pre-existing (Keycloak dry-run text empty; live-realm state), not caused by this change |
+| Droplet's real legacy data through the fixed step | Not run (no Droplet access) | next `./recover.sh run` |
+
+**Observed, not changed:** in a pod run with S3 deliberately unconfigured, the step failed during ingestion and left a half-provisioned **sandbox** org (`provisioning`) on the scratch DB. Protected categories were unchanged, and the step failed, so cutover stays blocked.
+
+**Droplet (from /opt/ironvision/IronVision-AI):**
+```
+cd /opt/ironvision/IronVision-AI && git pull
+sudo ./recover.sh scratch-cleanup
+sudo ./recover.sh run      # new plan hash (tool v6); 6294cf78e70166ca is refused. Read-only rehearse --e2e
+# then inspect: the newest /srv/ironvision/recovery/rehearsal-*.md → "Protected (non-sandbox) data fingerprint" table (all "no")
+# and its .json → result.demo_account.protected_fingerprint / changed_categories ([])
+```
+No cutover, no legacy-container stop, no volume deletion until that report passes.

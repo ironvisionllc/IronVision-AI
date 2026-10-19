@@ -38,7 +38,7 @@ SCRATCH = re.compile(r"^(rec_(src|prod|target|kc)_\d{8}t\d{6}|ironvision_recover
 # Part of every plan hash and recorded in every rehearsal: a plan/rehearsal produced by another tool version is refused by
 # apply/cutover (bumped when rehearsal semantics change – 2026.10.17: probes run inside the rehearsal backend's namespace,
 # full SSO e2e without a faked pass, per-record evidence integrity).
-TOOL_VERSION = "2026.10.19-rehearsal-v5-samples-dir"
+TOOL_VERSION = "2026.10.19-rehearsal-v6-protected-fingerprint"
 
 
 class RecoveryError(Exception):
@@ -673,13 +673,14 @@ from app.seed import ensure_demo_launcher_sandbox
 with SessionLocal() as db:
     print("DEMO-STEP-JSON " + json.dumps(ensure_demo_launcher_sandbox(db)))
 '''
-_FP_USERS = ("select count(*), md5(coalesce(string_agg(row_to_json(u)::text, ',' order by u.id), '')) from users u "
-             "join organizations o on o.id = u.org_id where not o.is_sandbox")
-_FP_ORGS = "select count(*), md5(coalesce(string_agg(row_to_json(o)::text, ',' order by o.id), '')) from organizations o where not o.is_sandbox"
-_FP_ROLES = ("select count(*), md5(coalesce(string_agg(row_to_json(r)::text, ',' order by r.id), '')) from role_assignments r "
-             "join users u on u.id = r.user_id join organizations o on o.id = u.org_id where not o.is_sandbox")
-_FP_EVIDENCE = ("select count(*), md5(coalesce(string_agg(row_to_json(e)::text, ',' order by e.id), '')) from evidence e "
-                "join systems s on s.id = e.system_id join organizations o on o.id = s.org_id where not o.is_sandbox")
+# Protected (non-sandbox) scope: same row selection + id ordering as before; serialization = row_to_json joined by ',' in id order.
+_FP_SCOPE = {
+    "users": ("u", "users u join organizations o on o.id = u.org_id where not o.is_sandbox"),
+    "organizations": ("o", "organizations o where not o.is_sandbox"),
+    "role_assignments": ("r", "role_assignments r join users u on u.id = r.user_id join organizations o on o.id = u.org_id where not o.is_sandbox"),
+    "evidence": ("e", "evidence e join systems s on s.id = e.system_id join organizations o on o.id = s.org_id where not o.is_sandbox"),
+}
+_FP_DIFF_CAP = 50
 
 
 def prod_demo_flags() -> dict:
@@ -728,12 +729,56 @@ def _sandbox_orgs(url: str) -> int:
     return n
 
 
-def _fingerprint(url: str) -> list:
+def _fingerprint(url: str) -> dict:
+    """Per category: count + SHA-256 of the deterministic serialization, plus per-row JSON (kept in memory only, for the safe diff)."""
     eng = create_engine(url)
-    with eng.connect() as c:
-        out = [list(c.execute(text(q)).first()) for q in (_FP_USERS, _FP_ORGS, _FP_ROLES, _FP_EVIDENCE)]
-    eng.dispose()
+    out = {}
+    try:
+        with eng.connect() as c:
+            for cat, (a, frm) in _FP_SCOPE.items():
+                rows = c.execute(text(f"select {a}.id::text, row_to_json({a})::text from {frm} order by {a}.id")).all()
+                out[cat] = {"count": len(rows), "sha256": hashlib.sha256(",".join(j for _, j in rows).encode()).hexdigest(),
+                            "rows": dict(rows)}
+    finally:
+        eng.dispose()
     return out
+
+
+def _row_diff(before: dict, after: dict) -> dict:
+    """Safe diff: primary-key ids added/removed/modified and, for modified rows, only the NAMES of changed columns."""
+    added, removed = sorted(after.keys() - before.keys()), sorted(before.keys() - after.keys())
+    modified = {}
+    for i in sorted(before.keys() & after.keys()):
+        if before[i] != after[i]:
+            b, a = json.loads(before[i]), json.loads(after[i])
+            modified[i] = sorted(k for k in b.keys() | a.keys() if b.get(k, object) != a.get(k, object))
+    cols = sorted({c for v in modified.values() for c in v})
+    return {"added_ids": added[:_FP_DIFF_CAP], "removed_ids": removed[:_FP_DIFF_CAP],
+            "modified": dict(list(modified.items())[:_FP_DIFF_CAP]), "changed_columns": cols,
+            "counts": {"added": len(added), "removed": len(removed), "modified": len(modified)}}
+
+
+def fingerprint_compare(before: dict, after: dict) -> dict:
+    res = {}
+    for cat in _FP_SCOPE:
+        b, a = before[cat], after[cat]
+        changed = b["sha256"] != a["sha256"] or b["count"] != a["count"]
+        res[cat] = {"before": {"count": b["count"], "sha256": b["sha256"]}, "after": {"count": a["count"], "sha256": a["sha256"]},
+                    "changed": changed}
+        if changed:
+            res[cat]["diff"] = _row_diff(b["rows"], a["rows"])
+    return res
+
+
+def _fp_summary(cmp: dict) -> str:
+    parts = []
+    for cat, v in cmp.items():
+        if v["changed"]:
+            d = v["diff"]
+            parts.append(f"{cat} (count {v['before']['count']}->{v['after']['count']}; added {d['counts']['added']}, removed "
+                         f"{d['counts']['removed']}, modified {d['counts']['modified']}; changed columns {d['changed_columns']}; "
+                         f"ids added {d['added_ids'][:5]} removed {d['removed_ids'][:5]} modified {list(d['modified'])[:5]})")
+    return "; ".join(parts)
 
 
 def demo_account_step(url: str, bucket: str, admin_bucket: bool) -> dict:
@@ -753,22 +798,34 @@ def demo_account_step(url: str, bucket: str, admin_bucket: bool) -> dict:
            "S3_SECRET_ACCESS_KEY": os.environ.get(pre + "SECRET_ACCESS_KEY", ""), "DEPLOYMENT_KIND": fl["DEPLOYMENT_KIND"],
            "ALLOW_DEMO_LOGIN": fl["ALLOW_DEMO_LOGIN"], "AUTH_PROVIDERS": fl["AUTH_PROVIDERS"],
            "JWT_SECRET": os.environ.get("JWT_SECRET") or secrets.token_urlsafe(48), "IRONVISION_DOTENV": "0"}
-    before, sbx_before = _fingerprint(url), _sandbox_orgs(url)
+    try:
+        before, sbx_before = _fingerprint(url), _sandbox_orgs(url)
+    except Exception as e:  # noqa: BLE001
+        return d | {"ran": False, "ok": False, "protected_fingerprint": None,
+                    "error": f"protected-data fingerprint collection failed (before): {redact(f'{type(e).__name__}: {e}')[:400]}"}
     p = subprocess.run([sys.executable, "-c", _DEMO_STEP], env=env, capture_output=True, text=True, cwd=Path(__file__).resolve().parents[2], check=False)
     m = re.search(r"^DEMO-STEP-JSON (.+)$", p.stdout, re.M)
     res = json.loads(m.group(1)) if m else None
-    same = _fingerprint(url) == before
+    try:
+        cmp = fingerprint_compare(before, _fingerprint(url))
+        fp_err = None
+    except Exception as e:  # noqa: BLE001
+        cmp, fp_err = None, f"protected-data fingerprint collection failed (after): {redact(f'{type(e).__name__}: {e}')[:400]}"
+    changed = [c for c, v in (cmp or {}).items() if v["changed"]]
+    same = cmp is not None and not changed
     st = demo_account_state(url)  # separate query: it must PERSIST in the target DB
     persisted = bool(st and st["is_active"] and st["is_sandbox"] and st["sandbox_status"] == "ready" and st["demo_users"] == 1
                      and res and st["org_id"] == res["org_id"])
     ok = p.returncode == 0 and bool(res) and same and persisted
     out = d | {"ran": True, "ok": ok, "result": res, "persisted": st, "bucket": bucket, "restored_users_and_orgs_unchanged": same,
+               "protected_fingerprint": cmp, "changed_categories": changed,
                "sandbox_orgs_before_after": [sbx_before, _sandbox_orgs(url)]}
     if not ok:
-        out["error"] = ("non-sandbox users/organizations/role assignments/evidence changed" if not same else
+        out["error"] = (fp_err if fp_err else
+                        f"protected (non-sandbox) data changed in: {', '.join(changed)} – {_fp_summary(cmp)}" if not same else
                         f"demo account not persisted in the target DB: {json.dumps(st)}" if p.returncode == 0 and res else
                         redact((p.stdout + p.stderr)[-600:]))
-    log(f"[demo_account] {'OK' if ok else 'FAILED'} {json.dumps(res)} persisted={json.dumps(st)} restored users/orgs unchanged={same} "
+    log(f"[demo_account] {'OK' if ok else 'FAILED'} {json.dumps(res)} persisted={json.dumps(st)} restored users/orgs unchanged={same} changed={changed} "
         f"(decision from {src})")
     return out
 
@@ -921,6 +978,13 @@ def write_report(kind: str, t: str, body: dict) -> None:
                   f"- orphans in archive: {len(o['orphans'])}", (f"- copy: added {len(o['copy']['added'])}, present identical {len(o['copy']['present_identical'])}, "
                    f"conflicts {len(o['copy']['conflict_existing_differs'])}"), f"- bucket verify: {json.dumps({k: v for k, v in r['bucket_verify'].items() if k != 'problems'})}"]
         lines += [f"  - {d['storage_key']}: {d['status']}" for d in o["detail"]]
+        fp = (r.get("demo_account") or {}).get("protected_fingerprint")
+        if fp:
+            lines += ["", "## Protected (non-sandbox) data fingerprint – demo_account step", "",
+                      "| category | before count | before sha256 | after count | after sha256 | changed | safe diff (ids / column names) |",
+                      "|---|---|---|---|---|---|---|"]
+            lines += [f"| {c} | {v['before']['count']} | `{v['before']['sha256'][:16]}` | {v['after']['count']} | `{v['after']['sha256'][:16]}` | "
+                      f"{'**YES**' if v['changed'] else 'no'} | {json.dumps(v['diff']) if v['changed'] else ''} |" for c, v in fp.items()]
         ig = o.get("integrity")
         if ig:
             lines += ["", "## Evidence integrity (storage key → SHA-256)", "",

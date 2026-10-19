@@ -263,9 +263,10 @@ AGG_KEYS = ("open_cat1", "kev_open", "open_findings", "open_poams", "overdue_poa
             "controls_with_evidence", "controls_fresh", "assigned_controls", "evidence_total", "evidence_items_fresh", "pending_emass_sync")
 
 
-def take_snapshots(db: Session, trigger: str) -> None:
+def take_snapshots(db: Session, trigger: str, org_id=None) -> None:
     ts = now()
-    for org in db.scalars(select(Organization)):
+    q = select(Organization) if org_id is None else select(Organization).where(Organization.id == org_id)
+    for org in db.scalars(q):
         systems = list(db.scalars(select(System).where(System.org_id == org.id)))
         agg = defaultdict(int)
         for s in systems:

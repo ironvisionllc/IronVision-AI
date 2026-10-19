@@ -403,3 +403,8 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
   - samples-check runs in image_gate; the fingerprint now also covers role assignments and evidence.
   - TOOL_VERSION 2026.10.19-rehearsal-v5-samples-dir.
 - **Validated:** orchestration 48/48; suite 383 passed.
+
+### 2026-10-19: Droplet protected-data fingerprint failure (plan 6294cf78e70166ca) fixed (no deploy)
+- Root cause: sandbox provisioning ran tenant-global maintenance code. `seed_phase1` → `evaluate_freshness(db)` re-evaluated ALL evidence, so restored evidence `state`/`updated_at` changed. `take_snapshots` and `seed_matrix` also wrote into restored orgs. All three are now scoped to the org being provisioned.
+- Fingerprint: a named per-category {before, after: {count, sha256}, changed} plus a safe diff (ids + column names only). Collection errors fail the step. The md and json reports name the categories. TOOL_VERSION 2026.10.19-rehearsal-v6-protected-fingerprint.
+- Tests: tests/test_protected_fingerprint.py (8). Orchestration e2e passed. Suite 391 passed / 27 skipped.

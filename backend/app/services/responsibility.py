@@ -32,8 +32,11 @@ def synthetic_text(control_id: str, responsibility: str) -> tuple[str, str]:
     return prov, ("None – fully inherited from the provider." if responsibility == "inherited" else sysp)
 
 
-def seed_matrix(db: Session) -> None:
-    for pc in db.scalars(select(ProviderControl).where(ProviderControl.provider_responsibility.is_(None))):
+def seed_matrix(db: Session, org_id) -> None:
+    from app.models import CommonControlProvider
+
+    own = select(CommonControlProvider.id).where(CommonControlProvider.org_id == org_id)
+    for pc in db.scalars(select(ProviderControl).where(ProviderControl.provider_responsibility.is_(None), ProviderControl.provider_id.in_(own))):
         pc.provider_responsibility, pc.system_responsibility = synthetic_text(pc.control_id, pc.responsibility)
         pc.matrix_source = SYNTHETIC_LABEL
     db.flush()
