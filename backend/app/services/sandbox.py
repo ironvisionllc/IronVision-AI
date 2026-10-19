@@ -31,9 +31,34 @@ def inactivity_days() -> int:
     return int(os.environ.get("SANDBOX_INACTIVITY_DAYS", "30"))
 
 
+REQUIRED_SAMPLES = ("stig/mpp_mpp-app-01.ckl", "acas/ltp_weekly_scan.nessus", "acas/fmdh_scan_export.csv", "policies/access_control_policy.txt")
+REQUIRED_SAMPLE_GLOBS = ("stig/ltp_*",)  # every file seed_phase1/seed_phase3 read for the demo sandbox
+
+
+class SamplesMissing(RuntimeError):
+    pass
+
+
 def samples_dir() -> str:
+    """SAMPLES_DIR only (compose: SAMPLES_DIR=/samples + ./samples:/samples:ro). No computed fallback: it pointed to /app/samples
+    in the recovery image and /srv/samples in the backend image – neither exists."""
+    sd = os.environ.get("SAMPLES_DIR")
+    if not sd:
+        raise SamplesMissing("SAMPLES_DIR is not set – the demo sandbox needs the sample files "
+                             "(compose: SAMPLES_DIR=/samples and ./samples:/samples:ro)")
+    return sd
+
+
+def check_samples(sd: str | None = None) -> dict:
+    """Precheck BEFORE any DB write: every required sample file exists, else SamplesMissing naming each missing path."""
     from pathlib import Path
-    return os.environ.get("SAMPLES_DIR") or str(Path(__file__).resolve().parents[3] / "samples")
+    root = Path(sd or samples_dir())
+    missing = [str(root / f) for f in REQUIRED_SAMPLES if not (root / f).is_file()]
+    missing += [str(root / g) for g in REQUIRED_SAMPLE_GLOBS if not any(p.is_file() for p in root.glob(g))]
+    if missing:
+        raise SamplesMissing(f"demo sandbox sample files missing (SAMPLES_DIR={root}): {', '.join(missing)}")
+    return {"samples_dir": str(root), "files": sorted(str(p.relative_to(root)) for g in (*REQUIRED_SAMPLES, *REQUIRED_SAMPLE_GLOBS)
+                                                      for p in root.glob(g))}
 
 
 def _slug(text: str) -> str:
@@ -95,11 +120,12 @@ def provision(db: Session, org_id) -> dict:
 
     org = db.get(Organization, org_id)
     demo = is_demo(db, org)
+    sd = check_samples()["samples_dir"] if demo else None   # before the first write: never a half-provisioned demo sandbox
     org.sandbox_status, org.sandbox_progress = "provisioning", {"step": "Registering systems and ingesting sample scans…" if demo else "Preparing your workspace…", "pct": 20}
     db.commit()
     t0 = now()
     if demo:
-        seed_phase1(db, org, samples_dir())
+        seed_phase1(db, org, sd)
     else:
         seed_tenant_config(db, org)
     org.sandbox_status, org.sandbox_progress = "ready", {"step": "ready", "pct": 100, "seconds": round((now() - t0).total_seconds(), 1),
@@ -174,9 +200,10 @@ def reset(db: Session, org: Organization, actor: User | None) -> None:
 
     if not org.is_sandbox:
         raise PermissionError("Only sandbox tenants can be reset")
+    sd = check_samples()["samples_dir"]   # before purging anything
     _purge_data(db, org)
     org.sandbox_status, org.sandbox_progress = "provisioning", {"step": "Resetting sandbox…", "pct": 10}
-    reset_demo(db, org, samples_dir())
+    reset_demo(db, org, sd)
     org.sandbox_status, org.sandbox_progress = "ready", {"step": "ready", "pct": 100, "ready_at": now().isoformat()}
     audit.record(db, action="sandbox.reset", actor_user_id=actor.id if actor else None, actor_email=actor.email if actor else "scheduler",
                  entity_type="organization", entity_id=str(org.id))

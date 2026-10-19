@@ -394,3 +394,12 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - **Root cause:** the recovery container env (`x-recovery-env` only) had no DEPLOYMENT_KIND etc., so demo_account decided "not a demo deployment" without running. The decision now comes from the production env file (recover.sh prod_flags → RECOVER_PRODENV_*), through the same app.seed.demo_launcher_decision. An inconsistent config or missing flags is an error. The inputs are in the plan hash; TOOL_VERSION 2026.10.18-rehearsal-v4-demo-account-env.
 - **Also fixed:** cutover verify/rollback needed JWT_SECRET in the container (now process-local in the tool). Added a persistence check after the step, an order guard before the link, and the ISSM-token e2e. Local py() runs exactly like the container (env -i + x-recovery-env).
 - **Validated:** orchestration 47/47; suite 378 passed.
+
+### 2026-10-19: Droplet sandbox sample-path failure fixed
+- **Root cause:** the recovery tool container had no SAMPLES_DIR and no samples mount, and sandbox.samples_dir() silently fell back to parents[3] (/app/samples in the image).
+- **Fix:**
+  - SAMPLES_DIR=/samples plus ./samples:/samples:ro on recovery and rehearsal-backend (migrate/backend/worker already had them).
+  - samples_dir() now requires SAMPLES_DIR; check_samples() runs before any DB write in ensure_demo_launcher_sandbox, provision and reset.
+  - samples-check runs in image_gate; the fingerprint now also covers role assignments and evidence.
+  - TOOL_VERSION 2026.10.19-rehearsal-v5-samples-dir.
+- **Validated:** orchestration 48/48; suite 383 passed.

@@ -112,6 +112,7 @@ def ensure_demo_launcher_sandbox(db: Session) -> dict:
     """DEPLOYMENT_KIND=demo: ONLY demo@ironvision.ai + its synthetic sandbox org/personas (no password). Idempotent.
     Used by app.seed and by the recovery cutover step `demo_account` (recovery._run_recovery)."""
     from app.services import sandbox as sbx
+    sbx.check_samples()   # every sample file present BEFORE the demo org/user/personas are written (no partial sandbox)
     existed = db.scalar(select(User.id).where(User.email == sbx.DEMO_EMAIL)) is not None
     org = sbx.seed_demo_account(db, None)
     db.commit()

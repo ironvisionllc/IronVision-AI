@@ -259,7 +259,10 @@ def sample_files(current: CurrentUser = Depends(get_current_user)):
 
     from fastapi.responses import Response
 
-    root = Path(sbx.samples_dir()).resolve()
+    try:
+        root = Path(sbx.samples_dir()).resolve()
+    except sbx.SamplesMissing as exc:
+        raise HTTPException(503, str(exc)) from exc
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for d in SAMPLE_DIRS:

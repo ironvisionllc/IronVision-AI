@@ -66,7 +66,7 @@ def recreate(db: str, template: str) -> None:
 def live_env(db_url: str, port: int, **kw) -> dict:
     # explicit, not the pod env: PATH/HOME/LANG + the Keycloak/OIDC settings kcenv.sh exports (stand-in for the env file)
     base = {k: v for k, v in os.environ.items() if k in ("PATH", "HOME", "LANG", "JAVA_HOME") or k.startswith(("KEYCLOAK_", "OIDC_", "KC_"))}
-    e = {**base, "DATABASE_URL": db_url, "AUTH_PROVIDERS": "oidc", "ALLOW_DEMO_LOGIN": "true", "DEPLOYMENT_KIND": "demo",
+    e = {**base, "DATABASE_URL": db_url, "SAMPLES_DIR": str(BACKEND.parent / "samples"), "AUTH_PROVIDERS": "oidc", "ALLOW_DEMO_LOGIN": "true", "DEPLOYMENT_KIND": "demo",
          "KEYCLOAK_ALLOW_REGISTRATION": "true", "DEMO_LOGIN_RATE_LIMIT": "1000/3600", "DEMO_LOGIN_GLOBAL_RATE_LIMIT": "1000/3600",
          "SIGNUP_RATE_LIMIT": "1000/3600", "WORKER_ENABLED": "false", "OIDC_REDIRECT_URI": f"http://127.0.0.1:{LIVE}/api/v1/auth/oidc/callback",
          "FRONTEND_URL": f"http://127.0.0.1:{LIVE}", "OIDC_POST_LOGOUT_REDIRECT_URI": f"http://127.0.0.1:{LIVE}/login",
@@ -223,7 +223,7 @@ def world():
 
 def recover_env(**kw) -> dict:
     # scrubbed (env -i equivalent): recover.sh must not pass thanks to pod env (DATABASE_URL, secrets, …) – everything is explicit
-    e = {"HOME": os.environ.get("HOME", "/root"), "LANG": "C.UTF-8", "RECOVER_LOCAL": "1", "RECOVERY_DIR": str(RUN), "RECOVER_PREDEPLOY_DIR": str(PRE),
+    e = {"HOME": os.environ.get("HOME", "/root"), "LANG": "C.UTF-8", "RECOVER_LOCAL": "1", "SAMPLES_DIR": str(BACKEND.parent / "samples"), "RECOVERY_DIR": str(RUN), "RECOVER_PREDEPLOY_DIR": str(PRE),
          "RECOVER_ENV_FILE": str(W / "env.production"), "DOCKER_SHIM_SCENARIO": str(W / "scenario.json"), "DOCKER_SHIM_LOG": str(W / "docker.log"),
          "RECOVER_DB_HOST": make_url(BASE).host, "RECOVER_DB_PORT": str(make_url(BASE).port or 5432), "RECOVERY_BASE": BASE,
          "RECOVER_ADMIN_DATABASE_URL": u("postgres"), "RECOVER_PROD_ROLLBACK_BACKUP": str(PRE / "ironvision-production-before-restore.backup"),
@@ -475,6 +475,16 @@ def _scratch_failure_paths() -> None:
              and st.get("5 restored users unchanged (before == after)") in ("done", "already-gone") and kc_users() == prod_kc,
              json.dumps({"st": st, "fails": fails[:500], "rc": r.returncode}) + r.stdout[-600:])
     from app.tools import recovery as rv
+    # Droplet: the tool container could not see the sample files → the samples gate must stop the rehearsal BEFORE anything runs
+    partial = W / "samples-missing-one"
+    shutil.rmtree(partial, ignore_errors=True)
+    shutil.copytree(BACKEND.parent / "samples", partial)
+    (partial / "stig" / "mpp_mpp-app-01.ckl").unlink()
+    before = {p.name for p in RUN.glob("rehearsal-*.json")}
+    r = recover("rehearse", "--e2e", SAMPLES_DIR=str(partial))
+    step("samples gate: a required sample file missing for the tool → rehearse refused before any DB/Keycloak work, path named",
+         r.returncode != 0 and "[samples-check] FAIL" in r.stdout and str(partial / "stig" / "mpp_mpp-app-01.ckl") in r.stdout
+         and {p.name for p in RUN.glob("rehearsal-*.json")} == before and kc_users() == prod_kc, r.stdout[-600:])
     # production env file says demo + launcher, but ALLOW_DEMO_LOGIN=false: the demo_account step must FAIL loudly (not "not a demo")
     bad_env = W / "env.production.inconsistent"
     bad_env.write_text((W / "env.production").read_text().replace("ALLOW_DEMO_LOGIN=true", "ALLOW_DEMO_LOGIN=false"))

@@ -22,7 +22,7 @@ x-recovery-env: &recovery-env
   OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
   APP_DOMAIN: ${APP_DOMAIN:-}
   APP_ENV: production
-
+  SAMPLES_DIR: /samples   # demo sandbox sample files (./samples:/samples:ro on recovery + rehearsal-backend), as in docker-compose.yml
 services:
   recovery:
     profiles: ["recovery"]
@@ -32,6 +32,7 @@ services:
     volumes:
       - ${RECOVER_PREDEPLOY_DIR:-/root/ironvision-predeploy}:/predeploy:ro
       - ${RECOVERY_DIR:-/root/ironvision-recovery}:/recovery
+      - ./samples:/samples:ro   # demo_account step provisions the demo sandbox (sample ingestion)
     restart: "no"
 
   rehearsal-backend:
@@ -81,6 +82,7 @@ services:
     volumes:
       - ${RECOVERY_DIR:-/root/ironvision-recovery}:/recovery
       - ./scripts/e2e_sso.py:/srv/scripts/e2e_sso.py:ro   # rehearse-probe (exec -u 0) runs it inside this container
+      - ./samples:/samples:ro   # sandbox reset / provisioning inside the rehearsal backend
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8001/api/v1/health/live', timeout=5)"]
       interval: 5s

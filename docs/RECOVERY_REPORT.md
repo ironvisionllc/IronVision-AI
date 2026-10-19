@@ -585,3 +585,68 @@ cd /opt/ironvision/IronVision-AI && git pull
 sudo ./recover.sh scratch-cleanup
 sudo ./recover.sh run          # = inspect + backups + preflight + rehearse --e2e (recover.sh:287); read-only
 ```
+
+## 19. Droplet: Explore Demo sandbox provisioning `FileNotFoundError: /app/samples/stig/mpp_mpp-app-01.ckl`
+
+**Call path (demo_account step in the recovery tool container, code at /app/backend):**
+1. `recovery.demo_account_step` → subprocess `_DEMO_STEP` → `app.seed.ensure_demo_launcher_sandbox` (seed.py)
+2. → `sandbox.seed_demo_account(db, None)` (sandbox.py:~300): demo org + user + personas, **committed**
+3. → `sandbox.provision(db, org.id)` (sandbox.py:91): `sandbox_status="provisioning"`, **committed** (old :99), then `seed_phase1(db, org, samples_dir())` (old :102)
+4. → `samples_dir()` (old sandbox.py:34-36): `SAMPLES_DIR` or `Path(__file__).resolve().parents[3] / "samples"`. In the recovery image, `/app/backend/app/services/sandbox.py` → **/app/samples**. In the backend image (`/srv/backend/...`) it would be /srv/samples. Neither exists.
+5. → `seed_phase1.py:128` `sd = Path(samples_dir)`. The sample reads are:
+   - `stig/ltp_*` (glob, :178; empty → silently nothing);
+   - `stig/mpp_mpp-app-01.ckl` (:179) → `read_bytes()` (:182) → **FileNotFoundError** (the Droplet error);
+   - `acas/ltp_weekly_scan.nessus` and `acas/fmdh_scan_export.csv` (:180-181);
+   - `seed_phase3` (called from seed_phase1) → `policies/access_control_policy.txt` (seed_phase3.py:89-91, read only if present).
+6. Also: `sandbox.reset` → `reset_demo(db, org, samples_dir())` (old :179, *after* `_purge_data`), and the download endpoint `api/v1/sandbox.py` sample zip.
+
+**Root cause.**
+- `x-recovery-env` had no `SAMPLES_DIR`, and the `recovery` and `rehearsal-backend` services had no samples mount. The silent fallback computed a path that exists in no image.
+- The pod passed because the repo lives at /app, so `parents[3]` happened to be the real samples directory.
+- On top of that, the old order wrote partial rows (demo org/user/personas, `sandbox_status=provisioning`) before the first file read.
+- **Reproduced** (tests/test_samples_dir.py): the exact old `samples_dir()` evaluated at the image path `…/app/backend/app/services/sandbox.py` returns `…/app/samples` → `FileNotFoundError …/app/samples/stig/mpp_mpp-app-01.ckl`. The new code in the Droplet tool env fails with `SAMPLES_DIR is not set`, or names each missing path.
+
+**Fix (one approach: the existing `SAMPLES_DIR` setting + a read-only bind mount, like the app services; no build-time copy, so all five containers use the same host directory):**
+- `samples_dir()` requires `SAMPLES_DIR`; the fallback was removed.
+- `check_samples()` verifies every required file (`REQUIRED_SAMPLES` + `stig/ltp_*`) and raises `SamplesMissing` naming each missing path. It runs **before the first DB write** in `ensure_demo_launcher_sandbox` (before `seed_demo_account`), `provision` (before the status commit) and `reset` (before `_purge_data`). So no partial sandbox data is written.
+- The download endpoint returns 503 with the message.
+- `recovery.yml`: `SAMPLES_DIR: /samples` in `x-recovery-env`; `./samples:/samples:ro` on `recovery` and `rehearsal-backend`.
+- **Gate:** `image_gate` runs `recovery samples-check` in the recovery container and `check_samples()` in rehearsal-backend, before anything else. Locally it runs `py samples-check`. The rehearsal is refused if any file is missing.
+- `TOOL_VERSION` = **`2026.10.19-rehearsal-v5-samples-dir`**. The step report adds `sandbox_orgs_before_after`.
+
+| Container (file) | Provisions / resets the demo sandbox? | SAMPLES_DIR | `./samples:/samples:ro` |
+|---|---|---|---|
+| migrate (docker-compose.yml; DO `volumes: !override`) | yes: `app.seed` → `ensure_demo_launcher_sandbox` at deploy/redeploy | already (x-backend-env) | already (base + DO) |
+| backend (docker-compose.yml; DO override) | yes: `/sandbox/reset`, sample zip, sandbox sign-up | already | already |
+| worker (docker-compose.yml; DO override) | yes: scheduled sandbox reset/expiry jobs | already | already |
+| prod / staging overlays | inherit; no volume override for these services | inherited | inherited (test-checked) |
+| **recovery** (deploy/compose/recovery.yml) | **yes: demo_account step (rehearse + apply)** | **added** (x-recovery-env) | **added** |
+| **rehearsal-backend** (recovery.yml) | **yes: reset / Explore Demo in the rehearsal** | **added** (via *recovery-env) | **added** |
+| rehearsal-keycloak, postgres, seaweedfs, frontend, edge | no | – | – |
+
+**Verification (2026-10-19, pod; tool env = `env -i` + `x-recovery-env` keys incl. `SAMPLES_DIR` + recover plumbing, `APP_ENV=production`, no backend/.env):**
+
+| Check | Real / simulated | Result |
+|---|---|---|
+| Old `samples_dir()` (5e07712) at the recovery image path, no SAMPLES_DIR | Real (exact old function, image layout) | `FileNotFoundError …/app/samples/stig/mpp_mpp-app-01.ckl`, the Droplet error |
+| New code, Droplet tool env without SAMPLES_DIR / with an empty dir | Real subprocess | `SAMPLES_DIR is not set` / each missing path named |
+| One required file missing (real sample copy minus one file) | Real test DB | `SamplesMissing` naming the path; `seed_demo_account` never called; users/orgs/role assignments/systems counts unchanged; provision + reset refused before the first write |
+| Samples gate in a rehearsal with one file missing | Real | `[samples-check] FAIL …/stig/mpp_mpp-app-01.ckl`, rehearse refused, no rehearsal report, Keycloak unchanged |
+| Rehearsal demo_account step | Real pod Postgres / Keycloak 26 / uvicorn / SeaweedFS | sandbox `ready`, `demo@ironvision.ai` exactly once, 8 personas; non-sandbox users, orgs, role assignments and evidence fingerprints unchanged; sandbox orgs 1 → 2 |
+| Keycloak mapping check + scratch SSO e2e (launcher 200 → ISSM → 200 → 403 → logout 401) | Real | PASS |
+| Full orchestration: rollback, auto-rollback, forced 403 rollback, re-cutover, finalize ×2, scratch cleanup, failure paths, evidence 38/38 path | Real; Docker = shim | **48/48** |
+| Compose: SAMPLES_DIR + `./samples:/samples:ro` on every provisioning service; every samples mount `:ro`; overlays don't drop it | Static (no Docker daemon) | PASS |
+| Full suite | Real | 383 passed, 26 skipped |
+| `image_gate` samples checks inside the real recovery and rehearsal-backend containers | Not run (no daemon) | next Droplet run |
+
+**Droplet (from /opt/ironvision/IronVision-AI):**
+```
+cd /opt/ironvision/IronVision-AI && git pull
+# pre-check: the recovery container sees the samples read-only (same compose files recover.sh uses)
+export COMPOSE_PROJECT_NAME=$(python3 scripts/envget.py /srv/ironvision/compose.env COMPOSE_PROJECT_NAME)
+export COMPOSE_FILE=$(python3 scripts/envget.py /srv/ironvision/compose.env COMPOSE_FILE):deploy/compose/recovery.yml
+sudo -E docker compose --env-file deploy/digitalocean/.env.production --profile recovery build recovery
+sudo -E docker compose --env-file deploy/digitalocean/.env.production --profile recovery run --rm --no-deps -T recovery ls -l /samples/stig
+sudo ./recover.sh scratch-cleanup
+sudo ./recover.sh run      # image_gate runs samples-check in recovery + rehearsal-backend, then rehearse --e2e; read-only
+```

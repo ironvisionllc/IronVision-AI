@@ -38,7 +38,7 @@ SCRATCH = re.compile(r"^(rec_(src|prod|target|kc)_\d{8}t\d{6}|ironvision_recover
 # Part of every plan hash and recorded in every rehearsal: a plan/rehearsal produced by another tool version is refused by
 # apply/cutover (bumped when rehearsal semantics change – 2026.10.17: probes run inside the rehearsal backend's namespace,
 # full SSO e2e without a faked pass, per-record evidence integrity).
-TOOL_VERSION = "2026.10.18-rehearsal-v4-demo-account-env"
+TOOL_VERSION = "2026.10.19-rehearsal-v5-samples-dir"
 
 
 class RecoveryError(Exception):
@@ -676,6 +676,10 @@ with SessionLocal() as db:
 _FP_USERS = ("select count(*), md5(coalesce(string_agg(row_to_json(u)::text, ',' order by u.id), '')) from users u "
              "join organizations o on o.id = u.org_id where not o.is_sandbox")
 _FP_ORGS = "select count(*), md5(coalesce(string_agg(row_to_json(o)::text, ',' order by o.id), '')) from organizations o where not o.is_sandbox"
+_FP_ROLES = ("select count(*), md5(coalesce(string_agg(row_to_json(r)::text, ',' order by r.id), '')) from role_assignments r "
+             "join users u on u.id = r.user_id join organizations o on o.id = u.org_id where not o.is_sandbox")
+_FP_EVIDENCE = ("select count(*), md5(coalesce(string_agg(row_to_json(e)::text, ',' order by e.id), '')) from evidence e "
+                "join systems s on s.id = e.system_id join organizations o on o.id = s.org_id where not o.is_sandbox")
 
 
 def prod_demo_flags() -> dict:
@@ -716,10 +720,18 @@ def demo_account_state(url: str) -> dict | None:
     return {k: (str(v) if k in ("id", "org_id") else v) for k, v in row._mapping.items()} if row else None
 
 
+def _sandbox_orgs(url: str) -> int:
+    eng = create_engine(url)
+    with eng.connect() as c:
+        n = c.execute(text("select count(*) from organizations where is_sandbox")).scalar()
+    eng.dispose()
+    return n
+
+
 def _fingerprint(url: str) -> list:
     eng = create_engine(url)
     with eng.connect() as c:
-        out = [list(c.execute(text(q)).first()) for q in (_FP_USERS, _FP_ORGS)]
+        out = [list(c.execute(text(q)).first()) for q in (_FP_USERS, _FP_ORGS, _FP_ROLES, _FP_EVIDENCE)]
     eng.dispose()
     return out
 
@@ -741,7 +753,7 @@ def demo_account_step(url: str, bucket: str, admin_bucket: bool) -> dict:
            "S3_SECRET_ACCESS_KEY": os.environ.get(pre + "SECRET_ACCESS_KEY", ""), "DEPLOYMENT_KIND": fl["DEPLOYMENT_KIND"],
            "ALLOW_DEMO_LOGIN": fl["ALLOW_DEMO_LOGIN"], "AUTH_PROVIDERS": fl["AUTH_PROVIDERS"],
            "JWT_SECRET": os.environ.get("JWT_SECRET") or secrets.token_urlsafe(48), "IRONVISION_DOTENV": "0"}
-    before = _fingerprint(url)
+    before, sbx_before = _fingerprint(url), _sandbox_orgs(url)
     p = subprocess.run([sys.executable, "-c", _DEMO_STEP], env=env, capture_output=True, text=True, cwd=Path(__file__).resolve().parents[2], check=False)
     m = re.search(r"^DEMO-STEP-JSON (.+)$", p.stdout, re.M)
     res = json.loads(m.group(1)) if m else None
@@ -750,9 +762,10 @@ def demo_account_step(url: str, bucket: str, admin_bucket: bool) -> dict:
     persisted = bool(st and st["is_active"] and st["is_sandbox"] and st["sandbox_status"] == "ready" and st["demo_users"] == 1
                      and res and st["org_id"] == res["org_id"])
     ok = p.returncode == 0 and bool(res) and same and persisted
-    out = d | {"ran": True, "ok": ok, "result": res, "persisted": st, "bucket": bucket, "restored_users_and_orgs_unchanged": same}
+    out = d | {"ran": True, "ok": ok, "result": res, "persisted": st, "bucket": bucket, "restored_users_and_orgs_unchanged": same,
+               "sandbox_orgs_before_after": [sbx_before, _sandbox_orgs(url)]}
     if not ok:
-        out["error"] = ("non-sandbox users/organizations changed" if not same else
+        out["error"] = ("non-sandbox users/organizations/role assignments/evidence changed" if not same else
                         f"demo account not persisted in the target DB: {json.dumps(st)}" if p.returncode == 0 and res else
                         redact((p.stdout + p.stderr)[-600:]))
     log(f"[demo_account] {'OK' if ok else 'FAILED'} {json.dumps(res)} persisted={json.dumps(st)} restored users/orgs unchanged={same} "
@@ -1259,6 +1272,22 @@ def cmd_audit_keycloak(a) -> int:
     return 1 if any(x[0] == "FAIL" for x in out) else 0
 
 
+def cmd_samples_check(a) -> int:
+    """Gate: the tool container (demo_account step) sees every required demo sandbox sample file. Demo deployments only."""
+    from app.services import sandbox as sbx
+    d = demo_step_plan()
+    if not d["required"]:
+        log(f"[samples-check] SKIP not a demo deployment ({d['decision_inputs']['source']})")
+        return 0
+    try:
+        r = sbx.check_samples()
+    except sbx.SamplesMissing as exc:
+        log(f"[samples-check] FAIL {exc}")
+        return 1
+    log(f"[samples-check] OK {r['samples_dir']}: {len(r['files'])} files ({', '.join(r['files'])})")
+    return 0
+
+
 def cmd_demo_check(a) -> int:
     """After cutover: Explore Demo against the production backend must return 200 (+ role switch); else cutover fails → rollback."""
     import httpx
@@ -1328,11 +1357,12 @@ def main(argv=None) -> int:
     ri = sp.add_parser("restore-into-new")
     ri.add_argument("--file", required=True)
     sp.add_parser("audit-keycloak")
+    sp.add_parser("samples-check")
     dc = sp.add_parser("demo-check")
     dc.add_argument("--url", required=True)
     a = ap.parse_args(argv)
     fn = {"preflight": cmd_preflight, "rehearse": cmd_rehearse, "rehearse-probe": cmd_rehearse_probe, "probe-unreachable": cmd_probe_unreachable,
-          "apply": cmd_apply, "verify": cmd_verify, "demo-check": cmd_demo_check,
+          "apply": cmd_apply, "verify": cmd_verify, "demo-check": cmd_demo_check, "samples-check": cmd_samples_check,
           "remove-recovered-objects": cmd_remove_recovered_objects, "status": cmd_status, "plan-hash": cmd_plan_hash,
           "bucket-verify": cmd_bucket_verify, "cleanup-rehearsal": cmd_cleanup_rehearsal, "restore-into-new": cmd_restore_into_new,
           "audit-keycloak": cmd_audit_keycloak, "backup": cmd_backup}[a.cmd]

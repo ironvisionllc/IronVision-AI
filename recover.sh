@@ -43,7 +43,7 @@ else
 fi
 LEGACY_PROJECT=${RECOVER_LEGACY_PROJECT:-aegisrmf}
 image_gate() {  # host: static manifest check → (re)build BOTH images → package + import/startup check INSIDE each image (fail-safe)
-  [ "$LOCAL" = 1 ] && return 0
+  if [ "$LOCAL" = 1 ]; then py samples-check | tee -a "$LOG" || die "demo sandbox sample files not visible to the recovery tool – nothing was changed"; return 0; fi
   [ -n "${RECOVER_IMAGES_BUILT:-}" ] && return 0   # already built by this run (`run` → `rehearse`)
   python3 scripts/check_requirements.py | tee -a "$LOG" || die "requirements static check (host) failed – nothing was built or changed"
   "${DC[@]}" --profile recovery build recovery 2>&1 | tee -a "$LOG" || die "recovery image build failed – nothing was changed"
@@ -56,6 +56,11 @@ image_gate() {  # host: static manifest check → (re)build BOTH images → pack
   "${DC[@]}" --profile recovery run --rm --no-deps -T -u 0 -v "$PWD:/repo:ro" rehearsal-backend \
     python /repo/scripts/check_requirements.py --in-env --target prod --app-dir /srv/backend | tee -a "$LOG" \
     || die "rehearsal-backend image check (pip check, installed == pinned == lock, imports incl. uvicorn + app.main, startup smoke) failed – nothing was changed"
+  # every container that provisions/resets the demo sandbox must see every required sample file (SAMPLES_DIR + ./samples:/samples:ro)
+  py samples-check | tee -a "$LOG" || die "recovery container: demo sandbox sample files missing – nothing was changed"
+  "${DC[@]}" --profile recovery run --rm --no-deps -T rehearsal-backend python -c \
+    "from app.services.sandbox import check_samples; print('[samples-check] rehearsal-backend OK', check_samples()['samples_dir'])" | tee -a "$LOG" \
+    || die "rehearsal-backend: demo sandbox sample files missing (SAMPLES_DIR / ./samples:/samples:ro) – nothing was changed"
   export RECOVER_IMAGES_BUILT=1
 }
 cpath() {  # host path → path inside the recovery container
@@ -78,7 +83,7 @@ sync_db_env() {  # local/test mode: follow the env file's DATABASE_URL (the cuto
 }
 # x-recovery-env keys (deploy/compose/recovery.yml; a test keeps both in sync): local/test mode runs the tool with ONLY these
 # + recover plumbing, APP_ENV=production and no backend/.env – exactly what the recovery container gets
-RECOVERY_ENV_KEYS="DATABASE_URL STORAGE_DRIVER S3_ENDPOINT_URL S3_BUCKET S3_REGION S3_ADDRESSING_STYLE S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY RECOVER_S3_ADMIN_ACCESS_KEY_ID RECOVER_S3_ADMIN_SECRET_ACCESS_KEY KEYCLOAK_URL KEYCLOAK_REALM KEYCLOAK_CONFIGURATOR_CLIENT_ID KEYCLOAK_CONFIGURATOR_CLIENT_SECRET KEYCLOAK_DB_NAME OIDC_ISSUER OIDC_CLIENT_ID OIDC_CLIENT_SECRET APP_DOMAIN APP_ENV"
+RECOVERY_ENV_KEYS="DATABASE_URL STORAGE_DRIVER S3_ENDPOINT_URL S3_BUCKET S3_REGION S3_ADDRESSING_STYLE S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY RECOVER_S3_ADMIN_ACCESS_KEY_ID RECOVER_S3_ADMIN_SECRET_ACCESS_KEY KEYCLOAK_URL KEYCLOAK_REALM KEYCLOAK_CONFIGURATOR_CLIENT_ID KEYCLOAK_CONFIGURATOR_CLIENT_SECRET KEYCLOAK_DB_NAME OIDC_ISSUER OIDC_CLIENT_ID OIDC_CLIENT_SECRET APP_DOMAIN APP_ENV SAMPLES_DIR"
 prod_flags() {  # the ONLY production settings the tool gets beyond x-recovery-env: the demo decision inputs (safe env-file parser, no secrets)
   printf '%s\n' "RECOVER_PRODENV_FILE=$RECOVER_ENV_FILE" "RECOVER_PRODENV_DEPLOYMENT_KIND=$(envget DEPLOYMENT_KIND)" \
     "RECOVER_PRODENV_ALLOW_DEMO_LOGIN=$(envget ALLOW_DEMO_LOGIN)" "RECOVER_PRODENV_AUTH_PROVIDERS=$(envget AUTH_PROVIDERS)" \
