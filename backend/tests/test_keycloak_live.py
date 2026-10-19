@@ -195,6 +195,11 @@ def test_03_migration_dry_run_conflicts_and_apply(tmp_path):
     from app.services import identity_map
     from app.services.keycloak_admin import created_id
     x = created_id(k.post(f"/{REALM}/users", {"username": taken, "email": taken, "enabled": True}))
+    if os.environ.get("KEYCLOAK_DEMO_USERNAME"):  # demo deployment (launcher configured): app.seed always creates the demo account
+        from app.seed import ensure_demo_launcher_sandbox
+        os.environ.setdefault("SAMPLES_DIR", str(Path(__file__).resolve().parents[2] / "samples"))
+        with SessionLocal() as db:
+            ensure_demo_launcher_sandbox(db)
     with SessionLocal() as db:  # Keycloak user for `taken` is already mapped to a different app user
         identity_map.map_identity(db, user=db.query(User).filter(User.email == owner).one(), issuer=os.environ["OIDC_ISSUER"], sub=x,
                                   reason="pytest conflict setup", actor="pytest")
@@ -503,6 +508,10 @@ def test_15_backend_demo_login_via_launcher(client, monkeypatch, tmp_path):
     from app.services import sandbox as sbx
     with SessionLocal() as db:
         sbx.seed_demo_account(db, "Seed-Only-Password-123!")
+        db.commit()
+        from sqlalchemy import text as _t  # start unmapped (test_03 may have linked it, as a demo deployment does)
+        db.execute(_t("delete from auth_identities where provider = 'oidc' and user_id = (select id from users where email = :e)"),
+                   {"e": sbx.DEMO_EMAIL})
         db.commit()
         org = db.get(Organization, db.scalar(select(User.org_id).where(User.email == sbx.DEMO_EMAIL)))
         if org.sandbox_status != "ready":

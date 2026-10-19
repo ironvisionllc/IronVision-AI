@@ -220,9 +220,6 @@ def migrate(a) -> int:
         if not (a.create_identities or a.link):
             print("nothing to apply: pass --create-identities and/or --link", file=sys.stderr)
             return 2
-        if a.link and demo_problem:
-            print(f"refusing to apply: {demo_problem}", file=sys.stderr)
-            return 4
         if a.yes:
             if a.plan_hash != h:
                 print(f"refusing to apply: --plan-hash {a.plan_hash!r} != current plan {h} (state changed since review)", file=sys.stderr)
@@ -230,6 +227,9 @@ def migrate(a) -> int:
         elif input(f"Apply plan {h}? type APPLY: ").strip() != "APPLY":
             print("aborted")
             return 1
+        if a.link and demo_problem:  # after the plan-hash check: a stale/wrong hash is always reported as such (exit 3)
+            print(f"refusing to apply: {demo_problem}", file=sys.stderr)
+            return 4
         check_backup(a.backup_ref)
         Path(a.credentials_dir).mkdir(mode=0o700, parents=True, exist_ok=True)
         if not os.access(a.credentials_dir, os.W_OK):

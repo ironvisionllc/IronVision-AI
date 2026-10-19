@@ -408,3 +408,9 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Root cause: sandbox provisioning ran tenant-global maintenance code. `seed_phase1` → `evaluate_freshness(db)` re-evaluated ALL evidence, so restored evidence `state`/`updated_at` changed. `take_snapshots` and `seed_matrix` also wrote into restored orgs. All three are now scoped to the org being provisioned.
 - Fingerprint: a named per-category {before, after: {count, sha256}, changed} plus a safe diff (ids + column names only). Collection errors fail the step. The md and json reports name the categories. TOOL_VERSION 2026.10.19-rehearsal-v6-protected-fingerprint.
 - Tests: tests/test_protected_fingerprint.py (8). Orchestration e2e passed. Suite 391 passed / 27 skipped.
+
+### 2026-10-19: Pre-cutover hardening (tool v7, no deploy)
+- Recovery verify is read-only: an independent SHA-256 check of every evidence object over a read-only transaction. It never runs the app's verify_integrity job. It fails on mismatch, missing or unreadable objects; acknowledged known-unrecoverable keys are reported separately. The storage round-trip is namespaced and always deleted.
+- Env switch and rollback: atomic, fsynced envset; checksummed backup; idempotent rollback with a per-step report, an env sha256 equal to the pre-cutover value, a verified health check (live/ready plus the app's pg connections on the previous DB) and the recovered DB retained. Points a–e are tested in the orchestration.
+- Pre-existing failures fixed: keycloak_migrate checked the demo-link problem before the plan hash (code bug); test setup gaps; nginx port collision with SeaweedFS; stale test_recovery_e2e assertions.
+- Results: suite 396 passed / 33 skipped; orchestration 52/52; Keycloak live 36 passed.

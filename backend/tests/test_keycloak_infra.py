@@ -11,6 +11,16 @@ import yaml
 from tests.conftest import auth
 from tests.test_tls_domain import _ensure, _log, tls  # noqa: F401  (fixture reuse: fake docker/openssl/getent/curl)
 
+
+def _free_port() -> int:
+    import socket
+    with socket.socket() as so:
+        so.bind(("127.0.0.1", 0))
+        return so.getsockname()[1]
+
+
+HTTP_PORT, TLS_PORT = _free_port(), _free_port()   # fixed 18080 collided with the pod SeaweedFS volume server
+
 ROOT = Path(__file__).resolve().parents[2]
 APP, AUTHD = "demo.ironvisionai.com", "auth.demo.ironvisionai.com"
 
@@ -71,7 +81,7 @@ def test_edge_blocks_admin_console_from_public(tmp_path):
          .replace(f"/etc/letsencrypt/live/{AUTHD}/fullchain.pem", str(tmp_path / "c.pem"))
          .replace(f"/etc/letsencrypt/live/{AUTHD}/privkey.pem", str(tmp_path / "k.pem"))
          .replace("/etc/nginx/ironvision/auth-admin-allow.conf", str(tmp_path / "allow.conf"))
-         .replace("listen 80;", "listen 18080;").replace("listen [::]:80;", "").replace("listen 443 ssl;", "listen 18443 ssl;")
+         .replace("listen 80;", f"listen {HTTP_PORT};").replace("listen [::]:80;", "").replace("listen 443 ssl;", f"listen {TLS_PORT} ssl;")
          .replace("listen [::]:443 ssl;", "").replace("http2 on;", "").replace("resolver 127.0.0.11 valid=30s ipv6=off;", "")
          .replace("http://keycloak:8080", os.environ["KEYCLOAK_LIVE_URL"].replace("localhost", "127.0.0.1")))
     conf = tmp_path / "nginx.conf"
@@ -79,7 +89,7 @@ def test_edge_blocks_admin_console_from_public(tmp_path):
     assert subprocess.run(["nginx", "-t", "-c", str(conf)], capture_output=True).returncode == 0
     subprocess.run(["nginx", "-c", str(conf)], check=True)
     try:
-        c = httpx.Client(verify=False, base_url="https://127.0.0.1:18443", headers={"Host": AUTHD})
+        c = httpx.Client(verify=False, base_url=f"https://127.0.0.1:{TLS_PORT}", headers={"Host": AUTHD})
         assert c.get("/admin/master/console/").status_code == 403
         assert c.get("/realms/master/protocol/openid-connect/auth").status_code == 403
         assert c.get("/metrics").status_code == 404 and c.get("/health/ready").status_code == 404

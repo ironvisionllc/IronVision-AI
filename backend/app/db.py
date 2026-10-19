@@ -17,7 +17,8 @@ def get_engine() -> Engine:
     global _engine, _factory
     with _lock:
         if _engine is None:
-            _engine = create_engine(get_settings().database_url, pool_pre_ping=True, pool_size=10, max_overflow=10)
+            _engine = create_engine(get_settings().database_url, pool_pre_ping=True, pool_size=10, max_overflow=10,
+                                    connect_args={"application_name": "ironvision-app"})  # recovery health: which DB the app is on
             _factory = sessionmaker(bind=_engine, expire_on_commit=False, autoflush=False)
     return _engine
 

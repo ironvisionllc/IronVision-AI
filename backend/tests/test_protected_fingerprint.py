@@ -140,7 +140,8 @@ def test_droplet_state_old_global_freshness_changes_protected_evidence_new_seed_
 
 
 def test_tool_version_bumped_so_plan_6294cf78e70166ca_is_refused():
-    assert r.TOOL_VERSION == "2026.10.19-rehearsal-v6-protected-fingerprint"
-    with pytest.raises(r.RecoveryError, match="re-run ./recover.sh run"):
-        r.rehearsal_gate({"tool_version": "2026.10.19-rehearsal-v5-samples-dir", "plan_hash": "6294cf78e70166ca", "passed": True},
-                         "6294cf78e70166ca")
+    old = ("2026.10.19-rehearsal-v5-samples-dir", "2026.10.19-rehearsal-v6-protected-fingerprint")
+    assert r.TOOL_VERSION not in old
+    for v in old:   # 6294cf78e70166ca (v5) and every plan rehearsed by v6 are refused
+        with pytest.raises(r.RecoveryError, match="re-run ./recover.sh run"):
+            r.rehearsal_gate({"tool_version": v, "plan_hash": "6294cf78e70166ca", "passed": True}, "6294cf78e70166ca")

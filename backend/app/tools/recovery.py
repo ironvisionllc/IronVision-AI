@@ -38,7 +38,7 @@ SCRATCH = re.compile(r"^(rec_(src|prod|target|kc)_\d{8}t\d{6}|ironvision_recover
 # Part of every plan hash and recorded in every rehearsal: a plan/rehearsal produced by another tool version is refused by
 # apply/cutover (bumped when rehearsal semantics change – 2026.10.17: probes run inside the rehearsal backend's namespace,
 # full SSO e2e without a faked pass, per-record evidence integrity).
-TOOL_VERSION = "2026.10.19-rehearsal-v6-protected-fingerprint"
+TOOL_VERSION = "2026.10.20-rehearsal-v7-readonly-verify"
 
 
 class RecoveryError(Exception):
@@ -84,6 +84,11 @@ def write_json(name: str, obj: dict) -> Path:
 # ---------------- PostgreSQL ----------------
 def live_url() -> str:
     return os.environ["DATABASE_URL"]
+
+
+def ro_engine(url: str):
+    """Every session is a READ-ONLY transaction (as for the legacy reads): any INSERT/UPDATE/DELETE raises."""
+    return create_engine(url, connect_args={"options": "-c default_transaction_read_only=on"})
 
 
 def db_url(name: str, base: str | None = None) -> str:
@@ -160,7 +165,7 @@ def upgrade(url: str) -> None:
 
 
 def revision(url: str) -> str | None:
-    eng = create_engine(url)
+    eng = ro_engine(url)
     try:
         with eng.connect() as c:
             return c.execute(text("select version_num from alembic_version")).scalar()
@@ -195,7 +200,7 @@ def fk_orphans(url: str) -> list[dict]:
                 from pg_constraint c join pg_attribute a on a.attrelid=c.conrelid and a.attnum=c.conkey[1]
                 join pg_attribute af on af.attrelid=c.confrelid and af.attnum=c.confkey[1]
                 where c.contype='f' and array_length(c.conkey,1)=1 and c.connamespace='public'::regnamespace""")
-    eng = create_engine(url)
+    eng = ro_engine(url)
     bad = []
     with eng.connect() as c:
         fks = list(c.execute(q))
@@ -212,9 +217,10 @@ def chain(url: str) -> dict:
     from sqlalchemy.orm import Session
 
     from app.services import audit
-    eng = create_engine(url)
+    eng = ro_engine(url)
     with Session(eng) as db:
         r = audit.verify_chain(db)
+        db.rollback()
     eng.dispose()
     return r
 
@@ -585,7 +591,7 @@ def present_in_production(m: dict) -> None:
 
 def verify_objects(url: str, bucket: str, admin: bool = False) -> dict:
     cl, ok, bad = s3(admin), 0, []
-    eng = create_engine(url)
+    eng = ro_engine(url)
     with eng.connect() as c:
         rows = list(c.execute(text("select storage_key, sha256 from evidence")))
     eng.dispose()
@@ -1188,7 +1194,10 @@ def cmd_apply(a) -> int:
     backups, man = take_backups(t, a.skip_keycloak_backup)
     target = f"ironvision_recovered_{t}"
     body = {"plan_hash": a.plan_hash, "ts": t, "backups": backups, "previous_db": make_url(live_url()).database, "target_db": target,
-            "bucket_before": {"objects": len(man), "bytes": sum(o["size"] for o in man)}}
+            "bucket_before": {"objects": len(man), "bytes": sum(o["size"] for o in man)},
+            # verify after the switch treats ONLY these known-unrecoverable keys as accepted, and only if acknowledged here
+            "evidence_exceptions": {"exceptions_hash": (ig or {}).get("exceptions_hash"), "accepted_by_operator": bool(
+                ig and not ig.get("complete") and a.accept_evidence_exceptions and a.accept_evidence_exceptions == ig.get("exceptions_hash"))}}
     try:
         body["result"] = _run_recovery(t, live_url(), target, os.environ["S3_BUCKET"], admin_bucket=False)
         body["failures"] = _passed(body["result"])
@@ -1205,40 +1214,141 @@ def cmd_apply(a) -> int:
     return 0
 
 
-def cmd_verify(a) -> int:
-    from sqlalchemy.orm import Session
+RT_PREFIX = ".ironvision-recovery-roundtrip/"   # never an evidence key: evidence keys are "evidence/…" (checked against the DB too)
 
-    from app.services.evaluation import verify_integrity
-    from app.services.storage.base import get_storage
+
+def evidence_check_ro(url: str, bucket: str, accepted_keys: set) -> dict:
+    """Independent READ-ONLY integrity check: object bytes from storage → SHA-256 → evidence.sha256. Writes nothing (DB or bucket).
+    accepted_keys: known-unrecoverable keys apply recorded AND the operator acknowledged – reported separately, never as verified."""
+    from botocore.exceptions import ClientError
+    cl = s3(False)
+    eng = ro_engine(url)
+    with eng.connect() as c:
+        rows = list(c.execute(text("select id::text, storage_key, sha256 from evidence order by id")))
+    eng.dispose()
+    counts = {k: 0 for k in ("verified", "hash_mismatch", "missing", "unreadable")}
+    failures, accepted = [], []
+    for eid, key, sha in rows:
+        try:
+            st = "verified" if hashlib.sha256(cl.get_object(Bucket=bucket, Key=key)["Body"].read()).hexdigest() == sha else "hash_mismatch"
+        except ClientError as e:
+            st = "missing" if str(e.response.get("Error", {}).get("Code")) in ("NoSuchKey", "404", "NotFound") else "unreadable"
+        except Exception:  # noqa: BLE001
+            st = "unreadable"
+        counts[st] += 1
+        if st != "verified":
+            (accepted if key in accepted_keys else failures).append({"evidence_id": eid, "storage_key": key, "status": st})
+    return {"evidence": len(rows), "verified": counts["verified"], "counts": counts, "failures": failures,
+            "accepted_exceptions": accepted, "read_only": True}
+
+
+def storage_roundtrip(url: str, bucket: str) -> dict:
+    """The ONLY write of verify: one namespaced temp object in the live bucket (proves the app key can still store new evidence,
+    e.g. after the SeaweedFS restart), refused if the key exists or the namespace is referenced by evidence; deleted in finally."""
+    from botocore.exceptions import ClientError
+    cl, key = s3(False), f"{RT_PREFIX}{ts()}-{secrets.token_hex(6)}"
+    out = {"key": key, "put": False, "read_back": False, "deleted": False}
+    eng = ro_engine(url)
+    with eng.connect() as c:
+        clash = c.execute(text("select count(*) from evidence where storage_key like :p"), {"p": RT_PREFIX + "%"}).scalar()
+    eng.dispose()
+    if clash:
+        return out | {"ok": False, "error": f"{clash} evidence row(s) use the round-trip namespace – refusing to write"}
+    try:
+        cl.head_object(Bucket=bucket, Key=key)
+        return out | {"ok": False, "error": "round-trip key already exists – refusing to overwrite"}
+    except ClientError:
+        pass
+    try:
+        cl.put_object(Bucket=bucket, Key=key, Body=b"roundtrip")
+        out["put"] = True
+        out["read_back"] = cl.get_object(Bucket=bucket, Key=key)["Body"].read() == b"roundtrip"
+    except Exception as e:  # noqa: BLE001
+        out["error"] = redact(f"{type(e).__name__}: {e}")[:200]
+    finally:
+        try:
+            cl.delete_object(Bucket=bucket, Key=key)
+            try:
+                cl.head_object(Bucket=bucket, Key=key)
+            except ClientError:
+                out["deleted"] = True
+        except Exception as e:  # noqa: BLE001
+            out["delete_error"] = redact(f"{type(e).__name__}: {e}")[:200]
+    out["ok"] = out["put"] and out["read_back"] and out["deleted"]
+    return out
+
+
+def cmd_verify(a) -> int:
+    """READ-ONLY verify of the live DB + bucket (default_transaction_read_only=on). Never runs the app's verify_integrity job
+    (it writes integrity_checks/evidence/freshness for every org). Only write: storage_roundtrip's temp object, always deleted."""
     url, bucket = live_url(), os.environ["S3_BUCKET"]
-    checks = {"db": make_url(url).database, "revision": revision(url), "fk": fk_orphans(url), "audit_chain": chain(url),
-              "objects": verify_objects(url, bucket)}
+    db = make_url(url).database
     ap = next((json.loads(f.read_text()) for f in sorted(RDIR.glob("apply-*.json"), reverse=True)
-               if json.loads(f.read_text()).get("target_db") == checks["db"]), None)
+               if json.loads(f.read_text()).get("target_db") == db), None)
     known = {d["storage_key"] for d in ((ap or {}).get("result") or {}).get("objects", {}).get("detail", [])
              if d.get("status") in ("missing", "hash_mismatch", "unreadable")}
-    checks["objects"]["known_unrecoverable"] = sorted(known)  # recorded by apply (missing/corrupt in the archive) – reported, not regressions
-    checks["objects"]["problems"] = [p for p in checks["objects"]["problems"] if p["key"] not in known]
-    eng = create_engine(url)
+    ex = (ap or {}).get("evidence_exceptions") or {}
+    acked = bool(known) and ex.get("accepted_by_operator") is True
+    checks = {"db": db, "revision": revision(url), "fk": fk_orphans(url), "audit_chain": chain(url),
+              "objects": evidence_check_ro(url, bucket, known if acked else set()),
+              "known_unrecoverable": {"keys": sorted(known), "acknowledged": acked, "exceptions_hash": ex.get("exceptions_hash")}}
+    eng = ro_engine(url)
     with eng.connect() as c:
         checks["protected_orgs"] = [str(r[0]) for r in c.execute(text("select id from organizations where protected"))]
-    with Session(eng) as db:
-        checks["integrity_job"] = verify_integrity(db)
-        db.commit()
     eng.dispose()
-    st, key = get_storage(), f"recovery-roundtrip/{ts()}"
-    st.put(key, b"roundtrip")
-    checks["storage_roundtrip"] = st.get(key) == b"roundtrip"
-    st.delete(key)
+    checks["storage_roundtrip"] = storage_roundtrip(url, bucket)
     m = bucket_manifest(bucket)
     checks["bucket_after"] = {"objects": len(m), "bytes": sum(o["size"] for o in m)}
-    fails = [x for x in (["FK orphans"] if len(checks["fk"]) > 1 else []) + ([] if checks["audit_chain"]["valid"] else ["audit chain"])
-             + ([] if not checks["objects"]["problems"] else [f"{len(checks['objects']['problems'])} evidence object(s) missing/mismatched"])
-             + ([] if checks["storage_roundtrip"] else ["storage round-trip"])]
+    o = checks["objects"]
+    fails = ((["FK orphans"] if len(checks["fk"]) > 1 else []) + ([] if checks["audit_chain"]["valid"] else ["audit chain"])
+             + ([f"{len(o['failures'])} evidence object(s) failed (" + ", ".join(f"{k} {v}" for k, v in o["counts"].items() if k != "verified" and v)
+                 + ")" + (" – known-unrecoverable keys NOT acknowledged at apply" if known and not acked else "")] if o["failures"] else [])
+             + ([] if checks["storage_roundtrip"]["ok"] else ["storage round-trip"]))
     t = ts()
     write_json(f"verify-{t}.json", {"ts": t, "checks": checks, "failures": fails, "passed": not fails})
-    log(f"[verify] {'PASS' if not fails else 'FAIL'} db={checks['db']}@{checks['revision']} objects {checks['objects']['verified']}/{checks['objects']['evidence']} "
-        f"chain={checks['audit_chain']['valid']} integrity={json.dumps(checks['integrity_job'])} fails={fails}")
+    log(f"[verify] {'PASS' if not fails else 'FAIL'} db={db}@{checks['revision']} (read-only) evidence {o['verified']}/{o['evidence']} verified "
+        f"{json.dumps(o['counts'])}; accepted known-unrecoverable {len(o['accepted_exceptions'])} (NOT counted as verified); "
+        f"chain={checks['audit_chain']['valid']} round-trip={checks['storage_roundtrip']['ok']} fails={fails}")
+    for f in o["failures"]:
+        log(f"[verify]   FAIL {f['status']}: evidence {f['evidence_id']} key {f['storage_key']}")
+    for f in o["accepted_exceptions"]:
+        log(f"[verify]   ACCEPTED-EXCEPTION {f['status']}: evidence {f['evidence_id']} key {f['storage_key']}")
+    return 0 if not fails else 1
+
+
+def cmd_health(a) -> int:
+    """Post-rollback (or post-switch) health, VERIFIED not assumed: /health/live + /ready 200, and pg_stat_activity shows the app's
+    connections (application_name=ironvision-app) on --expect-db and none on --not-db; --retained-db must still exist."""
+    import httpx
+    res, fails = {"url": a.url, "expect_db": a.expect_db, "not_db": a.not_db, "retained_db": a.retained_db}, ["not checked"]
+    for _ in range(a.tries):
+        fails, res["checks"] = [], {}
+        try:
+            lv = httpx.get(f"{a.url}/api/v1/health/live", timeout=10)
+            rd = httpx.get(f"{a.url}/api/v1/ready", timeout=10)
+            res["checks"]["live"], res["checks"]["ready"] = lv.status_code, rd.status_code
+            res["checks"]["migration"] = rd.json().get("migration") if rd.status_code == 200 else None
+            fails += [] if lv.status_code == 200 else [f"/health/live {lv.status_code}"]
+            fails += [] if rd.status_code == 200 else [f"/ready {rd.status_code}"]
+        except httpx.HTTPError as e:
+            fails.append(f"app unreachable: {type(e).__name__}")
+        eng = ro_engine(live_url())
+        with eng.connect() as c:
+            dbs = {r[0]: r[1] for r in c.execute(text("select datname, count(*) from pg_stat_activity where application_name = 'ironvision-app' group by 1"))}
+            kept = c.execute(text("select count(*) from pg_database where datname = :n"), {"n": a.retained_db}).scalar() if a.retained_db else None
+        eng.dispose()
+        res["checks"]["app_connections_by_db"] = dbs
+        fails += [] if dbs.get(a.expect_db) else [f"no app connection on {a.expect_db}"]
+        fails += [f"app still connected to {a.not_db}"] if a.not_db and dbs.get(a.not_db) else []
+        if a.retained_db:
+            res["checks"]["retained_db_exists"] = bool(kept)
+            fails += [] if kept else [f"recovered DB {a.retained_db} missing"]
+        if not fails:
+            break
+        time.sleep(2)
+    res["failures"], res["passed"] = fails, not fails
+    write_json(f"health-{ts()}.json", res)
+    log(f"[health] {'PASS' if not fails else 'FAIL'} app on db={a.expect_db} {json.dumps(res['checks'])} fails={fails}")
     return 0 if not fails else 1
 
 
@@ -1409,6 +1519,12 @@ def main(argv=None) -> int:
     x.add_argument("--accept-evidence-exceptions", default=None)
     x.add_argument("--skip-keycloak-backup", action="store_true")
     sp.add_parser("verify")
+    x = sp.add_parser("health")
+    x.add_argument("--url", required=True)
+    x.add_argument("--expect-db", required=True)
+    x.add_argument("--not-db", default="")
+    x.add_argument("--retained-db", default="")
+    x.add_argument("--tries", type=int, default=30)
     bk = sp.add_parser("backup")
     bk.add_argument("--skip-keycloak-backup", action="store_true")
     sp.add_parser("remove-recovered-objects")
@@ -1426,7 +1542,7 @@ def main(argv=None) -> int:
     dc.add_argument("--url", required=True)
     a = ap.parse_args(argv)
     fn = {"preflight": cmd_preflight, "rehearse": cmd_rehearse, "rehearse-probe": cmd_rehearse_probe, "probe-unreachable": cmd_probe_unreachable,
-          "apply": cmd_apply, "verify": cmd_verify, "demo-check": cmd_demo_check, "samples-check": cmd_samples_check,
+          "apply": cmd_apply, "verify": cmd_verify, "health": cmd_health, "demo-check": cmd_demo_check, "samples-check": cmd_samples_check,
           "remove-recovered-objects": cmd_remove_recovered_objects, "status": cmd_status, "plan-hash": cmd_plan_hash,
           "bucket-verify": cmd_bucket_verify, "cleanup-rehearsal": cmd_cleanup_rehearsal, "restore-into-new": cmd_restore_into_new,
           "audit-keycloak": cmd_audit_keycloak, "backup": cmd_backup}[a.cmd]

@@ -196,15 +196,24 @@ rehearsal_diag() {  # $1 rehearsal ts, $2 OIDC issuer host: container, state, ne
   fi
 }
 
-switch_db() {  # $1 = database name; backs up the env file, sets DATABASE_URL in place
-  local db=$1 u p
+sha() { sha256sum "$1" | cut -d' ' -f1; }
+dbname() { python3 -c 'import sys,urllib.parse as u;print(u.urlsplit(sys.argv[1]).path.lstrip("/").split("?")[0])' "$1"; }
+health_url() { if [ "$LOCAL" = 1 ]; then echo "${RECOVER_HEALTH_URL:-${RECOVER_LIVE_URL:?RECOVER_LIVE_URL}}"; else echo "https://$(envget APP_DOMAIN)"; fi; }
+switch_db() {  # $1 = database name. Byte-exact checksummed env backup → switch record → ATOMIC DATABASE_URL change (scripts/envset.py)
+  local db=$1 u p bk bsha prev
   u=$(envget POSTGRES_USER); p=$(envget POSTGRES_PASSWORD)
   if [ -z "$u" ] || [ -z "$p" ]; then die "POSTGRES_USER/POSTGRES_PASSWORD not in $ENV_FILE"; fi
-  mkdir -p "$RDIR/backups/$TS"; cp -p "$ENV_FILE" "$RDIR/backups/$TS/env" && chmod 600 "$RDIR/backups/$TS/env"
-  printf '{"ts":"%s","env_backup":"%s","previous_database_url_set":%s,"new_db":"%s"}\n' "$TS" "$RDIR/backups/$TS/env" \
+  bk="$RDIR/backups/$TS/env"; mkdir -p "$RDIR/backups/$TS"
+  python3 scripts/envset.py --copy "$ENV_FILE" "$bk" || die "env backup failed – nothing switched"
+  bsha=$(sha "$bk"); [ "$bsha" = "$(sha "$ENV_FILE")" ] || die "env backup checksum differs from $ENV_FILE – nothing switched"
+  prev=$(dbname "$(envget DATABASE_URL)")
+  printf '{"ts":"%s","env_backup":"%s","env_backup_sha256":"%s","previous_db":"%s","previous_database_url_set":%s,"new_db":"%s"}\n' "$TS" "$bk" "$bsha" "$prev" \
     "$([ -n "$(envget DATABASE_URL)" ] && echo true || echo false)" "$db" > "$RDIR/env-switch-$TS.json"
-  printf '%s' "postgresql+psycopg://$u:$p@${RECOVER_DB_HOST:-postgres}:${RECOVER_DB_PORT:-5432}/$db" | python3 scripts/envset.py "$ENV_FILE" DATABASE_URL >/dev/null
-  say "DATABASE_URL switched to database $db (env backup $RDIR/backups/$TS/env)"
+  if ! printf '%s' "postgresql+psycopg://$u:$p@${RECOVER_DB_HOST:-postgres}:${RECOVER_DB_PORT:-5432}/$db" | python3 scripts/envset.py "$ENV_FILE" DATABASE_URL >/dev/null; then
+    [ "$(sha "$ENV_FILE")" = "$bsha" ] || python3 scripts/envset.py --copy "$bk" "$ENV_FILE"
+    die "envset failed mid-write – env file intact (sha256 $(sha "$ENV_FILE") = backup $bsha); rollback converges: sudo ./recover.sh rollback"
+  fi
+  say "DATABASE_URL switched $prev → $db (env backup $bk, sha256 $bsha)"
 }
 
 snapshot_objects() {
@@ -283,7 +292,9 @@ case "$cmd" in
     fi
     echo "$out"
     db=$(sed -n 's/^RECOVERED_DB=//p' <<<"$out" | tail -1); [ -n "$db" ] || die "apply did not produce a recovered database – live system unchanged"
-    switch_db "$db"; redeploy; py verify || die "verify failed after switch – run ./recover.sh rollback";;
+    switch_db "$db"
+    redeploy || die "redeploy failed after the DATABASE_URL switch – run ./recover.sh rollback"
+    py verify || die "verify failed after switch – run ./recover.sh rollback";;
   run)
     say "run: READ-ONLY against the production DB, bucket and Keycloak; legacy containers stay running"
     image_gate
@@ -368,18 +379,48 @@ case "$cmd" in
     say "stopping ONLY legacy containers holding ports the ironvision stack needs; their data is in the verified backup $lb, which (or the backup files) is the recovery source from now on"
     legacy stop "$LEGACY_PROJECT" --backup "$lb" --only-conflicting --yes | tee -a "$LOG" || die "not stopped (see above)";;
   verify) py verify;;
-  rollback)
+  rollback)  # idempotent: re-running converges (env restore skipped when already equal; switch record marked only at the end)
     rm_obj=0; restore_from=""; while [ $# -gt 0 ]; do case $1 in --remove-recovered-objects) rm_obj=1;; --restore-db-from) restore_from=$2; shift;; esac; shift; done
+    RB="$RDIR/rollback-$TS.steps"; : > "$RB"; chmod 600 "$RB"
+    rstep() { printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$RB"; say "rollback step $1: $2${3:+ – $3}"; }
+    rreport() { python3 scripts/rollback_report.py "$RB" "$TS" "$RDIR/rollback-$TS.json" "$RDIR/rollback-$TS.md"; }
+    rfail() { rstep "$1" FAIL "$2"; rreport; die "rollback step '$1' failed: $2 – fix it, then re-run: sudo ./recover.sh rollback (idempotent)"; }
+    last=""; new=""
     if [ -n "$restore_from" ]; then
-      out=$(py restore-into-new --file "$restore_from"); echo "$out"; switch_db "$(sed -n 's/^NEW_DB=//p' <<<"$out" | tail -1)"
+      out=$(py restore-into-new --file "$restore_from"); echo "$out"; prev=$(sed -n 's/^NEW_DB=//p' <<<"$out" | tail -1)
+      switch_db "$prev"; rstep restore-db OK "restored $restore_from into new DB $prev"
     else
-      last=$(find "$RDIR" -maxdepth 1 -name 'env-switch-*.json' | sort | tail -1); [ -n "$last" ] || die "no env switch recorded – nothing to roll back"
-      bk=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["env_backup"])' "$last")
-      cp -p "$ENV_FILE" "$RDIR/backups/$TS-before-rollback.env"; cp -p "$bk" "$ENV_FILE"; say "env restored from $bk (recovered DB kept intact)"
-      mv "$last" "${last%.json}.rolled-back.json"
+      last=$(find "$RDIR" -maxdepth 1 -name 'env-switch-*.json' ! -name '*rolled-back*' | sort | tail -1)
+      if [ -z "$last" ]; then
+        rstep switch-record NONE "no un-rolled-back DATABASE_URL switch recorded"
+        rreport; say "rollback: nothing to roll back – no DATABASE_URL switch is recorded (or every switch is already rolled back); env file unchanged (sha256 $(sha "$ENV_FILE"))"
+        exit 0
+      fi
+      read -r bk bsha prev new < <(python3 -c 'import json,sys;j=json.load(open(sys.argv[1]));print(j["env_backup"],j.get("env_backup_sha256") or "-",j.get("previous_db") or "-",j["new_db"])' "$last")
+      [ -f "$bk" ] || rfail env-backup "backup $bk missing"
+      [ "$bsha" != - ] || bsha=$(sha "$bk")   # switch recorded by an older tool: checksum of the backup itself
+      [ "$(sha "$bk")" = "$bsha" ] || rfail env-backup "backup $bk does not match its recorded sha256 $bsha"
+      [ "$prev" != - ] || prev=$(dbname "$(python3 scripts/envget.py "$bk" DATABASE_URL)")
+      rstep switch-record OK "$(basename "$last"): $prev → $new"
+      if [ "$(sha "$ENV_FILE")" = "$bsha" ]; then rstep env-restore SKIP "env file already equals the pre-switch backup (re-run)"
+      else
+        keep="${last%.json}.env-before-rollback"; [ -f "$keep" ] || python3 scripts/envset.py --copy "$ENV_FILE" "$keep"
+        python3 scripts/envset.py --copy "$bk" "$ENV_FILE" || rfail env-restore "atomic restore from $bk failed"
+        rstep env-restore OK "from $bk (current env kept as $keep)"
+      fi
+      [ "$(sha "$ENV_FILE")" = "$bsha" ] || rfail env-checksum "env file sha256 $(sha "$ENV_FILE") != backup $bsha"
+      rstep env-checksum OK "sha256 $bsha = pre-cutover backup"
     fi
-    [ "$rm_obj" = 1 ] && py remove-recovered-objects
-    redeploy; py verify;;
+    if [ "$rm_obj" = 1 ]; then py remove-recovered-objects || rfail remove-recovered-objects "see log"; rstep remove-recovered-objects OK; fi
+    redeploy || rfail redeploy "redeploy failed (env file already restored)"
+    rstep redeploy OK
+    sync_db_env
+    py health --url "$(health_url)" --expect-db "$prev" ${new:+--not-db "$new" --retained-db "$new"} || rfail health "app not healthy on $prev (see health-*.json)"
+    rstep health OK "/health/live + /ready 200, app connected to $prev${new:+, not to $new; recovered DB $new retained}"
+    py verify || rfail verify "read-only verify of $prev failed (see verify-*.json)"
+    rstep verify OK "read-only verify of $prev"
+    if [ -n "$last" ]; then mv "$last" "${last%.json}.rolled-back.json"; rstep switch-record OK "marked rolled back"; fi
+    rreport; say "ROLLBACK COMPLETE – app on $prev; report $RDIR/rollback-$TS.md";;
   status) py status; find "$RDIR" -maxdepth 1 -name '*.md' | sort | tail -5;;
   audit) scripts/recover_audit.sh "$ENV_FILE"; py audit-keycloak;;
   link)

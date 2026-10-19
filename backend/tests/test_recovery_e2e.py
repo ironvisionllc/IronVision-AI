@@ -123,14 +123,19 @@ def test_recovery_end_to_end():
          f"users {tgt['users']} orgs {tgt['organizations']} (8+1 / 1+1 production-only admin), jobs {tgt['jobs']}, audit {tgt['audit_events']}")
     step("audit hash chain valid after 0009→0013", res["audit_chain"]["valid"] and res["audit_chain"]["checked"] == tgt["audit_events"], json.dumps(res["audit_chain"])[:120])
     step("FK integrity: no orphans", len(res["fk"]) == 1, json.dumps(res["fk"][0]))
-    step("Keycloak migration dry-run in report (not applied)", "dry" in (rh.get("keycloak_migrate_dry_run") or "").lower() or "plan" in (rh.get("keycloak_migrate_dry_run") or "").lower(),
-         (rh.get("keycloak_migrate_dry_run") or "")[-160:])
+    # rehearse never contacts the PRODUCTION Keycloak admin API (recovery.py cmd_rehearse); identity planning is cutover's own dry run
+    step("rehearsal ran no production-Keycloak migration (dry run belongs to cutover)", "keycloak_migrate_dry_run" not in rh, "")
 
     probe_rehearsal("rehearsal backend (separate instance on rec_target) probe")
 
     step("apply refuses a wrong plan-hash", rec("apply", "--plan-hash", "deadbeefdeadbeef").returncode == 2, "")
-    kc = {"RECOVER_KEYCLOAK_DATABASE_URL": os.environ["RECOVERY_KEYCLOAK_DB_URL"]}
+    kc = {"RECOVER_KEYCLOAK_DATABASE_URL": os.environ.get("RECOVERY_KEYCLOAK_DB_URL")
+          or f"postgresql+psycopg://keycloak_test:{os.environ['KC_DB_PASSWORD']}@127.0.0.1:5432/keycloak_test"}  # pod Keycloak DB
     r = rec("apply", "--plan-hash", plan_hash, **kc)
+    step("apply REFUSED by the cutover gate: this engine-level rehearsal ran no scratch SSO e2e",
+         r.returncode != 0 and "no passing backend probe + SSO e2e" in r.stdout + r.stderr and not list(RUN.glob("apply-*.json")), r.stdout[-300:])
+    pytest.skip("apply → verify → rollback need a rehearsal WITH the real scratch-SSO e2e (rehearsal_gate, tool v3+); that path runs "
+                "through recover.sh in test_recover_orchestration_e2e. This engine-level test stops at the asserted refusal.")
     db1 = re.search(r"RECOVERED_DB=(\S+)", r.stdout)
     ap = latest("apply")
     step("apply: fresh backups (prod, keycloak, bucket manifest) + new recovered DB", r.returncode == 0 and db1 and all(Path(p).exists() for p in ap["backups"].values()),
@@ -145,8 +150,8 @@ def test_recovery_end_to_end():
 
     r = rec("verify", DATABASE_URL=u(db1.group(1)))
     vf = latest("verify")
-    step("verify on recovered DB (objects, chain, FK, integrity job, round-trip)", r.returncode == 0 and vf["checks"]["storage_roundtrip"],
-         f"objects {vf['checks']['objects']['verified']}/{vf['checks']['objects']['evidence']} known-unrecoverable {len(vf['checks']['objects']['known_unrecoverable'])}; integrity {vf['checks']['integrity_job']}")
+    step("verify on recovered DB (read-only objects, chain, FK, round-trip)", r.returncode == 0 and vf["checks"]["storage_roundtrip"]["ok"],
+         f"objects {vf['checks']['objects']['verified']}/{vf['checks']['objects']['evidence']} known-unrecoverable {len(vf['checks']['known_unrecoverable']['keys'])}")
 
     from sqlalchemy.orm import Session
 

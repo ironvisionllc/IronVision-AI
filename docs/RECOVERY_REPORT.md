@@ -721,7 +721,87 @@ sudo ./recover.sh run      # image_gate runs samples-check in recovery + rehears
 cd /opt/ironvision/IronVision-AI && git pull
 sudo ./recover.sh scratch-cleanup
 sudo ./recover.sh run      # new plan hash (tool v6); 6294cf78e70166ca is refused. Read-only rehearse --e2e
-# then inspect: the newest /srv/ironvision/recovery/rehearsal-*.md → "Protected (non-sandbox) data fingerprint" table (all "no")
+# then inspect: the newest /root/ironvision-recovery/rehearsal-*.md → "Protected (non-sandbox) data fingerprint" table (all "no")
 # and its .json → result.demo_account.protected_fingerprint / changed_categories ([])
 ```
 No cutover, no legacy-container stop, no volume deletion until that report passes.
+
+## 21. Pre-cutover hardening: read-only verify, atomic env switch, idempotent verified rollback (tool v7)
+
+### 21.1 Verify was mutating (same bug class as §20)
+- **Before:** `cmd_verify` called the app's `evaluation.verify_integrity(db)` and then `db.commit()`. That job inserts `IntegrityCheck` rows, sets `evidence.integrity_status`/`last_verified_at` on every evidence row, and runs `evaluate_freshness` for every org (writing `state`/`updated_at`, plus snapshots and control evaluation). Its mismatch count was not even part of `fails`.
+- **Now:** `evidence_check_ro` (recovery.py) reads every evidence row through a **read-only transaction** (`ro_engine`: `-c default_transaction_read_only=on`). It fetches each object with the app S3 key, computes SHA-256 and compares it with `evidence.sha256`. Statuses are `verified`/`hash_mismatch`/`missing`/`unreadable`.
+  - Verify **fails** on any non-verified object, except known-unrecoverable keys that `apply` recorded **and** the operator acknowledged. `apply` now records `evidence_exceptions.accepted_by_operator` (true only if `--accept-evidence-exceptions` matched the exceptions hash).
+  - Acknowledged keys are listed separately (`accepted_exceptions`, log `ACCEPTED-EXCEPTION …`) and are **never counted as verified**. Without the acknowledgement verify fails with "known-unrecoverable keys NOT acknowledged at apply".
+  - The report gives per-status counts and evidence id + storage key per failure. It never includes contents, secrets or URLs.
+  - The app's own `verify_integrity` job is unchanged for normal operation.
+- **Other verify parts:** `revision()`, `fk_orphans()`, `chain()` (plus an explicit rollback of its session), `verify_objects()` and the protected-org query all use `ro_engine`, so any write would raise. `bucket_manifest()` only lists objects.
+- **Storage round-trip, kept, as the ONLY write of verify.** Justification: after the SeaweedFS restart and the DB switch, it proves the **app key can still store new evidence**, which a read-only check cannot prove. Safeguards:
+  - The key is `.ironvision-recovery-roundtrip/<ts>-<random>`. Evidence keys are always `evidence/…`, and verify refuses to write if any evidence row uses that namespace or the key already exists.
+  - Deletion is in `finally`, and verify confirms it with a HEAD → 404.
+  - The report carries the key with put/read_back/deleted, and verify fails if the object was not deleted.
+
+### 21.2 Env switch + rollback, documented sequence
+- **cutover → apply**:
+  1. Byte-exact env backup `backups/<ts>/env` (`envset.py --copy`: temp O_EXCL 0600 → fsync → rename → fsync dir), then check the backup sha256 equals the env file.
+  2. Write `env-switch-<ts>.json` (`env_backup`, `env_backup_sha256`, `previous_db`, `new_db`).
+  3. `envset.py` switches `DATABASE_URL` atomically.
+  4. `redeploy` (failure → explicit die).
+  5. Read-only `verify` on the recovered DB.
+  6. cutover: Keycloak link → Explore Demo check (non-200 → fail) → e2e → doctor → SeaweedFS restart → verify.
+  7. Any failure → `fail()` → automatic `recover.sh rollback`.
+- **rollback** (`rollback-<ts>.steps` → `rollback-<ts>.json`/`.md`, 0600, one row per step):
+  1. `switch-record`: newest un-rolled-back switch; none → **no-op**, exit 0 with "nothing to roll back" (point e).
+  2. `env-backup`: the backup must exist and match its recorded sha256.
+  3. `env-restore`: **skipped** if the env file already equals the backup (re-run, point d). Otherwise the current env is kept once as `*.env-before-rollback` and the backup is restored atomically.
+  4. `env-checksum`: env file sha256 == pre-cutover backup sha256, or the rollback fails.
+  5. `redeploy`: on failure the rollback stops (the env is already restored); re-running converges.
+  6. `health` (**verified, not assumed**, new `recovery.py health`):
+     - `/api/v1/health/live` and `/api/v1/ready` return 200;
+     - `pg_stat_activity` shows the app's connections (`application_name=ironvision-app`, now set in `app/db.py`) on the **previous DB** and none on the recovered DB;
+     - the recovered DB **still exists** (never dropped).
+  7. `verify`: read-only verify of the previous DB.
+  8. `switch-record`: renamed `*.rolled-back.json` **last**, so an interrupted rollback is retried in full.
+- **Failure points:**
+  - (a) envset fails mid-write: the rename is the only mutating step, so the original is intact. `switch_db` also re-checks the checksum and restores from the backup if it differs; the automatic rollback then converges (env-restore SKIP).
+  - (b) Redeploy fails after the switch: die → automatic rollback → env restored → redeploy on the previous DB → health.
+  - (c) Post-switch verify or Explore Demo fails: same path.
+  - (d) Rollback interrupted: the switch record stays; a re-run skips the restore, redeploys, health-checks and marks the record.
+  - (e) No switch: no-op.
+- **Fault injection for tests:** `ENVSET_FAULT=before-rename` is honoured only together with `RECOVER_LOCAL=1`, so it is inert on the Droplet (tested). `RECOVER_HEALTH_URL` (LOCAL only) lets the auto-rollback health check reach the real app while a test breaks the live check.
+
+### 21.3 Pre-existing failures (investigated, reported separately)
+| Test(s) | Actual error | Cause | Fix | Droplet? |
+|---|---|---|---|---|
+| `test_keycloak_live::test_03` (and the 8 cascading `KeyError: 'pw'` / missing-user failures in test_04…test_18) | `assert 4 == 3`: a wrong `--plan-hash` returned exit 4 ("demo launcher would map 0 accounts") | **Code bug** from the §17 strict link: `keycloak_migrate` checked the demo-link problem *before* the plan hash. Also a **test gap**: `kcenv.sh` configures the demo launcher but the test DB had no demo account, so even the correct hash returned 4 | Plan-hash/confirmation are checked first, then the demo problem; test_03 seeds the demo account the way `app.seed` does on a demo deployment | The ordering bug would have mis-labelled a stale hash as a demo problem; now fixed |
+| `test_keycloak_live::test_15` (exposed once test_03 passed) | expected the demo to be unmapped (403), got 200 | test_03 now legitimately links the demo account | test_15 removes the demo's OIDC identity first, to test the explicit-mapping flow | no |
+| `test_keycloak_infra::test_edge_blocks_admin_console_from_public` | nginx `bind() to 0.0.0.0:18080 failed (98: Address already in use)` | **Environmental**: port 18080 is the pod SeaweedFS volume server (`weed … -volume.port=18080`, verified with `ss -ltnp`) | The test picks free ports | no (test-only nginx) |
+| `test_recovery_e2e` | 1) asserted `keycloak_migrate_dry_run` in the rehearsal report; 2) `KeyError: 'RECOVERY_KEYCLOAK_DB_URL'`; 3) apply refused: "rehearsal … has no passing backend probe + SSO e2e" | 1) stale since rehearse stopped contacting the production Keycloak (by design); 2) undocumented env var; 3) the engine-level test calls `rehearse-probe` **without** the scratch SSO e2e, so the v3+ cutover gate (correctly) refuses apply | 1) asserts that **no** production-Keycloak dry run happens; 2) derives the pod Keycloak DB URL; 3) **asserts the refusal**, then skips with the reason. Gate not weakened. apply → verify → rollback with the real SSO e2e runs in `test_recover_orchestration_e2e` | no |
+
+### 21.4 Verification (2026-10-19, pod)
+| Check | Real / simulated | Result |
+|---|---|---|
+| `test_recovery_verify_readonly.py`: successful verify leaves **all tables** unchanged (count + md5 of every public table) and has **zero** `pg_stat_user_tables` ins/upd/del delta; mismatch fails; missing fails; unreadable fails; known-unrecoverable fails unless acknowledged and is never counted verified; round-trip refuses a namespace used by evidence, leaves no object | Real Postgres + SeaweedFS | 6 passed |
+| `test_envset_atomic.py`: atomic set (0600, byte-exact backup); fault before rename → original byte-identical, no temp file; fault hook inert without RECOVER_LOCAL=1; fsync crash keeps the original; `--copy` byte-exact | Real filesystem | 5 passed |
+| Full orchestration (`recover.sh`, scratch SSO e2e + Explore Demo + role switching, cutover, rollback, auto-rollback, forced-403 rollback, re-cutover, finalize, cleanup) **plus new (a)–(e)**: each rollback restores the env sha256 to the pre-cutover value and verifies health on the previous DB name; (d) interrupted rollback re-run converges with env-restore SKIP; (e) no-op | Real Postgres / Keycloak 26 / uvicorn / SeaweedFS; Docker compose = shim | **52/52 steps, 1 passed (663s)** |
+| `test_recovery_e2e` (engine) | Real | 1 passed, 1 skipped at the asserted gate refusal (see 21.3) |
+| `test_keycloak_live` + `test_keycloak_infra` (live pod Keycloak) | Real | **36 passed, 1 skipped** (was 9 failed) |
+| Protected-data fingerprint tests (§20) | Real | passed (in suite) |
+| Full suite `tests/` (baseline scope) | Real | **396 passed, 33 skipped** (+6 skips = the new RECOVERY_E2E-gated verify tests, run above) |
+| Docker compose redeploy / container env on the Droplet | Not run (no Docker daemon in the pod) | next rehearsal |
+
+**Limitations:**
+- `health` identifies the app by `application_name=ironvision-app`, which requires the redeployed images to include `app/db.py` from this commit. The rollback redeploy restarts the app from the current checkout, so it does. On the pod, other app processes (the supervisor backend, tests) share the name, so the rule is "expected DB present, recovered DB absent", not "exactly one DB".
+- The engine-only steps of `test_recovery_e2e` after apply (copy-only, purge refusal, `--remove-recovered-objects`, idempotent re-apply, rehearsal cleanup) are not executed while the gate requires an SSO e2e that this test does not run.
+- `rollback --restore-db-from` is unchanged apart from the shared switch, health and report steps, and was not fault-injected.
+
+**Next rehearsal on the Droplet: READ-ONLY (from /opt/ironvision/IronVision-AI, reports in /root/ironvision-recovery):**
+```
+cd /opt/ironvision/IronVision-AI && git pull
+sudo ./recover.sh status                 # no switch pending: expect no env-switch-*.json without .rolled-back
+sudo ./recover.sh scratch-cleanup        # scratch resources only
+sudo ./recover.sh run                    # inspect + backups + preflight + read-only rehearse --e2e; never restarts production services
+ls -t /root/ironvision-recovery/rehearsal-*.md | head -1 | xargs sudo cat   # PLAN-HASH, tool v7, protected fingerprint all "no"
+sudo ./recover.sh rollback               # safe check: with no switch recorded it is a NO-OP ("nothing to roll back")
+```
+Do not run `cutover`/`apply`/`finalize` until the rehearsal report passes and is reviewed.

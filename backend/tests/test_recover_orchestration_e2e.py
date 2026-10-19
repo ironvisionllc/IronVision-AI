@@ -230,7 +230,7 @@ def recover_env(**kw) -> dict:
          "RECOVER_DEFAULT_SOURCE_BACKUP": str(REP / "aegisrmf-old-db.backup"), "RECOVER_DEFAULT_OBJECT_ARCHIVE": str(REP / "aegisrmf-minio-backup.tar.gz"),
          "RECOVER_SOURCE_INSPECT_URL": u("rec_legacy_aegisrmf"), "RECOVER_REDEPLOY_CMD": f"bash {W}/redeploy.sh",
          "RECOVER_LOCAL_REHEARSAL_BACKEND_CMD": f"bash {W}/rehearsal-backend.sh", "RECOVER_REHEARSAL_URL": f"http://127.0.0.1:{REH}",
-         "RECOVER_LIVE_URL": f"http://127.0.0.1:{LIVE}", "RECOVER_E2E_INSECURE": "1", "RECOVER_LOCAL_RESTART_CMD": f"bash {ROOT}/scripts/pod_seaweedfs.sh",
+         "RECOVER_LIVE_URL": f"http://127.0.0.1:{LIVE}", "RECOVER_HEALTH_URL": f"http://127.0.0.1:{LIVE}", "RECOVER_E2E_INSECURE": "1", "RECOVER_LOCAL_RESTART_CMD": f"bash {ROOT}/scripts/pod_seaweedfs.sh",
          "RECOVER_KEYCLOAK_DATABASE_URL": f"postgresql+psycopg://keycloak_test:{os.environ['KC_DB_PASSWORD']}@127.0.0.1:5432/keycloak_test",
          "RECOVER_S3_ADMIN_ACCESS_KEY_ID": ADMIN_S3[0], "RECOVER_S3_ADMIN_SECRET_ACCESS_KEY": ADMIN_S3[1],
          "RECOVER_SCRATCH_KC_URL": f"http://127.0.0.1:{SCRATCH_KC}", "RECOVER_LOCAL_SCRATCH_KC_START": f"bash {W}/scratch-kc.sh start",
@@ -295,6 +295,11 @@ def run_and_hash(label: str) -> str:
 
 
 ACK: dict[str, list[str]] = {}
+
+
+def env_sha() -> str:
+    import hashlib
+    return hashlib.sha256((W / "env.production").read_bytes()).hexdigest()
 
 
 def cutover(h: str, **kw) -> subprocess.CompletedProcess:
@@ -398,6 +403,7 @@ def test_recover_operator_flow(world):
         r = recover("cutover", "--plan-hash", h, *extra)
         step(f"cutover refuses incomplete evidence without the exact acknowledgement {extra[1:] or '(none)'}, production unchanged",
              r.returncode != 0 and "INCOMPLETE" in r.stdout + r.stderr and db_name() == prod, (r.stdout + r.stderr)[-500:])
+    sha0 = env_sha()   # the pre-cutover env file; every rollback must restore exactly these bytes
     r = cutover(h)
     step("cutover 1: apply → switch → deploy → Keycloak link → verify + live SSO + doctor + SeaweedFS restart",
          r.returncode == 0 and "CUTOVER SUCCEEDED" in r.stdout and db_name().startswith("ironvision_recovered_"), r.stdout + r.stderr)
@@ -413,17 +419,39 @@ def test_recover_operator_flow(world):
     step("recovered DB: original users present + identities linked", n_users >= 8 and sql(rec_db, "select count(*) from auth_identities")[0][0] >= 8, str(n_users))
     step("live e2e SSO incl. self-registration + launcher + role switch + logout", "PASS  self-registration" in r.stdout and "PASS  role switch" in r.stdout
          and "FAIL  " not in r.stdout, r.stdout[-1500:])
+    r = recover("rollback", RECOVER_REDEPLOY_CMD="false")
+    step("(d) rollback interrupted at redeploy → fails clearly; env already back to the pre-cutover checksum",
+         r.returncode != 0 and "rollback step 'redeploy' failed" in r.stdout and env_sha() == sha0, r.stdout[-600:])
     r = recover("rollback")
-    step("rollback → original DB, recovered DB kept", r.returncode == 0 and db_name() == prod and sql(rec_db, "select count(*) from users")[0][0] > 0, r.stdout[-400:])
+    step("(d) re-run converges: env restore SKIPPED (no double-apply), redeploy, health VERIFIED on the previous DB, recovered DB kept",
+         r.returncode == 0 and "env-restore: SKIP" in r.stdout and "[health] PASS app on db=" + prod in r.stdout and "ROLLBACK COMPLETE" in r.stdout
+         and env_sha() == sha0 and db_name() == prod and sql(rec_db, "select count(*) from users")[0][0] > 0
+         and json.loads(max(RUN.glob("rollback-*.json")).read_text())["passed"], r.stdout[-900:])
+    r = recover("rollback")
+    step("(e) rollback with no un-rolled-back switch → clear no-op, env unchanged",
+         r.returncode == 0 and "nothing to roll back" in r.stdout and env_sha() == sha0, r.stdout[-300:])
     _scratch_failure_paths()   # production back on the original DB; run 2 below creates the next passing rehearsal for cutover 2
     h2 = run_and_hash("2")
+    r = cutover(h2, ENVSET_FAULT="before-rename")
+    step("(a) envset fails mid-write → env intact, AUTOMATIC rollback converges, env checksum = pre-cutover",
+         r.returncode != 0 and "envset failed mid-write" in r.stdout and "automatic rollback" in r.stdout and "ROLLBACK COMPLETE" in r.stdout
+         and env_sha() == sha0 and db_name() == prod, r.stdout[-900:])
+    (W / "redeploy-fail-recovered.sh").write_text(f"""#!/bin/bash
+case "$(python3 {ROOT}/scripts/envget.py {W}/env.production DATABASE_URL)" in *ironvision_recovered_*) echo "redeploy FAILED (injected)"; exit 1;; esac
+exec bash {W}/redeploy.sh
+""")
+    r = cutover(h2, RECOVER_REDEPLOY_CMD=f"bash {W}/redeploy-fail-recovered.sh")
+    step("(b) redeploy fails after the switch → AUTOMATIC rollback → redeploy on the previous DB → health verified",
+         r.returncode != 0 and "redeploy failed after the DATABASE_URL switch" in r.stdout and "ROLLBACK COMPLETE" in r.stdout
+         and "[health] PASS app on db=" + prod in r.stdout and env_sha() == sha0 and db_name() == prod, r.stdout[-900:])
     r = cutover(h2, RECOVER_LIVE_URL="http://127.0.0.1:1")
-    step("cutover 2 with a failing live check → AUTOMATIC rollback to the previous env/DB",
-         r.returncode != 0 and "automatic rollback" in r.stdout and db_name() == prod, r.stdout[-800:])
+    step("(c) cutover 2 with a failing live check → AUTOMATIC rollback to the previous env/DB, env checksum restored, health verified",
+         r.returncode != 0 and "automatic rollback" in r.stdout and "ROLLBACK COMPLETE" in r.stdout and env_sha() == sha0 and db_name() == prod,
+         r.stdout[-800:])
     r = cutover(h2, RECOVER_CUTOVER_FAULT="demo-403")
     step("cutover with a forced Explore Demo 403 → Explore Demo check FAILS → AUTOMATIC rollback to the previous env/DB",
          r.returncode != 0 and "[demo-check] FAIL" in r.stdout and "demo-login 403" in r.stdout and "Explore Demo check" in r.stdout
-         and "automatic rollback" in r.stdout and db_name() == prod, r.stdout[-900:])
+         and "automatic rollback" in r.stdout and "ROLLBACK COMPLETE" in r.stdout and env_sha() == sha0 and db_name() == prod, r.stdout[-900:])
     h3 = run_and_hash("3")
     r = cutover(h3)
     step("cutover 3 (re-cutover after rollback) succeeds", r.returncode == 0 and "CUTOVER SUCCEEDED" in r.stdout, r.stdout[-1500:])
