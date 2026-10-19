@@ -6,6 +6,8 @@
 #        ./deploy.sh --set-auth-domain auth.demo.ironvisionai.com      (adds Keycloak; sign-in mode is NOT switched – docs/KEYCLOAK.md)
 #        ./deploy.sh --apply-demo-settings [--yes]   demo.ironvisionai.com values into the EXISTING env file (dry run without
 #                                                    --yes; --yes writes in place with a backup, then deploys as usual)
+#        sudo ./deploy.sh --demo-without-recovery   demo deploy of this checkout on the original DB, recovery deferred
+#                                                    (scripts/demo_deploy.sh; docs/DIGITALOCEAN_DEPLOYMENT.md §0)
 # ENV_FILE defaults to deploy/digitalocean/.env.production (git-ignored; lives only on the Droplet).
 #  - missing env file → created from deploy/digitalocean/env.production.template, secrets generated, then STOPS so the
 #    operator fills the non-secret values (never deploys placeholders);
@@ -22,11 +24,13 @@ EMAIL_NEW=""
 AUTH_NEW=""
 DEMO_SETTINGS=0
 DEMO_YES=0
+DEMO_NR=0
 PASS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --apply-demo-settings) DEMO_SETTINGS=1 ;;
     --yes) DEMO_YES=1 ;;
+    --demo-without-recovery) DEMO_NR=1 ;;
     --set-domain) DOMAIN_NEW="${2:?--set-domain needs a hostname}"; shift ;;
     --email) EMAIL_NEW="${2:?--email needs an address}"; shift ;;
     --set-auth-domain) AUTH_NEW="${2:?--set-auth-domain needs a hostname}"; shift ;;
@@ -92,6 +96,10 @@ if [ ! -f "$F" ]; then
 fi
 
 chmod 600 "$F"
+if [ "$DEMO_NR" = 1 ]; then   # demo deploy, recovery deferred: read-only preflight + rollback snapshot BEFORE the env is touched
+  SNAP="$(scripts/demo_deploy.sh prepare "$F")"
+  DEMO_SETTINGS=1; DEMO_YES=1
+fi
 if [ "$DEMO_SETTINGS" = 1 ]; then
   demo_args=("$F"); [ "$DEMO_YES" = 1 ] && demo_args+=(--yes)
   rc=0; python3 scripts/apply_demo_settings.py "${demo_args[@]}" || rc=$?
@@ -114,4 +122,5 @@ if [ -n "$missing" ]; then
   exit 2
 fi
 python3 scripts/check_env.py "$F" || die "fix the ERROR lines above in $F, then re-run ./deploy.sh"
+[ "$DEMO_NR" = 1 ] && exec scripts/demo_deploy.sh run "$F" "$SNAP" "${PASS[@]}"
 exec scripts/deploy.sh "$F" "${PASS[@]}"

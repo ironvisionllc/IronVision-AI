@@ -419,3 +419,8 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - test_recovery_e2e runs the real scratch-SSO e2e (same life cycle as recover.sh) with no skip. Copy-only, purge refusal, remove-recovered-objects, idempotent re-apply and cleanup run again.
 - Runtime fixes in `rollback --restore-db-from`: a checksum check (apply manifest or --sha256) and pg_restore -l before any DB is created; a report and verified health on every failure; reuse of a completed restore and a skipped switch on re-run; partial DBs kept. Demo sandbox objects are now recorded in recovery_added_keys.
 - Results: orchestration 58/58 (incl. restore-from 1–5); engine e2e 27/27; suite 396 passed / 33 env-gated skips.
+
+## 2026-10-19 – Demo deploy, recovery deferred
+- `sudo ./deploy.sh --demo-without-recovery` (scripts/demo_deploy.sh): read-only preflight (refuses un-rolled-back cutover switch / recovery DB), env+image rollback snapshot, apply-demo-settings, verified pre-deploy backup, migrate + demo launcher seed, realm apply, launcher-only Keycloak link (guarded, idempotent), smoke test, auto-rollback. Legacy containers/backups/recovery dir untouched.
+- Preview signup screenshots: docs/screenshots/signup-demo/.
+- Backlog: fresh recovery plan + rehearsal after the demo deploy, then cutover.

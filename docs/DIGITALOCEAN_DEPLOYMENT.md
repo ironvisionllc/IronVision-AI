@@ -75,6 +75,17 @@ The repo-root `./deploy.sh` replaces any hand-made wrapper. What it does:
 
 `scripts/deploy.sh deploy/digitalocean/.env.staging --staging` deploys staging. `--skip-edge-check` skips the TLS step and the public HTTPS check (rarely needed now – the certificate is obtained automatically, §4). Any wrapper script must not print "Deployment complete" when a step fails: call `deploy.sh` and check its exit code. **The "Cleaning unused images / Deployment complete" wrapper is not part of this repository.**
 
+### Demo deploy with recovery deferred (`sudo ./deploy.sh --demo-without-recovery`)
+Runs the current checkout as demo.ironvisionai.com against the original `ironvision` database without any recovery cutover:
+1. read-only preflight (`scripts/demo_preflight.py`). It refuses to run if any `env-switch-*.json` in `/root/ironvision-recovery` has not been rolled back (it never rolls back for you: run `sudo ./recover.sh rollback` yourself). It also refuses if the env file points at anything other than `ironvision` (for example `rec_target_*`), or at a different DB than the pre-cutover env backup.
+2. rollback snapshot (env file + tags of the running app images) → `apply-demo-settings` (DEPLOYMENT_KIND=demo, ALLOW_DEMO_LOGIN=true, KEYCLOAK_ALLOW_REGISTRATION=true, SEED_DEMO_DATA=false, ALLOW_SIGNUP=false, APP_ENV=production; ALLOW_INSECURE_PRODUCTION off) and a check of those values.
+3. `scripts/deploy.sh --apply-realm`. Legacy `aegisrmf` containers are retained. It still stops on PORT_CONFLICT or PRODUCTION_DEPENDS_ON_LEGACY. A pre-deploy backup is required and verified (`scripts/verify_backup.py`). Then migrate + the demo seed (demo launcher account only), Keycloak realm apply, build, and readiness.
+4. links the demo launcher's Keycloak identity: dry run → `scripts/demo_link_guard.py` → apply. Only `demo@ironvision.ai` is ever linked. The guard refuses if other users (e.g. restored `@aegisrmf.demo` accounts) would be linked. A re-run is a no-op.
+5. `scripts/demo_smoke.py`: /health, /ready, provider flags, `/auth/oidc/register` → Keycloak registration form (fetched but never submitted, so no user is created), Explore Demo, switch to ISSM and back.
+Any failure → the env and the previous app images are restored (the database is not rolled back; the pre-deploy backup path is printed).
+**Recovery stays possible afterwards.** This path never stops or removes legacy containers, never touches volumes, `/root/ironvision-predeploy` or `/root/ironvision-recovery`, and never switches DATABASE_URL. `sudo ./recover.sh run` / rehearsal can still restore the legacy data into a scratch DB later. Note: after this deploy `ironvision` contains the demo launcher account + its synthetic sandbox, so earlier plans/rehearsals are stale. Run a fresh `sudo ./recover.sh run` (new plan hash) + rehearsal before any cutover (`ensure_demo_launcher_sandbox` is idempotent, so the cutover's demo_account step finds the account instead of creating it).
+
+
 ### 0.0 Troubleshooting: `containers of the old compose project 'aegisrmf' are still running`
 That hard stop is gone. `aegisrmf-postgres-1` (old AegisRMF DB, possibly `aegisrmf_backup_test` / an early `ironvision` DB) and
 `aegisrmf-minio-recovery` are **kept on purpose** – they are recovery sources. What happens now:

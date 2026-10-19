@@ -195,6 +195,10 @@ done
 if [ "$BACKUP" -eq 1 ] && [ -n "$("${DC[@]}" ps -q postgres 2>/dev/null)" ]; then
   step "backup (existing deployment: app DB$([ "$KEYCLOAK" -eq 1 ] && echo ' + keycloak DB') + objects)" "backup failed – nothing was changed. Fix it or re-run with --no-backup (not recommended)"
   REPO="$PWD" ENV_FILE="$ENV_FILE" COMPOSE_PROJECT="$PROJECT" bash deploy/digitalocean/backup-offsite.sh
+  step "verify backup (manifest SHA-256 + pg_restore --list)" "backup not verifiable – nothing was changed"
+  python3 scripts/verify_backup.py "$(find "$(envget DATA_ROOT)/backups" -maxdepth 1 -name 'ironvision-*' -type d | sort | tail -n 1)"
+elif [ "${DEPLOY_REQUIRE_BACKUP:-0}" = 1 ]; then
+  die "a verified pre-deploy backup is required but none was taken (--no-backup given, or postgres is not running) – nothing was changed"
 fi
 
 # ---------------------------------------------------------------- ordered start
