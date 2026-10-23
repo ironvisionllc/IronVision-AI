@@ -60,6 +60,9 @@ def _seed_config(db: Session, org: Organization, providers: bool = True) -> None
         db.add(Overlay(overlay_key="demo-cloud-overlay", version="1", title="Demo Cloud Hosting Overlay (SYNTHETIC – not an official DoD overlay)",
                        description="Synthetic overlay for demonstration only.", controls_add=["ac-6.3", "au-9.2", "sc-7.18", "si-4.12"],
                        controls_remove=[], source=SEED))
+    from app.services.rmf_steps import ensure_overlays
+
+    ensure_overlays(db)
     if not db.scalar(select(OrgMappingRule.id).limit(1)):
         db.add(OrgMappingRule(rule_key="acas-vuln-to-ra5-si2", version=1, title="Organizational mapping rule v1 (SYNTHETIC)",
                               source_type="acas", match={"requires_cve": True}, control_ids=["ra-5", "si-2"], review_status="human_approved",

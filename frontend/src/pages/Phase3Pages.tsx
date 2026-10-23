@@ -9,6 +9,7 @@ import { ControlLink, NeedSystem, S, Stat, Table } from "@/components/common/Bit
 import { Modal } from "@/components/common/Workflow";
 import { MapToControlModal, PolicyMappingsPanel } from "@/components/controls/PolicyMappings";
 import { cn, fmtDate } from "@/lib/format";
+import { RmfOverview } from "@/pages/RmfStepPages";
 
 export function InheritancePage() {
   const { selectedId: sid } = useSystems();
@@ -191,26 +192,22 @@ export function PolicyDetailPage() {
   );
 }
 
-const RMF_STAGES = ["1. Prepare", "2. Categorize", "3. Select", "4. Implement", "5. Assess", "6. Authorize", "7. Monitor",
-  "Ongoing: POA&M", "Ongoing: Attestations", "Ongoing: Reviews", "Ongoing: Policy audit"];
-
 export function RmfWorkflowPage() {
   const { selectedId: sid, systems, loaded } = useSystems();
   const { data } = useApi<Row[]>(sid ? `/systems/${sid}/rmf-workflow` : null);
   const empty = loaded && systems.length === 0;
-  if (!sid && !empty) return <NeedSystem />;
   const tone: Record<string, string> = { completed: "border-emerald-300", in_progress: "border-sky-300", needs_attention: "border-amber-400", not_configured: "border-slate-300" };
-  const rows = empty ? RMF_STAGES.map((stage) => ({ stage, state: "not_configured", reason: "No system registered yet", link: "/systems/new" })) : data;
+  const ongoing = (data ?? []).filter((s) => s.stage.startsWith("Ongoing"));
   return (
     <div data-testid="rmf-workflow-page">
-      <PageHeader title="RMF Workflow" subtitle="Live stage state derived from this system's records (rules documented in README).">
-        {empty && <Link to="/systems/new" className="btn-primary" data-testid="rmf-empty-register">Register your first system</Link>}
-      </PageHeader>
-      {empty && <div className="panel mb-4 p-4 text-[13px] text-slate-600" data-testid="rmf-empty">No systems yet – every stage is <b>Not configured</b>. Register a system to start Prepare → Categorize → Select.</div>}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {rows?.map((s) => <Link key={s.stage} to={s.link} className={cn("panel card-interactive border-l-4 p-4", tone[s.state])} data-testid={`stage-${s.stage.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase()}`}>
-          <div className="flex items-center justify-between"><span className="font-heading font-semibold text-slate-900">{s.stage}</span><S v={s.state} /></div><div className="mt-1 text-[12px] text-slate-600">{s.reason}</div></Link>)}
-      </div>
+      <PageHeader title="Getting started · RMF overview" subtitle="IronVision follows the 7 steps of the Risk Management Framework (NIST SP 800-37 Rev. 2). Each step's status is computed from this system's real records – hover a step to see how it is decided." />
+      <RmfOverview />
+      {!empty && ongoing.length > 0 && <>
+        <h2 className="mb-2 mt-6 font-heading text-[15px] font-semibold text-slate-900">Ongoing activities</h2>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {ongoing.map((s) => <Link key={s.stage} to={s.link} className={cn("panel card-interactive border-l-4 p-4", tone[s.state])} data-testid={`stage-${s.stage.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase()}`}>
+            <div className="flex items-center justify-between"><span className="font-heading font-semibold text-slate-900">{s.stage.replace("Ongoing: ", "")}</span><S v={s.state} /></div><div className="mt-1 text-[12px] text-slate-600">{s.reason}</div></Link>)}
+        </div></>}
     </div>
   );
 }

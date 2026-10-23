@@ -1,6 +1,6 @@
 import {
-  ClipboardCheck, Database, FileCheck, FileCode, GitFork, LayoutDashboard, ListOrdered, LucideIcon, Server,
-  Settings, ShieldCheck, Workflow,
+  Activity, BookOpen, ClipboardCheck, Database, FileCheck, FileCode, Gauge, GitFork, LayoutDashboard, Layers, ListChecks, ListOrdered, LucideIcon,
+  Network, Server, Settings, ShieldCheck, Stamp, Users, Workflow,
 } from "lucide-react";
 
 export interface NavItem {
@@ -11,30 +11,54 @@ export interface NavItem {
   phase: number | null;
   summary: string;
   perm?: string;
+  group: string;
 }
+
+// RMF steps (NIST SP 800-37 Rev 2) + Start and Tools. `step` = key returned by /systems/{id}/rmf-steps.
+export const NAV_GROUPS: { key: string; label: string; step?: string; help: string }[] = [
+  { key: "start", label: "Start", help: "Getting started, your systems and the portfolio view." },
+  { key: "prepare", label: "1 · Prepare", step: "prepare", help: "Name the people responsible for the system (owner, ISSO, ISSM, AO, SCA…)." },
+  { key: "categorize", label: "2 · Categorize", step: "categorize", help: "Pick SP 800-60 information types; the app derives the FIPS 199 impact level." },
+  { key: "select", label: "3 · Select", step: "select", help: "Baseline, overlays and tailoring decide which controls apply." },
+  { key: "implement", label: "4 · Implement", step: "implement", help: "Write implementation statements, set inheritance and collect evidence." },
+  { key: "assess", label: "5 · Assess", step: "assess", help: "The SCA tests the controls; review automated mappings." },
+  { key: "authorize", label: "6 · Authorize", step: "authorize", help: "Assemble the package; the AO records ATO / IATT / DATO." },
+  { key: "monitor", label: "7 · Monitor", step: "monitor", help: "Keep evidence current, watch findings and POA&Ms." },
+  { key: "tools", label: "Tools", help: "Cross-step tools: traceability, audit log, administration." },
+];
 
 // phase: null = available now. Numbers are the tentative delivery phase.
 export const NAV_ITEMS: NavItem[] = [
-  { id: "portfolio", label: "Portfolio / Leadership", path: "/portfolio", icon: LayoutDashboard, phase: null, perm: "portfolio.read", summary: "Cross-system risk posture, ATO expirations and trend reporting for leadership." },
-  { id: "systems", label: "Systems", path: "/systems", icon: Server, phase: null, summary: "System registration, categorization (FIPS 199 / SP 800-60) and baseline selection." },
-  { id: "evidence-sources", label: "Evidence Sources", path: "/evidence-sources", icon: Database, phase: null, summary: "Connectors for scanners, cloud configuration and ticketing systems that feed evidence." },
-  { id: "controls", label: "Controls", path: "/controls", icon: ShieldCheck, phase: null, summary: "" },
-  { id: "inheritance", label: "Inheritance", path: "/inheritance", icon: GitFork, phase: null, summary: "Common and hybrid control inheritance from providers and enclaves." },
-  { id: "policy-auditor", label: "Policy Auditor", path: "/policy-auditor", icon: FileCheck, phase: null, summary: "AI-assisted review of policies and procedures against control requirements." },
-  { id: "poam", label: "POA&M", path: "/poams", icon: ListOrdered, phase: null, summary: "Plan of Action & Milestones tracking with weaknesses, milestones and risk." },
-  { id: "reviews", label: "Reviews", path: "/reviews", icon: ClipboardCheck, phase: null, summary: "All review request types, SCA assessments and authorization decisions." },
-  { id: "evidence-ledger", label: "Evidence Ledger", path: "/evidence-ledger", icon: FileCode, phase: null, summary: "Tamper-evident, hash-chained ledger of evidence artifacts." },
-  { id: "emass", label: "eMASS Sync", path: "/emass", icon: FileCode, phase: null, summary: "" },
-  { id: "mapping-review", label: "Mapping Review", path: "/mapping-review", icon: FileCode, phase: null, perm: "system.read", summary: "" },
-  { id: "audit-log", label: "Audit Log", path: "/audit-log", icon: FileCode, phase: null, perm: "audit.read", summary: "" },
-  { id: "admin", label: "Admin", path: "/admin", icon: Settings, phase: null, summary: "" },
-  { id: "rmf-workflow", label: "RMF Workflow", path: "/rmf-workflow", icon: Workflow, phase: null, summary: "Prepare → Categorize → Select → Implement → Assess → Authorize → Monitor workflow." },
+  { id: "rmf-workflow", group: "start", label: "Getting started (RMF overview)", path: "/rmf-workflow", icon: Workflow, phase: null, summary: "Prepare → Categorize → Select → Implement → Assess → Authorize → Monitor workflow." },
+  { id: "systems", group: "start", label: "Systems", path: "/systems", icon: Server, phase: null, summary: "System registration, categorization (FIPS 199 / SP 800-60) and baseline selection." },
+  { id: "portfolio", group: "start", label: "Portfolio / Leadership", path: "/portfolio", icon: LayoutDashboard, phase: null, perm: "portfolio.read", summary: "Cross-system risk posture, ATO expirations and trend reporting for leadership." },
+  { id: "rmf-prepare", group: "prepare", label: "Key roles", path: "/rmf/prepare", icon: Users, phase: null, summary: "" },
+  { id: "rmf-categorize", group: "categorize", label: "Categorization", path: "/rmf/categorize", icon: Layers, phase: null, summary: "" },
+  { id: "rmf-select", group: "select", label: "Baseline, overlays & tailoring", path: "/rmf/select", icon: ListChecks, phase: null, summary: "" },
+  { id: "catalog", group: "select", label: "Control catalog", path: "/catalog", icon: BookOpen, phase: null, summary: "" },
+  { id: "rmf-implement", group: "implement", label: "Implementation progress", path: "/rmf/implement", icon: Gauge, phase: null, summary: "" },
+  { id: "controls", group: "implement", label: "Control Workbench", path: "/controls", icon: ShieldCheck, phase: null, summary: "" },
+  { id: "inheritance", group: "implement", label: "Inheritance", path: "/inheritance", icon: GitFork, phase: null, summary: "Common and hybrid control inheritance from providers and enclaves." },
+  { id: "policy-auditor", group: "implement", label: "Policy Auditor", path: "/policy-auditor", icon: FileCheck, phase: null, summary: "AI-assisted review of policies and procedures against control requirements." },
+  { id: "evidence-sources", group: "implement", label: "Evidence Sources", path: "/evidence-sources", icon: Database, phase: null, summary: "Connectors for scanners, cloud configuration and ticketing systems that feed evidence." },
+  { id: "rmf-assess", group: "assess", label: "Assessment progress", path: "/rmf/assess", icon: Gauge, phase: null, summary: "" },
+  { id: "reviews", group: "assess", label: "Reviews", path: "/reviews", icon: ClipboardCheck, phase: null, summary: "All review request types, SCA assessments and authorization decisions." },
+  { id: "mapping-review", group: "assess", label: "Mapping Review", path: "/mapping-review", icon: FileCode, phase: null, perm: "system.read", summary: "" },
+  { id: "rmf-authorize", group: "authorize", label: "Authorization package", path: "/rmf/authorize", icon: Stamp, phase: null, summary: "" },
+  { id: "poam", group: "authorize", label: "POA&M", path: "/poams", icon: ListOrdered, phase: null, summary: "Plan of Action & Milestones tracking with weaknesses, milestones and risk." },
+  { id: "emass", group: "authorize", label: "eMASS Sync", path: "/emass", icon: FileCode, phase: null, summary: "" },
+  { id: "rmf-monitor", group: "monitor", label: "Continuous monitoring", path: "/rmf/monitor", icon: Activity, phase: null, summary: "" },
+  { id: "evidence-ledger", group: "monitor", label: "Evidence Ledger", path: "/evidence-ledger", icon: FileCode, phase: null, summary: "Tamper-evident, hash-chained ledger of evidence artifacts." },
+  { id: "traceability", group: "tools", label: "Traceability matrix", path: "/traceability", icon: Network, phase: null, summary: "" },
+  { id: "audit-log", group: "tools", label: "Audit Log", path: "/audit-log", icon: FileCode, phase: null, perm: "audit.read", summary: "" },
+  { id: "admin", group: "tools", label: "Admin", path: "/admin", icon: Settings, phase: null, summary: "" },
 ];
 
 // Deep-link routes → owning nav item (first match wins).
 const ROUTE_OWNERS: [RegExp, string][] = [
-  [/^\/systems\/[^/]+\/controls/, "controls"], [/^\/catalog/, "controls"], [/^\/findings\//, "controls"],
-  [/^\/systems\/[^/]+\/authorization/, "rmf-workflow"], [/^\/docs-center/, "admin"], [/^\/ingest-runs\//, "evidence-sources"], [/^\/poams?(\/|$)/, "poam"],
+  [/^\/systems\/[^/]+\/controls/, "controls"], [/^\/findings\//, "controls"],
+  [/^\/systems\/[^/]+\/authorization/, "rmf-authorize"], [/^\/docs-center/, "admin"], [/^\/ingest-runs\//, "evidence-sources"], [/^\/poams?(\/|$)/, "poam"],
+  [/^\/policy-auditor\//, "policy-auditor"], [/^\/reviews\//, "reviews"],
 ];
 
 export function activeNavId(pathname: string): string | undefined {

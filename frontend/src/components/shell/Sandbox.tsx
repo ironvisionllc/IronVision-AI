@@ -88,12 +88,6 @@ export function SandboxBar() {
   useEffect(() => { reload(); }, [loc.pathname, reload]);
   if (!data?.sandbox) return null;
   const reset = async () => { setBusy(true); try { await api.post("/sandbox/reset"); window.location.reload(); } finally { setBusy(false); } };
-  const step = async (s: string) => { await api.post("/sandbox/onboarding", { step: s }); reload(); };
-  const samples = async () => {
-    const r = await api.get("/sandbox/samples.zip", { responseType: "blob" });
-    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(r.data as Blob), download: "ironvision-samples-SYNTHETIC.zip" });
-    a.click(); URL.revokeObjectURL(a.href);
-  };
   const ex = data.expiry;
   const loadDemo = async () => {
     if (!window.confirm("Load the SYNTHETIC demo data (4 sample systems, scans, findings, POA&Ms) into your workspace? Remove it any time with “Clear my workspace”.")) return;
@@ -119,14 +113,19 @@ export function SandboxBar() {
           <button className="btn-primary" disabled={busy} onClick={reset} data-testid="sandbox-reset-confirm">{busy ? "Working…" : data.is_demo ? "Yes, reset demo data" : "Yes, clear everything"}</button>
         </div>
       </Modal>}
-      {!data.onboarding_dismissed && <div className="flex flex-wrap items-center gap-2 border-b border-blue-100 bg-blue-50/60 px-6 py-1.5 text-[12px]" data-testid="onboarding-checklist">
-        <b>Get started:</b>
-        {data.onboarding.map((s: Row, i: number) => <span key={s.key} className="flex items-center gap-1">{i > 0 && "→"}
-          {s.link ? <Link to={s.link} className={s.done ? "text-emerald-700 line-through" : "text-blue-800 underline"} data-testid={`onboarding-${s.key}`}>{s.label}</Link>
-            : <span className={s.done ? "text-emerald-700 line-through" : ""} data-testid={`onboarding-${s.key}`}>{s.label} (header “Acting as”)</span>}
-          {s.key === "add_source" && <button className="text-[11px] text-slate-600 underline" onClick={samples} data-testid="onboarding-download-samples">(download sample STIG/ACAS files)</button>}</span>)}
-        <button className="ml-auto text-[11px] text-slate-500 underline" onClick={() => step("dismissed")} data-testid="onboarding-dismiss">Dismiss</button>
-      </div>}
     </div>
   );
+}
+
+/** Synthetic sample files (STIG .ckl / ACAS) – shown in the "Upload a file" help, sandbox accounts only. */
+export function SampleFilesLink() {
+  const { user } = useAuth();
+  if (!user || !user.is_sandbox) return null;
+  const samples = async () => {
+    const r = await api.get("/sandbox/samples.zip", { responseType: "blob" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(r.data as Blob), download: "ironvision-samples-SYNTHETIC.zip" });
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+  return <button type="button" className="text-[11px] text-blue-800 underline" onClick={samples} data-testid="download-samples"
+    title="Fictional STIG checklists and ACAS scans for trying the upload – not real system data">Sample/test data (SYNTHETIC) – download sample STIG and ACAS files</button>;
 }

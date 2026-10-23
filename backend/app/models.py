@@ -132,6 +132,14 @@ class System(CoreMixin, ProvenanceMixin, Base):
     include_privacy: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     overlay_keys: Mapped[list | None] = mapped_column(JSONB)
     mission_criticality: Mapped[str | None] = mapped_column(String(50))
+    system_type: Mapped[str | None] = mapped_column(String(80))
+    acquisition_category: Mapped[str | None] = mapped_column(String(40))
+    categorization_mode: Mapped[str | None] = mapped_column(String(20))
+    environment_detail: Mapped[dict | None] = mapped_column(JSONB)
+    key_roles: Mapped[dict | None] = mapped_column(JSONB)
+    pta: Mapped[dict | None] = mapped_column(JSONB)
+    processes_pii: Mapped[bool | None] = mapped_column(Boolean)
+    categorization_detail: Mapped[dict | None] = mapped_column(JSONB)
 
 
 class Asset(CoreMixin, ProvenanceMixin, Base):
@@ -352,6 +360,7 @@ class Overlay(CoreMixin, ProvenanceMixin, Base):
     controls_remove: Mapped[list] = mapped_column(JSONB, nullable=False)
     is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    structure_only: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
 
 
 class CommonControlProvider(CoreMixin, ProvenanceMixin, Base):

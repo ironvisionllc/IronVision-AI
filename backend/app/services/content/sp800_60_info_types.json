@@ -1,0 +1,1519 @@
+{
+ "source": "NIST SP 800-60 Vol. 2 Rev. 1 (Aug 2008), Appendices C and D \u2013 recommended provisional security categorizations, extracted from https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-60v2r1.pdf",
+ "types": [
+  {
+   "id": "C.2.1.1",
+   "name": "Corrective Action",
+   "line_of_business": "Controls and Oversight",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.1.2",
+   "name": "Program Evaluation",
+   "line_of_business": "Controls and Oversight",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.1.3",
+   "name": "Program Monitoring",
+   "line_of_business": "Controls and Oversight",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.2.1",
+   "name": "Policy and Guidance Development",
+   "line_of_business": "Regulatory Development",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.2.2",
+   "name": "Public Comment Tracking",
+   "line_of_business": "Regulatory Development",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.2.3",
+   "name": "Regulatory Creation",
+   "line_of_business": "Regulatory Development",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.2.4",
+   "name": "Rule Publication",
+   "line_of_business": "Regulatory Development",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.3.1",
+   "name": "Budget Formulation",
+   "line_of_business": "Planning & Budgeting",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.3.2",
+   "name": "Capital Planning",
+   "line_of_business": "Planning & Budgeting",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.3.3",
+   "name": "Enterprise Architecture",
+   "line_of_business": "Planning & Budgeting",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.3.4",
+   "name": "Strategic Planning",
+   "line_of_business": "Planning & Budgeting",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.3.5",
+   "name": "Budget Execution",
+   "line_of_business": "Planning & Budgeting",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.3.6",
+   "name": "Workforce Planning",
+   "line_of_business": "Planning & Budgeting",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.3.7",
+   "name": "Management Improvement",
+   "line_of_business": "Planning & Budgeting",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.3.8",
+   "name": "Budget and Performance Integration",
+   "line_of_business": "Planning & Budgeting",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.3.9",
+   "name": "Tax and Fiscal Policy",
+   "line_of_business": "Planning & Budgeting",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.4.1",
+   "name": "Contingency Planning",
+   "line_of_business": "Internal Risk Management &",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "C.2.4.2",
+   "name": "Continuity of Operations",
+   "line_of_business": "Internal Risk Management &",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "C.2.4.3",
+   "name": "Service Recovery",
+   "line_of_business": "Internal Risk Management &",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.5.1",
+   "name": "Debt Collection",
+   "line_of_business": "Revenue Collection",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.5.2",
+   "name": "User Fee Collection",
+   "line_of_business": "Revenue Collection",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Moderate"
+  },
+  {
+   "id": "C.2.5.3",
+   "name": "Federal Asset Sales",
+   "line_of_business": "Revenue Collection",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.6.1",
+   "name": "Customer Services",
+   "line_of_business": "Public Affairs",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.6.2",
+   "name": "Official Information Dissemination",
+   "line_of_business": "Public Affairs",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.6.3",
+   "name": "Product Outreach",
+   "line_of_business": "Public Affairs",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.6.4",
+   "name": "Public Relations",
+   "line_of_business": "Public Affairs",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.7.1",
+   "name": "Legislation Tracking",
+   "line_of_business": "Legislative Relations",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.7.2",
+   "name": "Legislation Testimony",
+   "line_of_business": "Legislative Relations",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.7.3",
+   "name": "Proposal Development",
+   "line_of_business": "Legislative Relations",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.7.4",
+   "name": "Congressional Liaison Operations",
+   "line_of_business": "Legislative Relations",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.8.1",
+   "name": "Central Fiscal Operations",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.8.2",
+   "name": "Legislative Functions",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.8.3",
+   "name": "Executive Functions",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.8.4",
+   "name": "Central Property Management",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.8.5",
+   "name": "Central Personnel Management",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.8.6",
+   "name": "Taxation Management",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.8.7",
+   "name": "Central Records and Statistics Management",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.2.8.8",
+   "name": "Income Information",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "C.2.8.9",
+   "name": "Personal Identity and Authentication Information",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "C.2.8.10",
+   "name": "Entitlement Event Information",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "C.2.8.11",
+   "name": "Representative Payee Information",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "C.2.8.12",
+   "name": "General Information",
+   "line_of_business": "General Government",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.1.1",
+   "name": "Facilities, Fleet, and Equipment Management",
+   "line_of_business": "Administrative Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.1.2",
+   "name": "Help Desk Services",
+   "line_of_business": "Administrative Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.1.3",
+   "name": "Security Management",
+   "line_of_business": "Administrative Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.1.4",
+   "name": "Travel",
+   "line_of_business": "Administrative Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.2.1",
+   "name": "Assets and Liability Management",
+   "line_of_business": "Financial Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.2.2",
+   "name": "Reporting and Information",
+   "line_of_business": "Financial Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.2.3",
+   "name": "Funds Control",
+   "line_of_business": "Financial Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.2.4",
+   "name": "Accounting",
+   "line_of_business": "Financial Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.2.5",
+   "name": "Payments",
+   "line_of_business": "Financial Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.2.6",
+   "name": "Collections and Receivables",
+   "line_of_business": "Financial Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.2.7",
+   "name": "Cost Accounting/ Performance Measurement",
+   "line_of_business": "Financial Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.3.1",
+   "name": "HR Strategy",
+   "line_of_business": "Human Resource Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.3.2",
+   "name": "Staff Acquisition",
+   "line_of_business": "Human Resource Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.3.3",
+   "name": "Organization & Position Management",
+   "line_of_business": "Human Resource Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.3.4",
+   "name": "Compensation Management",
+   "line_of_business": "Human Resource Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.3.5",
+   "name": "Benefits Management",
+   "line_of_business": "Human Resource Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.3.6",
+   "name": "Employee Performance Management",
+   "line_of_business": "Human Resource Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.3.7",
+   "name": "Employee Relations",
+   "line_of_business": "Human Resource Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.3.8",
+   "name": "Labor Relations",
+   "line_of_business": "Human Resource Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.3.9",
+   "name": "Separation Management",
+   "line_of_business": "Human Resource Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.3.10",
+   "name": "Human Resources Development",
+   "line_of_business": "Human Resource Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.4.1",
+   "name": "Goods Acquisition",
+   "line_of_business": "Supply Chain Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.4.2",
+   "name": "Inventory Control",
+   "line_of_business": "Supply Chain Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.4.3",
+   "name": "Logistics Management",
+   "line_of_business": "Supply Chain Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.4.4",
+   "name": "Services Acquisition",
+   "line_of_business": "Supply Chain Management",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.5.1",
+   "name": "System Development",
+   "line_of_business": "Information & Technology",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.5.2",
+   "name": "Lifecycle/Change Management",
+   "line_of_business": "Information & Technology",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.5.3",
+   "name": "System Maintenance",
+   "line_of_business": "Information & Technology",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.5.4",
+   "name": "IT Infrastructure Maintenance",
+   "line_of_business": "Information & Technology",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.5.5",
+   "name": "Information Security",
+   "line_of_business": "Information & Technology",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.5.6",
+   "name": "Record Retention",
+   "line_of_business": "Information & Technology",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.5.7",
+   "name": "Information Management",
+   "line_of_business": "Information & Technology",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.5.8",
+   "name": "System and Network Monitoring",
+   "line_of_business": "Information & Technology",
+   "appendix": "C \u2013 Management and Support",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "C.3.5.9",
+   "name": "Information Sharing",
+   "line_of_business": "Information & Technology",
+   "appendix": "C \u2013 Management and Support",
+   "c": "N/A",
+   "i": "N/A",
+   "a": "N/A"
+  },
+  {
+   "id": "D.2.1",
+   "name": "Border and Transportation Security",
+   "line_of_business": "Homeland Security",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.2.2",
+   "name": "Key Asset and Critical Infrastructure Protection",
+   "line_of_business": "Homeland Security",
+   "appendix": "D \u2013 Mission-based",
+   "c": "High",
+   "i": "High",
+   "a": "High"
+  },
+  {
+   "id": "D.2.3",
+   "name": "Catastrophic Defense",
+   "line_of_business": "Homeland Security",
+   "appendix": "D \u2013 Mission-based",
+   "c": "High",
+   "i": "High",
+   "a": "High"
+  },
+  {
+   "id": "D.2.4",
+   "name": "Executive Functions of the Executive Office of the President (EOP)",
+   "line_of_business": "Homeland Security",
+   "appendix": "D \u2013 Mission-based",
+   "c": "High",
+   "i": "Moderate",
+   "a": "High"
+  },
+  {
+   "id": "D.4.1",
+   "name": "Disaster Monitoring and Prediction",
+   "line_of_business": "Disaster Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "High",
+   "a": "High"
+  },
+  {
+   "id": "D.4.2",
+   "name": "Disaster Preparedness and Planning",
+   "line_of_business": "Disaster Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.4.3",
+   "name": "Disaster Repair and Restoration",
+   "line_of_business": "Disaster Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.4.4",
+   "name": "Emergency Response",
+   "line_of_business": "Disaster Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "High",
+   "a": "High"
+  },
+  {
+   "id": "D.5.1",
+   "name": "Foreign Affairs",
+   "line_of_business": "International Affairs and Commerce",
+   "appendix": "D \u2013 Mission-based",
+   "c": "High",
+   "i": "High",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.5.2",
+   "name": "International Development and Humanitarian Aid",
+   "line_of_business": "International Affairs and Commerce",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.5.3",
+   "name": "Global Trade",
+   "line_of_business": "International Affairs and Commerce",
+   "appendix": "D \u2013 Mission-based",
+   "c": "High",
+   "i": "High",
+   "a": "High"
+  },
+  {
+   "id": "D.6.1",
+   "name": "Water Resource Management",
+   "line_of_business": "Natural Resources",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.6.2",
+   "name": "Conservation, Marine and Land Management",
+   "line_of_business": "Natural Resources",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.6.3",
+   "name": "Recreational Resource Management and Tourism",
+   "line_of_business": "Natural Resources",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.6.4",
+   "name": "Agricultural Innovation and Services",
+   "line_of_business": "Natural Resources",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.7.1",
+   "name": "Energy Supply",
+   "line_of_business": "Energy",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.7.2",
+   "name": "Energy Conservation and Preparedness",
+   "line_of_business": "Energy",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.7.3",
+   "name": "Energy Resource Management",
+   "line_of_business": "Energy",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.7.4",
+   "name": "Energy Production",
+   "line_of_business": "Energy",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.8.1",
+   "name": "Environmental Monitoring and Forecasting",
+   "line_of_business": "Environmental Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.8.2",
+   "name": "Environmental Remediation",
+   "line_of_business": "Environmental Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.8.3",
+   "name": "Pollution Prevention and Control",
+   "line_of_business": "Environmental Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.9.1",
+   "name": "Business and Industry Development",
+   "line_of_business": "Economic Development",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.9.2",
+   "name": "Intellectual Property Protection",
+   "line_of_business": "Economic Development",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.9.3",
+   "name": "Financial Sector Oversight",
+   "line_of_business": "Economic Development",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.9.4",
+   "name": "Industry Sector Income Stabilization",
+   "line_of_business": "Economic Development",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.10.1",
+   "name": "Homeownership Promotion",
+   "line_of_business": "Community and Social Services",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.10.2",
+   "name": "Community and Regional Development",
+   "line_of_business": "Community and Social Services",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.10.3",
+   "name": "Social Services",
+   "line_of_business": "Community and Social Services",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.10.4",
+   "name": "Postal Services",
+   "line_of_business": "Community and Social Services",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.11.1",
+   "name": "Ground Transportation",
+   "line_of_business": "Transportation",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.11.2",
+   "name": "Water Transportation",
+   "line_of_business": "Transportation",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.11.3",
+   "name": "Air Transportation",
+   "line_of_business": "Transportation",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.11.4",
+   "name": "Space Operations",
+   "line_of_business": "Transportation",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "High",
+   "a": "High"
+  },
+  {
+   "id": "D.12.1",
+   "name": "Elementary, Secondary, and Vocational Education",
+   "line_of_business": "Education",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.12.2",
+   "name": "Higher Education",
+   "line_of_business": "Education",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.12.3",
+   "name": "Cultural and Historic Preservation",
+   "line_of_business": "Education",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.12.4",
+   "name": "Cultural and Historic Exhibition",
+   "line_of_business": "Education",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.13.1",
+   "name": "Training and Employment",
+   "line_of_business": "Workforce Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.13.2",
+   "name": "Labor Rights Management",
+   "line_of_business": "Workforce Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.13.3",
+   "name": "Worker Safety",
+   "line_of_business": "Workforce Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.14.1",
+   "name": "Access to Care",
+   "line_of_business": "Health",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.14.2",
+   "name": "Population Health Management and Consumer Safety",
+   "line_of_business": "Health",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.14.3",
+   "name": "Health Care Administration",
+   "line_of_business": "Health",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.14.4",
+   "name": "Health Care Delivery Services",
+   "line_of_business": "Health",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "High",
+   "a": "Low"
+  },
+  {
+   "id": "D.14.5",
+   "name": "Health Care Research and Practitioner Education",
+   "line_of_business": "Health",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.15.1",
+   "name": "General Retirement and Disability",
+   "line_of_business": "Income Security",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.15.2",
+   "name": "Unemployment Compensation",
+   "line_of_business": "Income Security",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.15.3",
+   "name": "Housing Assistance",
+   "line_of_business": "Income Security",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.15.4",
+   "name": "Food and Nutrition Assistance",
+   "line_of_business": "Income Security",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.15.5",
+   "name": "Survivor Compensation",
+   "line_of_business": "Income Security",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.16.1",
+   "name": "Criminal Apprehension",
+   "line_of_business": "Law Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.16.2",
+   "name": "Criminal Investigation and Surveillance",
+   "line_of_business": "Law Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.16.3",
+   "name": "Citizen Protection",
+   "line_of_business": "Law Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.16.4",
+   "name": "Leadership Protection",
+   "line_of_business": "Law Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.16.5",
+   "name": "Property Protection",
+   "line_of_business": "Law Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.16.6",
+   "name": "Substance Control",
+   "line_of_business": "Law Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.16.7",
+   "name": "Crime Prevention",
+   "line_of_business": "Law Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.16.8",
+   "name": "Trade Law Enforcement",
+   "line_of_business": "Law Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.17.1",
+   "name": "Judicial Hearings",
+   "line_of_business": "Litigation and Judicial Activities",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.17.2",
+   "name": "Legal Defense",
+   "line_of_business": "Litigation and Judicial Activities",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "High",
+   "a": "Low"
+  },
+  {
+   "id": "D.17.3",
+   "name": "Legal Investigation",
+   "line_of_business": "Litigation and Judicial Activities",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Moderate"
+  },
+  {
+   "id": "D.17.4",
+   "name": "Legal Prosecution and Litigation",
+   "line_of_business": "Litigation and Judicial Activities",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.17.5",
+   "name": "Resolution Facilitation",
+   "line_of_business": "Litigation and Judicial Activities",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.18.1",
+   "name": "Criminal Incarceration",
+   "line_of_business": "Federal Correctional Activities",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.18.2",
+   "name": "Criminal Rehabilitation",
+   "line_of_business": "Federal Correctional Activities",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.19.1",
+   "name": "Scientific and Technological Research and Innovation",
+   "line_of_business": "General Sciences and Innovation",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.19.2",
+   "name": "Space Exploration and Innovation",
+   "line_of_business": "General Sciences and Innovation",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.20.1",
+   "name": "Research and Development",
+   "line_of_business": "Knowledge Creation and Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.20.2",
+   "name": "General Purpose Data and Statistics",
+   "line_of_business": "Knowledge Creation and Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.20.3",
+   "name": "Advising and Consulting",
+   "line_of_business": "Knowledge Creation and Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.20.4",
+   "name": "Knowledge Dissemination",
+   "line_of_business": "Knowledge Creation and Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.21.1",
+   "name": "Inspections and Auditing",
+   "line_of_business": "Regulatory Compliance and Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Moderate",
+   "a": "Low"
+  },
+  {
+   "id": "D.21.2",
+   "name": "Standards Setting/Reporting Guideline Development",
+   "line_of_business": "Regulatory Compliance and Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.21.3",
+   "name": "Permits and Licensing",
+   "line_of_business": "Regulatory Compliance and Enforcement",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.22.1",
+   "name": "Manufacturing",
+   "line_of_business": "Public Goods Creation and Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.22.2",
+   "name": "Construction",
+   "line_of_business": "Public Goods Creation and Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.22.3",
+   "name": "Public Resources, Facility and Infrastructure Management",
+   "line_of_business": "Public Goods Creation and Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.22.4",
+   "name": "Information Infrastructure Management",
+   "line_of_business": "Public Goods Creation and Management",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.23.1",
+   "name": "Federal Grants (Non-State)",
+   "line_of_business": "Federal Financial Assistance",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.23.2",
+   "name": "Direct Transfers to Individuals",
+   "line_of_business": "Federal Financial Assistance",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.23.3",
+   "name": "Subsidies",
+   "line_of_business": "Federal Financial Assistance",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.23.4",
+   "name": "Tax Credits",
+   "line_of_business": "Federal Financial Assistance",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Moderate",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.24.1",
+   "name": "Direct Loans",
+   "line_of_business": "Credit and Insurance",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.24.2",
+   "name": "Loan Guarantees",
+   "line_of_business": "Credit and Insurance",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.24.3",
+   "name": "General Insurance",
+   "line_of_business": "Credit and Insurance",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.25.1",
+   "name": "Formula Grants",
+   "line_of_business": "Transfers to State/Local Governments",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.25.2",
+   "name": "Project/Competitive Grants",
+   "line_of_business": "Transfers to State/Local Governments",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.25.3",
+   "name": "Earmarked Grants",
+   "line_of_business": "Transfers to State/Local Governments",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.25.4",
+   "name": "State Loans",
+   "line_of_business": "Transfers to State/Local Governments",
+   "appendix": "D \u2013 Mission-based",
+   "c": "Low",
+   "i": "Low",
+   "a": "Low"
+  },
+  {
+   "id": "D.26.1",
+   "name": "Military Operations",
+   "line_of_business": "Direct Services for Citizens",
+   "appendix": "D \u2013 Mission-based",
+   "c": "N/A",
+   "i": "N/A",
+   "a": "N/A",
+   "note": "SP 800-60 gives no provisional level: impact depends on the mission service delivered \u2013 set C/I/A from that mission."
+  },
+  {
+   "id": "D.26.2",
+   "name": "Civilian Operations",
+   "line_of_business": "Direct Services for Citizens",
+   "appendix": "D \u2013 Mission-based",
+   "c": "N/A",
+   "i": "N/A",
+   "a": "N/A",
+   "note": "SP 800-60 gives no provisional level: impact depends on the mission service delivered \u2013 set C/I/A from that mission."
+  }
+ ]
+}

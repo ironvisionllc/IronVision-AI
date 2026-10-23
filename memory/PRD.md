@@ -432,3 +432,5 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 ## 2026-10-23 – SME Section 2
 - STIG run detail (all rules, totals, source check), unified Mapping Review queue (STIG/policy/status suggestions, bulk + justification, SoD), evidence-based status suggestions (approval only), Evidence Ledger + unmapped explanations. Report: docs/SME_SECTION2_REPORT.md
 - Pending: SME sections 3–7 + final flow (stopped: session context budget).
+
+## SME Section 3 – RMF 7 steps (stepper, Prepare roles, SP 800-60 categorization, Select tailoring/overlays, step pages, breadcrumbs, traceability). Report docs/SME_SECTION3_REPORT.md

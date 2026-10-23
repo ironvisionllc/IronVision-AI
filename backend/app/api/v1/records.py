@@ -63,6 +63,14 @@ class SystemBase(BaseModel):
     availability_impact: str | None = Impact
     information_types: list[dict] | None = None
     mission_criticality: str | None = Field(None, max_length=50)
+    system_type: str | None = Field(None, max_length=80)
+    acquisition_category: str | None = Field(None, max_length=40)
+    authorization_type: str | None = Field(None, max_length=50)
+    categorization_mode: str | None = Field(None, pattern="^(fips199|cnssi1253)$")
+    environment_detail: dict | None = None
+    processes_pii: bool | None = None
+    pta: dict | None = None
+    key_roles: dict | None = None
 
 
 class SystemCreate(SystemBase):
@@ -91,11 +99,25 @@ def list_systems(db: Session = Depends(get_db), current: CurrentUser = Depends(g
 @router.post("/systems", status_code=201)
 def create_system(body: SystemCreate, request: Request, db: Session = Depends(get_db),
                   current: CurrentUser = Depends(require_permission("system.register"))) -> dict:
-    data = body.model_dump(exclude={"tailoring", "provider_ids"}, exclude_none=True)
+    data = body.model_dump(exclude={"tailoring", "provider_ids", "key_roles"}, exclude_none=True)
     data.setdefault("lifecycle_phase", "Design")
+    if body.information_types:
+        from app.services.rmf_steps import categorize
+
+        calc = categorize(body.categorization_mode or "fips199", body.information_types,
+                          {"c": body.confidentiality_impact, "i": body.integrity_impact, "a": body.availability_impact})
+        if calc["errors"]:
+            raise HTTPException(422, "; ".join(calc["errors"]))
+        data.update(information_types=[{k: r[k] for k in ("id", "name", "c", "i", "a", "rationale", "adjusted")} for r in calc["rows"]],
+                    confidentiality_impact=calc["c"], integrity_impact=calc["i"], availability_impact=calc["a"],
+                    categorization_detail={"steps": calc["steps"], "security_category": calc["security_category"], "baseline": calc["baseline"]})
     try:
         s = register_system(db, {**data, "org_id": current.user.org_id, "is_synthetic": True, "source": "ui"},
                             [t.model_dump() for t in body.tailoring], body.provider_ids, current.user.id, current.user.email)
+        if body.key_roles:
+            from app.services.rmf_steps import save_roles
+
+            save_roles(db, s, body.key_roles, current.user)
     except ValueError as exc:
         db.rollback()
         raise HTTPException(422, str(exc))

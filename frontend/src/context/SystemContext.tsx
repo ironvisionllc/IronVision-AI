@@ -9,6 +9,7 @@ interface SystemState {
   loaded: boolean;
   selectedId: string;
   select: (id: string) => void;
+  refresh: () => Promise<void>;
 }
 
 const SystemContext = createContext<SystemState | undefined>(undefined);
@@ -18,19 +19,18 @@ export function SystemProvider({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const [selectedId, setSelectedId] = useState(localStorage.getItem(KEY) || "");
 
-  useEffect(() => {
-    api.get<SystemRecord[]>("/systems")
-      .then((r) => { setSystems(r.data); if (!localStorage.getItem(KEY) && r.data[0]) select((r.data.find((s) => s.acronym === "LTP") ?? r.data[0]).id); })
-      .catch(() => setSystems([]))
-      .finally(() => setLoaded(true));
-  }, []);
+  const refresh = () => api.get<SystemRecord[]>("/systems")
+    .then((r) => { setSystems(r.data); if (!localStorage.getItem(KEY) && r.data[0]) select((r.data.find((s) => s.acronym === "LTP") ?? r.data[0]).id); })
+    .catch(() => setSystems([]))
+    .finally(() => setLoaded(true));
+  useEffect(() => { refresh(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const select = (id: string) => {
     setSelectedId(id);
     localStorage.setItem(KEY, id);
   };
 
-  return <SystemContext.Provider value={{ systems, loaded, selectedId, select }}>{children}</SystemContext.Provider>;
+  return <SystemContext.Provider value={{ systems, loaded, selectedId, select, refresh }}>{children}</SystemContext.Provider>;
 }
 
 export function useSystems(): SystemState {

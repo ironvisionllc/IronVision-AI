@@ -7,6 +7,9 @@ import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { Table } from "@/components/common/Bits";
+import { showNextStep } from "@/components/common/NextStep";
+import { RolesEditor } from "@/components/rmf/RolesEditor";
+import { CategorizeForm, EMPTY_CAT, catBody, useCategorization } from "@/components/rmf/CategorizeForm";
 
 export function SystemsPage() {
   const { can } = useAuth();
@@ -46,75 +49,61 @@ const F = ({ label, children }: { label: string; children: React.ReactNode }) =>
 
 export function RegisterSystemPage() {
   const nav = useNavigate();
-  const { select } = useSystems();
-  const { data: ref } = useApi<Row>("/reference/registration");
+  const { select, refresh } = useSystems();
+  const { data: ref } = useApi<Row>("/reference/rmf");
   const [f, setF] = useState<Row>({ name: "", acronym: "", emass_id: "", description: "", lifecycle_phase: "Design", authorization_status: "Not authorized",
-    confidentiality_impact: "Moderate", integrity_impact: "Moderate", availability_impact: "Low", baseline_key: "moderate", include_privacy: false,
-    overlay_keys: [], operating_environment: "", deployment_type: "", boundary_description: "", mission_owner: "", organization_name: "", mission_criticality: "" });
-  const [tailor, setTailor] = useState<Row[]>([]);
+    boundary_description: "", mission_owner: "", organization_name: "", deployment_type: "" });
+  const [roles, setRoles] = useState<Row>({});
+  const [cat, setCat] = useState<Row>(EMPTY_CAT);
+  const calc = useCategorization(cat);
+  const [baseline, setBaseline] = useState("");
   const [error, setError] = useState("");
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
+  const auto = calc?.baseline ?? "";
+  const chosen = baseline && (["low", "moderate", "high"].indexOf(baseline) >= ["low", "moderate", "high"].indexOf(auto)) ? baseline : auto;
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const body = Object.fromEntries(Object.entries({ ...f, tailoring: tailor }).filter(([, v]) => (v as unknown) !== ""));
+    if (!cat.information_types.length) { setError("Pick at least one information type in Categorize – the app derives the impact level and baseline from them."); return; }
+    if (calc?.errors.length) { setError(calc.errors.join("; ")); return; }
+    const c = catBody(cat);
+    const body = Object.fromEntries(Object.entries({ ...f, ...c, ...(c.cia ? { confidentiality_impact: c.cia.c || undefined, integrity_impact: c.cia.i || undefined, availability_impact: c.cia.a || undefined } : {}),
+      cia: undefined, mode: undefined, categorization_mode: cat.mode, key_roles: roles, baseline_key: chosen || "moderate", include_privacy: cat.processes_pii === true })
+      .filter(([, v]) => (v as unknown) !== "" && v !== undefined));
     try {
       const r = await api.post<Row>("/systems", body);
+      await refresh();
       select(r.data.id);
-      nav(`/systems/${r.data.id}/controls`);
+      showNextStep({ message: `System “${r.data.name}” registered: ${r.data.categorization ?? ""} categorization, ${r.data.baseline_key} baseline, ${r.data.metrics.assigned_controls} controls assigned.`,
+        label: "review the baseline, overlays and tailoring in Select", to: "/rmf/select" });
+      nav("/rmf/select");
     } catch (err) { setError(errorMessage(err)); }
   };
-  const users = ref?.users ?? [];
-  const userSel = (k: string) => (
-    <select className="input" value={f[k] ?? ""} onChange={set(k)} data-testid={`reg-${k}`}><option value="">—</option>{users.map((u: Row) => <option key={u.id} value={u.id}>{u.display_name}</option>)}</select>
-  );
-  const imp = (k: string) => <select className="input" value={f[k]} onChange={set(k)} data-testid={`reg-${k}`}>{["Low", "Moderate", "High"].map((v) => <option key={v}>{v}</option>)}</select>;
   return (
     <form onSubmit={submit} data-testid="register-system-form">
-      <PageHeader title="Register system" subtitle="Creates the system, applies baseline + overlays + tailoring, generates control assignments, inheritance and initial implementation records in one transaction." />
-      <div className="grid gap-5 xl:grid-cols-2">
-        <Panel title="Identity & mission">
-          <div className="grid grid-cols-2 gap-3">
+      <PageHeader title="Register system" subtitle="Step 1 Prepare and step 2 Categorize in one form: name the system and its key people, pick its information types, and the app derives the impact level and baseline. Overlays and tailoring follow in step 3 Select." />
+      <div className="grid gap-5">
+        <Panel title="1 · Prepare – identity and key roles">
+          <div className="grid gap-3 md:grid-cols-3">
             <F label="Name *"><input className="input" required value={f.name} onChange={set("name")} data-testid="reg-name" /></F>
             <F label="Acronym"><input className="input" value={f.acronym} onChange={set("acronym")} data-testid="reg-acronym" /></F>
             <F label="eMASS system ID"><input className="input" value={f.emass_id} onChange={set("emass_id")} data-testid="reg-emass" /></F>
             <F label="Organization"><input className="input" value={f.organization_name} onChange={set("organization_name")} /></F>
             <F label="Mission owner"><input className="input" value={f.mission_owner} onChange={set("mission_owner")} /></F>
-            <F label="Mission criticality"><input className="input" value={f.mission_criticality} onChange={set("mission_criticality")} /></F>
-            <div className="col-span-2"><F label="Mission / business description"><textarea className="input" rows={2} value={f.description} onChange={set("description")} /></F></div>
-            <F label="System owner">{userSel("system_owner_id")}</F><F label="ISSO">{userSel("isso_id")}</F>
-            <F label="ISSM">{userSel("issm_id")}</F><F label="AO">{userSel("ao_id")}</F>
-          </div>
-        </Panel>
-        <Panel title="Environment, categorization & baseline">
-          <div className="grid grid-cols-3 gap-3">
-            <F label="Operating environment"><input className="input" value={f.operating_environment} onChange={set("operating_environment")} /></F>
-            <F label="Deployment type"><input className="input" value={f.deployment_type} onChange={set("deployment_type")} /></F>
             <F label="Lifecycle phase"><select className="input" value={f.lifecycle_phase} onChange={set("lifecycle_phase")} data-testid="reg-phase">{["Design", "Build", "Test", "Onboard", "Operations"].map((v) => <option key={v}>{v}</option>)}</select></F>
-            <div className="col-span-3"><F label="Boundary description"><textarea className="input" rows={2} value={f.boundary_description} onChange={set("boundary_description")} /></F></div>
-            <F label="Confidentiality">{imp("confidentiality_impact")}</F><F label="Integrity">{imp("integrity_impact")}</F><F label="Availability">{imp("availability_impact")}</F>
-            <F label="Baseline"><select className="input" value={f.baseline_key} onChange={set("baseline_key")} data-testid="reg-baseline">{["low", "moderate", "high"].map((v) => <option key={v} value={v}>{v}</option>)}</select></F>
-            <label className="mt-6 flex items-center gap-2 text-[12px]"><input type="checkbox" checked={f.include_privacy} onChange={(e) => setF({ ...f, include_privacy: e.target.checked })} data-testid="reg-privacy" />Include Privacy baseline</label>
-            <div />
-            <div className="col-span-3 text-[12px]">
-              <div className="mb-1 font-medium text-slate-700">Overlays (versioned)</div>
-              {ref?.overlays.map((o: Row) => (
-                <label key={o.id} className="flex items-center gap-2"><input type="checkbox" data-testid={`reg-overlay-${o.overlay_key}`} checked={f.overlay_keys.includes(o.overlay_key)}
-                  onChange={(e) => setF({ ...f, overlay_keys: e.target.checked ? [...f.overlay_keys, o.overlay_key] : f.overlay_keys.filter((k: string) => k !== o.overlay_key) })} />
-                  {o.title} v{o.version} (+{o.controls_add.length}/−{o.controls_remove.length})</label>
-              ))}
-            </div>
+            <div className="md:col-span-3"><F label="Mission / business description"><textarea className="input" rows={2} value={f.description} onChange={set("description")} /></F></div>
+            <div className="md:col-span-3"><F label="Authorization boundary (what is inside the system)"><textarea className="input" rows={2} value={f.boundary_description} onChange={set("boundary_description")} /></F></div>
           </div>
+          <div className="mt-4"><RolesEditor meta={ref} value={roles} onChange={setRoles} /></div>
         </Panel>
-        <Panel title="Tailoring decisions" eyebrow="Each requires a justification">
-          {tailor.map((t, i) => (
-            <div key={i} className="mb-2 grid grid-cols-[110px_100px_1fr_auto] gap-2">
-              <input className="input" placeholder="ac-2.12" value={t.control_id} onChange={(e) => setTailor(tailor.map((x, j) => j === i ? { ...x, control_id: e.target.value } : x))} data-testid={`tailor-control-${i}`} />
-              <select className="input" value={t.action} onChange={(e) => setTailor(tailor.map((x, j) => j === i ? { ...x, action: e.target.value } : x))}><option value="remove">remove</option><option value="add">add</option></select>
-              <input className="input" placeholder="Justification" value={t.justification} onChange={(e) => setTailor(tailor.map((x, j) => j === i ? { ...x, justification: e.target.value } : x))} data-testid={`tailor-justification-${i}`} />
-              <button type="button" className="btn-secondary" onClick={() => setTailor(tailor.filter((_, j) => j !== i))}>Remove</button>
-            </div>
-          ))}
-          <button type="button" className="btn-secondary" onClick={() => setTailor([...tailor, { control_id: "", action: "remove", justification: "" }])} data-testid="tailor-add-btn">Add tailoring decision</button>
+        <div><h2 className="mb-2 font-heading text-[15px] font-semibold text-slate-900">2 · Categorize</h2><CategorizeForm v={cat} onChange={setCat} /></div>
+        <Panel title="Baseline" eyebrow="Chosen automatically from the categorization">
+          <div className="flex flex-wrap items-end gap-3 text-[12px]">
+            <div>From categorization: <b className="capitalize" data-testid="reg-auto-baseline">{auto || "— pick information types first"}</b></div>
+            <F label="Baseline to register with"><select className="input" value={chosen} onChange={(e) => setBaseline(e.target.value)} data-testid="reg-baseline">
+              {["low", "moderate", "high"].filter((x) => !auto || ["low", "moderate", "high"].indexOf(x) >= ["low", "moderate", "high"].indexOf(auto)).map((v) => <option key={v} value={v}>{v[0].toUpperCase() + v.slice(1)}</option>)}</select></F>
+            {cat.processes_pii === true && <span className="rounded bg-violet-50 px-2 py-1 text-violet-900">+ privacy baseline (system processes PII)</span>}
+          </div>
+          <p className="mt-2 text-[11px] text-slate-500">You can only choose the derived baseline or a higher one. Overlays and tailoring (adding or removing controls with a rationale) are in step 3 Select after registration.</p>
         </Panel>
       </div>
       {error && <div className="mt-4 rounded border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800" role="alert" data-testid="register-error">{error}</div>}
