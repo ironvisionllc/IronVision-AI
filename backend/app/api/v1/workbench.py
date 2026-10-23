@@ -243,7 +243,7 @@ def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(
     }
 
 
-ODP_PARAM = {"inactivity_disable_days": "ac-02.03_odp.02", "unsuccessful_logon_attempts": "ac-07_odp.01", "session_lock_minutes": "ac-11_odp.01"}
+ODP_PARAM = {"inactivity_disable_days": "ac-02.03_odp.02", "unsuccessful_logon_attempts": "ac-07_odp.01", "logon_attempt_window_minutes": "ac-07_odp.02", "session_lock_minutes": "ac-11_odp.01"}
 
 
 def _render_odps(db, system_id, control_id, catalog: dict) -> list[dict]:

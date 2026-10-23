@@ -46,9 +46,22 @@ LEX = {
     "protect_content": r"unauthorized disclosure|protect\w* (?:from|against)|encrypt\w*|hash\w*",
     "personnel": r"personnel|\bstaff\b|employees|\busers?\b|workforce",
     "findings": r"\bfindings?\b",
+    "account": r"\baccounts?\b",
+    "assign": r"\bassign\w*|\bdesignat\w*|\bappoint\w*",
+    "approval": r"\bapprov\w*",
+    "create": r"\bcreat\w*|\bprovision\w*",
+    "disable": r"\bdisabl\w*",
+    "notify": r"\bnotif\w*",
+    "authorize": r"\bauthori[sz]\w*",
+    "prohibit": r"\bprohibit\w*|not permitted|forbidden",
+    "in_accordance": r"in accordance with|according to|as defined in|per the (?:policy|procedures?)",
+    "monitor": r"\bmonitor\w*",
+    "termination": r"\bterminat\w*|\bseparat\w*|offboard\w*",
+    "transfer": r"\btransfer\w*|\breassign\w*",
+    "aligned": r"\balign\w*|integrat\w* with|coordinat\w* with",
     "membership": r"\bmembership\b",
     "group_role_accounts": r"(?:group|role|shared)(?: or (?:group|role|shared))? accounts?",
-    "develop_doc": r"\bdevelop\w*|\bdocument(?:ed|s)?\b",
+    "develop_doc": r"\bdevelop\w*|\bdocument(?:ed|s)?\b|\bdefin(?:e|es|ed|ing)\b",
     "update": r"\bupdat\w*",
     "maintain": r"\bmaintain\w*",
     "when_required": r"when required|as required|due to|in response to|following|whenever",
@@ -56,6 +69,14 @@ LEX = {
 PARAMS = {"frequency": FREQ_ANY, "time period": DUR, "time": DUR, "number": NUM, "period": DUR, "authorities": LEX["authorities"]}
 TECH = re.compile(r"\b(enforc\w*|employ\w*|implement\w*|automatic\w*|prevent\w*|lock\w*|retain\w*|protect\w*|conducted|monitor\w*|detect\w*|initiat\w*|configur\w*)\b", re.I)
 PH = re.compile(r"\[(?:Assignment|Selection)[^\[\]]*(?:\[[^\]]*\][^\[\]]*)*\]", re.I)
+
+
+MASK = re.compile(r"\b[A-Z]{2}-\d+(?:\s*\(\d+\))?(?:\.\d+)?\b|^\s*(?:section\s+)?\d+(?:\.\d+)*\.?(?=\s)", re.I | re.M)
+
+
+def mask(s: str) -> str:
+    """Blank control IDs (AC-7) and section numbering (4.2) with spaces – same length, so offsets stay valid – before reading values."""
+    return MASK.sub(lambda m: " " * len(m.group(0)), s)
 
 
 def req_kind(text: str) -> str:
@@ -98,6 +119,7 @@ def evaluate(text: str, sents: list, control_id: str, req_text: str, snip) -> di
     cited = {i for i, (_, _, s) in enumerate(sents) if re.search(_cid_rx(control_id), s, re.I)}
 
     def have(w):
+        w = mask(w)
         return [k for k, rx in need if re.search(rx, w, re.I)]
 
     single = [(i, have(s[2])) for i, s in enumerate(sents)]
@@ -111,11 +133,14 @@ def evaluate(text: str, sents: list, control_id: str, req_text: str, snip) -> di
         hits = sents[i:i + (1 if len(best) == len(need) else 2)]
         expl = bool(cited & set(range(max(0, i - 3), i + 2)))
         conf = "High" if expl or (len(best) == len(need) and len(need) >= 3) else "Medium"
-        val = None
-        if prof["params"]:
-            m = re.search(prof["params"][0], " ".join(h[2] for h in hits), re.I)
-            val = m.group(0) if m else None
-        r.update(status="met", confidence=conf, snippets=snip(hits), reason=f"The policy states {label}.", basis="id" if expl else "concept",
+        val, vhits = None, hits
+        if prof["params"]:  # each value is read from the one sentence that states it (never a neighbour, ID or section number)
+            for h in hits:
+                got_v = [m.group(0) for rx in prof["params"] for m in [re.search(rx, mask(h[2]), re.I)] if m]
+                if got_v:
+                    val, vhits = "; ".join(got_v), [h]
+                    break
+        r.update(status="met", confidence=conf, snippets=snip(vhits), reason=f"The policy states {label}.", basis="id" if expl else "concept",
                  value=val, parameter="organization-defined value" if val else None)
         return r
     got = max(best, pair, key=len)

@@ -104,6 +104,8 @@ def handle_policy_analyze(db: Session, payload: dict) -> dict:
     from app.models import Policy
 
     pol = db.get(Policy, uuid.UUID(payload["policy_id"]))
+    pol.analysis_status = "processing"  # visible as "Processing…" while the job runs
+    db.commit()
     try:
         return _policy_analyze(db, pol)
     except Exception as exc:  # no silent failures: the policy shows "Failed (reason)" with a Retry button

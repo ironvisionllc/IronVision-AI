@@ -267,6 +267,8 @@ def package(db: Session, system: System) -> dict:
 PARAMS = [
     ("ac-2.3", "inactivity_disable_days", r"(?:inactiv\w*|disabled? after)[^.\n]{0,80}?(\d+)\s*(?:calendar\s+)?days|(\d+)\s*days[^.\n]{0,40}inactiv", "days"),
     ("ac-7", "unsuccessful_logon_attempts", r"(\d+)\s+(?:consecutive\s+)?(?:invalid|unsuccessful|failed)\s+(?:logon|login|log-on)?\s*attempts", "attempts"),
+    ("ac-7", "logon_attempt_window_minutes", r"attempts[^.\n]{0,60}?\b(?:within|during|in)\s+(?:a\s+|any\s+)?(\d+)[\s-]*minutes?", "minutes"),
+    ("ac-7", "lockout_minutes", r"lock\w*\s+(?:the\s+)?(?:account|node|user)?[^.\n]{0,30}?\bfor\s+(?:a\s+(?:period\s+of\s+)?)?(\d+)\s*minutes?", "minutes"),
     ("ac-11", "session_lock_minutes", r"(?:session|screen)\s+lock[^.\n]{0,60}?(\d+)\s*minutes|(\d+)\s*minutes[^.\n]{0,60}(?:session|screen)\s+lock", "minutes"),
 ]
 REQUIRED_SECTIONS = [("ac-17", "remote access", "Remote access section"), ("ac-1", "official", "Named official / policy owner designation")]
@@ -345,8 +347,11 @@ def rule_extract(text: str, families: set[str] | None = None, top_policy_control
     policy's own subject – an RA policy is never flagged for a missing AC-17 remote-access section."""
     fam = {"ac"} if families is None else families
     vals = []
+    from app.services.policy_profile import mask
+
+    masked = mask(text)  # "AC-7 Unsuccessful Logon Attempts" must not yield "7 attempts"
     for cid, param, rx, unit in PARAMS:
-        m = re.search(rx, text, re.IGNORECASE)
+        m = re.search(rx, masked, re.IGNORECASE)
         if m:
             v = next(g for g in m.groups() if g)
             s, e = sentence_at(text, m.start(), m.end())

@@ -160,8 +160,10 @@ def test_gap_actions_covered_elsewhere_and_poam(client, ws):
     gap = next(r for r in c["requirements"] if r["requirement_id"] == "CCI-001044")
     base = f"/api/v1/policies/{ws['p']['nofreq']}/coverage/{gap['id']}"
     assert client.post(f"{base}/covered-elsewhere", json={"reason": "short"}, headers=ws["h"]).status_code == 422
-    assert client.post(f"{base}/covered-elsewhere", json={"reason": "Covered by the CM procedures review"}, headers=ws["h"]).json()["effective"] == "met"
-    assert next(r for r in _cov(client, ws, "nofreq")["requirements"] if r["id"] == gap["id"])["effective"] == "met"
+    d = client.post(f"{base}/covered-elsewhere", json={"reason": "Covered by the CM procedures review"}, headers=ws["h"]).json()
+    assert d["covered_elsewhere"] and d["effective"] != "met", "covered elsewhere never turns a policy-text gap into MET"
+    row = next(r for r in _cov(client, ws, "nofreq")["requirements"] if r["id"] == gap["id"])
+    assert row["effective"] != "met" and row["override"]["reason"]
     other = next(r for r in c["requirements"] if r["requirement_id"] == "CCI-001040")
     p = client.post(f"/api/v1/policies/{ws['p']['nofreq']}/coverage/{other['id']}/poam", json={"system_id": ws["sid2"]}, headers=ws["h"])
     assert p.status_code == 201, p.text

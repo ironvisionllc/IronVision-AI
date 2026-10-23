@@ -18,7 +18,7 @@ export function RequirementRow({ r, actions }: { r: Row; actions?: ReactElement 
   const st = r.effective || r.status;
   return (
     <tr className="border-t border-slate-100 align-top" data-testid={`req-${r.requirement_id || r.label}`}>
-      <td className="py-1 pr-2"><CovBadge s={st} />{r.override && <div className="text-[10px] text-slate-500" title={r.override.reason}>covered elsewhere</div>}
+      <td className="py-1 pr-2"><CovBadge s={st} />{r.override && <div className="text-[10px] text-slate-500" title={r.override.reason} data-testid={`req-covered-elsewhere-${r.requirement_id || r.label}`}>covered elsewhere (not policy text): {r.override.reason}</div>}
         {r.confidence && <div className={`text-[10px] ${r.confidence === "Low" && st !== "missing" ? "font-semibold text-amber-800" : "text-slate-500"}`} data-testid={`req-confidence-${r.requirement_id || r.label}`}>{r.confidence}{r.confidence === "Low" && st !== "missing" ? " – review needed" : ""}</div>}
         {r.basis && <div className="text-[10px] text-slate-500" title="How the match was made">{r.basis}</div>}
         {r.kind === "technical" && <div className="text-[10px] text-amber-800" title={TECH_TIP} data-testid={`req-technical-${r.requirement_id || r.label}`}>needs technical evidence</div>}</td>
@@ -41,7 +41,7 @@ export function CoverageChecklist({ policyId, data, systemId, canMap, canPoam, r
   const elsewhere = async (r: Row) => {
     const reason = window.prompt(`Why is ${r.label} covered elsewhere? Name the other document or evidence (min 10 characters).`);
     if (!reason) return;
-    try { await api.post(`/policies/${policyId}/coverage/${r.id}/covered-elsewhere`, { reason }); setMsg(`${r.label} marked as covered elsewhere – it now counts as met (reason kept in the audit log).`); reload(); }
+    try { await api.post(`/policies/${policyId}/coverage/${r.id}/covered-elsewhere`, { reason }); setMsg(`${r.label} marked as covered elsewhere – recorded separately; the policy-text result and status suggestions are unchanged (reason kept in the audit log).`); reload(); }
     catch (e) { setMsg(errorMessage(e)); }
   };
   const poam = async (r: Row) => {

@@ -22,7 +22,15 @@ function ReviewNeeded({ items }: { items: Row[] }) {
     <ul className="mt-1 list-disc pl-5">{items.map((r) => <li key={`${r.policy_id}-${r.control_id}`}><Link className="underline" to={`/policy-auditor/${r.policy_id}`}>{r.message}</Link> <span className="text-[11px]">({r.policy})</span></li>)}</ul></div>);
 }
 
-export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, reviewNeeded = [] }: { sid: string; queue: Row[]; counts: Row; canMap: boolean; reload: () => void; setMsg: (m: string) => void; reviewNeeded?: Row[] }) {
+/** Why a mapped control has no status suggestion (mapping still proposed, already at that status, low confidence …). */
+function StatusNotes({ notes }: { notes: string[] }) {
+  if (!notes.length) return null;
+  return (<details className="mb-3 rounded border border-slate-200 bg-slate-50 p-2 text-[12px] text-slate-700" data-testid="queue-status-notes">
+    <summary className="cursor-pointer font-medium">Why some policy-mapped controls have no status suggestion ({notes.length})</summary>
+    <ul className="mt-1 list-disc pl-5">{notes.map((n) => <li key={n}>{n}</li>)}</ul></details>);
+}
+
+export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, reviewNeeded = [], statusNotes = [] }: { sid: string; queue: Row[]; counts: Row; canMap: boolean; reload: () => void; setMsg: (m: string) => void; reviewNeeded?: Row[]; statusNotes?: string[] }) {
   const { can } = useAuth();
   const canApprove = (q: Row) => canMap && (!["status", "policy_status"].includes(q.kind) || can("implementation.write"));
   const denyWhy = `Approving needs the ${APPROVER} role – your current role can view this item but not approve it.`;
@@ -61,6 +69,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
   return (
     <Panel title={`Review queue (${open.length} open${waiting.length ? `, ${waiting.length} awaiting SCA` : ""})`} className="mb-5" testId="review-queue">
       <ReviewNeeded items={reviewNeeded} />
+      <StatusNotes notes={statusNotes} />
       {!canMap && open.length > 0 && <div className="mb-2 rounded bg-slate-100 p-2 text-[12px] text-slate-700" role="note" data-testid="queue-view-only">You can view these items. {denyWhy}</div>}
       <div className="mb-2 flex flex-wrap items-center gap-2 text-[12px]">
         {tabs.map(([k, l]) => <button key={k} className={`rounded px-2 py-0.5 ${kind === k ? "bg-brand-700 text-white" : k === "sca" && waiting.length ? "bg-amber-100 text-amber-900" : "bg-slate-100"}`} onClick={() => setKind(k)} data-testid={`queue-tab-${k || "all"}`}>{l}</button>)}

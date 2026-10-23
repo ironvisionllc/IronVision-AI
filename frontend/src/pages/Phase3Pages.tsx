@@ -15,6 +15,7 @@ import { Gated } from "@/components/common/RoleGate";
 import { downloadFile } from "@/lib/download";
 import { CCI_TIP, CoverageChecklist } from "@/components/policy/Coverage";
 import { useActiveSystemId } from "@/components/rmf/Stepper";
+import { ProcessingList } from "@/components/shell/Processing";
 
 export function InheritancePage() {
   const { selectedId: sid } = useSystems();
@@ -118,7 +119,7 @@ export function PolicyAuditorPage() {
   const [msg, setMsg] = useState("");
   const up = async (file: File) => {
     const fd = new FormData(); fd.append("file", file); fd.append("title", f.title || file.name); fd.append("owner", f.owner); if (sid) fd.append("system_ids", sid);
-    try { const r = await api.post<Row>("/policies", fd); window.dispatchEvent(new Event("iv:processing-started")); setMsg(`Uploaded v${r.data.version} – Processing… a summary appears when the analysis finishes`); setTimeout(reload, 4000); reload(); } catch (e) { setMsg(errorMessage(e)); }
+    try { const r = await api.post<Row>("/policies", fd); window.dispatchEvent(new Event("iv:processing-started")); if (r.data.duplicate) { setMsg(r.data.message); return; } setMsg(`Uploaded v${r.data.version} – Processing… a summary appears when the analysis finishes`); setTimeout(reload, 4000); reload(); } catch (e) { setMsg(errorMessage(e)); }
   };
   if (!data) return null;
   const c = data.cards;
@@ -131,6 +132,7 @@ export function PolicyAuditorPage() {
         <Stat label="Overdue reviews" value={c.overdue_reviews} testId="pol-card-overdue" />
       </div>
       <Gated perm="implementation.write"><Panel title="Upload policy (PDF, DOCX, TXT)" className="mb-5" testId="policy-upload-panel">
+        {sid && <ProcessingList sid={sid} />}
         <div className="flex gap-2"><input className="input" placeholder="Title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} data-testid="policy-title" />
           <input className="input" placeholder="Owner" value={f.owner} onChange={(e) => setF({ ...f, owner: e.target.value })} data-testid="policy-owner" />
           <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && up(e.target.files[0])} data-testid="policy-file-input" />

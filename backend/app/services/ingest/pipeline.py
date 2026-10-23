@@ -186,6 +186,7 @@ def process_run(db: Session, run_id: uuid.UUID) -> dict:
     if run.status not in ("queued", "failed"):
         return {"skipped": True, "status": run.status}
     run.status = "processing"
+    db.commit()  # visible as "Processing…" while the job runs
     ev = db.get(Evidence, run.evidence_id)
     data = get_storage().get(ev.storage_key)
     if hashlib.sha256(data).hexdigest() != ev.sha256:

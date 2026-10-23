@@ -97,3 +97,44 @@ Screenshots: `docs/screenshots/sme-auditor2/`.
 * ARF has no sample file and was not tested end-to-end.
 * Ingest runs carry no analyzer version (their parsing is deterministic and idempotent); only policies are re-analysed automatically.
 * The DigitalOcean Droplet was not touched; recovery remains paused.
+
+---
+
+# Fix round 2 (independent test of 48456d3)
+
+| # | Finding | Root cause | Fix |
+|---|---|---|---|
+| 1 | Flip-flop: approving the RA-1 downgrade created "RA-1: 38 of 38 → Implemented" (count 16 → 17) | **Two separate causes.** (a) Jordan's tenant has two *different* current policies mapped to RA-1: “RA” v3 (26/38, gaps) and “Risk Assessment Policy (synthetic)” v1 (38/38). Their titles differ, so neither supersedes the other. Suggestions were computed **per policy**: while RA-1 was Implemented only the gap policy disagreed; after the downgrade the complete policy disagreed. (b) Approving links the policy file as evidence, and the evidence-based `status_suggestions()` counted that policy document as "passing evidence" and offered Implemented + Satisfied. Superseded versions were *not* involved (only current versions contribute). | **One decision per control** across all current policy versions mapped to it, the most conservative wins (`control_decision`). The reasoning lists each policy's result. Coverage is read from policy text only: `effective()` = text status, "covered elsewhere" and "linked as evidence" are shown separately and never turn MISSING into MET. Policy documents no longer count as technical evidence in evidence-based suggestions. Dismissals are keyed per control. |
+| 1-cleanup | Bogus RA-1 suggestion in jordan's tenant | – | Analyzer bumped to `coverage-4`; the worker re-analysed 11 policies on restart (recompute, no manual deletes). RA-1 now has no item, and the note reads “RA-1 is already Partially Implemented – this matches the current policy coverage.” |
+| 2 | AC-7 “7 attempts” from the heading; “30 days” on the AC-2 approval sentence; window/lockout missing | The rule regex matched “**7** Unsuccessful Logon Attempts” inside “AC-7 …”. The coverage value was read from a 2-sentence window, so a neighbouring sentence's “30 days” was attached. | `mask()` blanks control IDs and section numbering (same length, offsets kept) before any value extraction. Each value is bound to the one sentence that states it. New ODPs: `logon_attempt_window_minutes` (ac-07_odp.02) and `lockout_minutes`, next to attempts and AC-2(3) inactivity days. Jordan's new AC upload extracted 5 attempts / 10 min / 20 min / 45 days. |
+| 3 | No AC-2/AC-7 status suggestion; `tech_needed` empty | Most AC-2 objectives named only one lexicon concept, so they fell back to keyword matching and produced **Low-confidence** rows. AC-7 also had one Low CCI. The rule “any Low row blocks the suggestion” then suppressed both. | Low rows never count as MET but no longer block the confident ones; they are listed as "review needed" inside the reasoning. New account-management concepts: account, assign, approval, create, disable, notify, authorize, prohibit, in accordance with, monitor, termination, transfer, aligned. AC-7 now shows “… → Partially Implemented – technical evidence needed for: CCI-000044, CCI-002236, …”. When there is no item, Mapping Review explains why, e.g. “Status suggestion for RA-3 will appear after you approve the RA-3 mapping …”, “already Partially Implemented”, “stays Implemented: … technical evidence still needed”. |
+| 4 | Second AC upload (9913) added no Mapping Review items | **Not deduplication.** Its extracted text is a single placeholder line (“Policy Content for QA AC Policy 9913”) that names no control. | The processing summary now says “No controls found: the extracted text (N characters) names no NIST control …”. Two *different* policies on the same control each get their own mapping items (tested). An **identical** re-upload (same title and SHA-256) is deduplicated with “Identical to “X” v1 (same SHA-256) – not re-analysed and no new review items were created.” |
+| 5 | Only “analysed” was ever visible | The worker set `processing` in the same transaction as completion, and the list showed upload runs before policies | States are now **Queued – waiting for the worker → Processing… → Analysed / Failed (reason)**. The worker commits `processing` when a job starts, and items are sorted by time. Browser: the badge read “Queued – waiting for the worker | AC Standard 98bc v1” immediately after upload, then the toast followed. |
+
+**Evaluation set** now has 7 policies (an AC-2/AC-7 account-management policy was added) and 39 labelled objectives, plus expected values:
+
+| Run | TP | FP | FN | Precision | Recall |
+|---|---|---|---|---|---|
+| Deterministic, first run | 21 | 2 | 0 | 0.91 | 1.00 |
+| Deterministic, after adding termination/transfer/aligned (fixes AC-2 l-1/l-2) | 21 | 0 | 0 | **1.00** | **1.00** |
+
+The precision/recall threshold applied to status suggestions is the same one the eval uses: MET counts only at High/Medium confidence. Values are asserted for AC-7 attempts=3, window=15, lockout=30 and AC-2(3) days=30.
+
+**New tests** (`tests/test_policy_auditor_v2.py`):
+* `test_stability_downgrade_then_upgrade_then_complete_v4`
+  * Implemented + gap policy → downgrade → approve → re-analyse → no policy_status item, and open count −1.
+  * Linked rows stay non-MET.
+  * Complete v2 of the gap policy → a legitimate Implemented item → approve → re-analyse → no item.
+* `test_ac2_ac7_policy_gives_partial_with_technical_evidence_needed`
+* `test_values_never_from_ids_and_bound_to_their_sentence`
+* `test_two_different_policies_each_get_mapping_items_and_identical_reupload_is_deduplicated`
+* Updated: one item per control (A1), Low-confidence semantics, covered elsewhere ≠ MET, Queued state in the pipeline tests.
+* **Full suite: 496 passed, 43 skipped.** Frontend 6/6, `tsc` clean.
+
+**Browser recheck (jordan.qa7731)**
+* Mapping Review → Policy coverage: no RA-1 item, and the "why" note is shown.
+* Upload an AC policy: Queued badge → toast “2 control mappings (2 sent to Mapping Review), 11 of 69 …”. Its two mapping items appear.
+* Approve the AC-7 “Partially Implemented – technical evidence needed” item: open count 20 → 18 (the status item plus the AC-7 mapping it approves), and **no new AC-7 item**. No page errors.
+* Screenshots: `docs/screenshots/sme-auditor3/`.
+
+**Limitation:** the most-conservative rule means one incomplete current policy keeps a control at Partially Implemented even if another current policy covers it. Users resolve this by superseding or retiring the incomplete policy; the reasoning names both policies.

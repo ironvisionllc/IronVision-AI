@@ -14,7 +14,7 @@ from app.models import Cci, CciControlMap, Control, ControlAssignment, ControlOb
 from app.services import policy_profile as pp
 from app.services.rmf import locate
 
-ANALYZER_VERSION = "coverage-2"
+ANALYZER_VERSION = "coverage-4"
 
 ELEMENTS = [("purpose", r"\bpurpose\b"), ("scope", r"\bscope\b"), ("roles", r"\broles?\b"), ("responsibilities", r"\bresponsibilit"),
             ("management commitment", r"management commitment|commitment (?:of|from) (?:senior |executive )?(?:management|leadership)|leadership commitment"),
@@ -309,7 +309,8 @@ def ai_refine(text: str, control_id: str, reqs: list, results: list, org_id) -> 
 
 
 def effective(c: PolicyRequirementCoverage) -> str:
-    return "met" if c.override else c.status
+    """Coverage comes from the policy text only; covered-elsewhere/linked annotations are shown separately and never turn MISSING into MET."""
+    return c.status
 
 
 def basis_label(c: PolicyRequirementCoverage) -> str:
@@ -439,78 +440,120 @@ def technical_evidence(db: Session, a: ControlAssignment, policy: Policy) -> boo
     return False
 
 
-def decide_target(db: Session, a: ControlAssignment, rows: list, policy: Policy) -> dict | None:
-    """Status rule. XX-1: the policy itself is the implementation. Other controls: policy coverage alone is at most
-    Partially Implemented; Implemented also needs current passing technical evidence. Low-confidence → no suggestion."""
+def policy_view(db: Session, a: ControlAssignment, rows: list, policy: Policy) -> dict:
+    """What ONE current policy version's own text supports for this control. Low-confidence rows never count as met (review needed);
+    linked-as-evidence and covered-elsewhere annotations are ignored – only the policy text decides."""
     from app.services import policy_profile as pp
 
     s = summarize(rows)
-    low = [c for c in rows if c.confidence == "Low" and effective(c) != "missing" and not c.override]
-    if low:
-        return {"review_only": True, "summary": s, "low": [c.label for c in low]}
+    low = [c for c in rows if c.confidence == "Low" and c.status != "missing"]
+    sure = [c for c in rows if c.confidence != "Low" or c.status == "missing"]
+    met = [c for c in sure if c.status == "met"]
+    policy_gap = len(met) < len(rows)
     if is_xx1(a.control_id):
-        target = "implemented" if s["state"] == "met" else "partially_implemented"
-        policy_gap = s["state"] != "met"
-        why = "All requirements are met by the policy text." if not policy_gap else f"Gaps: {'; '.join(s['gaps'])}."
-        tech_needed = []
+        target, tech_needed = ("implemented" if not policy_gap else "partially_implemented"), []
     else:
-        tech = [c for c in rows if pp.req_kind(c.text) == "technical"]
-        policy_gap = any(effective(c) != "met" for c in rows)
         has_ev = technical_evidence(db, a, policy)
-        tech_needed = [c.label for c in tech] if not has_ev else []
+        tech_needed = [c.label for c in rows if pp.req_kind(c.text) == "technical"] if not has_ev else []
         target = "implemented" if not policy_gap and has_ev else "partially_implemented"
-        why = (f"The policy covers {s['met']} of {s['total']} requirements." + (f" Gaps: {'; '.join(s['gaps'][:4])}." if policy_gap else "")
-               + (f" Technical evidence (scan/STIG/configuration) is still required for: {', '.join(tech_needed[:6])}." if tech_needed else
-                  " Current passing technical evidence is linked." if has_ev else ""))
+    return {"policy": policy, "summary": s, "met": len(met), "low": [c.label for c in low], "policy_gap": policy_gap, "target": target,
+            "tech_needed": tech_needed, "confident": bool(met), "rows": rows}
+
+
+def control_decision(db: Session, a: ControlAssignment, views: list[dict]) -> dict:
+    """ONE decision per control across every current policy mapped to it (the most conservative wins), so approving it can never
+    make another policy produce the opposite suggestion from the same inputs."""
+    label = {"implemented": "Implemented", "partially_implemented": "Partially Implemented"}
+    conf = [v for v in views if v["confident"]]
+    cid = a.control_id.upper()
+    if not conf:
+        low = [x for v in views for x in v["low"]]
+        if low:
+            return {"note": f"{cid}: {len(low)} requirement(s) matched with low confidence – review the coverage; no status is suggested.", "review": True}
+        return {"note": f"{cid}: the policy text meets none of its requirements – no status is suggested."}
+    target = "partially_implemented" if any(v["target"] == "partially_implemented" for v in conf) else "implemented"
+    gap = any(v["policy_gap"] for v in conf)
+    gov = max((v for v in conf if v["target"] == target), key=lambda v: (v["policy_gap"], v["policy"].created_at))
     cur = a.implementation_status
-    if cur == target or (s["met"] == 0 and cur != "implemented"):
-        return None
-    if cur == "implemented" and target == "partially_implemented" and not policy_gap:
-        return None  # only a policy gap downgrades; missing scan evidence alone does not
-    return {"target": target, "summary": s, "reasoning": why, "downgrade": cur == "implemented" and target != "implemented", "tech_needed": tech_needed}
+    if cur in ("not_applicable", "inherited"):
+        return {"note": f"{cid} is {cur.replace('_', ' ')} – policy coverage does not change it."}
+    if cur == target:
+        return {"note": f"{cid} is already {label[target]} – this matches the current policy coverage."}
+    if cur == "implemented" and not gap:
+        return {"note": f"{cid} stays Implemented: the policy covers every requirement; technical evidence is still needed for: {', '.join(gov['tech_needed'][:4])}."}
+    p, s = gov["policy"], gov["summary"]
+    if cur == "implemented":
+        title = f"{cid} is Implemented but the latest policy version (v{p.version}) is missing: {'; '.join(s['gaps'][:4]) or 'some requirements'} – suggest {label[target]}"
+    elif target == "partially_implemented" and gov["tech_needed"]:
+        title = f"{summary_line(a.control_id, s)} → Partially Implemented – technical evidence needed for: {', '.join(gov['tech_needed'][:4])}"
+    else:
+        title = f"{summary_line(a.control_id, s)} → Implementation: {label[target]}"
+    per = [f"“{v['policy'].title}” v{v['policy'].version}: {v['met']} of {v['summary']['total']} met" + (" (gaps)" if v["policy_gap"] else "") for v in views]
+    why = (f"Policies covering {cid}: {'; '.join(per)}. The most conservative result is used." if len(views) > 1 else
+           ("All requirements are met by the policy text." if not gov["policy_gap"] else f"Gaps: {'; '.join(s['gaps'][:6])}."))
+    if gov["tech_needed"]:
+        why += f" Policy alone cannot prove implementation – technical evidence (scan/STIG/configuration) is still required for: {', '.join(gov['tech_needed'][:6])}."
+    if any(v["low"] for v in views):
+        why += f" Review needed (low confidence, not counted): {', '.join(x for v in views for x in v['low'])[:200]}."
+    rows = [c for v in views for c in v["rows"]]
+    return {"target": target, "governing": gov, "title": title, "reasoning": why, "downgrade": cur == "implemented", "tech_needed": gov["tech_needed"],
+            "fp": fingerprint(rows), "rows": rows}
 
 
-def suggestions(db: Session, system: System, review: list | None = None) -> list[dict]:
-    """PARTIAL/gap or MET results of the CURRENT policy version for every mapped control → one Mapping Review item (A1), including a
-    downgrade when the control is Implemented. Low-confidence results go to `review` (review needed) and never become suggestions."""
-    from app.services.rmf import get_setting
-
-    dismissed = get_setting(db, system.org_id, DISMISSED, {}).get(str(system.id), {})
-    assigned = {a.control_id: a for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == system.id))}
-    out = []
+def _views(db: Session, system: System, assigned: dict) -> tuple[dict, list]:
+    views: dict = {}
+    pending = []
     for p in applicable_policies(db, system):
         maps = {m.control_id: m for m in db.scalars(select(PolicyControlMap).where(PolicyControlMap.policy_id == p.id, PolicyControlMap.valid_to.is_(None)))}
         rows: dict = {}
         for c in db.scalars(select(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id == p.id)):
             rows.setdefault(c.control_id, []).append(c)
-        for cid, rs in rows.items():
-            a, m = assigned.get(cid), maps.get(cid)
-            if a is None or m is None or m.status == "rejected":
+        for cid, m in maps.items():
+            a = assigned.get(cid)
+            if a is None or m.status == "rejected":
                 continue
-            d = decide_target(db, a, rs, p)
-            if d is None:
+            if cid not in rows:
+                pending.append(f"Status suggestion for {cid.upper()} will appear after you approve the {cid.upper()} mapping of “{p.title}” v{p.version} "
+                               f"(it was proposed with {m.confidence} confidence, so its requirements were not assessed yet).")
                 continue
-            fp = fingerprint(rs)
-            if dismissed.get(f"{p.id}:{cid}") == fp:
-                continue
-            s, CID = d["summary"], cid.upper()
-            if d.get("review_only"):
-                if review is not None:
-                    review.append({"control_id": cid, "policy_id": str(p.id), "policy": f"{p.title} v{p.version}", "summary": s, "low_confidence": d["low"][:10],
-                                   "message": f"{CID}: {len(d['low'])} requirement(s) matched with low confidence – review the coverage; no status is suggested."})
-                continue
-            label = "Implemented" if d["target"] == "implemented" else "Partially Implemented"
-            if d["downgrade"]:
-                title = f"{CID} is Implemented but the latest policy version (v{p.version}) is missing: {'; '.join(s['gaps'][:4]) or 'some requirements'} – suggest {label}"
-            else:
-                title = f"{summary_line(cid, s)} → Implementation: {label}"
-            out.append({"kind": "policy_status", "key": f"ps:{p.id}:{cid}", "ids": [str(p.id)], "control_id": cid, "policy_id": str(p.id), "target": d["target"],
-                        "title": title, "downgrade": d["downgrade"], "tech_needed": d["tech_needed"], "policy_version": p.version,
-                        "source": f"Policy Auditor – CCI/objective coverage of “{p.title}” v{p.version} (current version)", "confidence": "Suggestion", "coverage": s,
-                        "current": {"implementation": a.implementation_status, "assessment": a.assessment_status},
-                        "reasoning": d["reasoning"] + " Approving sets the implementation status and links the policy as evidence for the met requirements; the SCA still confirms assessment.",
-                        "snippets": [x["text"] for c in rs if effective(c) == "met" for x in (c.snippets or [])][:2],
-                        "evidence": [{"id": str(e), "file_name": p.file_name} for e in (p.evidence_ids or [])][:1], "evidence_fp": fp})
+            views.setdefault(cid, []).append(policy_view(db, a, rows[cid], p))
+    return views, pending
+
+
+def suggestions(db: Session, system: System, review: list | None = None, notes: list | None = None) -> list[dict]:
+    """One Mapping Review item per control whose combined policy coverage disagrees with its status (A1 downgrade included).
+    Controls without an item get a plain-language note saying why."""
+    from app.services.rmf import get_setting
+
+    dismissed = get_setting(db, system.org_id, DISMISSED, {}).get(str(system.id), {})
+    assigned = {a.control_id: a for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == system.id))}
+    views, pending = _views(db, system, assigned)
+    if notes is not None:
+        notes.extend(pending)
+    out = []
+    for cid, vs in sorted(views.items()):
+        a = assigned[cid]
+        d = control_decision(db, a, vs)
+        if "target" not in d:
+            if d.get("review") and review is not None:
+                review.append({"control_id": cid, "policy_id": str(vs[0]["policy"].id), "policy": f"{vs[0]['policy'].title} v{vs[0]['policy'].version}",
+                               "message": d["note"], "low_confidence": [x for v in vs for x in v["low"]][:10]})
+            elif notes is not None:
+                notes.append(d["note"])
+            continue
+        if dismissed.get(f"ctl:{cid}") == d["fp"]:
+            if notes is not None:
+                notes.append(f"{cid.upper()}: the suggestion was rejected; it returns only if the policy coverage changes.")
+            continue
+        p, s = d["governing"]["policy"], d["governing"]["summary"]
+        out.append({"kind": "policy_status", "key": f"ps:{p.id}:{cid}", "ids": [str(p.id)], "control_id": cid, "policy_id": str(p.id), "target": d["target"],
+                    "title": d["title"], "downgrade": d["downgrade"], "tech_needed": d["tech_needed"], "policy_version": p.version,
+                    "policies": [f"{v['policy'].title} v{v['policy'].version}" for v in vs],
+                    "source": f"Policy Auditor – CCI/objective coverage of “{p.title}” v{p.version} (current version)", "confidence": "Suggestion", "coverage": s,
+                    "current": {"implementation": a.implementation_status, "assessment": a.assessment_status},
+                    "reasoning": d["reasoning"] + " Approving sets the implementation status and links the policy as evidence for the met requirements; the SCA still confirms assessment.",
+                    "snippets": [x["text"] for c in d["governing"]["rows"] if c.status == "met" for x in (c.snippets or [])][:2],
+                    "evidence": [{"id": str(e), "file_name": p.file_name} for e in (p.evidence_ids or [])][:1], "evidence_fp": d["fp"]})
     return out
 
 
@@ -518,7 +561,7 @@ def dismiss(db: Session, system: System, policy_id: str, control_id: str, fp: st
     from app.services.rmf import get_setting, set_setting
 
     all_ = get_setting(db, system.org_id, DISMISSED, {})
-    all_.setdefault(str(system.id), {})[f"{policy_id}:{control_id}"] = fp
+    all_.setdefault(str(system.id), {})[f"ctl:{control_id}"] = fp
     set_setting(db, system.org_id, DISMISSED, all_)
 
 
@@ -527,19 +570,20 @@ def approve(db: Session, system: System, policy: Policy, control_id: str, actor)
     from app.services import policy_mapping as pm
 
     a = db.scalar(select(ControlAssignment).where(ControlAssignment.system_id == system.id, ControlAssignment.control_id == control_id))
-    rows = list(db.scalars(select(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id == policy.id, PolicyRequirementCoverage.control_id == control_id)))
-    if a is None or not rows:
+    if a is None:
         raise ValueError("Nothing to approve for this control")
-    d = decide_target(db, a, rows, policy)
-    if d is None or d.get("review_only"):
-        raise ValueError("No status suggestion is open for this control (already at the suggested status, or low-confidence coverage needs review first)")
-    s, target = d["summary"], d["target"]
+    vs = _views(db, system, {control_id: a})[0].get(control_id, [])
+    d = control_decision(db, a, vs) if vs else {"note": "No current policy coverage for this control"}
+    if "target" not in d:
+        raise ValueError(f"No status suggestion is open for this control – {d['note']}")
+    policy, rows = d["governing"]["policy"], d["rows"]
+    s, target = d["governing"]["summary"], d["target"]
     before = {"implementation_status": a.implementation_status}
     a.implementation_status = target
     stamp = {"assignment_id": str(a.id), "system_id": str(system.id), "by": actor.email, "at": now().isoformat()}
     linked = []
     for c in rows:
-        if effective(c) == "met":
+        if c.status == "met" and c.confidence != "Low":
             c.linked = stamp
             linked.append(c.requirement_id)
     for e in policy.evidence_ids or []:

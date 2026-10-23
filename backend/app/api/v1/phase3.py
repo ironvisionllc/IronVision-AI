@@ -473,6 +473,11 @@ async def upload_policy(request: Request, file: UploadFile = File(...), title: s
         enforce(request, current, "implementation.write", uuid.UUID(sid))
     key = policy_key or title.lower().replace(" ", "-")[:100]
     prev = db.scalar(select(Policy).where(Policy.org_id == current.user.org_id, Policy.policy_key == key, Policy.status == "current"))
+    import hashlib as _h
+
+    if prev is not None and prev.sha256 == _h.sha256(data).hexdigest():  # identical re-upload: no new version, no duplicate review items
+        return {**_policy_out(db, prev), "duplicate": True,
+                "message": f"Identical to “{prev.title}” v{prev.version} (same SHA-256) – not re-analysed and no new review items were created."}
     evs = [rmf.store_evidence(db, uuid.UUID(sid), file.filename, data, "policy", current.user.email, "policy_library") for sid in sids]
     if not evs:   # no system yet (fresh account): keep the document in the policy library only
         import hashlib
@@ -572,7 +577,8 @@ def coverage_covered_elsewhere(policy_id: uuid.UUID, cov_id: uuid.UUID, body: Co
     audit.record(db, action="policy.requirement_covered_elsewhere", actor_user_id=current.user.id, actor_email=current.user.email,
                  entity_type="policy_requirement", entity_id=str(c.id), before={"status": c.status}, after={**c.override, "requirement": c.requirement_id, "control_id": c.control_id})
     db.commit()
-    return {"ok": True, "requirement": c.requirement_id, "effective": "met"}
+    return {"ok": True, "requirement": c.requirement_id, "effective": c.status, "covered_elsewhere": True,
+            "note": "Recorded separately – the policy-text result is unchanged and status suggestions still use the policy text only."}
 
 
 class CoveragePoam(BaseModel):

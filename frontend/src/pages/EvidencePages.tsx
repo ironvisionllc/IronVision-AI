@@ -57,11 +57,11 @@ function UploadFilePanel({ sid, sources, types, onUploaded }: { sid: string; sou
       if (/\.(docx|pdf)$/i.test(f.name)) {
         const fd = new FormData(); fd.append("file", f); fd.append("title", f.name.replace(/\.[^.]+$/, "")); fd.append("owner", ""); fd.append("system_ids", sid);
         const r = await api.post<Row>("/policies", fd);
-        setMsg(`Policy “${f.name}” uploaded (version ${r.data.version}) – Processing… You will get a summary when the analysis finishes.`);
+        setMsg(r.data.duplicate ? r.data.message : `Policy “${f.name}” uploaded (version ${r.data.version}) – Queued for analysis. You will get a summary when it finishes.`);
       } else {
         const fd = new FormData(); fd.append("file", f); if (src) fd.append("source_id", src);
         const r = await api.post<Row>(`/systems/${sid}/uploads`, fd);
-        setMsg(r.data.status === "duplicate" ? `“${f.name}” is identical to a file already processed – not double-counted.` : `“${f.name}” received – Processing… You will get a summary when it finishes.`);
+        setMsg(r.data.status === "duplicate" ? `“${f.name}” is identical to a file already processed – not double-counted.` : `“${f.name}” received – Queued for processing. You will get a summary when it finishes.`);
       }
       window.dispatchEvent(new Event(PROCESSING_STARTED));
     } catch (e) { setErr({ file: f.name, text: errorMessage(e) }); }

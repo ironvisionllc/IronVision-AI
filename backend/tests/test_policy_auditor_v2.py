@@ -65,12 +65,11 @@ def _queue(client, ws):
 def test_a1_gap_policy_downgrades_implemented_control(client, ws):
     _set_status(ws["sid"], "ra-1", "implemented")
     items = [q for q in _queue(client, ws)["queue"] if q["kind"] == "policy_status" and q["control_id"] == "ra-1"]
-    down = [q for q in items if q["policy_id"] == ws["gap"]]
-    assert down, items
-    q = down[0]
-    assert q["downgrade"] and q["target"] == "partially_implemented"
+    assert len(items) == 1, "one decision per control across all current policies"
+    q = items[0]
+    assert q["policy_id"] == ws["gap"] and q["downgrade"] and q["target"] == "partially_implemented"
     assert q["title"].startswith("RA-1 is Implemented but the latest policy version (v1) is missing") and "suggest Partially Implemented" in q["title"]
-    assert not [x for x in items if x["policy_id"] == ws["full"]], "a fully met XX-1 policy must not suggest the status it already has"
+    assert "most conservative" in q["reasoning"] and len(q["policies"]) == 2
 
 
 def test_a1_ao_sees_item_but_cannot_approve(client, ws):
@@ -134,8 +133,8 @@ def test_a6_version_supersession(client, ws):
     assert old["is_current"] is False and old["superseded_by"]["id"] == v2 and new["is_current"] and new["policy"]["version"] == 2
     rows = client.get(f"/api/v1/systems/{ws['sid']}/ccis", params={"control": "ra-1"}, headers=ws["h"]).json()["items"]
     assert all(ws["full"] not in r["policy_ids"] for r in rows), "superseded version must not contribute coverage"
-    q = [x for x in _queue(client, ws)["queue"] if x["kind"] == "policy_status" and x["policy_id"] == v2]
-    assert q and "(v2)" in q[0]["title"]
+    q = [x for x in _queue(client, ws)["queue"] if x["kind"] == "policy_status" and x["control_id"] == "ra-1"]
+    assert q and q[0]["policy_id"] == v2 and "(v2)" in q[0]["title"]
 
 
 def test_b_non_xx1_policy_alone_is_never_implemented(client, ws):
@@ -147,7 +146,7 @@ def test_b_non_xx1_policy_alone_is_never_implemented(client, ws):
     items = [q for q in _queue(client, ws)["queue"] if q["kind"] == "policy_status" and q["control_id"] == "ia-5"]
     assert all(q["target"] != "implemented" for q in items)
     if items:
-        assert items[0]["tech_needed"] and "Technical evidence" in items[0]["reasoning"]
+        assert items[0]["tech_needed"] and "technical evidence" in items[0]["reasoning"].lower()
 
 
 def _row(status, conf, cid="ia-5", text="authenticators are changed"):
@@ -156,9 +155,13 @@ def _row(status, conf, cid="ia-5", text="authenticators are changed"):
 
 
 def test_b_low_confidence_creates_no_suggestion():
-    a = ControlAssignment(control_id="ia-5", implementation_status="not_implemented")
-    d = pc.decide_target(None, a, [_row("met", "High"), _row("partial", "Low")], None)
-    assert d["review_only"] is True and "target" not in d
+    a = ControlAssignment(control_id="ra-1", implementation_status="not_implemented")
+    p = Policy(title="P", version=1)
+    v = pc.policy_view(None, a, [_row("partial", "Low", "ra-1"), _row("missing", "Low", "ra-1")], p)
+    d = pc.control_decision(None, a, [v])
+    assert "target" not in d and d.get("review"), d
+    v2 = pc.policy_view(None, a, [_row("met", "High", "ra-1"), _row("partial", "Low", "ra-1")], p)
+    assert v2["met"] == 1 and v2["policy_gap"] and v2["low"], "low-confidence rows never count as met"
 
 
 def test_b_ai_quote_must_be_exact_substring():
@@ -209,6 +212,96 @@ def test_b_evaluation_precision_recall():
     print("EVAL", r)
     assert r["precision"] >= ev.PRECISION_MIN, r
     assert r["recall"] >= ev.RECALL_MIN, r
+
+
+def test_values_never_from_ids_and_bound_to_their_sentence():
+    from app.services.rmf import rule_extract
+
+    for key, exp in ev.VALUES.items():
+        text = "\n".join(ev.POLICIES[key])
+        got = {(v["control_id"], v["parameter"]): v for v in rule_extract(text, {"ac"}, None)["values"]}
+        for k, num in exp.items():
+            assert k in got and got[k]["numeric_value"] == num, (k, got.get(k))
+            assert not got[k]["quote"].startswith("AC-7 Unsuccessful Logon Attempts.") or str(num) in got[k]["quote"]
+    from app.services.policy_coverage import _sentences, _snip
+    text = "\n".join(ev.POLICIES["account_management"])
+    with SessionLocal() as db:
+        from app.services.policy_coverage import requirements
+        for r in requirements(db, "ac-2") + requirements(db, "ac-7"):
+            res = pp.evaluate(text, _sentences(text), r["id"].split("_")[0].split(".")[0] if r["type"] == "objective" else "ac-2", r["text"], lambda h, t=text: _snip(t, h))
+            if res and res.get("value"):
+                assert all(v.split()[0] in res["snippets"][0]["text"] for v in res["value"].split("; ")), res
+
+
+def _decide(client, ws, sid, cid):
+    q = next(x for x in client.get("/api/v1/mapping-review", params={"system_id": sid}, headers=ws["h"]).json()["queue"]
+             if x["kind"] == "policy_status" and x["control_id"] == cid)
+    r = client.post("/api/v1/mapping-review/decide", json={"system_id": sid, "action": "approve", "justification": "",
+                                                          "items": [{"kind": q["kind"], "ids": q["ids"], "control_id": cid, "evidence_fp": q["evidence_fp"]}]}, headers=ws["h"])
+    assert r.status_code == 200, r.text
+    return q
+
+
+def _open(client, ws, sid):
+    return [x for x in client.get("/api/v1/mapping-review", params={"system_id": sid}, headers=ws["h"]).json()["queue"] if not x.get("awaiting_sca")]
+
+
+def _ps(client, ws, sid, cid):
+    return [x for x in client.get("/api/v1/mapping-review", params={"system_id": sid}, headers=ws["h"]).json()["queue"] if x["kind"] == "policy_status" and x["control_id"] == cid]
+
+
+def test_stability_downgrade_then_upgrade_then_complete_v4(client, ws):
+    r = client.post("/api/v1/systems", json={"name": "Stable", "acronym": f"ST{uuid.uuid4().hex[:3]}", "baseline_key": "moderate", "categorization_mode": "fips199",
+                                             "information_types": [{"id": "D.16.3"}]}, headers=ws["h"])
+    sid = r.json()["id"]
+    full = _upload(client, ws["h"], sid, COMPLETE, f"Stab Full {sid[:4]}")
+    gap = _upload(client, ws["h"], sid, NO_FREQ, f"Stab Gap {sid[:4]}")
+    _map(full, "ra-1"), _map(gap, "ra-1")
+    _set_status(sid, "ra-1", "implemented")
+    n0 = len(_open(client, ws, sid))
+    q = _decide(client, ws, sid, "ra-1")
+    assert q["downgrade"]
+    for pid in (full, gap):  # recompute from the same inputs (re-analysis after approval) → still nothing to suggest
+        _analyze(pid)
+    assert _ps(client, ws, sid, "ra-1") == [], "approving the downgrade must not create the opposite suggestion"
+    assert len(_open(client, ws, sid)) == n0 - 1, _open(client, ws, sid)
+    with SessionLocal() as db:
+        assert db.scalar(select(PolicyRequirementCoverage.id).where(PolicyRequirementCoverage.policy_id == uuid.UUID(gap),
+                                                                    PolicyRequirementCoverage.status == "met", PolicyRequirementCoverage.linked.isnot(None)).limit(1))
+        assert db.scalar(select(PolicyRequirementCoverage.id).where(PolicyRequirementCoverage.policy_id == uuid.UUID(gap), PolicyRequirementCoverage.status != "met").limit(1)), \
+            "linking as evidence never turns a policy-text gap into MET"
+    v4 = _upload(client, ws["h"], sid, COMPLETE, f"Stab Gap {sid[:4]}")  # genuinely complete new version of the gap policy
+    _map(v4, "ra-1")
+    up = _ps(client, ws, sid, "ra-1")
+    assert len(up) == 1 and up[0]["target"] == "implemented" and up[0]["policy_version"] == 2
+    _decide(client, ws, sid, "ra-1")
+    _analyze(v4)
+    assert _ps(client, ws, sid, "ra-1") == [], "approving the upgrade must not create a new suggestion"
+
+
+def test_ac2_ac7_policy_gives_partial_with_technical_evidence_needed(client, ws):
+    pid = _upload(client, ws["h"], ws["sid"], ev.POLICIES["account_management"], "QA AC Standard")
+    _set_status(ws["sid"], "ac-7", "not_implemented")
+    d = client.get("/api/v1/mapping-review", params={"system_id": ws["sid"]}, headers=ws["h"]).json()
+    ac7 = [q for q in d["queue"] if q["kind"] == "policy_status" and q["control_id"] == "ac-7"]
+    assert ac7 and ac7[0]["target"] == "partially_implemented" and ac7[0]["tech_needed"], (ac7, d["status_notes"], d["review_needed"])
+    assert "technical evidence needed for" in ac7[0]["title"]
+    vals = {(v["control_id"], v["parameter"]): v["policy_value"] for v in client.get(f"/api/v1/policies/{pid}", headers=ws["h"]).json()["values"]}
+    assert vals[("ac-7", "unsuccessful_logon_attempts")] == "3 attempts" and vals[("ac-7", "lockout_minutes")] == "30 minutes"
+    assert vals[("ac-7", "logon_attempt_window_minutes")] == "15 minutes" and vals[("ac-2.3", "inactivity_disable_days")] == "30 days"
+
+
+def test_two_different_policies_each_get_mapping_items_and_identical_reupload_is_deduplicated(client, ws):
+    a = _upload(client, ws["h"], ws["sid"], ev.POLICIES["account_management"], "AC Copy One")
+    b = _upload(client, ws["h"], ws["sid"], ev.POLICIES["account_management"] + ["Owner: IT"], "AC Copy Two")
+    q = client.get("/api/v1/mapping-review", params={"system_id": ws["sid"]}, headers=ws["h"]).json()["queue"]
+    for pid in (a, b):
+        assert any(x["kind"] == "policy_map" and x.get("policy_id", "") == pid or pid in x["ids"] for x in q if x["kind"] == "policy_map"), pid
+    from tests.test_sme_section1 import _docx as dx
+    data = dx(["Identical policy", "AC-7 The system enforces a limit of 3 consecutive invalid logon attempts."])
+    r1 = client.post("/api/v1/policies", files={"file": ("same.docx", data)}, data={"title": "Same Twice", "system_ids": ws["sid"]}, headers=ws["h"]).json()
+    r2 = client.post("/api/v1/policies", files={"file": ("same.docx", data)}, data={"title": "Same Twice", "system_ids": ws["sid"]}, headers=ws["h"]).json()
+    assert r2["duplicate"] and r2["id"] == r1["id"] and r2["version"] == 1 and "Identical" in r2["message"]
 
 
 def test_analyzer_version_reprocesses_stale_policy(client, ws):

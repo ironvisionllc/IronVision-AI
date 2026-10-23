@@ -76,7 +76,7 @@ def test_upload_type_propagates_everywhere(client, org, kind):
     assert r.status_code == 202, r.text
     run = r.json()["id"]
     item = next(i for i in client.get(f"/api/v1/systems/{sid}/processing", headers=h).json()["items"] if i["id"] == run)
-    assert item["state"] == "processing"
+    assert item["state"] == "queued"
     _process(run)
     after = _screens(client, h, sid)
     item = next(i for i in after["processing"]["items"] if i["id"] == run)
@@ -103,7 +103,7 @@ def test_policy_upload_propagates_and_reports_summary(client, org):
         r = client.post("/api/v1/policies", files={"file": (name, data)}, data={"title": f"RA {name}", "system_ids": sid}, headers=h)
         assert r.status_code == 201, r.text
         pid = r.json()["id"]
-        assert next(i for i in client.get(f"/api/v1/systems/{sid}/processing", headers=h).json()["items"] if i["id"] == pid)["state"] == "processing"
+        assert next(i for i in client.get(f"/api/v1/systems/{sid}/processing", headers=h).json()["items"] if i["id"] == pid)["state"] == "queued"
         _analyze(pid)
         d = _screens(client, h, sid)
         item = next(i for i in d["processing"]["items"] if i["id"] == pid)

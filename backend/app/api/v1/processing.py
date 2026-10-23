@@ -14,7 +14,7 @@ from app.services import audit
 from app.services import jobs
 
 router = APIRouter(tags=["processing"])
-STATE = {"received": "processing", "queued": "processing", "processing": "processing", "completed": "analysed", "duplicate": "analysed",
+STATE = {"received": "queued", "queued": "queued", "processing": "processing", "completed": "analysed", "duplicate": "analysed",
          "failed": "failed", "analyzed": "analysed"}
 
 
@@ -46,9 +46,11 @@ def _policy_item(db: Session, p: Policy) -> dict:
 
         rows = list(db.scalars(select(PRC).where(PRC.policy_id == p.id)))
         s = pc.summarize(rows)
+        n = len((p.text_content or "").strip())
         summary = {"mappings": len(maps), "proposed": sum(m.status == "proposed" for m in maps), "requirements": s["total"], "met": s["met"],
-                   "text": f"{len(maps)} control mappings ({sum(m.status == 'proposed' for m in maps)} sent to Mapping Review), "
-                           f"{s['met']} of {s['total']} CCI/objective requirements met"}
+                   "text": (f"{len(maps)} control mappings ({sum(m.status == 'proposed' for m in maps)} sent to Mapping Review), "
+                            f"{s['met']} of {s['total']} CCI/objective requirements met") if maps else
+                           f"No controls found: the extracted text ({n} characters) names no NIST control, family or requirement – check that the right file was uploaded"}
     return {"kind": "policy", "id": str(p.id), "file_name": p.file_name, "title": f"{p.title} v{p.version}", "state": st, "raw_status": p.analysis_status,
             "reason": (p.analysis or {}).get("error") if st == "failed" else None, "summary": summary,
             "at": p.created_at.isoformat()}
@@ -61,8 +63,8 @@ def processing(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUs
     from app.services.policy_coverage import applicable_policies
 
     pols = sorted(applicable_policies(db, s), key=lambda p: p.created_at, reverse=True)[:10]
-    items = [_run_item(db, r) for r in runs] + [_policy_item(db, p) for p in pols]
-    return {"items": items, "active": sum(i["state"] == "processing" for i in items), "failed": sum(i["state"] == "failed" for i in items)}
+    items = sorted([_run_item(db, r) for r in runs] + [_policy_item(db, p) for p in pols], key=lambda i: i["at"] or "", reverse=True)
+    return {"items": items, "active": sum(i["state"] in ("queued", "processing") for i in items), "failed": sum(i["state"] == "failed" for i in items)}
 
 
 @router.post("/ingest-runs/{run_id}/retry", status_code=202)

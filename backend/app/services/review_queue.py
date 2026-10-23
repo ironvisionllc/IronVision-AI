@@ -54,7 +54,8 @@ def status_suggestions(db: Session, system: System) -> list[dict]:
         if a.implementation_status == "implemented" and a.assessment_status == "satisfied":
             continue
         evs = db.execute(select(Evidence.id, Evidence.file_name, Evidence.collected_at).join(EvidenceControl, EvidenceControl.evidence_id == Evidence.id)
-                         .where(EvidenceControl.assignment_id == a.id).order_by(Evidence.collected_at.desc()).limit(5)).all()
+                         .where(EvidenceControl.assignment_id == a.id, Evidence.evidence_type != "policy")  # a policy document is not passing technical evidence
+                         .order_by(Evidence.collected_at.desc()).limit(5)).all()
         if not evs:
             continue
         fp = ",".join(sorted(str(e.id) for e in evs))
