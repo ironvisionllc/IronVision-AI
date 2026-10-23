@@ -315,8 +315,8 @@ def locate(text: str, start: int) -> str:
     eol = text.find("\n", start)
     for line in reversed(text[:eol if eol >= 0 else len(text)].splitlines()[-40:]):  # include the snippet's own line (A4: a "2. Scope." sentence is § 2)
         t = line.strip()
-        if re.match(r"^(\d+(\.\d+)*\.?\s+\S|section\s+\d+|[A-Z][A-Za-z &/-]{3,60}$)", t, re.IGNORECASE):
-            m = re.match(r"^((?:section\s+)?\d+(?:\.\d+)*\.?\s+[^.:;]{1,60})[.:;]", t, re.IGNORECASE)
+        if re.match(r"^(\d+(\.\d+)*\.?\s+\S|section\s+\d+|[A-Z]{2}-\d+(?:\s*\(\d+\))?\s+[A-Z]|[A-Z][A-Za-z &/-]{3,60}$)", t, re.IGNORECASE):
+            m = re.match(r"^((?:section\s+)?\d+(?:\.\d+)*\.?\s+[^.:;]{1,60}|[A-Z]{2}-\d+(?:\s*\(\d+\))?\s+[^.:;]{1,60})(?:[.:;]|$)", t, re.IGNORECASE)
             head = (m.group(1) if m else t)[:80]
             break
     return f"p. {page}" + (f", § {head}" if head else "")

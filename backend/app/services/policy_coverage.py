@@ -516,7 +516,7 @@ def _views(db: Session, system: System, assigned: dict) -> tuple[dict, list]:
                 pending.append(f"Status suggestion for {cid.upper()} will appear after you approve the {cid.upper()} mapping of “{p.title}” v{p.version} "
                                f"(it was proposed with {m.confidence} confidence, so its requirements were not assessed yet).")
                 continue
-            views.setdefault(cid, []).append(policy_view(db, a, rows[cid], p))
+            views.setdefault(cid, []).append({**policy_view(db, a, rows[cid], p), "mapping": m})
     return views, pending
 
 
@@ -549,6 +549,9 @@ def suggestions(db: Session, system: System, review: list | None = None, notes: 
         out.append({"kind": "policy_status", "key": f"ps:{p.id}:{cid}", "ids": [str(p.id)], "control_id": cid, "policy_id": str(p.id), "target": d["target"],
                     "title": d["title"], "downgrade": d["downgrade"], "tech_needed": d["tech_needed"], "policy_version": p.version,
                     "policies": [f"{v['policy'].title} v{v['policy'].version}" for v in vs],
+                    "mapping_note": (f"Based on a proposed {d['governing']['mapping'].confidence}-confidence mapping – approving this also approves the "
+                                     f"{cid.upper()} mapping from “{p.title}” v{p.version}" if d["governing"].get("mapping") is not None
+                                     and d["governing"]["mapping"].status == "proposed" else None),
                     "source": f"Policy Auditor – CCI/objective coverage of “{p.title}” v{p.version} (current version)", "confidence": "Suggestion", "coverage": s,
                     "current": {"implementation": a.implementation_status, "assessment": a.assessment_status},
                     "reasoning": d["reasoning"] + " Approving sets the implementation status and links the policy as evidence for the met requirements; the SCA still confirms assessment.",
@@ -589,8 +592,11 @@ def approve(db: Session, system: System, policy: Policy, control_id: str, actor)
     for e in policy.evidence_ids or []:
         if not db.scalar(select(EvidenceControl.id).where(EvidenceControl.evidence_id == uuid.UUID(str(e)), EvidenceControl.assignment_id == a.id)):
             db.add(EvidenceControl(evidence_id=uuid.UUID(str(e)), assignment_id=a.id))
+    also = []
     m = next((x for x in pm.current(db, policy.id) if x.control_id == control_id), None)
-    if m is not None and m.status == "proposed":
+    if m is not None and m.status == "proposed":  # intended: the suggestion rests on this mapping, so approving it resolves the mapping item too
         pm.decide(db, policy, control_id, "mapped", actor, "Approved with the CCI coverage status suggestion")
+        also.append({"map_id": str(m.id), "control_id": control_id, "policy_id": str(policy.id), "policy": policy.title, "version": policy.version,
+                     "text": f"{control_id.upper()} mapping from “{policy.title}” v{policy.version}"})
     db.flush()
-    return {"assignment": a, "before": before, "target": target, "linked": linked, "summary": s}
+    return {"assignment": a, "before": before, "target": target, "linked": linked, "summary": s, "also_approved": also, "policy": policy}

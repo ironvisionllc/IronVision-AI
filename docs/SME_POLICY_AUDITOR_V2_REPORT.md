@@ -138,3 +138,20 @@ The precision/recall threshold applied to status suggestions is the same one the
 * Screenshots: `docs/screenshots/sme-auditor3/`.
 
 **Limitation:** the most-conservative rule means one incomplete current policy keeps a control at Partially Implemented even if another current policy covers it. Users resolve this by superseding or retiring the incomplete policy; the reasoning names both policies.
+
+---
+
+# Polish (retest of 546cde3)
+
+1. **Value/snippet locations.**
+   * Root cause: `locate()` recognised numbered and short Title-Case headings only. Paragraphs starting with a control-ID heading ("AC-7 Unsuccessful Logon Attempts. The system …") did not match, so the search fell back to the first heading, "§ Purpose".
+   * Fix: control-ID headings (`AC-7 …`, `AC-2(3) …`) are recognised and trimmed at the first period. Values and snippets now read e.g. "p. 1, § AC-7 Unsuccessful Logon Attempts" and "§ AC-2(3) Disable Accounts".
+   * Test: `test_polish_value_locations_use_control_id_headings`.
+2. **Proposed-mapping basis.**
+   * A status item that rests on a *proposed* High/Medium-confidence mapping now shows "Based on a proposed High-confidence mapping – approving this also approves the AC-7 mapping from “…” v1" (`mapping_note`). The Low-confidence note is unchanged.
+3. **Related mapping resolved on approval (intended).**
+   * The suggestion rests on the governing policy's proposed mapping, so approving it approves that mapping too.
+   * This is now visible: the decide response returns `also_approved`, the message and toast read "Also approved: AC-2 mapping from “AC Standard 98bc” v1", and a separate `policy.mapping_approved_with_status` audit event is written per resolved mapping. The status event lists it too.
+   * Test: `test_polish_proposed_mapping_note_and_also_approved_audit` (note text, `also_approved`, exactly one audit event, the mapping item gone).
+* **Order-dependent test fixed.** `test_a3` assumed a CCI met by both policies is always "matched by" RA Full; with xdist row order, either is valid. The test now requires RA Full only for CCIs the gap policy does not meet.
+* **Full suite: 498 passed, 43 skipped**; frontend 6/6; `tsc` clean.

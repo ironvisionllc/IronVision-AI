@@ -272,8 +272,15 @@ def mapping_review_decide(body: QueueDecision, request: Request, db: Session = D
                 audit.record(db, action="control.policy_coverage_status_approved", actor_user_id=current.user.id, actor_email=current.user.email,
                              entity_type="control_assignment", entity_id=str(r["assignment"].id), before=r["before"],
                              after={"implementation_status": r["target"], "policy_id": str(pol.id), "policy_version": pol.version, "linked_requirements": r["linked"],
-                                    "coverage": {k: r["summary"][k] for k in ("total", "met", "partial", "missing", "gaps")}, "justification": just},
+                                    "coverage": {k: r["summary"][k] for k in ("total", "met", "partial", "missing", "gaps")}, "justification": just,
+                                    "also_approved": [x["text"] for x in r["also_approved"]]},
                              **audit.request_meta(request))
+                for x in r["also_approved"]:  # one audit event per related item the approval resolved
+                    audit.record(db, action="policy.mapping_approved_with_status", actor_user_id=current.user.id, actor_email=current.user.email,
+                                 entity_type="policy_control_map", entity_id=x["map_id"], before={"status": "proposed"},
+                                 after={"status": "mapped", "control_id": x["control_id"], "policy_id": x["policy_id"], "policy_version": x["version"],
+                                        "reason": "Also approved with the policy coverage status suggestion"}, **audit.request_meta(request))
+                    result.setdefault("also_approved", []).append(x["text"])
         elif it.kind == "policy_map":
             m = db.get(PolicyControlMap, uuid.UUID(it.ids[0]))
             pol = db.get(Policy, m.policy_id) if m else None

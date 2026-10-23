@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { api, errorMessage } from "@/lib/api";
 import { Row } from "@/lib/useApi";
@@ -58,7 +59,9 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
       const r = await api.post<Row>("/mapping-review/decide", { system_id: sid, items, action, justification: just, edit_control_ids: editTo.split(/[,\s]+/).filter(Boolean) });
       const n = r.data.approved + r.data.rejected + r.data.edited;
       const part = r.data.partial.length ? ` ${SCA_MSG} (${r.data.partial.map(fmt).join(", ")}) – they moved to “Awaiting assessor (SCA)”.` : "";
-      setMsg(`${n} item(s) ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "edited"}.${part}`);
+      const also = (r.data.also_approved || []).length ? ` Also approved: ${r.data.also_approved.join("; ")}.` : "";
+      setMsg(`${n} item(s) ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "edited"}.${part}${also}`);
+      if (also) toast.success(`Also approved: ${r.data.also_approved.join("; ")}`, { duration: 10000 });
       if (r.data.partial.length) showNextStep({ message: `${SCA_MSG}.`, label: "SCA: confirm the assessment result in “Awaiting assessor (SCA)”", to: `/mapping-review?tab=sca` });
       else showNextStep({ message: `${n} review item(s) ${action}d.`, label: "review the updated controls in the Workbench", to: `/systems/${sid}/controls` });
       setSel([]); setJust(""); setEditTo(""); reload();
@@ -97,6 +100,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
             <td className="py-1 whitespace-nowrap">{KIND[q.kind]}{q.awaiting_sca && <div className="text-[10px] font-medium text-amber-800">awaiting SCA</div>}</td><td className="py-1 font-mono font-semibold">{fmt(q.control_id)}</td>
             <td className="py-1">{q.downgrade && <div className="text-[10px] font-semibold uppercase text-rose-700" data-testid={`queue-downgrade-${q.key}`}>Downgrade suggested – policy gap</div>}
               {q.policy_id ? <Link className="text-blue-800 underline" to={`/policy-auditor/${q.policy_id}`}>{q.title}</Link> : q.title}
+              {q.mapping_note && <div className="text-[10px] text-blue-800" data-testid={`queue-mapping-note-${q.key}`}>{q.mapping_note}</div>}
               {(q.tech_needed || []).length > 0 && <div className="text-[10px] text-amber-800" data-testid={`queue-tech-needed-${q.key}`}>Policy alone cannot prove these – technical evidence (scan/STIG/config) still needed: {q.tech_needed.slice(0, 4).join(", ")}{q.tech_needed.length > 4 ? "…" : ""}</div>}{q.coverage && <div className="text-[10px] text-slate-600" data-testid={`queue-coverage-${q.key}`}>{q.coverage.met} of {q.coverage.total} requirements met{q.coverage.gaps.length ? ` – missing: ${q.coverage.gaps.join("; ")}` : ""}</div>}{q.current && <div className="text-[10px] text-slate-500">now: {q.current.implementation.replace(/_/g, " ")} · {q.current.assessment.replace(/_/g, " ")}</div>}</td>
             <td className="max-w-[320px] py-1 text-[11px] text-slate-600">{q.source}: {q.reasoning}{(q.snippets || []).slice(0, 1).map((s: string) => <div key={s}>“{s}”</div>)}</td>
             <td className="py-1 text-[11px]">{(q.evidence || []).map((e: Row) => <div key={e.id}><Link className="text-blue-800 underline" to={`/evidence-ledger?evidence=${e.id}`}>{e.file_name}</Link></div>)}</td>

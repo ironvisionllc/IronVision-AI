@@ -99,7 +99,9 @@ def test_a3_policy_filter_uses_only_that_policy(client, ws):
     miss = client.get(base, params={"policy": ws["gap"], "coverage": "missing", "mapped": "true"}, headers=ws["h"]).json()
     part = client.get(base, params={"policy": ws["gap"], "coverage": "partial", "mapped": "yes"}, headers=ws["h"]).json()
     assert miss["total"] + part["total"] > 0
-    assert both["counts"]["met"] == 21 and all(r["matched_by"] == "RA Full v1" for r in both["items"])
+    gap_not_met = {r["cci_id"] for r in gap["items"] if r["coverage"] != "met"}
+    assert both["counts"]["met"] == 21 and all(r["matched_by"] in ("RA Full v1", "RA Gap v1") for r in both["items"])
+    assert gap_not_met and all(r["matched_by"] == "RA Full v1" for r in both["items"] if r["cci_id"] in gap_not_met), "a gap is filled only by the policy that meets it"
     wb = client.get(f"/api/v1/systems/{ws['sid']}/workbench/controls", params={"policy": ws["gap"], "policy_coverage": "gaps"}, headers=ws["h"]).json()
     wbp = client.get(f"/api/v1/systems/{ws['sid']}/workbench/controls", params={"policy": ws["gap"], "policy_coverage": "partial"}, headers=ws["h"]).json()
     assert "ra-1" in {r["control_id"] for r in wb + wbp}, "Workbench and CCI view agree that RA-1 has gaps in the gap policy"
@@ -314,3 +316,44 @@ def test_analyzer_version_reprocesses_stale_policy(client, ws):
         assert pc.ensure_current(db, [db.get(Policy, uuid.UUID(ws["ia"]))]) == 0
         n = db.scalar(select(PolicyControlMap.id).where(PolicyControlMap.policy_id == p.id).limit(1))
         assert n is not None
+
+
+def test_polish_value_locations_use_control_id_headings():
+    from app.services.rmf import locate, rule_extract
+
+    text = ("Access Control Policy\n1. Purpose. This policy sets access rules.\n"
+            "AC-2(3) Disable Accounts. Inactive accounts are disabled within 35 days of inactivity.\n"
+            "AC-7 Unsuccessful Logon Attempts. The system enforces a limit of 4 consecutive invalid logon attempts within 12 minutes "
+            "and locks the account for 25 minutes.")
+    vals = {(v["control_id"], v["parameter"]): v for v in rule_extract(text, {"ac"}, None)["values"]}
+    for k in [("ac-7", "unsuccessful_logon_attempts"), ("ac-7", "logon_attempt_window_minutes"), ("ac-7", "lockout_minutes")]:
+        assert vals[k]["location"].endswith("§ AC-7 Unsuccessful Logon Attempts"), vals[k]
+    assert vals[("ac-2.3", "inactivity_disable_days")]["location"].endswith("§ AC-2(3) Disable Accounts")
+    assert vals[("ac-7", "unsuccessful_logon_attempts")]["numeric_value"] == 4
+    assert locate(text, text.index("This policy sets")).endswith("§ 1. Purpose")
+
+
+def test_polish_proposed_mapping_note_and_also_approved_audit(client, ws):
+    r = client.post("/api/v1/systems", json={"name": "Polish", "acronym": f"PL{uuid.uuid4().hex[:3]}", "baseline_key": "moderate", "categorization_mode": "fips199",
+                                             "information_types": [{"id": "D.16.3"}]}, headers=ws["h"])
+    sid = r.json()["id"]
+    pid = _upload(client, ws["h"], sid, ev.POLICIES["account_management"], f"Polish AC {sid[:4]}")
+    _set_status(sid, "ac-7", "not_implemented")
+    q = next(x for x in _ps(client, ws, sid, "ac-7"))
+    from app.services import policy_mapping as pm
+    with SessionLocal() as db:
+        m = next(x for x in pm.current(db, uuid.UUID(pid)) if x.control_id == "ac-7")
+        assert m.status == "proposed" and m.confidence in ("High", "Medium")
+        map_id = str(m.id)
+    assert q["mapping_note"].startswith(f"Based on a proposed {m.confidence}-confidence mapping – approving this also approves the AC-7 mapping")
+    qall = client.get("/api/v1/mapping-review", params={"system_id": sid}, headers=ws["h"]).json()["queue"]
+    assert any(x["kind"] == "policy_map" and x["control_id"] == "ac-7" for x in qall)
+    d = client.post("/api/v1/mapping-review/decide", json={"system_id": sid, "action": "approve", "justification": "",
+                                                          "items": [{"kind": q["kind"], "ids": q["ids"], "control_id": "ac-7", "evidence_fp": q["evidence_fp"]}]}, headers=ws["h"])
+    assert d.status_code == 200 and d.json()["also_approved"] == [f"AC-7 mapping from “Polish AC {sid[:4]}” v1"], d.json()
+    from app.models import AuditEvent as AuditLog
+    with SessionLocal() as db:
+        ev_ = list(db.scalars(select(AuditLog).where(AuditLog.entity_id == map_id, AuditLog.action == "policy.mapping_approved_with_status")))
+        assert len(ev_) == 1 and ev_[0].after["status"] == "mapped"
+    qall = client.get("/api/v1/mapping-review", params={"system_id": sid}, headers=ws["h"]).json()["queue"]
+    assert not any(x["kind"] == "policy_map" and x["control_id"] == "ac-7" for x in qall)
