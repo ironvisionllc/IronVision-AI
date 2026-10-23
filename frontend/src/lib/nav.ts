@@ -1,5 +1,5 @@
 import {
-  Activity, BookOpen, ClipboardCheck, Database, FileCheck, FileCode, Gauge, GitFork, LayoutDashboard, Layers, ListChecks, ListOrdered, LucideIcon,
+  Activity, BookOpen, ClipboardCheck, Database, FileCheck, FileCode, Gauge, GitFork, HelpCircle, LayoutDashboard, Layers, ListChecks, ListOrdered, LucideIcon,
   Network, Server, Settings, ShieldCheck, Stamp, Users, Workflow,
 } from "lucide-react";
 
@@ -50,6 +50,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "rmf-monitor", group: "monitor", label: "Continuous monitoring", path: "/rmf/monitor", icon: Activity, phase: null, summary: "" },
   { id: "evidence-ledger", group: "monitor", label: "Evidence Ledger", path: "/evidence-ledger", icon: FileCode, phase: null, summary: "Tamper-evident, hash-chained ledger of evidence artifacts." },
   { id: "traceability", group: "tools", label: "Traceability matrix", path: "/traceability", icon: Network, phase: null, summary: "" },
+  { id: "help", group: "tools", label: "Help: who can do what", path: "/help", icon: HelpCircle, phase: null, summary: "" },
   { id: "audit-log", group: "tools", label: "Audit Log", path: "/audit-log", icon: FileCode, phase: null, perm: "audit.read", summary: "" },
   { id: "admin", group: "tools", label: "Admin", path: "/admin", icon: Settings, phase: null, summary: "" },
 ];

@@ -33,7 +33,7 @@ export function Header() {
           <div className="truncate text-[11px] text-slate-500" data-testid="current-user-email">{user.email}</div>
         </div>
         <ActingAs />
-        <div className={user.is_sandbox ? "hidden" : "hidden gap-1 lg:flex"} data-testid="current-user-roles">
+        <div className={user.is_sandbox ? "hidden" : "flex gap-1"} data-testid="current-user-roles" title="Your role(s) – what you can do depends on these. See Help → Who can do what">
           {user.roles.filter((r) => r.scope_type === "org").map((r) => (
             <span key={`${r.role}-${r.scope_id}`} className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-800">
               {ROLE_LABELS[r.role] ?? r.role}

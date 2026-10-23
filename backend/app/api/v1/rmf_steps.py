@@ -37,6 +37,15 @@ def rmf_reference(db: Session = Depends(get_db), current: CurrentUser = Depends(
             "environments": [{"value": v, "label": l, "cloud": c} for v, l, c in rs.ENVIRONMENTS]}
 
 
+@router.get("/reference/role-matrix")
+def role_matrix(_: CurrentUser = Depends(get_current_user)) -> dict:
+    from app.security.rbac import PERMISSIONS, ROLE_PERMISSIONS, ROLES
+
+    return {"roles": [{"key": k, "label": v} for k, v in ROLES.items()],
+            "actions": [{"permission": p, "action": rs.ACTION_LABELS.get(p, d), "description": d,
+                         "roles": [r for r in ROLES if p in ROLE_PERMISSIONS.get(r, set())]} for p, d in PERMISSIONS.items()]}
+
+
 @router.get("/reference/info-types")
 def info_types(_: CurrentUser = Depends(get_current_user)) -> dict:
     return rs.info_type_catalog()

@@ -11,6 +11,7 @@ import { MapToControlModal, PolicyMappingsPanel } from "@/components/controls/Po
 import { cn, fmtDate } from "@/lib/format";
 import { RmfOverview } from "@/pages/RmfStepPages";
 import { BulkInheritance, CrmImportModal } from "@/components/inheritance/CrmImport";
+import { Gated } from "@/components/common/RoleGate";
 
 export function InheritancePage() {
   const { selectedId: sid } = useSystems();
@@ -31,8 +32,8 @@ export function InheritancePage() {
   return (
     <div data-testid="inheritance-page">
       <PageHeader title="Inheritance & Attestations" subtitle="Record which controls another authorized package covers for this system.">
-        {can("system.write") && <><button className="btn-secondary" onClick={() => setProv({ name: "" })} data-testid="add-provider-btn">Add provider</button>
-          <button className="btn-secondary" onClick={() => setAssign({ control_id: "", responsibility: "shared" })} data-testid="assign-inheritance-btn">Assign inherited/shared control</button></>}
+        <Gated perm="system.write"><><button className="btn-secondary" onClick={() => setProv({ name: "" })} data-testid="add-provider-btn">Add provider</button>
+          <button className="btn-secondary" onClick={() => setAssign({ control_id: "", responsibility: "shared" })} data-testid="assign-inheritance-btn">Assign inherited/shared control</button></></Gated>
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="inheritance-msg">{msg}</div>}
       <div className="panel mb-4 p-4 text-[13px] text-slate-700" data-testid="inheritance-explainer">
@@ -40,8 +41,8 @@ export function InheritancePage() {
         <span className="mt-1 block text-[11px] text-slate-500">{c.note} A provider's authorization must be current – expired or soon-expiring providers are flagged below.</span></div>
       {data.providers.filter((p: Row) => ["expired", "expiring"].includes(p.expiry?.status)).map((p: Row) => <div key={p.id} role="alert" data-testid={`provider-warning-${p.id}`}
         className={`mb-3 rounded border p-3 text-[13px] ${p.expiry.status === "expired" ? "border-rose-300 bg-rose-50 text-rose-900" : "border-amber-300 bg-amber-50 text-amber-900"}`}>
-        <b>{p.name}:</b> {p.expiry.message} {p.fully_inherited + p.shared} control(s) in this system depend on it.{can("system.write") && <button className="ml-2 underline" onClick={() => setProv(p)}>Update the provider record</button>}</div>)}
-      {can("system.write") && <BulkInheritance sid={sid} providers={data.providers} onDone={reload} />}
+        <b>{p.name}:</b> {p.expiry.message} {p.fully_inherited + p.shared} control(s) in this system depend on it.<Gated perm="system.write"><button className="ml-2 underline" onClick={() => setProv(p)}>Update the provider record</button></Gated></div>)}
+      <Gated perm="system.write"><BulkInheritance sid={sid} providers={data.providers} onDone={reload} /></Gated>
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
         <Stat label="Fully inherited" value={c.fully_inherited} testId="inh-card-inherited" hint={`of ${c.assigned}`} />
         <Stat label="Shared" value={c.shared} testId="inh-card-shared" /><Stat label="System-owned" value={c.system_owned} testId="inh-card-system" />
@@ -53,8 +54,8 @@ export function InheritancePage() {
           {data.providers.map((p: Row) => <tr key={p.id} data-testid={`provider-${p.id}`}><td className="td text-[12px] font-medium">{p.name}</td><td className="td text-[12px]">{p.package}<div className="text-[10px] text-slate-500">{p.basis}</div></td>
             <td className="td text-[12px]">{p.authorization_type ?? "—"}</td><td className="td max-w-[260px] text-[12px]">{p.coverage_text}</td><td className="td font-mono">{p.fully_inherited}</td><td className="td font-mono">{p.shared}</td>
             <td className="td font-mono text-[11px]">{p.last_validated_at ?? "—"}</td><td className="td font-mono text-[11px]" data-testid={`provider-expiry-${p.id}`}>{p.package_expiration ?? "—"}<div className={p.expiry?.status === "expired" ? "text-rose-700" : p.expiry?.status === "expiring" ? "text-amber-700" : "text-slate-500"}>{p.expiry?.status}</div></td>
-            <td className="td">{can("system.write") && <><button className="text-[11px] text-blue-800 underline" onClick={() => setProv(p)} data-testid={`edit-provider-${p.id}`}>Edit</button>
-              <button className="ml-2 text-[11px] text-blue-800 underline" onClick={() => setCrm(p)} data-testid={`crm-import-${p.id}`}>Import CRM (CSV / Excel)</button></>}</td></tr>)}
+            <td className="td"><Gated perm="system.write"><><button className="text-[11px] text-blue-800 underline" onClick={() => setProv(p)} data-testid={`edit-provider-${p.id}`}>Edit</button>
+              <button className="ml-2 text-[11px] text-blue-800 underline" onClick={() => setCrm(p)} data-testid={`crm-import-${p.id}`}>Import CRM (CSV / Excel)</button></></Gated></td></tr>)}
         </Table>
       </Panel>
       <Panel title="Shared & inherited controls – provider vs system responsibility" eyebrow="Seeded text is a synthetic demo responsibility matrix · CSV columns: control_id, responsibility, provider_responsibility, customer_responsibility" className="mb-5" testId="shared-panel">
@@ -78,7 +79,7 @@ export function InheritancePage() {
               <td className="td"><div className="flex flex-wrap gap-1">
                 {["pending", "expired"].includes(a.status) && <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => { setUpFor(a.id); fileRef.current?.click(); }} data-testid={`att-upload-${a.control_id}`}>Upload evidence</button>}
                 {["pending", "expired"].includes(a.status) && <button className="btn-primary px-2 py-0.5 text-[11px]" disabled={!user || a.owner_id !== user.id} title={!user || a.owner_id !== user.id ? "Only the assigned owner can attest" : ""} onClick={() => act(() => api.post(`/attestations/${a.id}/attest`), "Attested (simulated signature – not CAC/PIV)")} data-testid={`att-attest-${a.control_id}`}>Attest</button>}
-                {can("poam.manage") && <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(() => api.post(`/attestations/${a.id}/remind`), "Reminder sent")} data-testid={`att-remind-${a.control_id}`}>Send reminder</button>}
+                <Gated perm="poam.manage"><button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(() => api.post(`/attestations/${a.id}/remind`), "Reminder sent")} data-testid={`att-remind-${a.control_id}`}>Send reminder</button></Gated>
                 {["signed", "expired"].includes(a.status) && <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(() => api.post(`/attestations/${a.id}/renew`), "New attestation version created; prior record preserved")} data-testid={`att-renew-${a.control_id}`}>Renew</button>}
                 <button className="text-[11px] text-blue-800 underline" onClick={async () => setHist((await api.get<Row[]>(`/attestations/${a.id}/history`)).data)} data-testid={`att-history-${a.control_id}`}>History</button>
                 {can("demo.tools") && a.status === "signed" && <button className="btn-secondary px-2 py-0.5 text-[10px]" onClick={() => act(() => api.post(`/demo/attestations/${a.id}/expire`, { days_ago: 1 }), "Demo: attestation expired – cascade ran")} data-testid={`att-demo-expire-${a.control_id}`}>Demo: expire</button>}
@@ -126,13 +127,13 @@ export function PolicyAuditorPage() {
         <Stat label="Requirements w/o coverage" value={c.requirements_without_coverage} testId="pol-card-missing" /><Stat label="Policy/config disagreements" value={c.disagreements} testId="pol-card-disagree" />
         <Stat label="Overdue reviews" value={c.overdue_reviews} testId="pol-card-overdue" />
       </div>
-      {can("implementation.write") && <Panel title="Upload policy (PDF, DOCX, TXT)" className="mb-5" testId="policy-upload-panel">
+      <Gated perm="implementation.write"><Panel title="Upload policy (PDF, DOCX, TXT)" className="mb-5" testId="policy-upload-panel">
         <div className="flex gap-2"><input className="input" placeholder="Title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} data-testid="policy-title" />
           <input className="input" placeholder="Owner" value={f.owner} onChange={(e) => setF({ ...f, owner: e.target.value })} data-testid="policy-owner" />
           <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && up(e.target.files[0])} data-testid="policy-file-input" />
           <button className="btn-primary whitespace-nowrap" onClick={() => fileRef.current?.click()} data-testid="policy-upload-btn">Upload & analyze</button></div>
         {msg && <div className="mt-2 text-[12px]" data-testid="policy-upload-msg">{msg}</div>}
-      </Panel>}
+      </Panel></Gated>
       <Panel title="Policy library" testId="policy-library">
         <Table head={["Policy", "Version", "Status", "Owner", "Approved", "Review due", "Analysis", "Proposed / confirmed / dismissed"]}>
           {data.policies.map((p: Row) => <tr key={p.id} data-testid={`policy-row-${p.policy_key}-v${p.version}`} className={cn(p.status === "superseded" && "opacity-60")}>
@@ -189,7 +190,7 @@ export function PolicyDetailPage() {
               <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(pf, "dismiss")} data-testid={`pf-dismiss-${pf.id}`}>Dismiss</button>
               <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(pf, "request-review")} data-testid={`pf-review-${pf.id}`}>Request review</button>
               <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(pf, "link")} data-testid={`pf-link-${pf.id}`}>Link to control</button></div>}
-              {can("finding.map") && <button className="mt-1 btn-secondary px-2 py-0.5 text-[11px]" onClick={() => setMapFor(pf.control_id ? [pf.control_id] : [])} data-testid={`pf-map-control-${pf.id}`}>Map to control</button>}
+              <Gated perm="finding.map"><button className="mt-1 btn-secondary px-2 py-0.5 text-[11px]" onClick={() => setMapFor(pf.control_id ? [pf.control_id] : [])} data-testid={`pf-map-control-${pf.id}`}>Map to control</button></Gated>
               {pf.finding_id && <Link className="text-[11px] text-blue-800 underline" to={`/findings/${pf.finding_id}`} data-testid={`pf-finding-link-${pf.id}`}>Finding → Add to POA&M</Link>}</td></tr>)}
         </Table>
       </Panel>

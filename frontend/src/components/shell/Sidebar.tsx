@@ -5,6 +5,8 @@ import { SystemSelector } from "@/components/shell/SystemSelector";
 import { useAuth } from "@/context/AuthContext";
 import { STEP_STATUS, useActiveSystemId, useRmfSteps } from "@/components/rmf/Stepper";
 import type { Row } from "@/lib/useApi";
+import { Lock } from "lucide-react";
+import { deniedText, showDenied } from "@/components/common/RoleGate";
 
 export function Sidebar() {
   const active = activeNavId(useLocation().pathname);
@@ -16,7 +18,7 @@ export function Sidebar() {
       <SystemSelector />
       <nav className="flex-1 overflow-y-auto py-3" aria-label="Primary">
         {NAV_GROUPS.map((g) => {
-          const items = NAV_ITEMS.filter((n) => n.group === g.key && (!n.perm || can(n.perm)));
+          const items = NAV_ITEMS.filter((n) => n.group === g.key);
           const st = status(g.step);
           return (
             <div key={g.key} className="mb-2" data-testid={`nav-group-${g.key}`}>
@@ -25,13 +27,17 @@ export function Sidebar() {
                 {g.label}
               </div>
               <ul>
-                {items.map(({ id, label, path, icon: Icon, phase }) => (
+                {items.map(({ id, label, path, icon: Icon, phase, perm }) => (
                   <li key={id}>
+                    {perm && !can(perm) ? (
+                      <button type="button" className="iv-nav-link group w-full cursor-not-allowed opacity-50" data-testid={`nav-${id}`} title={deniedText(perm)} onClick={() => showDenied(perm)}>
+                        <Icon className="h-4 w-4 shrink-0 opacity-80" aria-hidden /><span className="flex-1 truncate text-left">{label}</span><Lock className="h-3 w-3" aria-label="needs another role" />
+                      </button>) : (
                     <Link to={path} data-testid={`nav-${id}`} aria-current={active === id ? "page" : undefined} className={cn("iv-nav-link group", active === id && "is-active")}>
                       <Icon className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                       <span className="flex-1 truncate">{label}</span>
                       {phase !== null && <span className="iv-sb-muted rounded border border-current/30 px-1.5 text-[10px] font-medium">P{phase}</span>}
-                    </Link>
+                    </Link>)}
                   </li>
                 ))}
               </ul>

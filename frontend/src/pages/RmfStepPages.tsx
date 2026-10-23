@@ -11,6 +11,7 @@ import { showNextStep } from "@/components/common/NextStep";
 import { NextActionButton, STEP_STATUS, StepChips, useActiveSystemId, useRmfSteps } from "@/components/rmf/Stepper";
 import { Help, RolesEditor, rolesFromHolders } from "@/components/rmf/RolesEditor";
 import { CategorizeForm, catBody, catFromSystem } from "@/components/rmf/CategorizeForm";
+import { Gated } from "@/components/common/RoleGate";
 
 function StepFrame({ k, title, purpose, children }: { k: string; title: string; purpose: string; children?: ReactNode }) {
   const { systems, loaded } = useSystems();
@@ -85,7 +86,7 @@ export function CategorizePage() {
     <StepFrame k="categorize" title="Step 2 · Categorize" purpose="Choose the kinds of information the system handles. The app applies NIST's provisional impact levels, takes the high-water mark (FIPS 199) and picks the matching 800-53B baseline.">
       <Msg m={m} />
       {v && <CategorizeForm v={v} onChange={setV} />}
-      {can("system.write") && <button className="btn-primary mt-5" onClick={save} data-testid="categorize-save">Save categorization</button>}
+      <Gated perm="system.write"><button className="btn-primary mt-5" onClick={save} data-testid="categorize-save">Save categorization</button></Gated>
     </StepFrame>);
 }
 

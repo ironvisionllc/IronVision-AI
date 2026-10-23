@@ -12,6 +12,7 @@ import { Restricted } from "@/components/admin/Restricted";
 import { DemoResetPanel } from "@/components/admin/DemoResetPanel";
 import { AdminPhase3Panels } from "@/pages/Phase3Extras";
 import { AdminPhase4Panels } from "@/pages/Phase4Pages";
+import { Gated } from "@/components/common/RoleGate";
 
 export default function AdminPage() {
   const { can } = useAuth();
@@ -30,7 +31,7 @@ export default function AdminPage() {
         {can("audit.read") ? <AuditPanel /> : <Restricted title="Audit events" permission="audit.read" />}
         {can("admin.users.manage") ? <AdminPhase3Panels /> : <Restricted title="Users, security & AI administration" permission="admin.users.manage" />}
         {(can("admin.health.read") || can("risk.admin")) && <AdminPhase4Panels />}
-        {can("demo.tools") && <DemoResetPanel />}
+        <Gated perm="demo.tools"><DemoResetPanel /></Gated>
         <RbacMatrixPanel />
       </div>
     </div>

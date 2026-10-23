@@ -10,6 +10,7 @@ import { Table } from "@/components/common/Bits";
 import { showNextStep } from "@/components/common/NextStep";
 import { RolesEditor } from "@/components/rmf/RolesEditor";
 import { CategorizeForm, EMPTY_CAT, catBody, useCategorization } from "@/components/rmf/CategorizeForm";
+import { Gated } from "@/components/common/RoleGate";
 
 export function SystemsPage() {
   const { can } = useAuth();
@@ -19,7 +20,7 @@ export function SystemsPage() {
       <PageHeader title="Systems" subtitle="Registered systems in your scope (synthetic tenant)">
         <div className="flex gap-2">
           <Link className="btn-secondary" to="/emass" data-testid="import-emass-btn">eMASS sync / import</Link>
-          {can("system.register") && <Link to="/systems/new" className="btn-primary" data-testid="register-system-btn"><Plus className="h-4 w-4" />Register system</Link>}
+          <Gated perm="system.register"><Link to="/systems/new" className="btn-primary" data-testid="register-system-btn"><Plus className="h-4 w-4" />Register system</Link></Gated>
         </div>
       </PageHeader>
       <Panel testId="systems-table-panel">
@@ -35,7 +36,7 @@ export function SystemsPage() {
           {data && data.length === 0 && <tr><td className="td py-8 text-center" colSpan={8} data-testid="systems-empty">
             <div className="t-title text-slate-900">Register your first system</div>
             <p className="mt-1 text-[13px] text-slate-600">Your workspace is empty. Register a system to pick its baseline, then add evidence sources or upload scans.</p>
-            {can("system.register") && <Link to="/systems/new" className="btn-primary mt-3 inline-flex" data-testid="systems-empty-register"><Plus className="h-4 w-4" />Register system</Link>}
+            <Gated perm="system.register"><Link to="/systems/new" className="btn-primary mt-3 inline-flex" data-testid="systems-empty-register"><Plus className="h-4 w-4" />Register system</Link></Gated>
           </td></tr>}
         </Table>
       </Panel>

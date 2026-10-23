@@ -36,9 +36,19 @@ export function deniedInfo(e: unknown): Denied | null {
   return d && typeof d === "object" && d.code === "missing_permission" ? { permission: String(d.permission), roles: (d.roles as string[]) ?? [] } : null;
 }
 
+let actingLabel = "";
+export const setActingLabel = (v: string) => { actingLabel = v; };
+export const getActingLabel = () => actingLabel;
+let deniedFmt: ((perm: string, roles: string[]) => string) | null = null;
+export const setDeniedFormatter = (f: (perm: string, roles: string[]) => string) => { deniedFmt = f; };
+
 export function errorMessage(e: unknown): string {
   const den = deniedInfo(e);
-  if (den) return `Your role can't do this (needs “${den.permission}”${den.roles.length ? `, held by ${den.roles.map((r) => ROLE_LABEL[r] ?? r).join(", ")}` : ""}).`;
+  if (den) {
+    window.dispatchEvent(new CustomEvent("iv:denied", { detail: { perm: den.permission, roles: den.roles } }));
+    return deniedFmt ? deniedFmt(den.permission, den.roles)
+      : `Your role can't do this (needs “${den.permission}”${den.roles.length ? `, held by ${den.roles.map((r) => ROLE_LABEL[r] ?? r).join(", ")}` : ""}).`;
+  }
   if (!axios.isAxiosError(e)) return e instanceof Error ? e.message : "Unexpected error";
   const detail = (e.response?.data as { detail?: unknown } | undefined)?.detail;
   if (typeof detail === "string") return detail;

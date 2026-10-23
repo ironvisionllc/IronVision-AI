@@ -7,6 +7,7 @@ import { Row } from "@/lib/useApi";
 import { Panel } from "@/components/common/Panel";
 import { S } from "@/components/common/Bits";
 import { fmtDate } from "@/lib/format";
+import { Gated } from "@/components/common/RoleGate";
 
 
 function diffLines(a: string, b: string) {
@@ -63,12 +64,12 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
       </div>}
       {ai && <div className="mt-1 text-[11px] text-slate-500">Grounded on {ai.grounding.evidence_count} current evidence item(s). Policies: {ai.grounding.policies}</div>}
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {can("implementation.write") && <>
+        <Gated perm="implementation.write"><>
           <button className="btn-secondary" onClick={() => generate("auto")} disabled={busy} data-testid="ai-generate-btn">{busy ? "Generating…" : "Generate draft"}</button>
           <button className="btn-secondary" onClick={() => generate("template")} disabled={busy} data-testid="template-generate-btn">Template draft</button>
           <button className="btn-primary" onClick={save} disabled={!narr.trim()} data-testid="wb-narrative-save">Save draft version</button>
           <button className="btn-secondary" onClick={requestReview} disabled={!latest || latest.review_status !== "draft" || !!ai} data-testid="wb-request-review">Request review</button>
-        </>}
+        </></Gated>
         <EmassSubmitButton systemId={systemId} controlId={controlId} />
       </div>
       {msg && <div className="mt-2 text-[12px]" role="alert" data-testid="wb-narrative-msg">{msg}</div>}

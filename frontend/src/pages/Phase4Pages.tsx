@@ -9,6 +9,7 @@ import { NeedSystem, S, Stat, Table } from "@/components/common/Bits";
 import { Modal } from "@/components/common/Workflow";
 import { cn, fmtControl, fmtDate } from "@/lib/format";
 import { ReviewQueue } from "@/components/evidence/ReviewQueue";
+import { Gated } from "@/components/common/RoleGate";
 
 const DIFF_TABS: [string, string][] = [["added", "Added"], ["removed", "Removed"], ["changed_requirement", "Changed requirement"], ["changed_severity", "Changed severity"]];
 const DIFF_TIP: Record<string, string> = { added: "Rules that exist only in the new version – assets will need them checked", removed: "Rules dropped by the new version – their findings stop counting",
@@ -127,7 +128,7 @@ export function MappingReviewPage() {
         <Table head={["Finding", "Control", "Source", "Confidence", "Rationale", "Status", ""]}>
           {data?.pending.map((m: Row) => <tr key={m.id} data-testid={`pending-map-${m.id}`}><td className="td text-[12px]"><Link className="text-blue-800 underline" to={`/findings/${m.finding_id}`}>{m.vuln_id}</Link> {m.finding_title}</td>
             <td className="td font-mono">{fmtControl(m.control_id)}</td><td className="td text-[11px]">{m.source}</td><td className="td"><S v={m.confidence} /></td><td className="td max-w-[260px] text-[11px]">{m.justification}</td><td className="td"><S v={m.review_status} /></td>
-            <td className="td">{can("finding.map") && <div className="flex gap-1"><button className="btn-primary px-2 py-0.5 text-[11px]" onClick={() => act(m.id, "approve")} data-testid={`map-approve-${m.id}`}>Approve</button><button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(m.id, "reject")} data-testid={`map-reject-${m.id}`}>Reject</button></div>}</td></tr>)}
+            <td className="td"><Gated perm="finding.map"><div className="flex gap-1"><button className="btn-primary px-2 py-0.5 text-[11px]" onClick={() => act(m.id, "approve")} data-testid={`map-approve-${m.id}`}>Approve</button><button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(m.id, "reject")} data-testid={`map-reject-${m.id}`}>Reject</button></div></Gated></td></tr>)}
         </Table>
       </Panel>
       <Panel title={data ? `Unmapped open findings · ${data.unmapped.length} rules / ${data.unmapped_findings_total} findings` : "Unmapped open findings · loading…"} eyebrow={`Passing / not-applicable results are evidence, not findings (${data?.passing_unmapped_excluded ?? 0} excluded)`} testId="mapping-unmapped">
@@ -261,7 +262,7 @@ export function AdminPhase4Panels() {
             <td className="td"><input type="checkbox" checked={j.enabled} disabled={!can("risk.admin")} onChange={(e) => run(() => api.put(`/scheduled-jobs/${j.id}`, { interval_minutes: j.interval_minutes, enabled: e.target.checked }), () => "Schedule updated")} data-testid={`job-enabled-${j.job_type}`} /></td>
             <td className="td font-mono text-[10px]">{j.last_run_at ? fmtDate(j.last_run_at) : "never"}</td><td className="td"><S v={j.last_status === "succeeded" ? "current" : j.last_status === "failed" ? "failing" : "needs_attention"} label={j.last_status ?? "—"} />{j.last_error && <div className="text-[10px] text-rose-700">{j.last_error.slice(0, 80)}</div>}</td>
             <td className="td font-mono text-[10px]" data-testid={`job-next-${j.job_type}`}>{fmtDate(j.next_run_at)}</td><td className="td font-mono text-[11px]">{j.run_count}</td>
-            <td className="td">{can("risk.admin") && <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => run(() => api.post(`/scheduled-jobs/${j.id}/run`), () => `${j.job_type} queued for the worker`)} data-testid={`job-run-${j.job_type}`}>Run now</button>}</td></tr>)}
+            <td className="td"><Gated perm="risk.admin"><button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => run(() => api.post(`/scheduled-jobs/${j.id}/run`), () => `${j.job_type} queued for the worker`)} data-testid={`job-run-${j.job_type}`}>Run now</button></Gated></td></tr>)}
         </Table>
       </Panel>
       {w && <Panel title="Operational prioritization weights" testId="weights-panel">
@@ -274,13 +275,13 @@ export function AdminPhase4Panels() {
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[12px]">{Object.entries(st.checks).map(([k, v]) => <div key={k} className="flex justify-between" data-testid={`emass-check-${k}`}><span>{k.replace(/_/g, " ")}</span><S v={v ? "current" : "not_configured"} label={v ? "configured" : "not configured"} /></div>)}
           {Object.entries(st.capabilities).map(([k, v]) => <div key={k} className="flex justify-between" data-testid={`emass-cap-${k}`}><span>capability: {k.replace(/_/g, " ")}</span><span>{v ? "yes" : "no"}</span></div>)}</div>
         {st.last_connectivity && <div className="mt-1 text-[11px]" data-testid="emass-connectivity">Connectivity test: {st.last_connectivity.ok ? "OK" : "FAILED"} – {st.last_connectivity.message}</div>}
-        {can("emass.admin") && <div className="mt-3 grid grid-cols-3 gap-2 text-[12px]">
+        <Gated perm="emass.admin"><div className="mt-3 grid grid-cols-3 gap-2 text-[12px]">
           <select className="input" value={cfg.mode ?? st.mode} onChange={(e) => setCfg({ ...cfg, mode: e.target.value })} data-testid="emass-mode-select">{["mock", "read", "write", "oscal_export_only"].map((m) => <option key={m}>{m}</option>)}</select>
           {["base_url", "app_registration_id", "api_user_uid", "client_cert_path"].map((k) => <input key={k} className="input" placeholder={k} value={cfg[k] ?? ""} onChange={(e) => setCfg({ ...cfg, [k]: e.target.value })} data-testid={`emass-${k}`} />)}
           <input className="input" type="password" placeholder="API key (write-only, stored encrypted)" value={cfg.api_key ?? ""} onChange={(e) => setCfg({ ...cfg, api_key: e.target.value })} data-testid="emass-api-key" />
           <button className="btn-primary" onClick={() => run(() => api.put("/emass/config", { mode: st.mode, ...cfg }), () => "eMASS configuration saved")} data-testid="emass-save-btn">Save</button>
           <button className="btn-secondary" onClick={() => run(() => api.post("/emass/test"), (d) => `Connectivity: ${d.ok ? "OK" : "FAILED"} – ${d.message}`)} data-testid="emass-test-btn">Test connectivity</button>
-        </div>}
+        </div></Gated>
         {can("emass.admin") && st.mode === "mock" && <div className="mt-3 flex items-center gap-2 text-[12px]" data-testid="failure-sim">
           <b>MOCK failure simulation:</b> {st.failure_simulation.mode} ({st.failure_simulation.remaining} remaining)
           {[["500", "Fail next 2 (500)"], ["timeout", "Timeout next 1"], ["409", "409 conflict next 1"], ["off", "Off"]].map(([m, l]) => <button key={m} className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => run(() => api.put("/emass/failure-sim", { mode: m, remaining: m === "off" ? 0 : m === "500" ? 2 : 1 }), () => `Failure simulation: ${l}`)} data-testid={`failsim-${m}`}>{l}</button>)}

@@ -7,6 +7,7 @@ import { useApi, Row } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { S, Table } from "@/components/common/Bits";
 import { ROLE_LABELS } from "@/lib/nav";
+import { Gated } from "@/components/common/RoleGate";
 
 const ASSET_FIELDS = ["name", "hostname", "ip_address", "cloud_resource_id", "os", "asset_type", "criticality", "network_zone", "environment", "inventory_source"];
 
@@ -54,7 +55,7 @@ export default function SystemDetailPage() {
           <Table head={["User", "Role", "Scope", ""]}>
             {roles.data?.map((r) => (
               <tr key={r.id}><td className="td">{r.display_name} <span className="text-slate-400">{r.email}</span></td><td className="td">{ROLE_LABELS[r.role] ?? r.role}</td><td className="td">system</td>
-                <td className="td">{can("system.roles.manage") && <button className="btn-secondary px-2 py-0.5 text-xs" data-testid={`revoke-role-${r.id}`} onClick={() => act(() => api.delete(`/systems/${id}/roles/${r.id}`))}>Revoke</button>}</td></tr>
+                <td className="td"><Gated perm="system.roles.manage"><button className="btn-secondary px-2 py-0.5 text-xs" data-testid={`revoke-role-${r.id}`} onClick={() => act(() => api.delete(`/systems/${id}/roles/${r.id}`))}>Revoke</button></Gated></td></tr>
             ))}
           </Table>
           {can("system.roles.manage") && (
@@ -67,7 +68,7 @@ export default function SystemDetailPage() {
         </Panel>
       </div>
       <Panel title={`Asset inventory (${assets.data ? assets.data.length : "…"})`} className="mt-5" testId="assets-panel"
-        actions={can("system.write") && <button className="btn-secondary" onClick={() => setAsset({})} data-testid="add-asset-btn">Add asset</button>}>
+        actions=<Gated perm="system.write"><button className="btn-secondary" onClick={() => setAsset({})} data-testid="add-asset-btn">Add asset</button></Gated>>
         {asset && (
           <form onSubmit={saveAsset} className="mb-4 grid grid-cols-5 gap-2 rounded border border-slate-200 bg-slate-50 p-3" data-testid="asset-form">
             {ASSET_FIELDS.map((k) => <input key={k} className="input" placeholder={k} value={asset[k] ?? ""} required={k === "name"} onChange={(e) => setAsset({ ...asset, [k]: e.target.value })} data-testid={`asset-${k}`} />)}
@@ -80,7 +81,7 @@ export default function SystemDetailPage() {
               {["name", "hostname", "ip_address", "cloud_resource_id", "os", "asset_type", "criticality", "network_zone", "environment", "inventory_source"].map((k) => <td key={k} className="td text-[12px]">{a[k] ?? "—"}</td>)}
               <td className="td font-mono text-[11px]">{a.last_observed_at?.slice(0, 16) ?? "—"}</td>
               <td className="td">{a.is_unmatched ? <S v="unmatched" label="ingest" /> : <S v="confirmed" />}</td>
-              <td className="td whitespace-nowrap">{can("system.write") && <><button className="btn-secondary px-2 py-0.5 text-xs" onClick={() => setAsset(a)} data-testid={`edit-asset-${a.name}`}>Edit</button> <button className="btn-secondary px-2 py-0.5 text-xs" onClick={() => act(() => api.delete(`/systems/${id}/assets/${a.id}`))}>Delete</button></>}</td>
+              <td className="td whitespace-nowrap"><Gated perm="system.write"><><button className="btn-secondary px-2 py-0.5 text-xs" onClick={() => setAsset(a)} data-testid={`edit-asset-${a.name}`}>Edit</button> <button className="btn-secondary px-2 py-0.5 text-xs" onClick={() => act(() => api.delete(`/systems/${id}/assets/${a.id}`))}>Delete</button></></Gated></td>
             </tr>
           ))}
         </Table>

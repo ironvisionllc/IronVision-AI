@@ -32,6 +32,26 @@ REQUIRED_ROLES = [k for k, _, _, req in KEY_ROLES if req]
 ROLE_USER_FIELD = {"system_owner": "system_owner_id", "isso": "isso_id", "issm": "issm_id", "ao": "ao_id"}
 
 EMASS = "eMASS-aligned; verify against your eMASS instance"
+ACTION_LABELS = {
+    "system.write": "Changing system records, roles, categorization or the control selection",
+    "implementation.write": "Changing implementation status or writing implementation statements",
+    "assessment.perform": "Recording assessment results (Satisfied / Other than satisfied)",
+    "authorization.decide": "Recording an authorization decision (ATO / IATT / DATO)",
+    "risk.accept": "Accepting residual risk",
+    "poam.manage": "Creating or editing POA&M items",
+    "finding.map": "Approving, rejecting or editing mappings",
+    "ingest.upload": "Uploading scan, checklist or policy files",
+    "source.manage": "Connecting tools and creating evidence sources",
+    "system.register": "Registering a new system",
+    "system.roles.manage": "Assigning people to system roles",
+    "comment.write": "Adding reviewer comments",
+    "evidence.verify": "Running evidence integrity checks",
+    "emass.queue": "Queuing eMASS changes",
+    "content.apply": "Applying content updates (STIG / KEV / CCI)",
+    "admin.content.load": "Loading reference content and official overlay lists",
+    "audit.read": "Reading the audit log",
+    "portfolio.read": "Viewing the portfolio / leadership dashboard",
+}
 MISSION_CRITICALITY = [
     ("MC", "Mission Critical (MC)", "Loss would prevent the organization from performing a primary mission (e.g. warfighting, direct mission support)."),
     ("ME", "Mission Essential (ME)", "Basic and necessary for accomplishing the mission; loss degrades it but a work-around may exist for a short time."),

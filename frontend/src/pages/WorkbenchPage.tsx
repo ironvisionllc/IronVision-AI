@@ -13,6 +13,7 @@ import { AddToPoamButton, PoamLink } from "@/components/common/Workflow";
 import { ImplementationPanel } from "@/components/workbench/ImplementationPanel";
 import { MappedPoliciesPanel, StatusSection } from "@/components/workbench/StatusSection";
 import { AssessmentPanel } from "@/pages/Phase3Extras";
+import { Gated } from "@/components/common/RoleGate";
 
 const REASON: Record<string, string> = { failed_technical_checks: "Failed checks", kev: "KEV", cat1_open: "CAT I", expired_evidence: "Expired evidence",
   missing_implementation_statement: "No narrative", missing_assessment_evidence: "No assessment evidence", unmapped_findings: "Unmapped findings",
@@ -211,7 +212,7 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
       </Panel>
       <Panel title="Reviewer comments" testId="wb-comments">
         {d.comments.map((m: Row) => <div key={m.id} className="border-b border-slate-100 py-1 text-[12px]"><b>{m.author_email}</b> {fmtDate(m.created_at)}: {m.body}</div>)}
-        {can("comment.write") && <div className="mt-2 flex gap-2"><input className="input" value={comment} onChange={(e) => setComment(e.target.value)} data-testid="wb-comment-input" /><button className="btn-secondary" disabled={!comment} onClick={addComment} data-testid="wb-comment-btn">Comment</button></div>}
+        <Gated perm="comment.write"><div className="mt-2 flex gap-2"><input className="input" value={comment} onChange={(e) => setComment(e.target.value)} data-testid="wb-comment-input" /><button className="btn-secondary" disabled={!comment} onClick={addComment} data-testid="wb-comment-btn">Comment</button></div></Gated>
       </Panel>
     </div>
   );

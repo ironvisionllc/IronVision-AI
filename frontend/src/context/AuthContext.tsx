@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { api, errorStatus, TOKEN_KEY } from "@/lib/api";
+import { api, errorStatus, ROLE_LABEL, setActingLabel, TOKEN_KEY } from "@/lib/api";
 
 const REFRESH_KEY = "aegis.refresh_token";
 let refreshing: Promise<boolean> | null = null;
@@ -107,6 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new Event("iv:identity"));  // useApi hooks refetch as the new persona
   }, []);
 
+  useEffect(() => {
+    setActingLabel(!user ? "" : user.is_sandbox && user.persona_role ? (ROLE_LABEL[user.persona_role] ?? user.persona_role)
+      : [...new Set(user.roles.map((r) => ROLE_LABEL[r.role] ?? r.role))].join(" / "));
+  }, [user]);
   const can = useCallback((p: string) => !!user && user.permissions.includes(p), [user]);
   const value = useMemo(() => ({ user, login, demoLogin, logout, can, actAs }), [user, login, demoLogin, logout, can, actAs]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

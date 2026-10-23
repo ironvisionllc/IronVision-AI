@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { api, errorMessage } from "@/lib/api";
 import { Row } from "@/lib/useApi";
 import { Panel } from "@/components/common/Panel";
+import { Gated } from "@/components/common/RoleGate";
 
 const STATUSES = ["planned", "partially_implemented", "implemented", "not_applicable", "inherited", "not_implemented"];
 
@@ -30,7 +31,7 @@ export function StatusSection({ systemId, controlId, d, reload }: { systemId: st
       <div className="flex flex-wrap items-end gap-3">
         <label className="text-[12px] font-medium" title="Implementation status (RMF Implement step): how far your organization has put this control in place – planned, partially implemented, implemented, inherited from a common control provider, or not applicable.">Implementation status <span className="cursor-help text-slate-400">ⓘ</span>
           <select className="input mt-1 w-56" value={v} onChange={(e) => setV(e.target.value)} disabled={!can("implementation.write")} data-testid="wb-impl-status">{STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}</select></label>
-        {can("implementation.write") && <button className="btn-primary" disabled={busy || v === d.assignment.implementation_status} onClick={save} data-testid="wb-status-save" title={v === d.assignment.implementation_status ? "Choose a different status first" : undefined}>{busy ? "Saving…" : "Save status"}</button>}
+        <Gated perm="implementation.write"><button className="btn-primary" disabled={busy || v === d.assignment.implementation_status} onClick={save} data-testid="wb-status-save" title={v === d.assignment.implementation_status ? "Choose a different status first" : undefined}>{busy ? "Saving…" : "Save status"}</button></Gated>
         <div className="text-[12px]" title="Assessment status (RMF Assess step): the Security Control Assessor's (SCA) result – satisfied or other than satisfied. Only the SCA can set it.">Assessment status <span className="cursor-help text-slate-400">ⓘ</span>: <b data-testid="wb-assessment-status">{d.assignment.assessment_status.replace(/_/g, " ")}</b> <span className="text-[11px] text-slate-500">(set by the assessor in “SCA assessment” below)</span></div>
       </div>
       {err && <div className="mt-2 text-[12px] text-rose-700" role="alert" data-testid="wb-status-error">{err}</div>}

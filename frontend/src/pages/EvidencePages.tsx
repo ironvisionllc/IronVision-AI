@@ -13,6 +13,7 @@ import { AddToPoamButton } from "@/components/common/Workflow";
 import { showNextStep } from "@/components/common/NextStep";
 import { StigDetail } from "@/components/evidence/StigDetail";
 import { SampleFilesLink } from "@/components/shell/Sandbox";
+import { Gated } from "@/components/common/RoleGate";
 
 /** Upload rejection in plain language: what happened · how to fix it · accepted formats. */
 function UploadError({ e, onClose }: { e: { file: string; text: string }; onClose: () => void }) {
@@ -85,7 +86,7 @@ function UploadFilePanel({ sid, sources, types, onUploaded }: { sid: string; sou
         <button className="btn-primary" onClick={() => fileRef.current?.click()} data-testid="upload-btn"><Upload className="h-4 w-4" />Choose file and upload</button>
       </div> : <p className="text-[12px] text-slate-600" data-testid="upload-denied">Uploading needs the “ingest.upload” permission (ISSO, System Owner or DevSecOps).</p>}
       <p className="mt-2 text-[11px] text-slate-500">“One-off file” = upload without linking to a source – use it for single files. For files you upload regularly, create a file source so they are grouped:
-        {can("source.manage") && <button className="ml-1 underline" onClick={() => setNewSrc({ name: "", source_type: "stig_checklist" })} data-testid="create-file-source-btn">create a file source</button>}</p>
+        <Gated perm="source.manage"><button className="ml-1 underline" onClick={() => setNewSrc({ name: "", source_type: "stig_checklist" })} data-testid="create-file-source-btn">create a file source</button></Gated></p>
       {newSrc && <div className="mt-2 flex flex-wrap gap-2" data-testid="file-source-form">
         <input className="input w-48" placeholder="Name, e.g. Monthly ACAS" value={newSrc.name} onChange={(e) => setNewSrc({ ...newSrc, name: e.target.value })} data-testid="file-source-name" />
         <select className="input w-56" value={newSrc.source_type} onChange={(e) => setNewSrc({ ...newSrc, source_type: e.target.value })} data-testid="file-source-type">
@@ -268,7 +269,7 @@ export function LedgerPage() {
   return (
     <div data-testid="ledger-page">
       <PageHeader title="Evidence Ledger" subtitle="Immutable originals, SHA-256 at receipt, re-verifiable integrity, policy-driven freshness.">
-        {can("evidence.verify") && <button className="btn-primary" onClick={verify} data-testid="verify-integrity-btn">Verify integrity</button>}
+        <Gated perm="evidence.verify"><button className="btn-primary" onClick={verify} data-testid="verify-integrity-btn">Verify integrity</button></Gated>
       </PageHeader>
       {job && <div className="panel mb-4 p-3 text-[13px]" data-testid="integrity-job-status">Integrity job <S v={job.status === "succeeded" ? "completed" : job.status} /> {job.result && `checked ${job.result.checked} · ok ${job.result.ok} · mismatched ${job.result.mismatched}`}</div>}
       {msg && <div className="panel mb-4 border-amber-300 bg-amber-50 p-3 text-[13px] text-amber-900" data-testid="ledger-msg">{msg}</div>}
@@ -285,7 +286,7 @@ export function LedgerPage() {
               <td className="td font-mono text-[11px]">{fmtDate(e.collected_at)}</td>
               <td className="td font-mono text-[11px]">{e.sha256.slice(0, 12)}… <button aria-label="Copy hash" onClick={() => navigator.clipboard?.writeText(e.sha256)} data-testid={`copy-hash-${e.id}`}><Copy className="inline h-3 w-3" /></button></td>
               <td className="td font-mono text-[11px]">{e.freshness_window_days}d</td><td className="td"><S v={e.integrity_status} testId={`ledger-integrity-${e.id}`} /></td><td className="td"><S v={e.signature_status} testId={`ledger-signature-${e.id}`} /></td><td className="td"><S v={e.state} testId={`ledger-state-${e.id}`} /></td>
-              <td className="td">{can("demo.tools") && <button className="btn-secondary px-2 py-0.5 text-[10px]" onClick={() => backdate(e.id)} data-testid={`demo-backdate-${e.id}`}>Demo: −45d</button>}</td>
+              <td className="td"><Gated perm="demo.tools"><button className="btn-secondary px-2 py-0.5 text-[10px]" onClick={() => backdate(e.id)} data-testid={`demo-backdate-${e.id}`}>Demo: −45d</button></Gated></td>
             </tr>
           ))}
         </Table>

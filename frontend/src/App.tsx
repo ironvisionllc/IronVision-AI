@@ -21,6 +21,7 @@ import { FindingPage, ReviewDetailPage, ReviewsPage } from "@/pages/ReviewPages"
 import { InheritancePage, PolicyAuditorPage, PolicyDetailPage, RmfWorkflowPage } from "@/pages/Phase3Pages";
 import { AuditLogPage, AuthorizationPage, NotificationPrefsPage } from "@/pages/Phase3Extras";
 import { EmassPage, MappingReviewPage } from "@/pages/Phase4Pages";
+import HelpPage from "@/pages/HelpPage";
 import { AssessPage, AuthorizePage, CategorizePage, ImplementPage, MonitorPage, PreparePage, SelectPage, TraceabilityPage } from "@/pages/RmfStepPages";
 import { Toaster } from "sonner";
 
@@ -87,6 +88,7 @@ function Shell() {
           <Route path="/rmf/authorize" element={<AuthorizePage />} />
           <Route path="/rmf/monitor" element={<MonitorPage />} />
           <Route path="/traceability" element={<TraceabilityPage />} />
+          <Route path="/help" element={<HelpPage />} />
           {NAV_ITEMS.filter((n) => n.phase !== null).map((n) => (
             <Route key={n.path} path={n.path} element={<PlaceholderPage item={n} />} />
           ))}
