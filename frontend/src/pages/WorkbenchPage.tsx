@@ -15,6 +15,7 @@ import { MappedPoliciesPanel, StatusSection } from "@/components/workbench/Statu
 import { AssessmentPanel } from "@/pages/Phase3Extras";
 import { Gated } from "@/components/common/RoleGate";
 import { PageSizeSelect, Pager, usePageSize } from "@/components/common/PageSize";
+import { downloadFile } from "@/lib/download";
 
 const REASON: Record<string, string> = { failed_technical_checks: "Failed checks", kev: "KEV", cat1_open: "CAT I", expired_evidence: "Expired evidence",
   missing_implementation_statement: "No narrative", missing_assessment_evidence: "No assessment evidence", unmapped_findings: "Unmapped findings",
@@ -106,6 +107,7 @@ export default function WorkbenchPage() {
   return (
     <div data-testid="workbench-page">
       <PageHeader title="Control Workbench" subtitle="Work through your system's controls for the ATO: set each control's status, write how it is implemented, attach evidence, and see what is still open. Pick a control from the list on the left to start.">
+        <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="wb-export-parameters" title="System-wide CSV: every policy value next to the system's defined value (ODP), overlay values and the latest observed value">Export parameter comparison</button>
         <Link to="/catalog" className="btn-secondary" data-testid="open-catalog-btn" title="Browse every NIST SP 800-53 Rev 5 control and baseline">Reference catalog</Link>
       </PageHeader>
       {sum && (
@@ -130,7 +132,7 @@ export default function WorkbenchPage() {
           <div className="flex items-center gap-2 px-3 py-2 text-[12px]">
             <label className="flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} data-testid="show-all-toggle" />All controls</label>
             {showList && <span className="text-slate-600" data-testid="filter-result-count">{list ? `${list.length} control(s) match` : "…"}</span>}
-            {showList && <PageSizeSelect value={size} onChange={(n) => { setSize(n); setPage(0); }} testId="wb-page-size" />}
+            <PageSizeSelect value={size} onChange={(n) => { setSize(n); setPage(0); if (!showList && n !== 50) setAll(true); }} testId="wb-page-size" />
             {filtered && <button className="ml-auto text-[11px] text-blue-800 underline" onClick={() => setParams(new URLSearchParams(), { replace: true })} data-testid="filter-clear">Clear filters</button>}
           </div>
           {(sum?.unmapped_findings ?? 0) > 0 && <Link to="/mapping-review" className="block border-b border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid="queue-unmapped-item">System: {sum?.unmapped_findings} unmapped open findings need mapping or disposition →</Link>}
@@ -176,6 +178,9 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
           <S v={a.monitoring_status} label="Monitoring" testId="wb-status-monitoring" /><S v={a.evidence_freshness_status} label="Evidence freshness" testId="wb-status-freshness" />
         </div>
         {a.reason_details.length > 0 && <div className="mt-2 text-[11px] text-slate-600" data-testid="wb-score-breakdown">Priority {a.priority_score}: {a.reason_details.map((r: Row) => `${r.description} (+${r.points})`).join(" · ")}</div>}
+        {(d.overlay_notes || []).map((n: Row) => <details key={n.key} className="mt-2 rounded bg-indigo-50 px-2 py-1 text-[11px] text-indigo-900" data-testid={`wb-overlay-note-${n.key}`}>
+          <summary className="cursor-pointer">{({ add: "Added by", remove: "Removed by", optional: "Optional in", guidance: "Guidance from", baseline: "Baseline control with guidance in", consideration: "Implementation consideration in" } as Record<string, string>)[n.action] || "In"} {n.overlay} ({n.cite}) · {n.flags}</summary>
+          {n.fields.map((f: Row, i: number) => <div key={i} className="mt-1"><b>{f.label}</b> (p. {f.page}): {f.text}</div>)}</details>)}
         <div className="mt-1 text-[11px] text-slate-400">Last eMASS sync: {d.emass_sync}</div>
       </Panel>
       <Panel title="Supporting evidence" testId="wb-evidence">

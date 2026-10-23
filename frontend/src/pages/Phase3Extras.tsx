@@ -1,3 +1,4 @@
+import { PageSizeSelect, usePageSize } from "@/components/common/PageSize";
 import { OscalPanel } from "@/pages/Phase4Pages";
 import { AiModelSettings } from "@/components/admin/AiModelSettings";
 import { IdentityMappings } from "@/components/admin/IdentityMappings";
@@ -111,7 +112,8 @@ export function NotificationPrefsPage() {
 
 export function AuditLogPage() {
   const [f, setF] = useState<Row>({ actor: "", action: "", entity_type: "", outcome: "", date_from: "", date_to: "", page: 1, include_system: false });
-  const params = Object.fromEntries(Object.entries(f).filter(([, v]) => v !== "" && v !== false));
+  const [size, setSize] = usePageSize("audit-log");
+  const params = { ...Object.fromEntries(Object.entries(f).filter(([, v]) => v !== "" && v !== false)), page_size: size || 1000 };
   const { data, error, denied } = useApi<Row>("/audit-log", params);
   const exp = async (fmt: string) => { const r = await api.get("/audit-log", { params: { ...params, fmt }, responseType: "blob" }); const a = document.createElement("a"); a.href = URL.createObjectURL(r.data as Blob); a.download = `audit.${fmt}`; a.click(); };
   if (denied) return <AccessDenied denied={denied} area="the Audit Log" />;
@@ -137,7 +139,7 @@ export function AuditLogPage() {
             <td className="td"><S v={e.outcome === "denied" ? "failing" : "current"} label={e.outcome} /></td><td className="td text-[11px]">{e.entity_type} {String(e.entity_id ?? "").slice(0, 8)}</td>
             <td className="td max-w-[300px] truncate font-mono text-[10px]">{JSON.stringify(e.details ?? e.after ?? {})}</td></tr>)}
         </Table>
-        <div className="mt-2 flex items-center gap-2 text-[12px]"><button className="btn-secondary px-2 py-1 text-xs" disabled={f.page <= 1} onClick={() => setF({ ...f, page: f.page - 1 })} data-testid="audit-prev">Prev</button>
+        <div className="mt-2 flex items-center gap-2 text-[12px]"><PageSizeSelect value={size} onChange={(n) => { setSize(n); setF({ ...f, page: 1 }); }} testId="audit-log-page-size" /><button className="btn-secondary px-2 py-1 text-xs" disabled={f.page <= 1} onClick={() => setF({ ...f, page: f.page - 1 })} data-testid="audit-prev">Prev</button>
           Page {f.page} · {data ? data.total : "…"} events<button className="btn-secondary px-2 py-1 text-xs" disabled={!data || f.page * data.page_size >= data.total} onClick={() => setF({ ...f, page: f.page + 1 })} data-testid="audit-next">Next</button></div>
       </Panel>
     </div>

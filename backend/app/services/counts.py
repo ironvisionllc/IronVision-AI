@@ -5,7 +5,7 @@ from collections import Counter
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import ControlAssignment, System
+from app.models import ControlAssignment, System, TailoringDecision
 from app.services.content.loader import content_stats
 from app.services.evaluation import FRESH_OK
 
@@ -36,14 +36,20 @@ def system_counts(db: Session, system: System) -> dict:
     by = Counter(o for o, _ in rows)
     assigned = len(rows)
     removed = len(baseline) - by.get("baseline", 0)
+    have = set(db.scalars(select(ControlAssignment.control_id).where(ControlAssignment.system_id == system.id)))
+    ov_removed = len({c for c in db.scalars(select(TailoringDecision.control_id).where(
+        TailoringDecision.system_id == system.id, TailoringDecision.action == "remove", TailoringDecision.overlay_key.is_not(None)))
+        if c in baseline and c not in have})
+    tailored_out = removed - ov_removed
     with_ev = sum(1 for _, f in rows if f != "no_evidence")
     current = sum(1 for _, f in rows if f in FRESH_OK)
     bl = " + ".join(BASELINE_NAME.get(k, k) for k in keys)
-    return {"baseline_key": system.baseline_key, "baseline": len(baseline), "removed": removed, "overlay_added": by.get("overlay", 0),
-            "tailored_in": by.get("tailored_in", 0), "assigned": assigned, "with_evidence": with_ev, "with_current_evidence": current,
+    oa, ti = by.get("overlay", 0), by.get("tailored_in", 0)
+    return {"baseline_key": system.baseline_key, "baseline": len(baseline), "removed": removed, "overlay_added": oa, "overlay_removed": ov_removed,
+            "tailored_out": tailored_out, "tailored_in": ti, "assigned": assigned, "with_evidence": with_ev, "with_current_evidence": current,
             "labels": {"baseline": f"{len(baseline):,} in the {bl} baseline (base + enhancements)",
                        "assigned": f"{assigned:,} assigned after tailoring",
-                       "reconciliation": f"{len(baseline):,} baseline − {removed:,} removed (overlay/tailoring) + {by.get('overlay', 0):,} added by overlays"
-                                         f" + {by.get('tailored_in', 0):,} tailored in = {assigned:,} assigned",
+                       "reconciliation": f"{len(baseline):,} baseline + {oa:,} added by overlays − {ov_removed:,} removed by overlays"
+                                         f" − {tailored_out:,} tailored out + {ti:,} tailored in = {assigned:,} assigned",
                        "with_evidence": f"{with_ev:,} of {assigned:,} assigned controls have any evidence",
                        "with_current_evidence": f"{current:,} of {assigned:,} assigned controls have current evidence"}}

@@ -361,6 +361,9 @@ class Overlay(CoreMixin, ProvenanceMixin, Base):
     is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     structure_only: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    group_key: Mapped[str | None] = mapped_column(String(60))
+    variant: Mapped[str | None] = mapped_column(String(40))
+    details: Mapped[dict | None] = mapped_column(JSONB)
 
 
 class CommonControlProvider(CoreMixin, ProvenanceMixin, Base):
@@ -418,6 +421,9 @@ class TailoringDecision(CoreMixin, Base):
     action: Mapped[str] = mapped_column(String(10), nullable=False)
     justification: Mapped[str] = mapped_column(Text, nullable=False)
     decided_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    overlay_key: Mapped[str | None] = mapped_column(String(100))
+    prior_origin: Mapped[str | None] = mapped_column(String(30))
+    prior_origin_detail: Mapped[str | None] = mapped_column(String(255))
 
 
 class Implementation(CoreMixin, Base):

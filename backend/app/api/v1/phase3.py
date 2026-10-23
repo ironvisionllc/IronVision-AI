@@ -643,6 +643,31 @@ def export_params(policy_id: uuid.UUID, db: Session = Depends(get_db), current: 
     return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="policy-{policy_id}-parameters.csv"'})
 
 
+@router.get("/systems/{system_id}/parameters.csv")
+def export_system_params(system_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> Response:
+    """System-wide parameter comparison: every policy value for this system next to the system ODP value and the latest observed value,
+    plus organization-defined parameter values set on the system (including values set by applied overlays)."""
+    s = db.get(System, system_id)
+    if s is None or s.org_id != current.user.org_id:
+        raise HTTPException(404, "System not found")
+    cols = ["row_type", "source", "source_version", "control_id", "parameter", "policy_value", "odp_value", "observed_value", "observed_age_days",
+            "result", "quote_or_reference"]
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(cols)
+    pols = [p for p in db.scalars(select(Policy).where(Policy.org_id == s.org_id)) if str(system_id) in [str(x) for x in (p.system_ids or [])]]
+    for p in pols:
+        for v in policy_detail(p.id, db, current)["values"]:
+            if str(v.get("system_id")) == str(system_id):
+                w.writerow(["policy_parameter", p.title, p.version, v["control_id"].upper(), v["parameter"], v.get("policy_value"), v.get("odp_value"),
+                            v.get("observed_value"), v.get("observed_age_days"), v.get("result") or "no observation", v.get("quote")])
+    for o in db.scalars(select(OdpValue).where(OdpValue.system_id == system_id).order_by(OdpValue.control_id)):
+        w.writerow(["overlay_parameter" if o.parameter.startswith("overlay:") else "odp", o.source, "", o.control_id.upper(), o.parameter, "", o.value,
+                    "", "", "", o.source])
+    name = f"{s.acronym or 'system'}-parameter-comparison.csv"
+    return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
 # ---------- workflow, search, notifications prefs ----------
 @router.get("/systems/{system_id}/rmf-workflow")
 def rmf_workflow(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> list[dict]:
@@ -725,7 +750,7 @@ def audit_log(actor: str | None = None, action: str | None = None, entity_type: 
     if not include_system:
         q = q.where(AuditEvent.actor_user_id.is_not(None))
     total = db.scalar(select(func.count()).select_from(q.subquery()))
-    page_size = max(1, min(page_size, 200))
+    page_size = max(1, min(page_size, 1000))
     items = [to_dict(e) for e in db.scalars(q.order_by(AuditEvent.seq.desc()).offset((max(page, 1) - 1) * page_size).limit(page_size))]
     attach(db, items, "actor_user_id", "actor")
     from sqlalchemy import text as sqltext

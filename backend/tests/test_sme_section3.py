@@ -78,11 +78,12 @@ def test_select_baseline_overlay_tailoring_counts_reconcile(client, ws):
     r = client.post(f"/api/v1/systems/{sid}/select/baseline", headers=h, json={"baseline_key": "moderate", "include_privacy": True}).json()
     assert r["added"] > 0 and r["counts"]["assigned"] > low
     v = client.get(f"/api/v1/systems/{sid}/select", headers=h).json()
-    assert {"cnssi-privacy", "cnssi-classified", "cnssi-intelligence", "cnssi-space", "cnssi-cds", "cnssi-nc3"} <= {o["key"] for o in v["overlays"]}
-    so = next(o for o in v["overlays"] if o["key"] == "cnssi-space")
-    assert so["structure_only"] and "Structure only" in so["description"]
-    bad = client.post(f"/api/v1/systems/{sid}/select/overlay", headers=h, json={"overlay_key": "cnssi-space", "apply": True})
-    assert bad.status_code == 422 and "structure only" in bad.json()["detail"]
+    assert {"cnssi-classified", "cnssi-space", "cnssi-privacy-moderate"} <= {x["key"] for g in v["overlay_groups"] for x in g["variants"]}
+    intel = next(g for g in v["overlay_groups"] if g["group"] == "intelligence")
+    if not intel["loaded"]:
+        assert intel["restricted"] and "FOUO" in intel["note"]
+        bad = client.post(f"/api/v1/systems/{sid}/select/overlay", headers=h, json={"overlay_key": "cnssi-intelligence", "apply": True})
+        assert bad.status_code == 422 and "structure only" in bad.json()["detail"]
     assert client.post(f"/api/v1/systems/{sid}/select/tailor", headers=h, json={"action": "remove", "control_ids": ["ac-2.1"], "justification": ""}).status_code == 422
     t = client.post(f"/api/v1/systems/{sid}/select/tailor", headers=h, json={"action": "remove", "control_ids": ["ac-2.1", "ac-2.2"],
                                                                             "justification": "Accounts are managed by the enterprise IdP"}).json()

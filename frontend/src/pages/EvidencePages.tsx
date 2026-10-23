@@ -1,3 +1,4 @@
+import { usePaged } from "@/components/common/PageSize";
 import { ContentUpdatesPanel } from "@/pages/Phase4Pages";
 import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -129,6 +130,7 @@ export function SourcesPage() {
   const { can } = useAuth();
   const sources = useApi<Row[]>(sid ? `/systems/${sid}/sources` : null);
   const runs = useApi<Row[]>(sid ? `/systems/${sid}/ingest-runs` : null);
+  const runsPg = usePaged("ingest-runs", runs.data);
   const { data: types } = useApi<Row[]>("/source-types");
   const [msg, setMsg] = useState<Record<string, string>>({});
   if (!sid) return <NeedSystem />;
@@ -175,8 +177,9 @@ export function SourcesPage() {
       </div>
       <Panel title="Latest ingest" testId="ingest-runs-panel">
         <p className="mb-2 text-[12px] text-slate-600">Every uploaded or collected file appears here. Open a row to see its rules / findings and how they mapped to controls.</p>
+        <div className="mb-2 flex justify-end">{runsPg.select}</div>
         <Table head={["Received", "Source", "File", "Status", "Results", "Mapped results", "Unmapped results", "Controls touched", "SHA-256"]} testId="ingest-runs-table">
-          {runs.data?.map((r) => (
+          {runsPg.rows.map((r) => (
             <tr key={r.id} data-testid={`ingest-run-${r.id}`}>
               <td className="td font-mono text-[11px]"><Link className="text-blue-800 hover:underline" to={`/ingest-runs/${r.id}`}>{fmtDate(r.received_at)}</Link></td>
               <td className="td text-[12px]">{r.source_name ?? "—"}</td><td className="td text-[12px]">{r.file_name}</td><td className="td"><S v={r.status} /></td>
@@ -185,6 +188,7 @@ export function SourcesPage() {
             </tr>
           ))}
         </Table>
+        <div className="mt-2 flex justify-end">{runsPg.pager}</div>
       </Panel>
     </div>
   );
@@ -255,6 +259,7 @@ export function LedgerPage() {
   const { can } = useAuth();
   const { data, reload } = useApi<Row[]>(sid ? `/systems/${sid}/evidence` : null);
   const { data: pol } = useApi<Row[]>("/freshness-policies");
+  const ledgerPg = usePaged("evidence-ledger", data);
   const [job, setJob] = useState<Row | null>(null);
   const [msg, setMsg] = useState("");
   if (!sid) return <NeedSystem />;
@@ -276,8 +281,9 @@ export function LedgerPage() {
       <ContentUpdatesPanel />
       <div className="mb-4 text-[11px] text-slate-500" data-testid="freshness-policies">Freshness windows: {pol?.map((p) => p.label).join(" · ")}</div>
       <Panel testId="ledger-table-panel">
+        <div className="mb-2 flex justify-end">{ledgerPg.select}</div>
         <Table head={["Evidence", "Source", "Controls", "Assets", "Collected", "SHA-256", "Window", "Integrity", "Signature", "Freshness", ""]} testId="ledger-table">
-          {data?.map((e) => (
+          {ledgerPg.rows.map((e) => (
             <tr key={e.id} data-testid={`ledger-row-${e.file_name}`}>
               <td className="td text-[12px]">{e.name}<div className="text-[10px] text-slate-400">{e.evidence_type} · v{e.version}</div></td>
               <td className="td text-[12px]">{e.source_name ?? "—"}</td>
@@ -290,6 +296,7 @@ export function LedgerPage() {
             </tr>
           ))}
         </Table>
+        <div className="mt-2 flex justify-end">{ledgerPg.pager}</div>
       </Panel>
     </div>
   );

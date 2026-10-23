@@ -276,6 +276,10 @@ def mapping_review_decide(body: QueueDecision, request: Request, db: Session = D
                              after={"implementation_status": a.implementation_status, "assessment_status": a.assessment_status, "evidence_ids": ev,
                                     "justification": just}, **audit.request_meta(request))
         result[{"approve": "approved", "reject": "rejected", "edit": "edited"}[body.action]] += 1
+        audit.record(db, action=f"mapping_review.item_{ {'approve': 'approved', 'reject': 'rejected', 'edit': 'edited'}[body.action] }",
+                     actor_user_id=current.user.id, actor_email=current.user.email, entity_type=it.kind, entity_id=",".join(it.ids)[:200],
+                     after={"system_id": str(body.system_id), "control_id": it.control_id, "kind": it.kind, "justification": just,
+                            "awaiting_sca": it.kind == "status" and body.action == "approve" and not can_assess}, **audit.request_meta(request))
     audit.record(db, action=f"mapping_review.{body.action}", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
                  entity_id=str(body.system_id), after={"items": [i.model_dump() for i in body.items], "justification": just, "edit": edit},
                  **audit.request_meta(request))

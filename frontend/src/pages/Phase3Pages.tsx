@@ -12,6 +12,7 @@ import { cn, fmtDate } from "@/lib/format";
 import { RmfOverview } from "@/pages/RmfStepPages";
 import { BulkInheritance, CrmImportModal } from "@/components/inheritance/CrmImport";
 import { Gated } from "@/components/common/RoleGate";
+import { downloadFile } from "@/lib/download";
 
 export function InheritancePage() {
   const { selectedId: sid } = useSystems();
@@ -166,7 +167,7 @@ export function PolicyDetailPage() {
   return (
     <div data-testid="policy-detail-page">
       <PageHeader title={`${p.title} v${p.version}`} subtitle={`${p.status} · ${p.file_name ?? "metadata only"} · sha256 ${p.sha256?.slice(0, 16) ?? "—"} · ${p.analysis?.ai_note ?? ""}`}>
-        <a className="btn-secondary" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/policies/${id}/parameters.csv`} onClick={async (e) => { e.preventDefault(); const r = await api.get(`/policies/${id}/parameters.csv`, { responseType: "blob" }); const u = URL.createObjectURL(r.data as Blob); const a = document.createElement("a"); a.href = u; a.download = "parameters.csv"; a.click(); }} data-testid="export-params-btn">Export parameter comparison (CSV)</a>
+        <button className="btn-secondary" onClick={() => downloadFile(`/policies/${id}/parameters.csv`, "policy-parameters.csv", "Parameter comparison")} data-testid="export-params-btn">Export parameter comparison (CSV)</button>
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="policy-msg">{msg}</div>}
       <Panel title="Mapped controls (confidence · basis · matched text)" className="mb-5" testId="policy-control-mappings">

@@ -11,7 +11,8 @@ import { showNextStep } from "@/components/common/NextStep";
 import { NextActionButton, STEP_STATUS, StepChips, useActiveSystemId, useRmfSteps } from "@/components/rmf/Stepper";
 import { Help, RolesEditor, rolesFromHolders } from "@/components/rmf/RolesEditor";
 import { CategorizeForm, catBody, catFromSystem } from "@/components/rmf/CategorizeForm";
-import { PageSizeSelect, Pager, usePageSize } from "@/components/common/PageSize";
+import { PageSizeSelect, Pager, usePageSize, usePaged } from "@/components/common/PageSize";
+import { downloadFile } from "@/lib/download";
 import { Gated } from "@/components/common/RoleGate";
 
 function StepFrame({ k, title, purpose, children }: { k: string; title: string; purpose: string; children?: ReactNode }) {
@@ -118,25 +119,85 @@ function Baseline({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
     </Panel>);
 }
 
+function OverlayControls({ sid, k }: { sid: string; k: string }) {
+  const { data } = useApi<Row>(`/systems/${sid}/select/overlays/${k}`);
+  const [only, setOnly] = useState("changes");
+  const pg = usePaged<Row>(`overlay-${k}`, (data?.controls || []).filter((c: Row) => only === "all" || ["add", "remove"].includes(c.action)));
+  if (!data) return <div className="text-[11px] text-slate-500">Loading…</div>;
+  return (
+    <div className="mt-2" data-testid={`overlay-controls-${k}`}>
+      <div className="mb-1 flex items-center gap-2 text-[11px]">
+        <select className="input w-auto py-0.5 text-[11px]" value={only} onChange={(e) => setOnly(e.target.value)} data-testid={`overlay-controls-filter-${k}`}>
+          <option value="changes">Added / removed controls</option><option value="all">All controls in this overlay (incl. guidance-only)</option></select>
+        <span className="ml-auto">{pg.select}</span></div>
+      <table className="w-full text-[11px]"><thead><tr className="text-left text-slate-500"><th>Control</th><th>What the overlay says</th><th>In this system</th></tr></thead><tbody>
+        {pg.rows.map((c: Row) => <tr key={c.control_id} className="border-t border-slate-100 align-top" data-testid={`overlay-ctl-${k}-${c.control_id}`}>
+          <td className="py-1 font-mono font-semibold">{c.control_id.toUpperCase().replace(/\.(\d+)$/, "($1)")}<div className="font-sans font-normal text-slate-500">{c.name}</div></td>
+          <td className="py-1"><div className="font-medium">{c.label} · <span className="font-mono">{c.flags}</span></div>
+            {c.fields.filter((f: Row) => !/Reference/.test(f.label)).slice(0, 3).map((f: Row, i: number) => <div key={i} className="text-slate-600"><b>{f.label}</b> (p. {f.page}): {f.text.length > 260 ? `${f.text.slice(0, 260)}…` : f.text}</div>)}</td>
+          <td className="whitespace-nowrap py-1">{c.removed_by_overlay ? <span className="text-rose-700">removed by this overlay</span> : c.added_by_this ? <span className="text-emerald-700">added by this overlay</span> : c.assigned ? "assigned" : "—"}</td></tr>)}
+      </tbody></table>
+      <div className="mt-1 flex justify-end">{pg.pager}</div>
+    </div>);
+}
+
+function OverlayGroup({ sid, g, busy, apply }: { sid: string; g: Row; busy: boolean; apply: (key: string, on: boolean, title: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const cur = g.variants.find((v: Row) => v.applied);
+  return (
+    <div className="border-t border-slate-100 py-3" data-testid={`overlay-group-${g.group}`}>
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="min-w-[260px] flex-1"><b className="text-[13px]">{g.title}</b>
+          {g.document && <span className="ml-1 text-[11px] text-slate-500" title={`SHA-256 ${g.document.sha256} · ${g.document.marking}`}>{g.document.cite} · {g.document.date}</span>}
+          {cur ? <span className="ml-2 rounded bg-emerald-100 px-1.5 text-[11px] text-emerald-800" data-testid={`overlay-group-${g.group}-applied`}>Applied: {cur.label}</span> : null}
+          {g.question && <div className="mt-1 text-[12px] text-slate-800">{g.question}</div>}
+          {g.help && <div className="mt-0.5 text-[11px] text-slate-500">{g.help}</div>}
+          {g.note && <div className="mt-1 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900" data-testid={`overlay-group-${g.group}-restricted`}>{g.note}</div>}</div>
+        <div className="flex flex-wrap gap-1">{g.variants.map((v: Row) => (
+          <button key={v.key} disabled={busy} className={v.applied ? "btn-secondary px-2 py-0.5 text-[11px]" : "btn-primary px-2 py-0.5 text-[11px]"} onClick={() => apply(v.key, !v.applied, `${g.title}${g.kind === "variant" ? ` – ${v.label}` : ""}`)}
+            title={`+${v.add} added / −${v.remove} removed vs. the baseline · ${v.parameters} parameter value(s) · ${v.guidance_only} guidance-only${v.optional ? ` · ${v.optional} optional` : ""}`} data-testid={`overlay-${v.key}-toggle`}>
+            {v.applied ? `Remove ${g.kind === "variant" ? v.label : "overlay"}` : g.kind === "variant" ? `${cur ? "Switch to" : "Apply"} ${v.label}` : "Yes – apply"} <span className="opacity-70">(+{v.add}/−{v.remove})</span></button>))}</div>
+      </div>
+      {cur && <><button className="mt-1 text-[11px] text-blue-800 underline" onClick={() => setOpen(!open)} data-testid={`overlay-group-${g.group}-details`}>{open ? "Hide" : "Show"} what {cur.label} changes in this system</button>
+        {open && <OverlayControls sid={sid} k={cur.key} />}</>}
+    </div>);
+}
+
 function Overlays({ sid, d, reload }: { sid: string; d: Row; reload: () => void }) {
   const { can } = useAuth();
   const [m, setM] = useState<{ ok?: string; err?: string }>({});
   const [ver, setVer] = useState<Record<string, string>>({});
-  const toggle = async (o: Row) => {
-    try { const r = await api.post<Row>(`/systems/${sid}/select/overlay`, { overlay_key: o.key, apply: !o.applied }); reload();
-      setM({ ok: `${o.title}: ${o.applied ? "removed" : "applied"} (+${r.data.added.length} / −${r.data.removed.length} controls). ${r.data.counts.labels.reconciliation}.` });
-    } catch (e) { setM({ err: errorMessage(e) }); }
+  const [busy, setBusy] = useState(false);
+  const apply = async (key: string, on: boolean, title: string) => {
+    setBusy(true);
+    try { const r = await api.post<Row>(`/systems/${sid}/select/overlay`, { overlay_key: key, apply: on }); reload();
+      const x = r.data;
+      const msg = on ? `${title} applied: +${x.added.length} control(s) added, −${x.removed.length} removed, ${x.parameters_set ?? 0} parameter value(s) set.`
+        : `${title} removed: its ${x.removed.length} added control(s) were taken out${x.restored?.length ? ` and ${x.restored.length} control(s) it had removed were restored` : ""}.`;
+      setM({ ok: `${msg} ${x.counts.labels.reconciliation}.` });
+      showNextStep({ message: msg, label: "check the tailored control list in the Workbench", to: `/systems/${sid}/controls?origin=overlay` });
+    } catch (e) { setM({ err: errorMessage(e) }); } finally { setBusy(false); }
   };
   const importCsv = async (o: Row, f: File) => {
     const fd = new FormData(); fd.append("file", f); fd.append("version", ver[o.key] || "1");
     try { const r = await api.post<Row>(`/overlays/${o.key}/import`, fd); reload(); setM({ ok: `Official list imported for ${o.title}: +${r.data.add} / −${r.data.remove} controls. You can now apply it.` }); }
     catch (e) { setM({ err: errorMessage(e) }); }
   };
+  const importRef = async (f: File) => {
+    const fd = new FormData(); fd.append("file", f);
+    try { const r = await api.post<Row>("/overlays/import-reference", fd); reload(); setM({ ok: `${r.data.message}: ${r.data.created.join(", ") || "—"}.` }); }
+    catch (e) { setM({ err: errorMessage(e) }); }
+  };
+  const legacy = (d.overlays || []).filter((o: Row) => !o.structure_only || o.key === "cnssi-nc3");
   return (
-    <Panel title="Overlays" eyebrow="Add or remove controls for a special situation" testId="select-overlays">
+    <Panel title="Overlays" eyebrow="CNSSI 1253 overlays – answer each question; applying adds/removes controls and sets parameter values" testId="select-overlays"
+      actions={can("admin.content.load") ? <label className="btn-secondary cursor-pointer px-2 py-0.5 text-[11px]" title="Admins: load a derived overlay data file (e.g. the restricted Intelligence / CDS overlays, or a newer version)">Import official data (JSON)
+        <input type="file" accept=".json" className="hidden" onChange={(e) => e.target.files?.[0] && importRef(e.target.files[0])} data-testid="overlay-import-reference" /></label> : undefined}>
       <Msg m={m} />
-      <table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th className="py-1">Overlay</th><th>Controls</th><th>Status</th><th /></tr></thead><tbody>
-        {d.overlays.map((o: Row) => <tr key={o.key} className="border-t border-slate-100 align-top" data-testid={`overlay-${o.key}`}>
+      <p className="text-[11px] text-slate-500">Control lists are parsed from the official CNSS documents (file, date and SHA-256 shown on hover). Removing an overlay reverses exactly its own changes.</p>
+      {(d.overlay_groups || []).map((g: Row) => <OverlayGroup key={g.group} sid={sid} g={g} busy={busy || !can("system.write")} apply={apply} />)}
+      {legacy.length > 0 && <table className="mt-3 w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th className="py-1">Other overlays</th><th>Controls</th><th>Status</th><th /></tr></thead><tbody>
+        {legacy.map((o: Row) => <tr key={o.key} className="border-t border-slate-100 align-top" data-testid={`overlay-${o.key}`}>
           <td className="py-2"><b className="font-medium">{o.title}</b> {!o.structure_only && <span className="text-slate-400">v{o.version}</span>}{o.synthetic && <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-800">SYNTHETIC</span>}
             {o.structure_only && <div className="mt-0.5 text-[11px] text-slate-500">{o.description}</div>}</td>
           <td className="py-2 font-mono">{o.structure_only ? "—" : `+${o.add} / −${o.remove}`}</td>
@@ -146,8 +207,8 @@ function Overlays({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
               <label className="btn-secondary cursor-pointer px-2 py-0.5 text-[11px]" title="CSV with columns control_id,action (add/remove)">Import official list (CSV)
                 <input type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files?.[0] && importCsv(o, e.target.files[0])} data-testid={`overlay-${o.key}-import`} /></label></span>
               : <span className="text-[11px] text-slate-500">An administrator must import the official list</span>)
-            : <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => toggle(o)} data-testid={`overlay-${o.key}-toggle`}>{o.applied ? "Remove" : "Apply"}</button>}</td>
-        </tr>)}</tbody></table>
+            : <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => apply(o.key, !o.applied, o.title)} data-testid={`overlay-${o.key}-toggle`}>{o.applied ? "Remove" : "Apply"}</button>}</td>
+        </tr>)}</tbody></table>}
     </Panel>);
 }
 
@@ -207,7 +268,8 @@ export function SelectPage() {
     <StepFrame k="select" title="Step 3 · Select – baseline, overlays and tailoring" purpose="Decide which controls apply: start from the baseline that matches the categorization, apply overlays for special situations, then tailor controls in or out with a rationale.">
       {data && sid && <div className="grid gap-5">
         <div className="panel p-4 text-[12px]" data-testid="select-counts"><b>Control count:</b> <span data-testid="select-reconciliation">{data.counts.labels.reconciliation}</span>
-          <Help text="Same numbers as the Workbench and dashboard (one shared calculation): baseline − removed + added by overlays + tailored in = assigned." /></div>
+          <Help text="Same numbers as the Workbench and dashboard (one shared calculation): baseline + added by overlays − removed by overlays − tailored out + tailored in = assigned." /></div>
+          <button className="btn-secondary ml-2 px-2 py-0.5 text-[11px]" onClick={() => downloadFile(`/systems/${sid}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="select-export-parameters">Export parameter comparison (CSV)</button>
         {can("system.write") ? <><Baseline sid={sid} d={data} reload={reload} /><Overlays sid={sid} d={data} reload={reload} /><Tailoring sid={sid} d={data} reload={reload} /></>
           : <p className="text-[12px] text-slate-600">Changing the control selection needs the “system.write” permission (ISSO, ISSM or System Owner). You can view the selection in the <Link className="underline" to="/traceability">traceability matrix</Link>.</p>}
       </div>}

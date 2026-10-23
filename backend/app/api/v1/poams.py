@@ -79,7 +79,7 @@ def list_poams(request: Request, system_id: uuid.UUID | None = None, q: str | No
     if severity:
         base = base.where(Poam.severity == severity)
     total = db.scalar(select(func.count()).select_from(base.subquery()))
-    page_size, off = max(1, min(page_size, 100)), (max(page, 1) - 1) * max(1, min(page_size, 100))
+    page_size, off = max(1, min(page_size, 1000)), (max(page, 1) - 1) * max(1, min(page_size, 1000))
     if sort == "risk":
         from app.services.queue import SEV_RANK, score_poam
 

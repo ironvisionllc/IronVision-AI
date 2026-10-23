@@ -1,3 +1,4 @@
+import { PageSizeSelect, usePageSize } from "@/components/common/PageSize";
 import { PoamImpactBanner } from "@/pages/Phase4Pages";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -16,7 +17,8 @@ export function PoamListPage() {
   const { selectedId: sid } = useSystems();
   const [all, setAll] = useState(false);
   const [p, setP] = useState({ q: "", status: "open", severity: "", sort: "risk", desc: false, page: 1 });
-  const { data, loading } = useApi<Row>("/poams", { system_id: all ? undefined : sid || undefined, ...p, q: p.q || undefined, status: p.status || undefined, severity: p.severity || undefined });
+  const [size, setSize] = usePageSize("poams");
+  const { data, loading } = useApi<Row>("/poams", { system_id: all ? undefined : sid || undefined, ...p, page_size: size || 1000, q: p.q || undefined, status: p.status || undefined, severity: p.severity || undefined });
   const sm = data?.summary;
   const sortBy = (k: string) => setP({ ...p, sort: k, desc: p.sort === k ? !p.desc : false });
   return (
@@ -33,6 +35,7 @@ export function PoamListPage() {
       )}
       <Panel testId="poam-table-panel" actions={
         <div className="flex gap-2">
+          <PageSizeSelect value={size} onChange={(n) => { setSize(n); setP({ ...p, page: 1 }); }} testId="poams-page-size" />
           <input className="input w-64" placeholder="Search ID, weakness, control, CVE/STIG" value={p.q} onChange={(e) => setP({ ...p, q: e.target.value, page: 1 })} data-testid="poam-search" />
           <select className="input w-44" value={p.status} onChange={(e) => setP({ ...p, status: e.target.value, page: 1 })} data-testid="poam-status-filter">
             <option value="">All statuses</option>{["open", "new", "in_progress", "overdue", "closure_eligible", "closure_review", "risk_acceptance_review", "closed", "risk_accepted"].map((s) => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}</select>

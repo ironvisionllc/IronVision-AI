@@ -118,6 +118,12 @@ def test_bulk_status_approval_without_assessor_role_does_not_deadlock(client, ws
     def boom(*_):
         raise TimeoutError("decide hung – audit-lock deadlock")
 
+    from app.db import SessionLocal
+    from app.models import AuditEvent
+    from sqlalchemy import func
+
+    with SessionLocal() as db:
+        seq0 = db.query(func.max(AuditEvent.seq)).scalar() or 0
     signal.signal(signal.SIGALRM, boom)
     signal.alarm(60)
     try:
@@ -126,3 +132,28 @@ def test_bulk_status_approval_without_assessor_role_does_not_deadlock(client, ws
         signal.alarm(0)
     assert r.status_code == 200, r.text
     assert r.json()["approved"] == 2
+
+    with SessionLocal() as db:
+        ev = db.query(AuditEvent).filter(AuditEvent.seq > seq0, AuditEvent.action == "mapping_review.item_approved", AuditEvent.entity_id.in_([",".join(i["ids"]) for i in st[:2]])).all()
+    assert len(ev) == 2, "every bulk-approved item needs its own audit event"
+    q = _queue(client, ws)
+    waiting = [i for i in q["queue"] if i["kind"] == "status" and i["control_id"] in {x["control_id"] for x in st[:2]}]
+    assert waiting and all(i["awaiting_sca"] and "waiting for the SCA" in i["title"] for i in waiting)
+
+
+def test_bulk_mixed_approval_audits_each_item(client, ws):
+    q = _queue(client, ws)
+    items = [i for i in q["queue"] if i["kind"] in ("finding_map", "policy_map")][:4]
+    if len(items) < 2:
+        pytest.skip("needs mapping items")
+    from sqlalchemy import func
+
+    from app.db import SessionLocal
+    from app.models import AuditEvent
+
+    with SessionLocal() as db:
+        seq0 = db.query(func.max(AuditEvent.seq)).scalar() or 0
+    assert _post(client, ws, items, "approve", "Reviewed together").status_code == 200
+    with SessionLocal() as db:
+        n = db.query(AuditEvent).filter(AuditEvent.seq > seq0, AuditEvent.action == "mapping_review.item_approved", AuditEvent.entity_id.in_([",".join(i["ids"])[:200] for i in items])).count()
+    assert n == len(items)

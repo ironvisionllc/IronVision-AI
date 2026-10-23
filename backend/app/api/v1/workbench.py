@@ -114,7 +114,10 @@ def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(
     prov = db.get(CommonControlProvider, a.provider_id) if a.provider_id else None
     cci_cv = db.scalar(select(ContentVersion).where(ContentVersion.content_type == "cci_list", ContentVersion.is_active.is_(True)))
     weights = {w.reason_code: w.description for w in db.scalars(select(PriorityWeight))}
+    from app.services.overlays import control_notes
+
     return {
+        "overlay_notes": control_notes(db, db.get(System, system_id), a.control_id),
         "status_last_changed": _status_last_changed(db, a),
         "policy_mappings": _policy_mappings(db, a),
         "assignment": {**to_dict(a), "provider_name": prov.name if prov else None,

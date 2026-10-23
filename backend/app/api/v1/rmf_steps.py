@@ -150,17 +150,30 @@ def select_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
     from app.services.sandbox import has_demo_data
 
     demo = has_demo_data(db, s.org_id)
-    for o in db.scalars(select(Overlay).where(Overlay.is_active.is_(True)).order_by(Overlay.overlay_key, Overlay.created_at)):
+    for o in db.scalars(select(Overlay).where(Overlay.is_active.is_(True), Overlay.group_key.is_(None)).order_by(Overlay.overlay_key, Overlay.created_at)):
         if o.is_synthetic and not demo and o.overlay_key not in (s.overlay_keys or []):
             continue
+        if o.structure_only and o.overlay_key.split("-")[1] in ("privacy", "classified", "space"):
+            continue
         ovs[o.overlay_key] = o
+    from app.services.overlays import groups_view
+
     return {"baseline_key": s.baseline_key, "recommended_baseline": (s.categorization or "").lower() or None, "include_privacy": s.include_privacy,
             "processes_pii": s.processes_pii, "overlay_keys": s.overlay_keys or [], "counts": system_counts(db, s),
+            "overlay_groups": groups_view(db, s),
             "overlays": [{"key": o.overlay_key, "title": o.title, "version": o.version, "structure_only": o.structure_only, "description": o.description,
                           "add": len(o.controls_add), "remove": len(o.controls_remove), "synthetic": o.is_synthetic,
                           "applied": o.overlay_key in (s.overlay_keys or [])} for o in ovs.values()],
-            "tailoring": [to_dict(t) for t in db.scalars(select(TailoringDecision).where(TailoringDecision.system_id == s.id)
+            "tailoring": [to_dict(t) for t in db.scalars(select(TailoringDecision).where(TailoringDecision.system_id == s.id, TailoringDecision.overlay_key.is_(None))
                                                          .order_by(TailoringDecision.created_at.desc()))]}
+
+
+@router.get("/systems/{system_id}/select/overlays/{overlay_key}")
+def select_overlay_controls(system_id: uuid.UUID, overlay_key: str, db: Session = Depends(get_db),
+                            _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    from app.services.overlays import overlay_controls
+
+    return _err(overlay_controls, db, get_system(db, system_id), overlay_key)
 
 
 class BaselineIn(BaseModel):
@@ -212,6 +225,25 @@ async def overlay_import(overlay_key: str, version: str = Form(..., min_length=1
     ov = _err(rs.import_overlay_csv, db, overlay_key, version, await file.read(), current.user)
     db.commit()
     return {"overlay_key": ov.overlay_key, "version": ov.version, "add": len(ov.controls_add), "remove": len(ov.controls_remove)}
+
+
+@router.post("/overlays/import-reference", status_code=201)
+async def overlay_import_reference(file: UploadFile = File(...), db: Session = Depends(get_db),
+                                   current: CurrentUser = Depends(require_permission("admin.content.load"))) -> dict:
+    import json
+
+    from app.services.overlays import load_reference, record_import
+
+    try:
+        data = json.loads((await file.read()).decode("utf-8-sig"))
+        if not isinstance(data, dict) or data.get("schema") != 1 or not isinstance(data.get("overlays"), dict):
+            raise ValueError("Expected the derived overlay data file (schema 1) produced by scripts/cnssi1253/parse_overlays.py")
+        created = load_reference(db, data, current.user.email)
+    except (ValueError, KeyError, TypeError) as e:
+        raise HTTPException(status_code=422, detail=f"Could not import: {e}") from e
+    record_import(db, current.user, created, file.filename or "upload")
+    db.commit()
+    return {"created": created, "message": f"{len(created)} overlay variant(s) loaded" if created else "Already loaded – no new versions"}
 
 
 @router.get("/systems/{system_id}/authorize")

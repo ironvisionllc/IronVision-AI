@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ReactElement, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 export const PAGE_SIZES = [50, 100, 250, 0];
@@ -27,4 +27,18 @@ export function Pager({ total, size, page, setPage, testId }: { total: number; s
       <span>{page * size + 1}–{Math.min((page + 1) * size, total)} of {total.toLocaleString()}</span>
       <button className="btn-secondary px-2 py-0.5" disabled={page >= last} onClick={() => setPage(page + 1)} aria-label="Next page">›</button>
     </span>);
+}
+
+
+/** Client-side paging for any list: returns the visible rows plus the size selector and pager (page size remembered per user). */
+export function usePaged<T>(table: string, items: T[] | undefined | null): { rows: T[]; select: ReactElement; pager: ReactElement } {
+  const [size, setSize] = usePageSize(table);
+  const [page, setPage] = useState(0);
+  const all = items || [];
+  const p = size && page * size >= all.length ? 0 : page;
+  return {
+    rows: size ? all.slice(p * size, p * size + size) : all,
+    select: <PageSizeSelect value={size} onChange={(n) => { setSize(n); setPage(0); }} testId={`${table}-page-size`} />,
+    pager: <Pager size={size} page={p} total={all.length} setPage={setPage} testId={`${table}-pager`} />,
+  };
 }

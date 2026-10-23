@@ -273,10 +273,14 @@ def steps(db: Session, s: System) -> dict:
 
 
 def ensure_overlays(db: Session) -> None:
+    from app.services.overlays import ensure_public
+
     for key, title in CNSSI_OVERLAYS:
         if not db.scalar(select(Overlay.id).where(Overlay.overlay_key == key)):
             db.add(Overlay(overlay_key=key, version="structure", title=title, description=STRUCTURE_NOTE, controls_add=[], controls_remove=[],
                            is_synthetic=False, structure_only=True, source="CNSSI 1253 (structure only)"))
+    db.flush()
+    ensure_public(db)
 
 
 def import_overlay_csv(db: Session, key: str, version: str, data: bytes, actor: User) -> Overlay:
@@ -303,7 +307,9 @@ def import_overlay_csv(db: Session, key: str, version: str, data: bytes, actor: 
         raise ValueError("The CSV has no rows – expected columns control_id,action")
     db.query(Overlay).filter(Overlay.overlay_key == key).update({"is_active": False})
     ov = Overlay(overlay_key=key, version=version, title=base.title, description=f"Imported from the official list by {actor.email}",
-                 controls_add=sorted(set(add)), controls_remove=sorted(set(rem)), is_synthetic=False, structure_only=False, source="csv import")
+                 controls_add=sorted(set(add)), controls_remove=sorted(set(rem)), is_synthetic=False, structure_only=False, source="csv import",
+                 group_key=base.group_key, variant=base.variant, provenance={**(base.provenance or {}), "csv_import": True, "date": version},
+                 details={c: d for c, d in (base.details or {}).items() if c in set(add) | set(rem)})
     db.add(ov)
     audit.record(db, action="overlay.imported", actor_user_id=actor.id, actor_email=actor.email, entity_type="overlay", entity_id=key,
                  after={"version": version, "add": len(add), "remove": len(rem)})
@@ -357,22 +363,23 @@ def apply_baseline(db: Session, s: System, key: str, include_privacy: bool, acto
 
 
 def set_overlay(db: Session, s: System, key: str, on: bool, actor: User) -> dict:
+    from app.services import overlays as ovs
+
     ov = db.scalar(select(Overlay).where(Overlay.overlay_key == key, Overlay.is_active.is_(True)).order_by(Overlay.created_at.desc()))
     if ov is None:
         raise ValueError("Unknown overlay")
-    keys = list(s.overlay_keys or [])
     if on:
         if ov.structure_only:
             raise ValueError(f"{ov.title} is structure only – load the official control list (CSV import) before applying it")
-        added = _add(db, s, list(ov.controls_add), "overlay", f"{ov.overlay_key} v{ov.version}", actor)
-        removed = _remove(db, s, list(ov.controls_remove))
-        s.overlay_keys = sorted(set(keys + [key]))
+        if key in (s.overlay_keys or []):
+            raise ValueError(f"{ov.title} is already applied")
+        out = ovs.apply(db, s, ov, actor, _add)
     else:
-        added = []
-        removed = _remove(db, s, [a.control_id for a in _assignments(db, s) if a.origin == "overlay" and (a.origin_detail or "").startswith(f"{key} ")])
-        s.overlay_keys = [k for k in keys if k != key]
-    _finish(db, s, actor, "system.overlay_" + ("applied" if on else "removed"), {"overlay": key, "added": added, "removed": removed})
-    return {"added": added, "removed": removed}
+        if key not in (s.overlay_keys or []):
+            raise ValueError(f"{ov.title} is not applied to this system")
+        out = ovs.remove(db, s, ov, actor)
+    _finish(db, s, actor, "system.overlay_" + ("applied" if on else "removed"), {"overlay": key, "version": ov.version, **out})
+    return {"added": [], "removed": [], **out}
 
 
 def tailor(db: Session, s: System, action: str, ids: list[str], justification: str, actor: User) -> dict:
