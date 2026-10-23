@@ -13,6 +13,8 @@ import { RmfOverview } from "@/pages/RmfStepPages";
 import { BulkInheritance, CrmImportModal } from "@/components/inheritance/CrmImport";
 import { Gated } from "@/components/common/RoleGate";
 import { downloadFile } from "@/lib/download";
+import { CCI_TIP, CoverageChecklist } from "@/components/policy/Coverage";
+import { useActiveSystemId } from "@/components/rmf/Stepper";
 
 export function InheritancePage() {
   const { selectedId: sid } = useSystems();
@@ -156,6 +158,7 @@ export function PolicyDetailPage() {
   const { data, reload } = useApi<Row>(`/policies/${id}`);
   const [msg, setMsg] = useState("");
   const [mapFor, setMapFor] = useState<string[] | null>(null);
+  const active = useActiveSystemId();
   if (!data) return null;
   const p = data.policy;
   const act = async (pf: Row, action: string) => {
@@ -172,6 +175,9 @@ export function PolicyDetailPage() {
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="policy-msg">{msg}</div>}
       <Panel title="Mapped controls (confidence · basis · matched text)" className="mb-5" testId="policy-control-mappings">
         <PolicyMappingsPanel policyId={id} data={data} canMap={can("finding.map")} reload={reload} setMsg={setMsg} />
+      </Panel>
+      <Panel title="Requirement coverage (DISA CCIs + SP 800-53A objectives)" eyebrow={CCI_TIP} className="mb-5" testId="policy-coverage">
+        <CoverageChecklist policyId={id} data={data} systemId={(data.policy.system_ids || [])[0] || active || undefined} canMap={can("finding.map")} canPoam={can("poam.manage")} reload={reload} setMsg={setMsg} />
       </Panel>
       <Panel title="Values this policy sets" className="mb-5" testId="policy-values">
         <Table head={["Control", "Parameter", "Policy value & exact quote", "Approved ODP", "Observed / enforced", "Evidence age", "Result"]}>

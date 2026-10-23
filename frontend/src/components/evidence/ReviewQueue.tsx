@@ -7,7 +7,7 @@ import { Panel } from "@/components/common/Panel";
 import { showNextStep } from "@/components/common/NextStep";
 import { PageSizeSelect, Pager, usePageSize } from "@/components/common/PageSize";
 
-const KIND: Record<string, string> = { status: "Status suggestion", policy_map: "Policy → control", finding_map: "STIG rule → control" };
+const KIND: Record<string, string> = { policy_status: "Policy coverage → status", status: "Status suggestion", policy_map: "Policy → control", finding_map: "STIG rule → control" };
 const fmt = (c: string) => c.toUpperCase().replace(/\.(\d+)$/, "($1)");
 const SCA_MSG = "Implementation set to Implemented. Assessment status needs SCA confirmation";
 
@@ -44,7 +44,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg }: { si
       setSel([]); setJust(""); setEditTo(""); reload();
     } catch (e) { setErr(`Nothing was changed: ${errorMessage(e)}`); } finally { setBusy(false); }
   };
-  const tabs: [string, string][] = [["", `All open (${open.length})`], ["status", `Status suggestions (${open.filter((q) => q.kind === "status").length})`], ["policy_map", `Policy mappings (${counts.policy_map})`],
+  const tabs: [string, string][] = [["", `All open (${open.length})`], ["status", `Status suggestions (${open.filter((q) => q.kind === "status").length})`], ["policy_status", `Policy coverage (${open.filter((q) => q.kind === "policy_status").length})`], ["policy_map", `Policy mappings (${counts.policy_map})`],
     ["finding_map", `STIG mappings (${counts.finding_map})`], ["sca", `Awaiting assessor (SCA) (${waiting.length})`]];
   return (
     <Panel title={`Review queue (${open.length} open${waiting.length ? `, ${waiting.length} awaiting SCA` : ""})`} className="mb-5" testId="review-queue">
@@ -72,7 +72,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg }: { si
           {rows.map((q) => <tr key={q.key} className="border-t border-slate-100 align-top [content-visibility:auto]" data-testid={`queue-item-${q.key}`}>
             <td className="py-1">{canMap && <input type="checkbox" checked={sel.includes(q.key)} onChange={() => toggle(q.key)} data-testid={`queue-check-${q.key}`} />}</td>
             <td className="py-1 whitespace-nowrap">{KIND[q.kind]}{q.awaiting_sca && <div className="text-[10px] font-medium text-amber-800">awaiting SCA</div>}</td><td className="py-1 font-mono font-semibold">{fmt(q.control_id)}</td>
-            <td className="py-1">{q.policy_id ? <Link className="text-blue-800 underline" to={`/policy-auditor/${q.policy_id}`}>{q.title}</Link> : q.title}{q.current && <div className="text-[10px] text-slate-500">now: {q.current.implementation.replace(/_/g, " ")} · {q.current.assessment.replace(/_/g, " ")}</div>}</td>
+            <td className="py-1">{q.policy_id ? <Link className="text-blue-800 underline" to={`/policy-auditor/${q.policy_id}`}>{q.title}</Link> : q.title}{q.coverage && <div className="text-[10px] text-slate-600" data-testid={`queue-coverage-${q.key}`}>{q.coverage.met} of {q.coverage.total} requirements met{q.coverage.gaps.length ? ` – missing: ${q.coverage.gaps.join("; ")}` : ""}</div>}{q.current && <div className="text-[10px] text-slate-500">now: {q.current.implementation.replace(/_/g, " ")} · {q.current.assessment.replace(/_/g, " ")}</div>}</td>
             <td className="max-w-[320px] py-1 text-[11px] text-slate-600">{q.source}: {q.reasoning}{(q.snippets || []).slice(0, 1).map((s: string) => <div key={s}>“{s}”</div>)}</td>
             <td className="py-1 text-[11px]">{(q.evidence || []).map((e: Row) => <div key={e.id}><Link className="text-blue-800 underline" to={`/evidence-ledger?evidence=${e.id}`}>{e.file_name}</Link></div>)}</td>
             <td className="py-1">{canMap && <button className="btn-primary px-2 py-0.5 text-[11px]" disabled={busy} onClick={() => decide("approve", [q.key])} data-testid={`queue-approve-${q.key}`}>Approve</button>}</td></tr>)}

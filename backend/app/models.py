@@ -1090,3 +1090,27 @@ class PolicyControlMap(CoreMixin, Base):
     decided_by: Mapped[uuid.UUID | None] = _fk("users.id", nullable=True, ondelete="SET NULL")
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class PolicyRequirementCoverage(CoreMixin, Base):
+    """How well one policy covers one requirement (DISA CCI or 800-53A objective) of a mapped control: met | partial | missing."""
+    __tablename__ = "policy_requirement_coverage"
+    org_id: Mapped[uuid.UUID] = _fk("organizations.id")
+    policy_id: Mapped[uuid.UUID] = _fk("policies.id")
+    policy_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    control_id: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    requirement_type: Mapped[str] = mapped_column(String(12), nullable=False)      # cci | objective
+    requirement_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    label: Mapped[str] = mapped_column(String(100), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    concept: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(10), nullable=False)                # met | partial | missing
+    confidence: Mapped[str] = mapped_column(String(10), nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    snippets: Mapped[list | None] = mapped_column(JSONB)
+    parameter: Mapped[str | None] = mapped_column(String(120))
+    parameter_value: Mapped[str | None] = mapped_column(String(255))
+    needs: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(20), nullable=False)               # deterministic | ai
+    override: Mapped[dict | None] = mapped_column(JSONB)                          # covered elsewhere: {reason, evidence_id, by, at}
+    linked: Mapped[dict | None] = mapped_column(JSONB)                            # linked as evidence on approval: {assignment_id, by, at}

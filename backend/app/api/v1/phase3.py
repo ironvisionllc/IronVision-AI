@@ -3,7 +3,7 @@ import io
 import json
 import uuid
 from app.services.queue import fmt_control
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response
@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.api.v1.records import get_system, to_dict, visible_systems
 from app.db import get_db
 from app.models import (ApprovalRequest, Assessment, Attestation, AuditEvent, AuthorizationDecision, CommonControlProvider, ControlAssignment,
-                        DecisionRule, NotificationPref, ObservedConfigValue, OdpValue, Policy, PolicyFinding, RoleAssignment, System, User)
+                        DecisionRule, Evidence, NotificationPref, ObservedConfigValue, OdpValue, Policy, PolicyFinding, RoleAssignment, System, User)
 from app.security.deps import CurrentUser, enforce, get_current_user, require_object_permission, require_permission, self_scoped
 from app.services import audit, jobs as jobsvc
 from app.services import rmf
@@ -529,8 +529,71 @@ def policy_detail(policy_id: uuid.UUID, db: Session = Depends(get_db), current: 
                                                                                Control.control_id.in_({m["control_id"] for m in hist}))).all())
     for m in hist:
         m["control_title"] = titles.get(m["control_id"])
+    from app.models import PolicyRequirementCoverage
+    from app.services import policy_coverage as pc
+
+    cov: dict = {}
+    for c in db.scalars(select(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id == p.id)
+                        .order_by(PolicyRequirementCoverage.control_id, PolicyRequirementCoverage.requirement_type, PolicyRequirementCoverage.requirement_id)):
+        cov.setdefault(c.control_id, []).append(c)
+    coverage = [{"control_id": k, "summary": (s := pc.summarize(v)), "line": pc.summary_line(k, s),
+                 "requirements": [{**to_dict(c), "effective": pc.effective(c), "gap": pc.gap_name(c)} for c in v]} for k, v in cov.items()]
     return {"policy": _policy_out(db, p), "findings": fs, "values": values, "versions": versions, "text_preview": (p.text_content or "")[:4000],
-            "control_mappings": cur, "mapping_history": hist}
+            "control_mappings": cur, "mapping_history": hist, "coverage": coverage}
+
+
+class CoveredElsewhere(BaseModel):
+    reason: str = Field(min_length=10, max_length=2000)
+    evidence_id: uuid.UUID | None = None
+
+
+def _coverage_row(db: Session, policy_id: uuid.UUID, cov_id: uuid.UUID, current: CurrentUser):
+    from app.models import PolicyRequirementCoverage
+
+    c = db.get(PolicyRequirementCoverage, cov_id)
+    if c is None or c.policy_id != policy_id or c.org_id != current.user.org_id:
+        raise HTTPException(404, "Requirement not found")
+    return c
+
+
+@router.post("/policies/{policy_id}/coverage/{cov_id}/covered-elsewhere")
+def coverage_covered_elsewhere(policy_id: uuid.UUID, cov_id: uuid.UUID, body: CoveredElsewhere, db: Session = Depends(get_db),
+                               current: CurrentUser = Depends(require_permission("finding.map"))) -> dict:
+    c = _coverage_row(db, policy_id, cov_id, current)
+    if body.evidence_id:
+        ev = db.get(Evidence, body.evidence_id)
+        if ev is None or ev.org_id != current.user.org_id:
+            raise HTTPException(404, "Evidence not found")
+    c.override = {"reason": body.reason, "evidence_id": str(body.evidence_id) if body.evidence_id else None, "by": current.user.email,
+                  "at": datetime.now(timezone.utc).isoformat()}
+    audit.record(db, action="policy.requirement_covered_elsewhere", actor_user_id=current.user.id, actor_email=current.user.email,
+                 entity_type="policy_requirement", entity_id=str(c.id), before={"status": c.status}, after={**c.override, "requirement": c.requirement_id, "control_id": c.control_id})
+    db.commit()
+    return {"ok": True, "requirement": c.requirement_id, "effective": "met"}
+
+
+class CoveragePoam(BaseModel):
+    system_id: uuid.UUID
+
+
+@router.post("/policies/{policy_id}/coverage/{cov_id}/poam", status_code=201)
+def coverage_to_poam(policy_id: uuid.UUID, cov_id: uuid.UUID, body: CoveragePoam, db: Session = Depends(get_db),
+                     current: CurrentUser = Depends(require_permission("poam.manage"))) -> dict:
+    from app.services import policy_coverage as pc
+    from app.services.workflow import create_poam
+
+    c = _coverage_row(db, policy_id, cov_id, current)
+    s = db.get(System, body.system_id)
+    p = db.get(Policy, policy_id)
+    if s is None or s.org_id != current.user.org_id:
+        raise HTTPException(404, "System not found")
+    weak = f"Policy “{p.title}” v{p.version} does not cover {c.label} ({c.control_id.upper()}): {pc.gap_name(c)}. {c.reason} Needed: {c.needs or 'policy text addressing this requirement'}"
+    poam = create_poam(db, system=s, actor=current.user, data={"weakness": weak[:4000], "control_ids": [c.control_id], "status": "new",
+                                                                "source_label": "Policy Auditor"}, findings=[])
+    audit.record(db, action="policy.requirement_gap_to_poam", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="policy_requirement",
+                 entity_id=str(c.id), after={"poam": poam.human_id, "requirement": c.requirement_id, "control_id": c.control_id})
+    db.commit()
+    return {"poam_id": str(poam.id), "human_id": poam.human_id}
 
 
 class MapIn(BaseModel):
@@ -661,6 +724,13 @@ def export_system_params(system_id: uuid.UUID, db: Session = Depends(get_db), cu
             if str(v.get("system_id")) == str(system_id):
                 w.writerow(["policy_parameter", p.title, p.version, v["control_id"].upper(), v["parameter"], v.get("policy_value"), v.get("odp_value"),
                             v.get("observed_value"), v.get("observed_age_days"), v.get("result") or "no observation", v.get("quote")])
+    from app.models import PolicyRequirementCoverage
+
+    for c in db.scalars(select(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id.in_([p.id for p in pols]),
+                                                                PolicyRequirementCoverage.parameter.is_not(None)).order_by(PolicyRequirementCoverage.control_id)):
+        odp = db.scalar(select(OdpValue.value).where(OdpValue.system_id == system_id, OdpValue.control_id == c.control_id, OdpValue.parameter.not_like("overlay:%")).limit(1))
+        w.writerow(["policy_requirement_parameter", next(p.title for p in pols if p.id == c.policy_id), c.policy_version, c.control_id.upper(),
+                    f"{c.parameter} [{c.label}]", c.parameter_value, odp, "", "", c.status, (c.snippets or [{}])[0].get("location")])
     for o in db.scalars(select(OdpValue).where(OdpValue.system_id == system_id).order_by(OdpValue.control_id)):
         w.writerow(["overlay_parameter" if o.parameter.startswith("overlay:") else "odp", o.source, "", o.control_id.upper(), o.parameter, "", o.value,
                     "", "", "", o.source])

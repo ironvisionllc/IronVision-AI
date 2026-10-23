@@ -19,6 +19,7 @@ import { useSystems } from "@/context/SystemContext";
 import { PoamDetailPage, PoamListPage } from "@/pages/PoamPages";
 import { FindingPage, ReviewDetailPage, ReviewsPage } from "@/pages/ReviewPages";
 import { InheritancePage, PolicyAuditorPage, PolicyDetailPage, RmfWorkflowPage } from "@/pages/Phase3Pages";
+import CciPage from "@/pages/CciPage";
 import { AuditLogPage, AuthorizationPage, NotificationPrefsPage } from "@/pages/Phase3Extras";
 import { EmassPage, MappingReviewPage } from "@/pages/Phase4Pages";
 import HelpPage from "@/pages/HelpPage";
@@ -88,6 +89,7 @@ function Shell() {
           <Route path="/rmf/authorize" element={<AuthorizePage />} />
           <Route path="/rmf/monitor" element={<MonitorPage />} />
           <Route path="/traceability" element={<TraceabilityPage />} />
+          <Route path="/ccis" element={<CciPage />} />
           <Route path="/help" element={<HelpPage />} />
           {NAV_ITEMS.filter((n) => n.phase !== null).map((n) => (
             <Route key={n.path} path={n.path} element={<PlaceholderPage item={n} />} />

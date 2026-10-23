@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useSearchParams as _usp } from "react-router-dom";
 import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { cn, fmtControl } from "@/lib/format";
@@ -363,7 +364,11 @@ export function MonitorPage() {
 
 export function TraceabilityPage() {
   const sid = useActiveSystemId();
-  const { data } = useApi<Row[]>(sid ? `/systems/${sid}/traceability` : null);
+  const [tp, setTp] = _usp();
+  const tf = Object.fromEntries(["mapped_only", "policy"].filter((k) => tp.get(k)).map((k) => [k, tp.get(k) as string]));
+  const { data } = useApi<Row[]>(sid ? `/systems/${sid}/traceability` : null, tf);
+  const { data: fc } = useApi<Row>(sid ? `/systems/${sid}/workbench/policy-facets` : null);
+  const setT = (k: string, v: string) => setTp((prev) => { const p = new URLSearchParams(prev); if (v) p.set(k, v); else p.delete(k); return p; }, { replace: true });
   const [q, setQ] = useState("");
   const [size, setSize] = usePageSize("traceability");
   const [page, setPage] = useState(0);
@@ -372,12 +377,16 @@ export function TraceabilityPage() {
   return (
     <div data-testid="traceability-page">
       <PageHeader title="Traceability matrix" subtitle="Every assigned control with its origin, implementation statement, evidence, open findings, POA&Ms and assessment – one row per control." />
-      <Panel testId="traceability-panel" actions={<div className="flex items-center gap-2"><input className="input w-64" placeholder="Search controls, statuses…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} data-testid="trace-search" /><PageSizeSelect value={size} onChange={(n) => { setSize(n); setPage(0); }} testId="trace-page-size" /></div>}>
+      <Panel testId="traceability-panel" actions={<div className="flex items-center gap-2">
+          <label className="text-[11px]"><input type="checkbox" checked={!!tf.mapped_only} onChange={(e) => { setT("mapped_only", e.target.checked ? "true" : ""); setPage(0); }} data-testid="trace-mapped-only" /> Policy-mapped only</label>
+          <select className="input w-48 py-0.5 text-[11px]" value={tf.policy || ""} onChange={(e) => { setT("policy", e.target.value); setPage(0); }} data-testid="trace-policy"><option value="">All policies</option>{(fc?.policy || []).map((p: Row) => <option key={p.id} value={p.id}>{p.title} v{p.version} ({p.count})</option>)}</select>
+          <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => downloadFile(`/systems/${sid}/traceability?${new URLSearchParams({ ...tf, fmt: "csv" })}`, "traceability.csv", "Traceability matrix")} data-testid="trace-export">Export CSV</button><input className="input w-64" placeholder="Search controls, statuses…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} data-testid="trace-search" /><PageSizeSelect value={size} onChange={(n) => { setSize(n); setPage(0); }} testId="trace-page-size" /></div>}>
         <div className="mb-2 text-[12px] text-slate-600" data-testid="trace-count">{data ? `${rows.length.toLocaleString()} of ${data.length.toLocaleString()} controls` : "Loading the matrix…"}</div>
         {data && !data.length && <p className="text-[12px] text-slate-600" data-testid="trace-empty">No controls are selected for this system yet – apply a baseline in <Link className="underline" to="/rmf/select">Step 3 · Select</Link>.</p>}
         <div className="max-h-[65vh] overflow-auto"><table className="w-full text-[12px]"><thead className="sticky top-0 bg-white"><tr className="text-left text-slate-500">
-          {["Control", "Origin", "Responsibility", "Statement", "Implementation", "Evidence", "Open findings", "Open POA&Ms", "Assessment", "Freshness"].map((h) => <th key={h} className="py-1 pr-2">{h}</th>)}</tr></thead>
+          {["Policy → CCIs", "Control", "Origin", "Responsibility", "Statement", "Implementation", "Evidence", "Open findings", "Open POA&Ms", "Assessment", "Freshness"].map((h) => <th key={h} className="py-1 pr-2">{h}</th>)}</tr></thead>
           <tbody>{(size ? rows.slice(page * size, (page + 1) * size) : rows).map((r) => <tr key={r.control_id} className="border-t border-slate-100 [content-visibility:auto] [contain-intrinsic-size:auto_30px]" data-testid={`trace-row-${r.control_id}`}>
+            <td className="py-1 pr-2 text-[11px]" data-testid={`trace-policy-${r.control_id}`}>{(r.policies || []).map((p: Row) => <div key={p.id}><Link className="text-blue-800 underline" to={`/policy-auditor/${p.id}`}>{p.title}</Link> <span className="text-slate-500">({p.status})</span></div>)}{r.ccis?.total ? <Link className="text-slate-600 underline" to={`/ccis?control=${r.control_id}`} title="CCIs of this control met by the policy text">{r.ccis.met}/{r.ccis.total} CCIs met</Link> : null}</td>
             <td className="py-1 pr-2"><Link to={`/systems/${sid}/controls/${r.control_id}`} className="font-mono text-blue-800 hover:underline">{fmtControl(r.control_id)}</Link></td>
             <td>{r.origin}</td><td>{r.responsibility}</td><td>{r.statement}</td><td>{r.implementation_status.replace(/_/g, " ")}</td><td className="font-mono">{r.evidence}</td>
             <td className="font-mono">{r.open_findings}</td><td className="font-mono">{r.open_poams}</td><td>{r.assessment_status.replace(/_/g, " ")}</td><td>{r.freshness.replace(/_/g, " ")}</td></tr>)}</tbody></table></div>

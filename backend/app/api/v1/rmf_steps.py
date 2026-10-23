@@ -254,5 +254,35 @@ def authorize_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: Curre
 
 
 @router.get("/systems/{system_id}/traceability")
-def traceability(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> list[dict]:
-    return rs.traceability(db, get_system(db, system_id))
+def traceability(system_id: uuid.UUID, mapped_only: bool = False, policy: str | None = None, fmt: str | None = None, db: Session = Depends(get_db),
+                 _: CurrentUser = Depends(require_permission("system.read"))):
+    """Policy → control → CCI → statement → evidence → findings → POA&M per assigned control; optional mapped-only / per-policy filter."""
+    from app.services import policy_coverage as pc
+
+    s = get_system(db, system_id)
+    idx = pc.index(db, s)
+    titles = {str(p.id): p.title for p in pc.applicable_policies(db, s)}
+    want = {x for x in (policy or "").split(",") if x} or None
+    rows = []
+    for r in rs.traceability(db, s):
+        e = idx.get(r["control_id"])
+        if (mapped_only and not (e and (e["mapped"] or e["proposed"]))) or (want and not pc.matches(e, None, want, None)):
+            continue
+        cc = [c for c in (e or {}).get("rows", []) if c.requirement_type == "cci"]
+        r["policies"] = [{"id": i, "title": titles.get(i), "status": "mapped" if i in e["mapped"] else "proposed"} for i in sorted((e["mapped"] | e["proposed"]) if e else [])]
+        r["ccis"] = {"total": len({c.requirement_id for c in cc}), "met": len({c.requirement_id for c in cc if pc.effective(c) == "met"})}
+        rows.append(r)
+    if fmt == "csv":
+        import csv
+        import io
+
+        from fastapi.responses import Response
+
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["policy", "control_id", "ccis_met", "ccis_total", "origin", "implementation_status", "statement", "evidence", "open_findings"])
+        for r in rows:
+            w.writerow(["; ".join(p["title"] or "" for p in r["policies"]), r["control_id"].upper(), r["ccis"]["met"], r["ccis"]["total"], r.get("origin"),
+                        r.get("implementation_status"), r.get("statement"), r.get("evidence"), r.get("open_findings")])
+        return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{s.acronym or "system"}-traceability.csv"'})
+    return rows

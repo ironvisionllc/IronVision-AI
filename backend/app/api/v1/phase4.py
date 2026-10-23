@@ -145,8 +145,10 @@ def mapping_review(system_id: uuid.UUID, request: Request, db: Session = Depends
                                                                                           ApprovalRequest.request_type == "finding_out_of_scope"))}
     from app.services import review_queue as rq
     sysobj = db.get(System, system_id)
-    queue = rq.status_suggestions(db, sysobj) + rq.policy_proposals(db, sysobj) + rq.automated_maps(db, system_id)
-    return {"queue": queue, "queue_counts": {k: sum(1 for q in queue if q["kind"] == k) for k in ("status", "policy_map", "finding_map")},
+    from app.services import policy_coverage as pc
+
+    queue = rq.status_suggestions(db, sysobj) + pc.suggestions(db, sysobj) + rq.policy_proposals(db, sysobj) + rq.automated_maps(db, system_id)
+    return {"queue": queue, "queue_counts": {k: sum(1 for q in queue if q["kind"] == k) for k in ("status", "policy_status", "policy_map", "finding_map")},
             "pending": [{**to_dict(m), "finding_title": f.title, "vuln_id": f.vuln_id or f.plugin_id} for m, f in rows],
             "unmapped": [{**g, "host_count": len(set(g["hosts"])), "pending_disposition": next((pend[i] for i in g["finding_ids"] if i in pend), None)}
                          for g in groups.values()],
@@ -212,7 +214,7 @@ class MapReview(BaseModel):
 
 
 class QueueItem(BaseModel):
-    kind: str = Field(pattern="^(status|policy_map|finding_map)$")
+    kind: str = Field(pattern="^(status|policy_status|policy_map|finding_map)$")
     ids: list[str] = Field(min_length=1)
     control_id: str
     evidence_fp: str | None = None
@@ -235,7 +237,7 @@ def mapping_review_decide(body: QueueDecision, request: Request, db: Session = D
     from app.services.evaluation import evaluate_system
 
     enforce(request, current, "finding.map", body.system_id)
-    if body.action == "approve" and any(i.kind == "status" for i in body.items):
+    if body.action == "approve" and any(i.kind in ("status", "policy_status") for i in body.items):
         enforce(request, current, "implementation.write", body.system_id)  # checked before any audit row takes the chain lock
     can_assess = has_permission(current.assignments, "assessment.perform", current.user.org_id, body.system_id)
     just = body.justification.strip()
@@ -249,6 +251,27 @@ def mapping_review_decide(body: QueueDecision, request: Request, db: Session = D
     for it in body.items:
         if it.kind == "finding_map":
             rq.decide_finding_maps(db, it.ids, body.action, current.user, just, body.system_id, edit)
+        elif it.kind == "policy_status":
+            from app.services import policy_coverage as pc
+
+            pol = db.get(Policy, uuid.UUID(it.ids[0]))
+            if pol is None or pol.org_id != current.user.org_id:
+                raise HTTPException(404, "Policy not found")
+            if body.action == "edit":
+                raise HTTPException(422, "A coverage status suggestion can only be approved or rejected")
+            if body.action == "reject":
+                pc.dismiss(db, system, str(pol.id), it.control_id, it.evidence_fp or "", current.user, just)
+            else:
+                try:
+                    r = pc.approve(db, system, pol, it.control_id, current.user)
+                except ValueError as e:
+                    raise HTTPException(409, str(e)) from e
+                result["partial"].append(it.control_id)
+                audit.record(db, action="control.policy_coverage_status_approved", actor_user_id=current.user.id, actor_email=current.user.email,
+                             entity_type="control_assignment", entity_id=str(r["assignment"].id), before=r["before"],
+                             after={"implementation_status": r["target"], "policy_id": str(pol.id), "policy_version": pol.version, "linked_requirements": r["linked"],
+                                    "coverage": {k: r["summary"][k] for k in ("total", "met", "partial", "missing", "gaps")}, "justification": just},
+                             **audit.request_meta(request))
         elif it.kind == "policy_map":
             m = db.get(PolicyControlMap, uuid.UUID(it.ids[0]))
             pol = db.get(Policy, m.policy_id) if m else None
@@ -279,7 +302,7 @@ def mapping_review_decide(body: QueueDecision, request: Request, db: Session = D
         audit.record(db, action=f"mapping_review.item_{ {'approve': 'approved', 'reject': 'rejected', 'edit': 'edited'}[body.action] }",
                      actor_user_id=current.user.id, actor_email=current.user.email, entity_type=it.kind, entity_id=",".join(it.ids)[:200],
                      after={"system_id": str(body.system_id), "control_id": it.control_id, "kind": it.kind, "justification": just,
-                            "awaiting_sca": it.kind == "status" and body.action == "approve" and not can_assess}, **audit.request_meta(request))
+                            "awaiting_sca": it.kind in ("status", "policy_status") and body.action == "approve" and not can_assess}, **audit.request_meta(request))
     audit.record(db, action=f"mapping_review.{body.action}", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
                  entity_id=str(body.system_id), after={"items": [i.model_dump() for i in body.items], "justification": just, "edit": edit},
                  **audit.request_meta(request))

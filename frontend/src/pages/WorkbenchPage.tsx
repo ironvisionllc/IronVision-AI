@@ -16,6 +16,7 @@ import { AssessmentPanel } from "@/pages/Phase3Extras";
 import { Gated } from "@/components/common/RoleGate";
 import { PageSizeSelect, Pager, usePageSize } from "@/components/common/PageSize";
 import { downloadFile } from "@/lib/download";
+import { ControlPolicyCoverage } from "@/components/policy/Coverage";
 
 const REASON: Record<string, string> = { failed_technical_checks: "Failed checks", kev: "KEV", cat1_open: "CAT I", expired_evidence: "Expired evidence",
   missing_implementation_statement: "No narrative", missing_assessment_evidence: "No assessment evidence", unmapped_findings: "Unmapped findings",
@@ -74,16 +75,31 @@ const WB_FILTERS: [string, string, string[]][] = [
   ["has_evidence", "Has evidence", ["yes", "no"]],
   ["evidence", "Evidence freshness", ["current"]],
 ];
-const FILTER_KEYS = ["family", ...WB_FILTERS.map(([k]) => k)];
+const FILTER_KEYS = ["family", ...WB_FILTERS.map(([k]) => k), "policy_mapping", "policy", "policy_coverage"];
+const PM: [string, string][] = [["mapped", "Mapped to a policy"], ["not_mapped", "Not mapped"], ["proposed", "Proposed (awaiting review)"]];
+const PC: [string, string][] = [["met", "All requirements met"], ["partial", "Partially met"], ["gaps", "Gaps (any MISSING)"]];
 
-export function WorkbenchFilters({ params, set }: { params: URLSearchParams; set: (k: string, v: string) => void }) {
+export function WorkbenchFilters({ params, set, sid }: { params: URLSearchParams; set: (k: string, v: string) => void; sid?: string }) {
   const { data: fam } = useApi<Row[]>("/controls/families");
+  const { data: fc } = useApi<Row>(sid ? `/systems/${sid}/workbench/policy-facets` : null, { v: params.toString() });
+  const pols = (params.get("policy") || "").split(",").filter(Boolean);
   return (
     <div className="grid grid-cols-2 gap-2 border-b border-slate-200 p-3" data-testid="workbench-filters">
       <select className="input" value={params.get("family") ?? ""} onChange={(e) => set("family", e.target.value)} data-testid="filter-family" aria-label="Family">
         <option value="">All families</option>{(fam || []).map((f) => <option key={f.family_id} value={f.family_id}>{f.family_id.toUpperCase()} – {f.family_title}</option>)}</select>
       {WB_FILTERS.map(([k, l, vals]) => <select key={k} className="input" value={params.get(k) ?? ""} onChange={(e) => set(k, e.target.value)} data-testid={`filter-${k}`} aria-label={l}>
         <option value="">{l}: all</option>{vals.map((v) => <option key={v} value={v}>{l}: {v.replace(/_/g, " ")}</option>)}</select>)}
+      {sid && <>
+        <select className="input" value={params.get("policy_mapping") ?? ""} onChange={(e) => set("policy_mapping", e.target.value)} data-testid="filter-policy_mapping" aria-label="Policy mapping">
+          <option value="">Policy mapping: all</option>{PM.map(([v, l]) => <option key={v} value={v}>{l} ({fc?.policy_mapping?.[v] ?? "…"})</option>)}</select>
+        <select className="input" value={params.get("policy_coverage") ?? ""} onChange={(e) => set("policy_coverage", e.target.value)} data-testid="filter-policy_coverage" aria-label="Policy coverage">
+          <option value="">Policy coverage: all</option>{PC.map(([v, l]) => <option key={v} value={v}>{l} ({fc?.policy_coverage?.[v] ?? "…"})</option>)}</select>
+        <details className="col-span-2 rounded border border-slate-200 px-2 py-1 text-[12px]" data-testid="filter-policy">
+          <summary className="cursor-pointer">Policy: {pols.length ? `${pols.length} selected` : "all"}</summary>
+          {(fc?.policy || []).length === 0 && <div className="text-slate-500">No policies apply to this system yet.</div>}
+          {(fc?.policy || []).map((p: Row) => <label key={p.id} className="block"><input type="checkbox" checked={pols.includes(p.id)} data-testid={`filter-policy-${p.id}`}
+            onChange={(e) => set("policy", (e.target.checked ? [...pols, p.id] : pols.filter((x) => x !== p.id)).join(","))} /> {p.title} v{p.version} ({p.count})</label>)}
+        </details></>}
     </div>);
 }
 
@@ -107,6 +123,7 @@ export default function WorkbenchPage() {
   return (
     <div data-testid="workbench-page">
       <PageHeader title="Control Workbench" subtitle="Work through your system's controls for the ATO: set each control's status, write how it is implemented, attach evidence, and see what is still open. Pick a control from the list on the left to start.">
+        <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/workbench/controls?${new URLSearchParams({ ...filters, fmt: "csv" })}`, "controls.csv", "Control list")} data-testid="wb-export-controls" title="CSV of the controls matching the active filters">Export controls (CSV)</button>
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="wb-export-parameters" title="System-wide CSV: every policy value next to the system's defined value (ODP), overlay values and the latest observed value">Export parameter comparison</button>
         <Link to="/catalog" className="btn-secondary" data-testid="open-catalog-btn" title="Browse every NIST SP 800-53 Rev 5 control and baseline">Reference catalog</Link>
       </PageHeader>
@@ -128,7 +145,7 @@ export default function WorkbenchPage() {
       )}
       <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
         <div className="panel" data-testid="isso-queue">
-          <WorkbenchFilters params={params} set={setFilter} />
+          <WorkbenchFilters params={params} set={setFilter} sid={id} />
           <div className="flex items-center gap-2 px-3 py-2 text-[12px]">
             <label className="flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} data-testid="show-all-toggle" />All controls</label>
             {showList && <span className="text-slate-600" data-testid="filter-result-count">{list ? `${list.length} control(s) match` : "…"}</span>}
@@ -178,6 +195,7 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
           <S v={a.monitoring_status} label="Monitoring" testId="wb-status-monitoring" /><S v={a.evidence_freshness_status} label="Evidence freshness" testId="wb-status-freshness" />
         </div>
         {a.reason_details.length > 0 && <div className="mt-2 text-[11px] text-slate-600" data-testid="wb-score-breakdown">Priority {a.priority_score}: {a.reason_details.map((r: Row) => `${r.description} (+${r.points})`).join(" · ")}</div>}
+        <ControlPolicyCoverage items={d.policy_coverage || []} />
         {(d.overlay_notes || []).map((n: Row) => <details key={n.key} className="mt-2 rounded bg-indigo-50 px-2 py-1 text-[11px] text-indigo-900" data-testid={`wb-overlay-note-${n.key}`}>
           <summary className="cursor-pointer">{({ add: "Added by", remove: "Removed by", optional: "Optional in", guidance: "Guidance from", baseline: "Baseline control with guidance in", consideration: "Implementation consideration in" } as Record<string, string>)[n.action] || "In"} {n.overlay} ({n.cite}) · {n.flags}</summary>
           {n.fields.map((f: Row, i: number) => <div key={i} className="mt-1"><b>{f.label}</b> (p. {f.page}): {f.text}</div>)}</details>)}

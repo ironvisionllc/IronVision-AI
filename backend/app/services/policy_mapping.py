@@ -118,4 +118,7 @@ def decide(db: Session, policy, control_id: str, status: str, actor, justificati
                            parts=prev.parts if prev else [], justification=justification, decided_by=actor.id, decided_at=now())
     db.add(row)
     db.flush()
+    from app.services import policy_coverage as pc
+
+    pc.analyze(db, policy)
     return row

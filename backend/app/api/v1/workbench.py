@@ -44,12 +44,13 @@ def summary(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser 
 def controls(system_id: uuid.UUID, queue: bool = False, q: str | None = None, implementation_status: str | None = None,
              responsibility: str | None = None, assessment_status: str | None = None, monitoring_status: str | None = None,
              family: str | None = None, origin: str | None = None, has_evidence: str | None = None, evidence: str | None = None,
+             policy_mapping: str | None = None, policy: str | None = None, policy_coverage: str | None = None, fmt: str | None = None,
              limit: int = 2000, db: Session = Depends(get_db),
-             _: CurrentUser = Depends(require_permission("system.read"))) -> list[dict]:
+             _: CurrentUser = Depends(require_permission("system.read"))):
     from app.models import Control
     from app.services.evaluation import FRESH_OK
 
-    get_system(db, system_id)
+    s = get_system(db, system_id)
     A = ControlAssignment
     stmt = select(A, Control.title, Control.label).join(Control, Control.id == A.control_uuid).where(A.system_id == system_id)
     if queue:
@@ -64,8 +65,91 @@ def controls(system_id: uuid.UUID, queue: bool = False, q: str | None = None, im
         stmt = stmt.where(A.evidence_freshness_status.in_(FRESH_OK))
     if q:
         stmt = stmt.where(A.control_id.ilike(f"%{q}%") | Control.title.ilike(f"%{q}%"))
+    pols = {x for x in (policy or "").split(",") if x} or None
+    if policy_mapping or pols or policy_coverage:
+        from app.services import policy_coverage as pc
+
+        idx = pc.index(db, s)
+        keep = [c for c in db.scalars(select(A.control_id).where(A.system_id == system_id)) if pc.matches(idx.get(c), policy_mapping, pols, policy_coverage)]
+        stmt = stmt.where(A.control_id.in_(keep))
     stmt = stmt.order_by(A.priority_score.desc(), Control.sort_id).limit(min(limit, 5000))
-    return [{**to_dict(a, ("evaluation",)), "title": t, "label": lbl, "evaluation": a.evaluation} for a, t, lbl in db.execute(stmt).all()]
+    rows = [{**to_dict(a, ("evaluation",)), "title": t, "label": lbl, "evaluation": a.evaluation} for a, t, lbl in db.execute(stmt).all()]
+    if fmt == "csv":
+        import csv
+        import io
+
+        from fastapi.responses import Response
+
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        cols = ["control_id", "title", "implementation_status", "assessment_status", "responsibility", "origin", "evidence_freshness_status", "monitoring_status"]
+        w.writerow(cols)
+        for r in rows:
+            w.writerow([r.get(k) for k in cols])
+        return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{s.acronym or "system"}-controls.csv"'})
+    return rows
+
+
+@router.get("/systems/{system_id}/workbench/policy-facets")
+def policy_facets(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    from app.services import policy_coverage as pc
+
+    return pc.facet_counts(db, get_system(db, system_id))
+
+
+@router.get("/systems/{system_id}/ccis")
+def system_ccis(system_id: uuid.UUID, mapped: str | None = None, coverage: str | None = None, policy: str | None = None, control: str | None = None,
+                family: str | None = None, q: str | None = None, fmt: str | None = None, db: Session = Depends(get_db),
+                _: CurrentUser = Depends(require_permission("system.read"))):
+    """DISA CCIs of the system's assigned controls with policy coverage (best status across applicable policies)."""
+    from app.models import Cci, CciControlMap
+    from app.services import policy_coverage as pc
+
+    s = get_system(db, system_id)
+    assigned = {a.control_id: a for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == system_id))}
+    idx = pc.index(db, s)
+    pols = {str(p.id): p for p in pc.applicable_policies(db, s)}
+    want = {x for x in (policy or "").split(",") if x}
+    defs = dict(db.execute(select(Cci.cci_id, Cci.definition)).all())
+    rank = {"met": 0, "partial": 1, "missing": 2}
+    out, seen = [], set()
+    for m in db.scalars(select(CciControlMap).where(CciControlMap.version == "5", CciControlMap.control_id.in_(assigned)).order_by(CciControlMap.control_id, CciControlMap.cci_id)):
+        if (m.cci_id, m.control_id) in seen:
+            continue
+        seen.add((m.cci_id, m.control_id))
+        cov = [c for c in (idx.get(m.control_id) or {}).get("rows", []) if c.requirement_id == m.cci_id]
+        best = min(cov, key=lambda c: rank[pc.effective(c)], default=None)
+        st = pc.effective(best) if best else None
+        row = {"cci_id": m.cci_id, "definition": defs.get(m.cci_id), "control_id": m.control_id, "reference": m.reference_index,
+               "implementation_status": assigned[m.control_id].implementation_status, "mapped": bool(cov), "coverage": st,
+               "policies": sorted({pols[str(c.policy_id)].title for c in cov if str(c.policy_id) in pols}),
+               "policy_ids": sorted({str(c.policy_id) for c in cov}),
+               "snippet": ((best.snippets or [{}])[0] if best and best.snippets else None), "reason": best.reason if best else None,
+               "covered_elsewhere": bool(best and best.override)}
+        if mapped == "yes" and not row["mapped"] or mapped == "no" and row["mapped"]:
+            continue
+        if coverage and row["coverage"] != coverage or want and not want & set(row["policy_ids"]):
+            continue
+        if control and m.control_id != control.lower() or family and m.control_id.split("-")[0] != family.lower():
+            continue
+        if q and q.lower() not in f"{m.cci_id} {row['definition']} {m.control_id}".lower():
+            continue
+        out.append(row)
+    if fmt == "csv":
+        import csv
+        import io
+
+        from fastapi.responses import Response
+
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["cci_id", "control_id", "definition", "implementation_status", "mapped", "coverage", "policies", "snippet", "location"])
+        for r in out:
+            w.writerow([r["cci_id"], r["control_id"].upper(), r["definition"], r["implementation_status"], "yes" if r["mapped"] else "no", r["coverage"] or "",
+                        "; ".join(r["policies"]), (r["snippet"] or {}).get("text", ""), (r["snippet"] or {}).get("location", "")])
+        return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{s.acronym or "system"}-ccis.csv"'})
+    return {"items": out, "total": len(out), "counts": {"mapped": sum(r["mapped"] for r in out), "met": sum(r["coverage"] == "met" for r in out),
+                                                      "partial": sum(r["coverage"] == "partial" for r in out), "missing": sum(r["coverage"] == "missing" for r in out)}}
 
 
 @router.get("/systems/{system_id}/workbench/queue")
@@ -116,8 +200,22 @@ def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(
     weights = {w.reason_code: w.description for w in db.scalars(select(PriorityWeight))}
     from app.services.overlays import control_notes
 
+    from app.models import PolicyRequirementCoverage
+    from app.services import policy_coverage as pc
+
+    sysobj = db.get(System, system_id)
+    pids = [p.id for p in pc.applicable_policies(db, sysobj)]
+    pcov: dict = {}
+    for c in db.scalars(select(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id.in_(pids), PolicyRequirementCoverage.control_id == a.control_id)
+                        .order_by(PolicyRequirementCoverage.requirement_type, PolicyRequirementCoverage.requirement_id)):
+        pcov.setdefault(str(c.policy_id), []).append(c)
     return {
-        "overlay_notes": control_notes(db, db.get(System, system_id), a.control_id),
+        "policy_coverage": [{"policy_id": k, "policy_title": next((p.title for p in pc.applicable_policies(db, sysobj) if str(p.id) == k), ""),
+                             "summary": (sm := pc.summarize(v)), "line": pc.summary_line(a.control_id, sm),
+                             "requirements": [{"id": str(c.id), "type": c.requirement_type, "label": c.label, "text": c.text, "status": pc.effective(c),
+                                               "reason": c.reason, "snippets": c.snippets, "parameter": c.parameter, "value": c.parameter_value, "needs": c.needs,
+                                               "linked": c.linked, "override": c.override} for c in v]} for k, v in pcov.items()],
+        "overlay_notes": control_notes(db, sysobj, a.control_id),
         "status_last_changed": _status_last_changed(db, a),
         "policy_mappings": _policy_mappings(db, a),
         "assignment": {**to_dict(a), "provider_name": prov.name if prov else None,

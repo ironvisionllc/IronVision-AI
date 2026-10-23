@@ -123,3 +123,4 @@ frontend/node_modules/.cache/default-development/15.pack
 # CNSSI 1253 source PDFs (no public-release statement; two are UNCLASSIFIED//FOUO) and FOUO-derived data stay out of git
 reference/cnssi1253/*.pdf
 reference/cnssi1253/derived/
+frontend/node_modules/.cache/default-development/9.pack

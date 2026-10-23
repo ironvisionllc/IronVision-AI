@@ -368,6 +368,9 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
     top1 = next((m["control_id"] for m in mappings if re.fullmatch(r"[a-z]{2}-1", m["control_id"])), None)
     ex = rule_extract(policy.text_content or "", families, top1)
     pm.store_proposals(db, policy, mappings)
+    from app.services import policy_coverage as pc
+
+    pc.analyze(db, policy)
     known = set(db.scalars(select(Control.control_id)))
     out: list[PolicyFinding] = []
     db.query(PolicyFinding).filter(PolicyFinding.policy_id == policy.id, PolicyFinding.status == "proposed").delete()

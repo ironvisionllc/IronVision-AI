@@ -39,6 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "rmf-implement", group: "implement", label: "Implementation progress", path: "/rmf/implement", icon: Gauge, phase: null, summary: "" },
   { id: "controls", group: "implement", label: "Control Workbench", path: "/controls", icon: ShieldCheck, phase: null, summary: "" },
   { id: "inheritance", group: "implement", label: "Inheritance", path: "/inheritance", icon: GitFork, phase: null, summary: "Common and hybrid control inheritance from providers and enclaves." },
+  { id: "ccis", group: "implement", label: "CCI view", path: "/ccis", icon: ListChecks, phase: null, summary: "DISA CCIs of the system's controls with policy coverage." },
   { id: "policy-auditor", group: "implement", label: "Policy Auditor", path: "/policy-auditor", icon: FileCheck, phase: null, summary: "AI-assisted review of policies and procedures against control requirements." },
   { id: "evidence-sources", group: "implement", label: "Evidence Sources", path: "/evidence-sources", icon: Database, phase: null, summary: "Connectors for scanners, cloud configuration and ticketing systems that feed evidence." },
   { id: "rmf-assess", group: "assess", label: "Assessment progress", path: "/rmf/assess", icon: Gauge, phase: null, summary: "" },

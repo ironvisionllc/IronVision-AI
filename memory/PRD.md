@@ -439,3 +439,8 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - S2 94002f0 STIG run detail + unified Mapping Review queue; S3 79c2433 RMF 7 steps (Prepare roles, SP 800-60 categorization, Select tailoring, traceability); S4 f24d0da Upload a file vs Connect a tool; S5 435ce50 bulk inheritance + CRM import + provider expiry; S6 fa0e3d4 visible role, gated-but-visible actions, plain 403s, Help role matrix; S7 b32fcc6 per-user page size 50/100/250/All.
 - Final flow fix: Mapping Review status approval self-deadlock on audit advisory lock (fixed + regression test). Report: docs/SME_FINAL_REPORT.md.
 - Backlog: legacy "View" button needs SME repro; official CNSSI overlay lists; live connectors still MOCK; server-side page-size persistence; independent testing of S2–7.
+
+## Official CNSSI 1253 overlays + CCI-level Policy Auditor (Oct 2026)
+- 01257be: Privacy/Classified/Space overlays parsed from official PDFs (versioned JSON, SHA-256, page refs); Intelligence/CDS FOUO → admin import only; exact overlay reversal; reconciled counts; page size on all tables; Awaiting-SCA tab; per-item audit; system-wide parameter export. Report: docs/SME_OVERLAYS_REPORT.md
+- CCI coverage: policy_requirement_coverage (CCIs + 800-53A objectives, MET/PARTIAL/MISSING with snippets/values), policy_status suggestions in Mapping Review, gap → POA&M / covered elsewhere, Workbench policy filters with counts, CCI view (/ccis), traceability Policy→Control→CCI, filtered CSV exports. Report: docs/SME_CCI_POLICY_REPORT.md
+- Backlog: AI refinement of coverage (deterministic only now); suggestions beyond XX-1 controls; NC3 overlay document.
