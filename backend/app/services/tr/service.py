@@ -278,9 +278,11 @@ def generate(db: Session, wb: TrWorkbook, populate: bool = False) -> dict:
     return refresh_counts(db, wb)
 
 
-def approve(db: Session, wb: TrWorkbook, rows: list[TrRow], actor, justification: str, use_suggestion: bool = False, status: str | None = None) -> dict:
-    """SCA only (enforced by the API). Compliance Status = the recorded assessment determination, or the SCA's own determination
-    made here (status / accepted suggestion) – then the SCA is the tester and today is the test date, because that IS the test."""
+def approve(db: Session, wb: TrWorkbook, rows: list[TrRow], actor, justification: str, use_suggestion: bool = False, status: str | None = None,
+            testers: dict | None = None) -> dict:
+    """SCA only (enforced by the API). Compliance Status = the recorded assessment determination or the SCA's own determination.
+    Tested By / Date Tested are ALWAYS entered (or explicitly confirmed) by the SCA per row – never defaulted to the approver or today.
+    `testers` = {row_id: {"tested_by": str, "date_tested": date}} – validated by the API."""
     vocab = wb.definition["vocabulary"]["compliance_status"]
     done, skipped = [], []
     for r in rows:
@@ -288,20 +290,25 @@ def approve(db: Session, wb: TrWorkbook, rows: list[TrRow], actor, justification
         if r.match_status in ("ambiguous", "unmatched"):
             skipped.append({"row": r.row_number, "reason": "Resolve the control/CCI mapping first"})
             continue
-        det, by, on, how = p.get("compliance_status"), p.get("tested_by"), p.get("date_tested"), "assessment record"
+        det, how = p.get("compliance_status"), "assessment record"
         if status or (not det and use_suggestion and p.get("suggestion")):
-            det, by, on, how = status or p["suggestion"], _name(actor_user(db, actor)), date.today().isoformat(), "SCA determination in TR review"
+            det, how = status or p["suggestion"], "SCA determination in TR review"
         if not det:
             skipped.append({"row": r.row_number, "reason": "No assessor determination – choose a Compliance Status or accept the suggestion"})
             continue
         if det not in vocab:
             skipped.append({"row": r.row_number, "reason": f"“{det}” is not an allowed value ({', '.join(vocab)})"})
             continue
-        r.final = {"compliance_status": det, "tested_by": by, "date_tested": on, "test_results": p.get("test_results"), "determined_by": how,
+        t = testers[str(r.id)]
+        by, on = t["tested_by"].strip(), t["date_tested"].isoformat()
+        prop = r.proposed or {}
+        src = (f"confirmed from {prop['determination_source']}" if prop.get("determination_source") and prop.get("tested_by") == by and prop.get("date_tested") == on
+               else "entered by the SCA at approval")
+        r.final = {"compliance_status": det, "tested_by": by, "date_tested": on, "tester_confirmed": True, "tester_source": src,
+                   "test_results": p.get("test_results"), "determined_by": how, "approved_by": actor.email, "approved_at": now().isoformat(),
                    **({"ai_assisted": p["ai_assisted"]} if p.get("ai_assisted") else {})}
         r.state, r.decided_by, r.decided_at, r.justification = "approved", actor.email, now(), justification
         done.append(r.row_number)
-    refresh_counts(db, wb)
     return {"approved": done, "skipped": skipped}
 
 
@@ -316,10 +323,9 @@ def edit(db: Session, wb: TrWorkbook, r: TrRow, values: dict, actor, justificati
         raise ValueError(f"“{vals['compliance_status']}” is not an allowed Compliance Status")
     if "test_results" in vals and len(vals["test_results"] or "") > ((wb.definition.get("limits") or {}).get("test_results") or 4000):
         raise ValueError("Test Results exceed the template's character limit")
-    r.final = {**(r.final or {}), **vals}
+    r.final = {**(r.final or {}), **vals, "tester_confirmed": False}   # tester/date are entered again at (re-)approval
     if vals.get("compliance_status"):
-        u = actor_user(db, actor)
-        r.final.update(tested_by=_name(u), date_tested=date.today().isoformat(), determined_by="SCA determination in TR review")
+        r.final["determined_by"] = "SCA determination in TR review"
     r.state, r.decided_by, r.decided_at, r.justification = "edited", actor.email, now(), justification
     refresh_counts(db, wb)
     return r
@@ -335,16 +341,17 @@ def export(db: Session, wb: TrWorkbook, actor) -> TrExport:
     permitted = set(roles[r] for r in xlsx.RESULT_ROLES if r in roles)
     cells: dict = {}
     rows = list(db.scalars(select(TrRow).where(TrRow.workbook_id == wb.id).order_by(TrRow.row_number)))
+    mode = export_mode(rows)
     ev_ids = set()
     for r in rows:
-        if r.added:  # blank template: identifier columns of added rows are part of the permitted range for that export
+        if mode == "blank" and r.added:  # blank-template mode: identifiers of the rows added from the system
             for role, val in (("control_acronym", r.control_acronym), ("ap_acronym", r.ap_acronym), ("cci", (r.cci_id or "").replace("CCI-", "")),
                               ("cci_definition", (r.proposed or {}).get("cci_definition"))):
                 if role in roles:
                     cells[f"{roles[role]}{r.row_number}"] = val
-        if r.state != "approved":
-            continue
         f = r.final or {}
+        if r.state != "approved" or not f.get("tester_confirmed"):
+            continue
         on = date.fromisoformat(f["date_tested"]) if f.get("date_tested") else None
         val = {"compliance_status": f.get("compliance_status"), "tested_by": (f.get("tested_by") or "")[: (d.get("limits") or {}).get("tested_by") or 150] or None,
                "test_results": f.get("test_results"),
@@ -354,11 +361,8 @@ def export(db: Session, wb: TrWorkbook, actor) -> TrExport:
                 cells[f"{roles[role]}{r.row_number}"] = v
         ev_ids.update(s["id"] for s in (r.sources or []) if s["type"] == "evidence")
     out = xlsx.write(orig, sheet, cells)
-    allowed_cols = permitted | ({roles[k] for k in xlsx.ID_ROLES if k in roles} if any(r.added for r in rows) else set())
     rep = xlsx.verify(orig, out, sheet, set(cells))
-    rep["changed_cells"] = sorted(cells, key=lambda ref: (int(re.search(r"\d+", ref).group(0)), ref))
-    rep["outside_permitted"] = [ref for ref in cells if re.match(r"[A-Z]+", ref).group(0) not in allowed_cols or int(re.search(r"\d+", ref).group(0)) <= d["header_row"]]
-    rep["permitted_range"] = [f"{sheet}!{c}{d['header_row'] + 1}:{c}{max(wb.detection['last_row'], max((r.row_number for r in rows), default=0))}" for c in sorted(allowed_cols)]
+    rep.update(permission_report(d, wb, rows, mode, cells))
     rep["ok"] = rep["ok"] and not rep["outside_permitted"]
     if not rep["ok"]:
         raise ValueError(f"Export validation failed: {rep['issues'][:3] or rep['outside_permitted'][:3]}")
@@ -378,6 +382,41 @@ def export(db: Session, wb: TrWorkbook, actor) -> TrExport:
             r.last_exported_at = now()
     db.flush()
     return exp
+
+
+def export_mode(rows: list[TrRow]) -> str:
+    """blank = the template had no data rows and rows were added from the system; prepopulated = eMASS-exported rows (only M–P written)."""
+    return "blank" if rows and all(r.added for r in rows) else "prepopulated"
+
+
+def permission_report(d: dict, wb: TrWorkbook, rows: list[TrRow], mode: str, cells: dict) -> dict:
+    roles, sheet, first = d["roles"], d["sheet"], d["header_row"] + 1
+    last = max(wb.detection.get("last_row") or 0, max((r.row_number for r in rows), default=0))
+    res_cols = {roles[k]: k for k in xlsx.RESULT_ROLES if k in roles}
+    id_cols = {roles[k]: k for k in xlsx.ID_ROLES if k in roles} if mode == "blank" else {}
+    added = {r.row_number for r in rows if r.added}
+    ranges = [{"range": f"{sheet}!{c}{first}:{c}{last}", "column": k, "why": "Result column (“Enter Test Results Here”) – written only for SCA-approved rows "
+               "with a confirmed tester and test date"} for c, k in sorted(res_cols.items())]
+    if mode == "blank":
+        ar = f"{min(added)}:{max(added)}" if added else "–"
+        ranges += [{"range": f"{sheet}!{c}{min(added)}:{c}{max(added)}" if added else f"{sheet}!{c}", "column": k,
+                    "why": f"Blank-template mode only: the template had no data rows, so rows {ar} were added from the system's control set and eMASS needs "
+                           "Control Acronym / AP Acronym / CCI / CCI Definition to identify them. Written only on those added rows."} for c, k in sorted(id_cols.items())]
+
+    def ok(ref):
+        col, row = re.match(r"[A-Z]+", ref).group(0), int(re.search(r"\d+", ref).group(0))
+        return row >= first and (col in res_cols or (col in id_cols and row in added))
+
+    return {"mode": mode, "mode_label": {"blank": "Blank-template mode (rows added from the system)", "prepopulated": "Pre-populated mode (eMASS rows; only M–P written)"}[mode],
+            "permitted_ranges": ranges, "permitted_range": [x["range"] for x in ranges],
+            "changed_cells": sorted(cells, key=lambda ref: (int(re.search(r"\d+", ref).group(0)), ref)),
+            "outside_permitted": [ref for ref in cells if not ok(ref)],
+            "proof": "Every cell outside the permitted ranges was compared between the original and the export (value, formula, style) and every other "
+                     "package part was compared byte-for-byte; see checked_cells / issues." + (" Columns other than " + ", ".join(sorted(set(res_cols) | set(id_cols))) +
+                                                                                             " are never written in this mode." if mode == "blank" else
+                                                                                             " Identifier and control-information columns (all columns except " +
+                                                                                             ", ".join(sorted(res_cols)) + ") are never written in this mode."),
+}
 
 
 _ = (uuid,)

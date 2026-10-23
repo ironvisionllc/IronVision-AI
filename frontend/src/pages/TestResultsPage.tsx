@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { ApproveDialog } from "@/components/tr/ApproveDialog";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/lib/api";
@@ -10,7 +11,7 @@ import { downloadFile } from "@/lib/download";
 
 const STATE_TONE: Record<string, string> = { approved: "bg-emerald-100 text-emerald-800", edited: "bg-blue-100 text-blue-800", auto: "bg-slate-100 text-slate-800",
   missing: "bg-amber-100 text-amber-900", conflict: "bg-rose-100 text-rose-800" };
-const STATE_LABEL: Record<string, string> = { auto: "Auto-suggested", edited: "Edited", approved: "Approved", missing: "Missing", conflict: "Conflict" };
+const STATE_LABEL: Record<string, string> = { auto: "Auto-suggested", edited: "Edited", approved: "Approved", missing: "Missing", conflict: "Conflict", needs_confirmation: "Needs tester/date confirmation" };
 const ROLE_LABEL: Record<string, string> = { control_acronym: "Control Acronym", ap_acronym: "AP Acronym", cci: "CCI", cci_definition: "CCI Definition",
   implementation_guidance: "Implementation Guidance", assessment_procedures: "Assessment Procedures", compliance_status: "Compliance Status",
   date_tested: "Date Tested", tested_by: "Tested By", test_results: "Test Results" };
@@ -121,6 +122,7 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
   const edit = (r: Row) => { const t = window.prompt("Test Results text", r.final?.test_results ?? r.proposed?.test_results ?? ""); if (t === null) return; const j = window.prompt("Justification (kept in the audit log)") || ""; decide({ action: "edit", row_ids: [r.id], values: { test_results: t }, justification: j }); };
   const items: Row[] = rows.data?.items || [];
   const [open, setOpen] = useState<string | null>(null);
+  const [approving, setApproving] = useState<Row[] | null>(null);
   const bulk = async () => { try { const r = await api.post<Row>(`/tr/workbooks/${wb.id}/analyze`, sel.length ? { row_ids: sel } : { all_matched: true });
     toast.success(`Evidence analysis queued for ${r.data.rows} row(s) – open a row’s analysis to see the result`); } catch (e) { toast.error(errorMessage(e)); } };
   return (<div className="rounded border border-slate-200 p-3" data-testid="tr-review">
@@ -131,8 +133,10 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
       <button className="btn-secondary py-0" onClick={bulk} data-testid="tr-bulk-analyze">{sel.length ? `Analyze evidence for ${sel.length} selected` : "Analyze evidence for all mapped rows"}</button></div>
     {!wb.can_approve && <div className="mb-2 rounded bg-slate-100 p-2 text-[12px]" role="note" data-testid="tr-locked">Locked: only an assessor (SCA role) can approve or set a Compliance Status. You can review the proposals and edit the Test Results text.</div>}
     {wb.can_approve && <div className="mb-2 flex flex-wrap items-center gap-2 text-[12px]" data-testid="tr-bulk"><input className="input w-72" placeholder="Justification for the selected rows" value={just} onChange={(e) => setJust(e.target.value)} data-testid="tr-bulk-just" />
-      <label className="flex items-center gap-1"><input type="checkbox" checked={useSug} onChange={(e) => setUseSug(e.target.checked)} data-testid="tr-bulk-use-suggestion" />Use the evidence suggestion as my determination (I am the tester; today is the test date)</label>
-      <button className="btn-primary" disabled={!sel.length} onClick={() => decide({ action: "approve", row_ids: sel, justification: just, use_suggestion: useSug })} data-testid="tr-bulk-approve">Approve {sel.length} selected</button></div>}
+      <label className="flex items-center gap-1"><input type="checkbox" checked={useSug} onChange={(e) => setUseSug(e.target.checked)} data-testid="tr-bulk-use-suggestion" />Use the evidence suggestion as my determination</label>
+      <button className="btn-primary" disabled={!sel.length} onClick={() => setApproving(items.filter((r) => sel.includes(r.id)))} data-testid="tr-bulk-approve">Approve {sel.length} selected…</button></div>}
+    {approving && <ApproveDialog rows={approving} onClose={() => setApproving(null)}
+      onSubmit={(extra) => { decide({ action: "approve", row_ids: approving.map((r) => r.id), justification: just, use_suggestion: useSug, ...extra }); setApproving(null); }} />}
     <table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th></th><th>Row</th><th>AP / CCI</th><th>Status</th><th>Compliance Status</th><th>Tested by / date</th><th>Test Results &amp; sources</th><th></th></tr></thead><tbody>
       {items.map((r) => { const v = { ...r.proposed, ...(r.final || {}) };
         return (<Fragment key={r.id}><tr className="border-t border-slate-100 align-top" data-testid={`tr-row-${r.row}`}>
@@ -146,11 +150,12 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
           <td>{v.compliance_status ? <b data-testid={`tr-status-${r.row}`}>{v.compliance_status}</b> : <span className="text-slate-500">blank – assessor input required</span>}
             <Badges r={r} v={v} />
             {!v.compliance_status && v.suggestion && <div className="text-[10px] italic text-blue-800" data-testid={`tr-suggestion-${r.row}`}>Suggestion only: evidence indicates {v.suggestion}</div>}</td>
-          <td>{v.tested_by || "–"}<div className="text-slate-500">{v.date_tested || ""}</div>{r.final?.determined_by && <div className="text-[10px] text-slate-500">{r.final.determined_by}</div>}</td>
+          <td>{v.tested_by || "–"}<div className="text-slate-500">{v.date_tested || ""}</div>{r.final?.tester_source && <div className="text-[10px] text-slate-500" data-testid={`tr-tester-source-${r.row}`}>{r.final.tester_source}</div>}
+            {r.state === "needs_confirmation" && <div className="text-[10px] text-amber-800" data-testid={`tr-needs-confirm-${r.row}`}>Approved before tester/date entry was required – excluded from export until the SCA confirms them.</div>}{r.final?.determined_by && <div className="text-[10px] text-slate-500">{r.final.determined_by}</div>}</td>
           <td className="max-w-[420px]"><div className="line-clamp-3">{v.test_results || <span className="text-slate-500">No data – stays blank</span>}</div>
             <div className="mt-0.5 flex flex-wrap gap-1">{(r.sources || []).slice(0, 6).map((s: Row) => <Link key={s.id + s.label} to={s.type === "finding" ? `/findings/${s.id}` : s.type === "policy" ? `/policy-auditor/${s.id}` : s.type === "poam" ? `/poams/${s.id}` : "/evidence-ledger"} className="rounded bg-slate-100 px-1 text-[10px]" title={s.label}>{s.type}</Link>)}</div>
             {r.justification && <div className="text-[10px] text-slate-500">{r.decided_by}: {r.justification}</div>}</td>
-          <td className="whitespace-nowrap">{wb.can_approve && r.state !== "approved" && <button className="btn-primary px-1.5 py-0 text-[11px]" onClick={() => decide({ action: "approve", row_ids: [r.id], justification: just, use_suggestion: useSug })} data-testid={`tr-approve-${r.row}`}>Approve</button>}
+          <td className="whitespace-nowrap">{wb.can_approve && r.state !== "approved" && <button className="btn-primary px-1.5 py-0 text-[11px]" onClick={() => setApproving([r])} data-testid={`tr-approve-${r.row}`}>{r.state === "needs_confirmation" ? "Confirm tester/date…" : "Approve…"}</button>}
             <button className="btn-secondary ml-1 px-1.5 py-0 text-[11px]" onClick={() => edit(r)} data-testid={`tr-edit-${r.row}`}>Edit</button>
             <button className="btn-secondary ml-1 px-1.5 py-0 text-[11px]" disabled={!r.control_id} onClick={() => setOpen(open === r.id ? null : r.id)} data-testid={`tr-open-analysis-${r.row}`}>Evidence analysis</button></td></tr>
           {open === r.id && <tr><td colSpan={8} className="pb-2"><Analysis wb={wb} r={r} onApplied={() => { rows.reload(); reload(); }} /></td></tr>}</Fragment>); })}
@@ -172,6 +177,7 @@ function Exports({ wb, reload }: { wb: Row; reload: () => void }) {
       <span className="text-[11px] text-slate-600">Only approved rows are written; everything else in the workbook stays byte-identical.</span></div>
     <table className="w-full text-[12px]"><tbody>{(wb.exports || []).map((e: Row) => <tr key={e.id} className="border-t border-slate-100" data-testid={`tr-export-${e.version}`}>
       <td>v{e.version}</td><td>{new Date(e.created_at).toLocaleString()}</td><td>{e.exported_by}</td><td>{e.counts?.written_rows} rows · {e.changed_cells} cells</td>
+      <td data-testid={`tr-export-mode-${e.version}`}>{e.mode === "blank" ? "Blank-template mode" : "Pre-populated mode"}</td>
       <td>{e.validation_ok ? <span className="text-emerald-700">validation passed</span> : <span className="text-rose-700">validation failed</span>}</td>
       <td><button className="underline" onClick={() => dl(`/tr/exports/${e.id}/download`, e.file_name, "TR workbook")} data-testid={`tr-download-${e.version}`}>Workbook</button> · <button className="underline" onClick={() => dl(`/tr/exports/${e.id}/validation-report`, e.file_name.replace(".xlsx", "_validation_report.json"), "Validation report")} data-testid={`tr-report-${e.version}`}>Validation report</button></td></tr>)}</tbody></table>
     <div className="mt-2 text-[11px] text-slate-600" data-testid="tr-human-required">HUMAN_REQUIRED before submitting: 1) open the file in Microsoft Excel (no repair prompt), 2) import it in eMASS (Assessment → Test Result Import), 3) spot-check three rows in eMASS.</div>
@@ -203,6 +209,9 @@ export default function TestResultsPage() {
     {w && <>
       <div className="text-[12px] text-slate-700" data-testid="tr-status">Status: <b>{busy ? (w.status === "generating" ? "Processing… generating proposals" : "Processing… detecting columns") : w.status}</b>{w.error ? ` – ${w.error}` : ""} · rows {w.counts?.rows ?? 0} · matched {w.counts?.match?.matched ?? 0} · needs review {(w.counts?.match?.ambiguous ?? 0) + (w.counts?.match?.unmatched ?? 0)}
         {Object.entries(w.counts?.state || {}).map(([k, n]) => <span key={k}> · {STATE_LABEL[k] || k} {String(n)}</span>)}</div>
+      {w.status === "generated" && <div className="text-[12px]" data-testid="tr-export-mode">Export mode: <b>{w.export_mode === "blank" ? "Blank-template mode" : "Pre-populated mode"}</b> – {w.export_mode === "blank"
+        ? "the template had no data rows; added rows get Control Acronym, AP Acronym, CCI and CCI Definition plus the result columns. Columns B–E and I–L stay blank."
+        : "rows came from eMASS; only the result columns M–P of approved rows are written. Everything else stays unchanged."}</div>}
       {w.detection && <Mapping wb={w} reload={reload} />}
       {w.detection && <div className="rounded border border-slate-200 p-3" data-testid="tr-generate"><div className="mb-1 text-sm font-medium">2 · Generate Test Results</div>
         {w.counts?.rows === 0 ? <><div className="mb-1 text-[12px] text-slate-600">This template has no AP rows (blank template). Add one row per CCI of this system's controls – AP numbers are derived and must be verified in eMASS.</div>

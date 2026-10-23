@@ -1,5 +1,6 @@
 """eMASS Test Result workflow on the REAL blank template (tests/fixtures/emass/BLANK_TRExport.xlsx)."""
 import io
+import re
 import time
 import uuid
 import zipfile
@@ -162,24 +163,35 @@ def test_only_sca_can_approve_or_set_status(client, ws, wb, role):
 def test_sca_approval_partial_export_and_validation_report(client, ws, wb):
     sca = ws["role"]("sca")
     rows = _rows(client, ws, wb)
-    r = client.post(f"/api/v1/tr/workbooks/{wb}/decide", json={"action": "approve", "row_ids": [rows[7]["id"], rows[8]["id"]], "justification": "Reviewed STIG results",
-                                                               "use_suggestion": True}, headers=sca)
+    body = {"action": "approve", "row_ids": [rows[7]["id"], rows[8]["id"]], "justification": "Reviewed STIG results", "use_suggestion": True}
+    for missing, msg in (({}, "Date tested"), ({"tested_by": "Lee, Sam"}, "Date tested"), ({"date_tested": "2026-09-01"}, "Tested by"),
+                         ({"tested_by": "   ", "date_tested": "2026-09-01"}, "Tested by"),
+                         ({"tested_by": "Lee, Sam", "date_tested": (date.today() + timedelta(days=1)).isoformat()}, "future")):
+        r = client.post(f"/api/v1/tr/workbooks/{wb}/decide", json={**body, **missing}, headers=sca)
+        assert r.status_code == 422 and msg in r.json()["detail"], (missing, r.text)
+    assert _rows(client, ws, wb)[7]["state"] != "approved"
+    before = client.get(f"/api/v1/tr/workbooks/{wb}", headers=ws["h"]).json()["counts"]["state"].get("approved", 0)
+    r = client.post(f"/api/v1/tr/workbooks/{wb}/decide", json={**body, "tested_by": "Lee, Sam", "date_tested": "2026-09-01"}, headers=sca)
     assert r.status_code == 200 and r.json()["approved"] == [7] and r.json()["skipped"][0]["row"] == 8, r.text
+    assert r.json()["counts"]["state"]["approved"] == before + 1, "counts reflect this action (computed after the commit)"
     with SessionLocal() as db:
         row = db.get(TrRow, uuid.UUID(rows[7]["id"]))
-        assert row.final["date_tested"] == date.today().isoformat() and row.final["determined_by"] == "SCA determination in TR review"
-        assert row.final["tested_by"] and row.decided_by
+        assert row.final["date_tested"] == "2026-09-01" and row.final["tested_by"] == "Lee, Sam" and row.final["tester_confirmed"]
+        assert row.final["approved_by"] != row.final["tested_by"] and row.final["approved_at"] and row.final["tester_source"] == "entered by the SCA at approval"
+        ev = db.scalar(select(AuditEvent).where(AuditEvent.action == "tr.row_approved", AuditEvent.entity_id == rows[7]["id"]))
+        assert ev.after["tester"] == "Lee, Sam" and ev.after["test_date"] == "2026-09-01" and ev.after["approver"] and ev.created_at
     e = client.post(f"/api/v1/tr/workbooks/{wb}/export", headers=ws["h"])
     assert e.status_code == 200, e.text
     v = e.json()["verification"]
     assert v["ok"] and not v["outside_permitted"] and v["issues"] == []
     assert set(v["changed_cells"]) == {"M7", "N7", "O7", "P7"}, v["changed_cells"]
     assert v["permitted_range"] == ["Template!M7:M2714", "Template!N7:N2714", "Template!O7:O2714", "Template!P7:P2714"]
+    assert v["mode"] == "prepopulated" and all("Result column" in x["why"] for x in v["permitted_ranges"]) and "never written" in v["proof"]
     out = client.get(f"/api/v1/tr/exports/{e.json()['id']}/download", headers=ws["h"]).content
     wbo = openpyxl.load_workbook(io.BytesIO(out))
     t = wbo["Template"]
     assert t["M7"].value == row.final["compliance_status"] and t["M7"].value in ("Compliant", "Non-Compliant")
-    assert t["N7"].value.date() == date.today() and t["O7"].value == row.final["tested_by"]
+    assert t["N7"].value.date() == date(2026, 9, 1) and t["O7"].value == "Lee, Sam", "entered tester/date – not the approver, not today"
     assert all(t[f"{c}8"].value is None for c in "MNOP"), "unapproved rows stay blank"
     assert wbo.sheetnames == ["Template", "Example", "Assignment Values", "Instructions"]
     za, zb = zipfile.ZipFile(io.BytesIO(BLANK)), zipfile.ZipFile(io.BytesIO(out))
@@ -221,7 +233,13 @@ def test_assessment_record_is_the_source_of_status_tester_and_date(client, ws):
     if any(s["label"].startswith("STIG") and " Open " in s["label"] for s in r["sources"]):
         assert "conflict" in r["flags"] and r["state"] == "conflict"
     sca_h = ws["role"]("sca")
-    assert client.post(f"/api/v1/tr/workbooks/{wid}/decide", json={"action": "approve", "row_ids": [r["id"]]}, headers=sca_h).json()["approved"] == [7]
+    assert client.post(f"/api/v1/tr/workbooks/{wid}/decide", json={"action": "approve", "row_ids": [r["id"]]}, headers=sca_h).status_code == 422, \
+        "an assessment record pre-fills, but the SCA must still confirm the tester and date"
+    ok = client.post(f"/api/v1/tr/workbooks/{wid}/decide", json={"action": "approve", "row_ids": [r["id"]], "tested_by": r["proposed"]["tested_by"],
+                                                                 "date_tested": r["proposed"]["date_tested"]}, headers=sca_h).json()
+    assert ok["approved"] == [7]
+    with SessionLocal() as db:
+        assert db.get(TrRow, uuid.UUID(r["id"])).final["tester_source"].startswith("confirmed from assessment:")
     e = client.post(f"/api/v1/tr/workbooks/{wid}/export", headers=ws["h"]).json()
     t = openpyxl.load_workbook(io.BytesIO(client.get(f"/api/v1/tr/exports/{e['id']}/download", headers=ws["h"]).content))["Template"]
     assert t["O7"].value == "Assessor, Pat" and t["N7"].value.date() == date(2026, 9, 14) and t["M7"].value == "Compliant"
@@ -240,7 +258,63 @@ def test_blank_template_populated_from_system(client, ws):
     rows = _rows(client, ws, wid)
     assert rows and all(r["added"] and "derived_ap" in r["flags"] for r in rows.values())
     e = client.post(f"/api/v1/tr/workbooks/{wid}/export", headers=ws["h"]).json()
-    assert e["verification"]["ok"] and {c[0] for c in e["verification"]["changed_cells"]} <= {"A", "F", "G", "H"}, "no result cells without approval"
+    v = e["verification"]
+    assert v["ok"] and {c[0] for c in v["changed_cells"]} <= {"A", "F", "G", "H"}, "no result cells without approval"
+    assert v["mode"] == "blank" and client.get(f"/api/v1/tr/workbooks/{wid}", headers=ws["h"]).json()["export_mode"] == "blank"
+    assert any("Blank-template mode only" in x["why"] and x["column"] == "cci_definition" for x in v["permitted_ranges"])
+    ids = [r["id"] for r in list(rows.values())[:3]]
+    per = {i: {"tested_by": f"Tester {n}", "date_tested": f"2026-08-0{n + 1}"} for n, i in enumerate(ids)}
+    sca = ws["role"]("sca")
+    d = client.post(f"/api/v1/tr/workbooks/{wid}/decide", json={"action": "approve", "row_ids": ids, "justification": "bulk per-row testers",
+                                                                "status": "Compliant", "per_row": per}, headers=sca)
+    assert d.status_code == 200 and len(d.json()["approved"]) == 3, d.text
+    e = client.post(f"/api/v1/tr/workbooks/{wid}/export", headers=ws["h"]).json()
+    t = openpyxl.load_workbook(io.BytesIO(client.get(f"/api/v1/tr/exports/{e['id']}/download", headers=ws["h"]).content))["Template"]
+    first = min(r["row"] for r in rows.values())
+    assert t[f"O{first}"].value == "Tester 0" and t[f"N{first}"].value.date() == date(2026, 8, 1) and t[f"M{first}"].value == "Compliant"
+    assert all(t[f"{c}{first}"].value is None for c in "BCDEIJKL"), "B–E and I–L stay blank in blank-template mode"
+    assert t[f"A{first}"].value and t[f"G{first}"].value
+
+
+def test_prepopulated_mode_leaves_a_to_l_untouched(client, ws):
+    """eMASS-style pre-populated export: every Control-Information column A–L filled; only M–P may change."""
+    c = ws["stig_ctl"]
+    cells = {}
+    for i in range(3):
+        r = 7 + i
+        cells.update({f"A{r}": _ap(c).split("(")[0], f"F{r}": f"{_ap(c)}.{i + 1}", f"G{r}": ws["stig_cci"].replace("CCI-", "")})
+        cells.update({f"{col}{r}": f"eMASS {col}{r} text" for col in "BCDEHIJKL"})
+    data = xlsx.write(BLANK, "Template", cells)
+    wid = _import(client, ws, data, name="TR-emass-prepop.xlsx")
+    rows = _rows(client, ws, wid)
+    assert client.get(f"/api/v1/tr/workbooks/{wid}", headers=ws["h"]).json()["export_mode"] == "prepopulated"
+    sca = ws["role"]("sca")
+    r = client.post(f"/api/v1/tr/workbooks/{wid}/decide", json={"action": "approve", "row_ids": [rows[7]["id"], rows[8]["id"]], "status": "Non-Compliant",
+                                                                "justification": "SCA test", "tested_by": "Lee, Sam", "date_tested": "2026-09-02"}, headers=sca)
+    assert r.status_code == 200 and r.json()["approved"] == [7, 8], r.text
+    e = client.post(f"/api/v1/tr/workbooks/{wid}/export", headers=ws["h"]).json()
+    v = e["verification"]
+    assert v["ok"] and v["mode"] == "prepopulated" and not v["outside_permitted"]
+    assert {re.match(r"[A-Z]+", x).group(0) for x in v["changed_cells"]} <= set("MNOP") and len(v["permitted_ranges"]) == 4
+    a = openpyxl.load_workbook(io.BytesIO(data))["Template"]
+    b = openpyxl.load_workbook(io.BytesIO(client.get(f"/api/v1/tr/exports/{e['id']}/download", headers=ws["h"]).content))["Template"]
+    for row in range(1, a.max_row + 1):
+        for col in "ABCDEFGHIJKL":
+            assert a[f"{col}{row}"].value == b[f"{col}{row}"].value and a[f"{col}{row}"].style_id == b[f"{col}{row}"].style_id, f"{col}{row}"
+    assert b["M7"].value == "Non-Compliant" and b["O8"].value == "Lee, Sam" and b["M9"].value is None
+
+
+def test_legacy_approvals_need_tester_confirmation(client, ws, wb):
+    rid = _rows(client, ws, wb)[7]["id"]
+    with SessionLocal() as db:
+        row = db.get(TrRow, uuid.UUID(rid))
+        row.state, row.final = "needs_confirmation", {k: v for k, v in (row.final or {}).items() if k != "tester_confirmed"}
+        db.commit()
+    e = client.post(f"/api/v1/tr/workbooks/{wb}/export", headers=ws["h"]).json()
+    assert not any(x.endswith("7") and x[0] in "MNOP" and len(x) == 2 for x in e["verification"]["changed_cells"]), "excluded until confirmed"
+    r = client.post(f"/api/v1/tr/workbooks/{wb}/decide", json={"action": "approve", "row_ids": [rid], "tested_by": "Lee, Sam", "date_tested": "2026-09-01"},
+                    headers=ws["role"]("sca"))
+    assert r.json()["approved"] == [7] and _rows(client, ws, wb)[7]["state"] == "approved"
 
 
 def test_tenant_isolation(client, ws, wb, signup_on):  # noqa: F811

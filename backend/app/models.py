@@ -1276,6 +1276,7 @@ class InventoryDiscrepancy(CoreMixin, Base):
     applied_by: Mapped[str | None] = mapped_column(String(255))
     applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_detected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    accepted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)     # real person (persona operator) – SoD for approval
 
 
 class AssetCorrelation(CoreMixin, Base):

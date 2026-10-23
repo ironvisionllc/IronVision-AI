@@ -1,5 +1,6 @@
 """eMASS Test Result (TR) template import, mapping, generation, SCA review and export (RMF step 5 · Assess)."""
 import uuid
+from datetime import date
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
@@ -29,6 +30,11 @@ def _can(db: Session, current: CurrentUser, perm: str, system_id) -> bool:
     from app.security.rbac import has_permission
 
     return has_permission(current.assignments, perm, current.user.org_id, system_id)
+
+
+def _real(current: CurrentUser):
+    """Real person behind the request (a sandbox persona is operated by its real user)."""
+    return current.operator.id if current.operator else current.user.id
 
 
 def _out(wb: TrWorkbook) -> dict:
@@ -67,9 +73,11 @@ def list_workbooks(system_id: uuid.UUID, db: Session = Depends(get_db), _: Curre
 @router.get("/tr/workbooks/{wid}")
 def workbook(wid: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
     wb = _wb(db, wid, current)
-    return {**_out(wb), "can_approve": _can(db, current, "assessment.perform", wb.system_id),
+    added = db.scalars(select(TrRow.added).where(TrRow.workbook_id == wb.id).distinct()).all()
+    return {**_out(wb), "export_mode": "blank" if added == [True] else "prepopulated", "can_approve": _can(db, current, "assessment.perform", wb.system_id),
             "exports": [{"id": str(e.id), "version": e.version, "file_name": e.file_name, "sha256": e.sha256, "exported_by": e.exported_by, "counts": e.counts,
                          "created_at": e.created_at.isoformat(), "template_version": e.template_version, "validation_ok": (e.verification or {}).get("ok"),
+                         "mode": (e.verification or {}).get("mode", "prepopulated"), "mode_label": (e.verification or {}).get("mode_label"),
                          "changed_cells": len((e.verification or {}).get("changed_cells", []))}
                         for e in db.scalars(select(TrExport).where(TrExport.workbook_id == wb.id).order_by(TrExport.version.desc()))]}
 
@@ -163,6 +171,11 @@ def generate(wid: uuid.UUID, body: GenerateIn, db: Session = Depends(get_db), cu
     return {"ok": True, "job_id": str(job.id)}
 
 
+class TesterIn(BaseModel):
+    tested_by: str = ""
+    date_tested: date | None = None
+
+
 class DecideIn(BaseModel):
     action: str                     # approve | edit
     row_ids: list[uuid.UUID]
@@ -170,6 +183,24 @@ class DecideIn(BaseModel):
     use_suggestion: bool = False
     status: str | None = None
     values: dict | None = None
+    tested_by: str = ""             # approve: one tester + date for the batch …
+    date_tested: date | None = None
+    per_row: dict[str, TesterIn] = {}   # … or per row (row_id → tester/date)
+
+
+def _testers(body: DecideIn, limit: int) -> dict:
+    out = {}
+    for rid in map(str, body.row_ids):
+        t = body.per_row.get(rid) or TesterIn(tested_by=body.tested_by, date_tested=body.date_tested)
+        if not t.tested_by.strip() or t.date_tested is None:
+            raise HTTPException(422, "Enter both “Date tested” and “Tested by” for every row you approve – they are the actual tester and test date, "
+                                     "not the approver or today")
+        if t.date_tested > date.today():
+            raise HTTPException(422, "“Date tested” cannot be in the future")
+        if len(t.tested_by.strip()) > limit:
+            raise HTTPException(422, f"“Tested by” exceeds the template's {limit}-character limit")
+        out[rid] = {"tested_by": t.tested_by, "date_tested": t.date_tested}
+    return out
 
 
 @router.post("/tr/workbooks/{wid}/decide")
@@ -186,11 +217,14 @@ def decide(wid: uuid.UUID, body: DecideIn, request: Request, db: Session = Depen
     meta = audit.request_meta(request)
     if body.action == "approve":
         before = {r.id: r.state for r in rs}
-        res = trs.approve(db, wb, rs, current.user, body.justification, body.use_suggestion, body.status)
+        testers = _testers(body, (wb.definition.get("limits") or {}).get("tested_by") or 150)
+        res = trs.approve(db, wb, rs, current.user, body.justification, body.use_suggestion, body.status, testers)
         for r in rs:
             if r.row_number in res["approved"]:
                 audit.record(db, action="tr.row_approved", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="tr_row", entity_id=str(r.id),
-                             before={"state": before[r.id]}, after={**r.final, "justification": body.justification, "workbook_id": str(wb.id)}, **meta)
+                             before={"state": before[r.id]}, after={**r.final, "justification": body.justification, "workbook_id": str(wb.id),
+                                                                    "approver": current.user.email, "approver_real_user": str(_real(current)),
+                                                                    "tester": r.final["tested_by"], "test_date": r.final["date_tested"]}, **meta)
     elif body.action == "edit":
         try:
             for r in rs:
@@ -204,7 +238,9 @@ def decide(wid: uuid.UUID, body: DecideIn, request: Request, db: Session = Depen
     else:
         raise HTTPException(422, "action must be approve or edit")
     db.commit()
-    return {**res, "counts": wb.counts}
+    counts = trs.refresh_counts(db, wb)   # after the commit, so they reflect this action
+    db.commit()
+    return {**res, "counts": counts}
 
 
 @router.post("/tr/workbooks/{wid}/export")

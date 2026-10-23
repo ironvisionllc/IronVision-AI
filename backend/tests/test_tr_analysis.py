@@ -150,7 +150,8 @@ def test_export_unchanged_unless_text_applied_then_attributed(client, ws, twb, m
 
     rid = str(_row(twb, 7))
     sca = ws["role"]("sca")
-    assert client.post(f"/api/v1/tr/workbooks/{twb}/decide", json={"action": "approve", "row_ids": [rid], "justification": "ok"}, headers=sca).status_code == 200
+    assert client.post(f"/api/v1/tr/workbooks/{twb}/decide", json={"action": "approve", "row_ids": [rid], "justification": "ok",
+                                                                                                     "tested_by": "Lee, Sam", "date_tested": "2026-09-01"}, headers=sca).status_code == 200
     e1 = client.post(f"/api/v1/tr/workbooks/{twb}/export", headers=ws["h"]).json()
     j = client.post(f"/api/v1/tr/workbooks/{twb}/analyze", json={"row_ids": [rid]}, headers=ws["h"])
     assert j.status_code == 202, j.text
@@ -167,7 +168,8 @@ def test_export_unchanged_unless_text_applied_then_attributed(client, ws, twb, m
     assert r.json()["final"]["compliance_status"] == "Compliant", "status untouched by applying text"
     e3 = client.post(f"/api/v1/tr/workbooks/{twb}/export", headers=ws["h"]).json()
     assert _tr_cell(client, ws, twb, e3) != text, "not exported until the SCA re-approves"
-    assert client.post(f"/api/v1/tr/workbooks/{twb}/decide", json={"action": "approve", "row_ids": [rid], "justification": "ok"}, headers=sca).status_code == 200
+    assert client.post(f"/api/v1/tr/workbooks/{twb}/decide", json={"action": "approve", "row_ids": [rid], "justification": "ok",
+                                                                                                     "tested_by": "Lee, Sam", "date_tested": "2026-09-01"}, headers=sca).status_code == 200
     e4 = client.post(f"/api/v1/tr/workbooks/{twb}/export", headers=ws["h"]).json()
     assert _tr_cell(client, ws, twb, e4) == text and e4["verification"]["ok"] and not e4["verification"]["outside_permitted"]
     with SessionLocal() as db:

@@ -121,10 +121,20 @@ def check(system_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentU
     return {"ok": True, "job_id": str(job.id)}
 
 
-def _disc(d: InventoryDiscrepancy) -> dict:
+SOD_MSG = ("Separation of duties: a different person must approve this change – you accepted the resolution. "
+           "Switching to another persona does not count as a different person.")
+
+
+def _real(current: CurrentUser):
+    """Real person behind the request (a sandbox persona is operated by its real user)."""
+    return current.operator.id if current.operator else current.user.id
+
+
+def _disc(d: InventoryDiscrepancy, me=None) -> dict:
     return {"id": str(d.id), "kind": d.kind, "kind_label": cs.KIND_LABEL.get(d.kind, d.kind), "status": d.status, "title": d.title, "records": d.records,
             "details": d.details or {}, "recommendation": d.recommendation, "proposed_change": d.proposed_change, "ai": d.ai, "decided_by": d.decided_by,
-            "decided_at": _iso(d.decided_at), "reason": d.reason, "applied_by": d.applied_by, "applied_at": _iso(d.applied_at), "last_detected_at": _iso(d.last_detected_at)}
+            "decided_at": _iso(d.decided_at), "reason": d.reason, "applied_by": d.applied_by, "applied_at": _iso(d.applied_at), "last_detected_at": _iso(d.last_detected_at),
+            "approve_locked": SOD_MSG if d.status == "pending_approval" and me is not None and d.accepted_by_user_id == me else None}
 
 
 @router.get("/systems/{system_id}/inventory/discrepancies")
@@ -133,7 +143,7 @@ def discrepancies(system_id: uuid.UUID, status: str = "open,pending_approval", d
     q = select(InventoryDiscrepancy).where(InventoryDiscrepancy.system_id == s.id).order_by(InventoryDiscrepancy.kind, InventoryDiscrepancy.title)
     if status != "all":
         q = q.where(InventoryDiscrepancy.status.in_(status.split(",")))
-    return [_disc(d) for d in db.scalars(q)]
+    return [_disc(d, _real(current)) for d in db.scalars(q)]
 
 
 class DiscAction(BaseModel):
@@ -167,7 +177,7 @@ def act(did: uuid.UUID, body: DiscAction, request: Request, db: Session = Depend
     elif body.action == "accept":
         if d.status != "open" or not d.proposed_change:
             raise HTTPException(409, "Only an open discrepancy with a proposed resolution can be accepted")
-        d.status = "pending_approval"
+        d.status, d.accepted_by_user_id = "pending_approval", _real(current)
     elif body.action == "reject":
         if d.status != "pending_approval":
             raise HTTPException(409, "Nothing is pending approval")
@@ -175,6 +185,8 @@ def act(did: uuid.UUID, body: DiscAction, request: Request, db: Session = Depend
     else:
         if d.status != "pending_approval":
             raise HTTPException(409, "Accept the resolution first – changes are applied only after approval")
+        if d.accepted_by_user_id == _real(current):
+            raise HTTPException(403, SOD_MSG)
         try:
             change = cs.apply(db, d, current.user.email)
         except ValueError as e:
@@ -187,7 +199,7 @@ def act(did: uuid.UUID, body: DiscAction, request: Request, db: Session = Depend
     audit.record(db, action=f"inventory.discrepancy_{body.action}", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="inventory_discrepancy",
                  entity_id=str(d.id), before=before, after={"status": d.status, "reason": d.reason, "kind": d.kind, "proposed_change": d.proposed_change}, **meta)
     db.commit()
-    return _disc(d)
+    return _disc(d, _real(current))
 
 
 def _corr(db, c: AssetCorrelation) -> dict:

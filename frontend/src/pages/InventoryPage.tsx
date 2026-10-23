@@ -5,16 +5,12 @@ import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { useActiveSystemId } from "@/components/rmf/Stepper";
 import { downloadFile } from "@/lib/download";
+import { SourceBadge } from "@/components/inventory/SourceBadge";
 
 function poll(reload: () => void) { let n = 0; const t = setInterval(() => { reload(); if (++n >= 15) clearInterval(t); }, 3000); }
 
 const STATUS_TONE: Record<string, string> = { open: "bg-amber-100 text-amber-900", pending_approval: "bg-blue-100 text-blue-800", applied: "bg-emerald-100 text-emerald-800",
   ignored: "bg-slate-100 text-slate-600", resolved: "bg-slate-100 text-slate-600" };
-
-function SourceBadge({ label }: { label: string }) {
-  const mocked = label === "MOCKED source";
-  return <span className={`rounded px-1 text-[10px] font-semibold ${mocked ? "bg-rose-600 text-white" : "bg-slate-100 text-slate-700"}`} data-testid={mocked ? "mocked-badge" : undefined}>{label}</span>;
-}
 
 function AiBox({ ai, testId }: { ai: Row | null; testId: string }) {
   if (!ai) return null;
@@ -96,7 +92,10 @@ function Discrepancies({ sid, canWrite, reload }: { sid: string; canWrite: boole
       {d.proposed_change && <div className="text-[11px] text-blue-900">Proposed change: {d.proposed_change.type === "create_asset" ? "create an inventory asset from the scanned host" : d.proposed_change.type === "add_ip" ? `add IP ${d.proposed_change.value}` : `${d.proposed_change.field}: “${d.proposed_change.from ?? "–"}” → “${d.proposed_change.to}”`}</div>}
       {canWrite && <div className="mt-0.5 flex flex-wrap gap-1">
         {d.status === "open" && d.proposed_change && <button className="btn-primary px-1.5 py-0 text-[11px]" onClick={() => act(d, "accept")} data-testid={`inv-accept-${d.id.slice(0, 8)}`}>{d.proposed_change.type === "create_asset" ? "Create asset (propose)" : "Accept resolution"}</button>}
-        {d.status === "pending_approval" && <><button className="btn-primary px-1.5 py-0 text-[11px]" onClick={() => act(d, "approve")} data-testid={`inv-approve-${d.id.slice(0, 8)}`}>Approve change</button>
+        {d.status === "pending_approval" && (d.approve_locked
+          ? <span className="rounded bg-slate-100 px-1.5 text-[11px] text-slate-700" role="note" data-testid={`inv-approve-locked-${d.id.slice(0, 8)}`}>Approve change – locked: {d.approve_locked}</span>
+          : <button className="btn-primary px-1.5 py-0 text-[11px]" onClick={() => act(d, "approve")} data-testid={`inv-approve-${d.id.slice(0, 8)}`}>Approve change</button>)}
+        {d.status === "pending_approval" && <>
           <button className="btn-secondary px-1.5 py-0 text-[11px]" onClick={() => act(d, "reject")}>Withdraw</button></>}
         <button className="btn-secondary px-1.5 py-0 text-[11px]" onClick={() => act(d, "ignore")} data-testid={`inv-ignore-${d.id.slice(0, 8)}`}>Ignore…</button>
         <button className="btn-secondary px-1.5 py-0 text-[11px]" onClick={() => act(d, "explain")} data-testid={`inv-explain-${d.id.slice(0, 8)}`}>Explain (AI)</button></div>}

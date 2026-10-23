@@ -83,7 +83,26 @@ def inv(client, signup_on):  # noqa: F811
         cs.run(db, uuid.UUID(sid))
         db.commit()
     role = lambda r: auth(client.post("/api/v1/sandbox/act-as", json={"role": r}, headers=h).json()["access_token"])  # noqa: E731
-    return {"h": h, "sid": sid, "role": role}
+    return {"h": h, "sid": sid, "role": role, "h2": _second_real_user(h, client)}
+
+
+def _second_real_user(h, client):
+    """A different REAL person in the same org with the same role assignments (for separation of duties)."""
+    from app.models import RoleAssignment, User
+    from app.security import sessions
+    from app.security.tokens import create_access_token
+
+    me = client.get("/api/v1/auth/me", headers=h).json()
+    with SessionLocal() as db:
+        u0 = db.get(User, uuid.UUID(me["id"]))
+        u = User(org_id=u0.org_id, email=f"second-{uuid.uuid4().hex[:6]}@example.com", display_name="Second Reviewer", is_active=True)
+        db.add(u)
+        db.flush()
+        for a in db.scalars(select(RoleAssignment).where(RoleAssignment.user_id == u0.id)):
+            db.add(RoleAssignment(user_id=u.id, role=a.role, scope_type=a.scope_type, scope_id=a.scope_id))
+        sess, _ = sessions.create(db, u.id, "dev_password", None, None)
+        db.commit()
+        return auth(create_access_token(u.id, "dev_password", sess.id)[0])
 
 
 def _asset(sid, name):
@@ -167,7 +186,14 @@ def test_no_overwrite_without_confirmation(client, inv):
     assert client.post(url, json={"action": "accept"}, headers=inv["role"]("leadership_viewer")).status_code == 403
     assert client.post(url, json={"action": "accept"}, headers=inv["h"]).json()["status"] == "pending_approval"
     assert _asset(inv["sid"], "web01").serial_number == "SN-WEB01", "accepting is not applying"
-    r = client.post(url, json={"action": "approve"}, headers=inv["h"])
+    same = client.post(url, json={"action": "approve"}, headers=inv["h"])
+    assert same.status_code == 403 and "Separation of duties" in same.json()["detail"], "the accepting person cannot approve"
+    persona = client.post(url, json={"action": "approve"}, headers=inv["role"]("issm"))
+    assert persona.status_code == 403 and "persona" in persona.json()["detail"], "another persona of the same real user is still the same person"
+    lock = next(x for x in _discs(client, inv) if x["id"] == d["id"])["approve_locked"]
+    assert lock and "different person" in lock
+    assert _asset(inv["sid"], "web01").serial_number == "SN-WEB01"
+    r = client.post(url, json={"action": "approve"}, headers=inv["h2"])
     assert r.status_code == 200 and r.json()["status"] == "applied" and _asset(inv["sid"], "web01").serial_number == "SN-WEB01-NEW"
     with SessionLocal() as db:
         ev = db.scalar(select(AuditEvent).where(AuditEvent.action == "inventory.change_applied", AuditEvent.entity_id == d["id"]))
@@ -184,7 +210,8 @@ def test_create_asset_from_scan_needs_approval(client, inv):
     url = f"/api/v1/inventory/discrepancies/{d['id']}"
     client.post(url, json={"action": "accept"}, headers=inv["h"])
     assert _asset(inv["sid"], "ghost01") is None
-    assert client.post(url, json={"action": "approve"}, headers=inv["h"]).json()["status"] == "applied"
+    assert client.post(url, json={"action": "approve"}, headers=inv["h"]).status_code == 403
+    assert client.post(url, json={"action": "approve"}, headers=inv["h2"]).json()["status"] == "applied"
     g = _asset(inv["sid"], "ghost01")
     assert g is not None and g.inventory_source == "inventory:created_from_scan"
 
@@ -268,6 +295,24 @@ def test_export_preserves_vba_and_writes_only_permitted_cells(client, inv):
     assert wb["Software"]["D8"].value in ("HTTP Server", "Enterprise Linux")
     rep = client.get(f"/api/v1/inventory/exports/{r.json()['id']}/validation-report", headers=inv["h"]).json()
     assert rep["human_required"] and rep["changed_cells"]
+
+
+def test_mocked_connector_host_becomes_labelled_discrepancy(client, inv):
+    from app.services.connectors import MockAdapter
+
+    with SessionLocal() as db:
+        from app.models import EvidenceSource
+        src = EvidenceSource(system_id=uuid.UUID(inv["sid"]), name="On-prem collector (mock)", source_type="on_prem", adapter="mock", config={})
+        db.add(src)
+        db.flush()
+        MockAdapter().collect(db, src)
+        db.commit()
+        cs.run(db, uuid.UUID(inv["sid"]))
+        db.commit()
+    d = next(x for x in _discs(client, inv) if x["kind"] == "missing_from_inventory" and "mock-onprem-01" in x["title"])
+    assert {r["source_label"] for r in d["records"]} == {"MOCKED source"}, d["records"]
+    o = client.get(f"/api/v1/systems/{inv['sid']}/inventory", headers=inv["h"]).json()
+    assert next(a for a in o["scan_observed"] if a["name"] == "mock-onprem-01")["source_label"] == "MOCKED source"
 
 
 def test_mocked_sources_are_labelled():

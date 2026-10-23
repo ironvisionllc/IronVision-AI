@@ -77,3 +77,57 @@ Screenshots are in `docs/screenshots/tr/` (1–8) and `docs/screenshots/inventor
 - **Env variables:** none new. **Deployment steps:** `alembic upgrade head` (0019–0021); rebuild the backend and worker images.
 - **Not part of this work:** older uncommitted edits to `deploy/digitalocean/.env*.example` were left uncommitted.
 - **Test fixtures only:** `backend/tests/fixtures/emass/` (copies of the two templates). There is no demo seed data from the templates.
+
+## Fix round after the independent test of 4934989
+
+**1. Two TR export modes**
+- The mode is detected automatically:
+  - **Blank-template mode:** the template had no data rows and rows were added from the system.
+  - **Pre-populated mode:** the rows came from eMASS.
+- The mode is shown on the page, in the export history and in the validation report (`mode`, `mode_label`).
+- `permitted_ranges` gives a `why` for every range:
+  - result columns M–P: only for SCA-approved rows with a confirmed tester and date;
+  - A/F/G/H: only in blank mode, and only on the added rows, because eMASS needs them to identify each added row.
+- `proof` states that every cell outside those ranges was compared (value, formula, style) and every other package part was compared byte-for-byte.
+- Pre-populated mode never writes A–L.
+
+**2. Actual tester and test date**
+- Approval requires "Date tested" (not in the future) and "Tested by". The backend returns 422 with a plain message if either is missing.
+- The dialog starts with both fields empty; there is a "Use my name" button.
+- If a recorded assessment exists, its values are prefilled with the source shown, and the SCA confirms.
+- Bulk approval takes one tester and date for the batch (explicit confirmation checkbox), or each row's recorded assessment values (`per_row`).
+- Stored as `final.tested_by` / `date_tested` / `tester_source`, separate from `approved_by` / `approved_at`. The audit records approver, approval time, tester and test date.
+- The export uses the entered values.
+- Migration `0022` marked the rows approved under the old behaviour as `needs_confirmation`; they are excluded from export until confirmed. jordan's rows 22, 48, 91, 154 (and 250 in a second workbook) were marked; row 22 was confirmed in the demo as "Nguyen, Alex", 2026-09-15.
+- Editing a Compliance Status no longer fills in the tester or date.
+
+**3. Inventory separation of duties**
+- Accepting a resolution stores the accepting real user (the persona's operator). An approval by the same real user, including through another persona, gets 403 with a plain message. The UI shows "Approve change – locked" with the explanation.
+- TR check: there is no real-person separation-of-duties rule for status decisions anywhere in the platform. The only rule is role-based: only the assessor role may set a result (`phase4` assessments) and only the SCA may approve TR (enforced). So one real user can still edit as ISSO and approve as SCA. I did **not** invent a new rule for TR. If you want the inventory rule applied to TR approvals, it is a small change, but a single-person sandbox could then no longer approve TR rows.
+
+**4. Small items**
+- `decide` now computes `counts` after the commit (tested).
+- The mock on-prem connector now reports a synthetic host labelled `mock:on_prem`. This gives a "missing from inventory" discrepancy with every record labelled **MOCKED source**, covered by an API test and a frontend render test. In the demo, the system got an "On-prem collector (MOCK)" source.
+
+**5. Templates:** they stay in `backend/tests/fixtures/emass/`.
+
+**Tests:**
+- Backend full suite: **543 passed, 43 skipped, 0 failed**.
+- New or extended tests cover:
+  - TR approval: missing date, tester or blank tester → 422; future date → 422; entered tester/date exported (not approver, not today); counts after the commit;
+  - TR modes: blank mode with per-row bulk testers; pre-populated mode with A–L untouched (values and styles); legacy confirmation;
+  - TR prefill from an assessment still needs explicit confirmation;
+  - inventory SoD: same user and same user via persona → 403, a different real user → 200;
+  - mocked connector discrepancy.
+- Frontend: tsc clean; **8/8** tests (2 new SourceBadge tests).
+
+**Browser check (jordan.qa7731):** screenshots in `docs/screenshots/fixes/`.
+- 4 rows showed "needs tester/date confirmation".
+- The dialog opened with empty fields and Approve disabled until both were entered.
+- Export v3 was recorded as blank-template mode with validation passed and nothing outside the permitted ranges.
+- 3 MOCKED source badges were shown.
+- The approval was locked after jordan accepted a resolution.
+- No page errors.
+
+**Migration:** `0022_tester_confirmation_sod` (additive column `inventory_discrepancies.accepted_by_user_id` + data update; reversible).
+**No dependency, environment or deployment changes.**

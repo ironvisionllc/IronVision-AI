@@ -76,6 +76,21 @@ class MockAdapter(ConnectorAdapter):
                                                             ControlAssignment.control_id.in_(doc["controls"]))):
             db.add(EvidenceControl(evidence_id=ev.id, assignment_id=a.id))
             linked += 1
+        hosts = (source.config or {}).get("hosts") or ([{"host": "mock-onprem-01", "ip": "198.51.100.10"}] if source.source_type == "on_prem" else [])
+        for h in hosts:  # MOCKED host report – a scan-only asset labelled "mock:…", never shown as verified discovery
+            from app.models import Asset, AssetCorrelation
+            from app.services.inventory import correlate as cr
+            obs = cr.observed({"host": h["host"], "ips": [h["ip"]]})
+            if db.scalar(select(AssetCorrelation).where(AssetCorrelation.system_id == source.system_id, AssetCorrelation.key == cr.facts_key(obs))):
+                continue
+            a = Asset(system_id=source.system_id, name=h["host"], hostname=cr.n_host(h["host"]), ip_address=h["ip"], ip_addresses=[h["ip"]], asset_type="unknown",
+                      inventory_source=f"mock:{source.source_type}", is_unmatched=True, review_status="needs_review", source="mock_adapter",
+                      provenance={"adapter": "mock", "synthetic": True, "evidence_id": str(ev.id)})
+            db.add(a)
+            db.flush()
+            db.add(AssetCorrelation(system_id=source.system_id, key=cr.facts_key(obs), facts={"host": h["host"], "ips": [h["ip"]], "mocked": True}, candidates=[],
+                                    status="new", reason="MOCKED connector host report", observed_asset_id=a.id, source_format="mock_json", evidence_ids=[str(ev.id)],
+                                    last_seen_at=ts))
         db.add(IngestRun(system_id=source.system_id, source_id=source.id, evidence_id=ev.id, file_name=ev.file_name,
                          file_format="mock_json", sha256=sha, status="completed", finished_at=ts, total=1,
                          mapped=1 if linked else 0, controls_touched=linked, requested_by=actor_id,

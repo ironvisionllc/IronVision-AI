@@ -458,3 +458,4 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Tests: backend 540 passed / 43 skipped; frontend 6/6; testing agent iteration 14 100%. Report: docs/TR_INVENTORY_REPORT.md.
 - HUMAN_REQUIRED: open exports in Microsoft Excel, import into eMASS, spot-check rows.
 - Backlog: software↔asset assignment UI, duplicate-asset merge, show "potentially related" findings in the UI, TR row labels per asset.
+- Fix round (Oct 2026): TR blank/pre-populated export modes with per-range reasons; SCA must enter the actual tester and date (422 otherwise; legacy rows need confirmation); inventory SoD by real user (persona switching ≠ different person); counts after commit; MOCKED on-prem host path. Backend 543 passed; frontend 8/8. Migration 0022.
