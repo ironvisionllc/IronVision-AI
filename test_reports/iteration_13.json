@@ -1,0 +1,31 @@
+{
+  "summary": "Iteration 13 – SME Section-1 regression testing (backend+frontend) against preview https://aegis-rmf-demo.preview.emergentagent.com. Backend: existing /app/backend/tests/test_sme_section1.py = 25/25 pass; new live-API suite /app/backend/tests/test_sme_preview_live.py = 10/10 pass covering content/counts reconciliation, fresh-signup empty sandbox, idempotent POST /sandbox/demo-data, workbench has_evidence filter == summary.with_evidence (2/287), workbench status PUT, policy detail RA-1 mapping with confidence, reject-mapping short-justification 422, scan-upload rejection lists supported formats (ckl/xccdf/arf/nessus), parameters.csv header 'row_type,policy,...' + >=1 data row. Frontend: fresh self-signup lands empty; header shows [data-testid=sandbox-load-demo-btn] + [sandbox-reset-btn]; /catalog shows catalog-counts-reconciliation exactly '324 base controls + 872 enhancements = 1,196 in the Rev 5 catalog · 1,014 selectable = 1,196 in the catalog − 182 withdrawn' + controls-count-label; /systems/{id}/controls shows wb-counts-reconciliation, wb-has-evidence-link ('2 of 287'), wb-current-evidence-link, all 8 filter dropdowns (filter-implementation_status/assessment_status/responsibility/origin/monitoring_status/has_evidence/evidence/family); clicking has-evidence link navigates to ?has_evidence=yes and filter-result-count = '2 control(s) match' (equals summary); on RA-5 detail wb-status-section + wb-impl-status + wb-status-save work: save fires toast 'Implementation status saved: planned' and wb-status-last-changed shows 'Last changed by Alex Rivera (ISSO persona) at 10/23/2026, 1:24:30 PM'; wb-mapped-policies panel shows 'Risk Assessment Policy (synthetic) v1 · mapped · High · manual' with who/when; /policy-auditor/{RA policy}: policy-control-mappings panel lists RA-1(High)/RA-5(High)/RA-3(Low) with basis+snippets; map-to-control-btn opens map-control-modal with map-control-search + map-control-save; 2 mapping-reject-* buttons present, reject modal with <10-char justification shows reject-mapping-error 'A justification of at least 10 characters is required'; export-params-btn present; 8 pf-map-control-* buttons present. filter-clear is conditionally rendered only when a filter is active (verified in source, visible in filtered screenshot) – correct behavior.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sme_section1.py",
+    "/app/backend/tests/test_sme_preview_live.py",
+    "/app/test_reports/pytest/sme_section1.xml",
+    "/app/test_reports/pytest/sme_preview_live.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "counts.py returns a single reconciled dict with human-readable 'labels' used identically by backend tests, catalog UI and workbench strip – good one-source-of-truth. labels['rev5_total'] already matches the exact string the UI renders, which eliminates FE/BE drift.",
+    "workbench.save_status returns {implementation_status, status_last_changed} after persisting and the FE reads status_last_changed to render 'Last changed by …' without an extra round-trip; audit event drives the 'who/when'. Clean.",
+    "phase3.export_params emits an explicit header row ('row_type,policy,…') and always writes at least one data row when control_mappings are present – covered by the live CSV test.",
+    "detect_format rejects by content and the error body contains the supported-formats list ('ckl/xccdf/arf/nessus') – verified via POST /systems/{id}/uploads with text/plain payload (422).",
+    "reject-mapping validates justification length server-side (<10 → 422) AND client-side (reject-mapping-error visible before confirm) – both layers enforced."
+  ],
+  "updated_files": ["/app/backend/tests/test_sme_preview_live.py"],
+  "success_rate": {"backend": "100% (25/25 unit + 10/10 live)", "frontend": "100% of in-scope testids verified"},
+  "test_credentials": "Fresh: sme-fresh-97c795@example.com / Sme-Fresh-2026!x · Demo-loaded: sme-fresh-d64e62@example.com / Sme-Fresh-2026!x",
+  "seed_data_creation": "None (used supplied accounts). test_sandbox_load_demo_data_idempotent loads 4 synthetic systems into the fresh account then test_sandbox_clear_removes_demo resets it, so the fresh account remains empty after the run.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview is dev_password auth. Browser session: do NOT inject tokens via localStorage – unknown key name; always use the /login form (input[type=email] + 'Sign in' button) then wait for URL /controls|/systems. Workbench summary endpoint is /systems/{id}/workbench/summary (returns object with with_evidence, with_current_evidence, assigned); controls list endpoint /systems/{id}/workbench/controls returns a bare array (no summary wrapper). Policy GET is /policies/{id} which embeds control_mappings[] and mapping_history[] – there is NO GET /policies/{id}/control-mappings (returns 405). Export CSV is /policies/{id}/parameters.csv (not /parameter-comparison.csv or /export/parameters). Scan upload is /systems/{id}/uploads. Control acronyms come back lowercased in control_mappings (e.g. 'ra-1'). filter-clear is only rendered when a filter is active – start a test by applying a filter if you need the clear button. Item 8 (legacy mappings 'View' button) was NOT found in the UI code during this run either – no 'View' button exists in Mapping Review for legacy proposals; confirming main agent's note.",
+  "rca of the issue": "N/A – no bugs."
+}
