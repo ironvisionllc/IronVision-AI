@@ -372,6 +372,7 @@ class CommonControlProvider(CoreMixin, ProvenanceMixin, Base):
     coverage_text: Mapped[str | None] = mapped_column(Text)
     last_validated_at: Mapped[date | None] = mapped_column(Date)
     package_expiration: Mapped[date | None] = mapped_column(Date)
+    authorization_type: Mapped[str | None] = mapped_column(String(60))
     evidence_refs: Mapped[list | None] = mapped_column(JSONB)
     is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
 

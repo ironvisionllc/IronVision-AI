@@ -43,13 +43,18 @@ def inheritance(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
             p = provs.setdefault(a.provider_id, {"inherited": 0, "shared": 0})
             p[a.responsibility] = p.get(a.responsibility, 0) + 1
     org = get_system(db, system_id).org_id
-    providers = [{**to_dict(p), "fully_inherited": provs.get(p.id, {}).get("inherited", 0), "shared": provs.get(p.id, {}).get("shared", 0)}
-                 for p in db.scalars(select(CommonControlProvider).where(CommonControlProvider.org_id == org))]
+    from app.services.crm import expiry_status
+
+    pmap = {p.id: p for p in db.scalars(select(CommonControlProvider).where(CommonControlProvider.org_id == org))}
+    providers = [{**to_dict(p), "fully_inherited": provs.get(p.id, {}).get("inherited", 0), "shared": provs.get(p.id, {}).get("shared", 0),
+                  "expiry": expiry_status(p)} for p in pmap.values()]
     from app.services.responsibility import SYNTHETIC_LABEL, split_missing
 
     shared = []
     for a in sorted((x for x in ac if x.responsibility in ("shared", "inherited")), key=lambda x: (x.responsibility != "shared", x.control_id)):
+        pv = pmap.get(a.provider_id)
         shared.append({"control_id": a.control_id, "provider_id": str(a.provider_id) if a.provider_id else None, "responsibility": a.responsibility,
+                       "provider_name": pv.name if pv else None, "provider_expiry": expiry_status(pv)["status"] if pv else None,
                        "split_missing": split_missing(a), "matrix_label": SYNTHETIC_LABEL,
                        "provider_responsibility": a.provider_responsibility_text, "system_responsibility": a.system_responsibility_text,
                        "system_part": {"monitoring_status": a.monitoring_status, "evidence_freshness_status": a.evidence_freshness_status,
@@ -98,6 +103,91 @@ class ProviderIn(BaseModel):
     coverage_text: str | None = None
     last_validated_at: date | None = None
     package_expiration: date | None = None
+    authorization_type: str | None = Field(None, max_length=60)
+
+
+@router.get("/crm/sample.csv")
+def crm_sample(_: CurrentUser = Depends(get_current_user)):
+    from fastapi.responses import Response
+
+    from app.services.crm import SAMPLE
+
+    return Response(SAMPLE, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=SAMPLE-customer-responsibility-matrix.csv"})
+
+
+def _crm_args(db, provider_id, current, system_id):
+    from app.services.crm import provider_or_404
+
+    p = provider_or_404(db, provider_id, current.user.org_id)
+    if p is None:
+        raise HTTPException(404, "Provider not found")
+    if system_id is not None and get_system(db, system_id).org_id != current.user.org_id:
+        raise HTTPException(404, "System not found")
+    return p
+
+
+@router.post("/providers/{provider_id}/crm/preview")
+async def crm_preview(provider_id: uuid.UUID, request: Request, file: UploadFile = File(...), mapping: str = Form(""), system_id: uuid.UUID | None = Form(None),
+                      db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+    import json
+
+    from app.services import crm
+
+    p = _crm_args(db, provider_id, current, system_id)
+    if system_id:
+        enforce(request, current, "system.write", system_id)
+    data = await file.read()
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(413, "CRM file too large (max 5 MB)")
+    try:
+        return crm.preview(db, p, system_id, file.filename or "crm.csv", data, json.loads(mapping) if mapping else None)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.post("/providers/{provider_id}/crm/apply")
+async def crm_apply(provider_id: uuid.UUID, request: Request, file: UploadFile = File(...), mapping: str = Form(""), system_id: uuid.UUID | None = Form(None),
+                    db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+    import json
+
+    from app.services import crm
+
+    p = _crm_args(db, provider_id, current, system_id)
+    if system_id:
+        enforce(request, current, "system.write", system_id)
+    data = await file.read()
+    if len(data) > 5 * 1024 * 1024:
+        raise HTTPException(413, "CRM file too large (max 5 MB)")
+    try:
+        r = crm.apply(db, p, system_id, file.filename or "crm.csv", data, json.loads(mapping) if mapping else None, current.user)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(422, str(exc)) from exc
+    db.commit()
+    return r
+
+
+class BulkInheritIn(BaseModel):
+    control_ids: list[str] = Field(min_length=1, max_length=1500)
+    responsibility: str = Field(pattern="^(inherited|shared|system)$")
+    provider_id: uuid.UUID | None = None
+    provider_responsibility_text: str | None = Field(None, max_length=5000)
+    system_responsibility_text: str | None = Field(None, max_length=5000)
+
+
+@router.post("/systems/{system_id}/inheritance/bulk")
+def bulk_inheritance(system_id: uuid.UUID, body: BulkInheritIn, db: Session = Depends(get_db),
+                     current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+    from app.services.crm import bulk_set, provider_or_404
+
+    get_system(db, system_id)
+    if body.responsibility != "system":
+        if not body.provider_id or provider_or_404(db, body.provider_id, current.user.org_id) is None:
+            raise HTTPException(422, "Choose the common control provider these controls are inherited or shared from")
+    r = bulk_set(db, system_id, body.control_ids, body.responsibility, body.provider_id, body.provider_responsibility_text,
+                 body.system_responsibility_text, current.user)
+    db.commit()
+    return r
 
 
 @router.post("/providers", status_code=201)

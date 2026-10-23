@@ -10,6 +10,7 @@ import { Modal } from "@/components/common/Workflow";
 import { MapToControlModal, PolicyMappingsPanel } from "@/components/controls/PolicyMappings";
 import { cn, fmtDate } from "@/lib/format";
 import { RmfOverview } from "@/pages/RmfStepPages";
+import { BulkInheritance, CrmImportModal } from "@/components/inheritance/CrmImport";
 
 export function InheritancePage() {
   const { selectedId: sid } = useSystems();
@@ -21,6 +22,7 @@ export function InheritancePage() {
   const [assign, setAssign] = useState<Row | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [upFor, setUpFor] = useState("");
+  const [crm, setCrm] = useState<Row | null>(null);
   if (!sid) return <NeedSystem />;
   if (!data) return null;
   const c = data.cards;
@@ -28,11 +30,18 @@ export function InheritancePage() {
   const upload = (f: File) => { const fd = new FormData(); fd.append("file", f); act(() => api.post(`/attestations/${upFor}/evidence`, fd), "Evidence stored in ledger (SHA-256 recorded)"); };
   return (
     <div data-testid="inheritance-page">
-      <PageHeader title="Inheritance & Attestations" subtitle={c.note}>
+      <PageHeader title="Inheritance & Attestations" subtitle="Record which controls another authorized package covers for this system.">
         {can("system.write") && <><button className="btn-secondary" onClick={() => setProv({ name: "" })} data-testid="add-provider-btn">Add provider</button>
           <button className="btn-secondary" onClick={() => setAssign({ control_id: "", responsibility: "shared" })} data-testid="assign-inheritance-btn">Assign inherited/shared control</button></>}
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="inheritance-msg">{msg}</div>}
+      <div className="panel mb-4 p-4 text-[13px] text-slate-700" data-testid="inheritance-explainer">
+        <b>Inherited</b> = the control is fully satisfied by another authorized package or provider (e.g. a data center or a cloud platform); you rely on their authorization. <b>Shared</b> = both parties have responsibilities: the provider covers part and this system must implement and evidence the rest. <b>System-owned</b> = this system does it all.
+        <span className="mt-1 block text-[11px] text-slate-500">{c.note} A provider's authorization must be current – expired or soon-expiring providers are flagged below.</span></div>
+      {data.providers.filter((p: Row) => ["expired", "expiring"].includes(p.expiry?.status)).map((p: Row) => <div key={p.id} role="alert" data-testid={`provider-warning-${p.id}`}
+        className={`mb-3 rounded border p-3 text-[13px] ${p.expiry.status === "expired" ? "border-rose-300 bg-rose-50 text-rose-900" : "border-amber-300 bg-amber-50 text-amber-900"}`}>
+        <b>{p.name}:</b> {p.expiry.message} {p.fully_inherited + p.shared} control(s) in this system depend on it.{can("system.write") && <button className="ml-2 underline" onClick={() => setProv(p)}>Update the provider record</button>}</div>)}
+      {can("system.write") && <BulkInheritance sid={sid} providers={data.providers} onDone={reload} />}
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
         <Stat label="Fully inherited" value={c.fully_inherited} testId="inh-card-inherited" hint={`of ${c.assigned}`} />
         <Stat label="Shared" value={c.shared} testId="inh-card-shared" /><Stat label="System-owned" value={c.system_owned} testId="inh-card-system" />
@@ -40,17 +49,17 @@ export function InheritancePage() {
         <Stat label="Reconciles" value={c.sum_check ? "Yes" : "No"} testId="inh-card-sum" hint={`${c.fully_inherited}+${c.shared}+${c.system_owned}=${c.assigned}`} />
       </div>
       <Panel title="Who covers what" className="mb-5" testId="providers-panel">
-        <Table head={["Provider", "Package / basis", "Coverage", "Inherited", "Shared", "Last validation", "Package expiration", "Evidence refs", ""]}>
+        <Table head={["Provider", "Package / system it comes from", "Authorization", "Coverage", "Inherited", "Shared", "Last validation", "Authorization expires", ""]}>
           {data.providers.map((p: Row) => <tr key={p.id} data-testid={`provider-${p.id}`}><td className="td text-[12px] font-medium">{p.name}</td><td className="td text-[12px]">{p.package}<div className="text-[10px] text-slate-500">{p.basis}</div></td>
-            <td className="td max-w-[260px] text-[12px]">{p.coverage_text}</td><td className="td font-mono">{p.fully_inherited}</td><td className="td font-mono">{p.shared}</td>
-            <td className="td font-mono text-[11px]">{p.last_validated_at ?? "—"}</td><td className="td font-mono text-[11px]">{p.package_expiration ?? "—"}</td><td className="td text-[11px]">{(p.evidence_refs || []).join(", ")}</td>
+            <td className="td text-[12px]">{p.authorization_type ?? "—"}</td><td className="td max-w-[260px] text-[12px]">{p.coverage_text}</td><td className="td font-mono">{p.fully_inherited}</td><td className="td font-mono">{p.shared}</td>
+            <td className="td font-mono text-[11px]">{p.last_validated_at ?? "—"}</td><td className="td font-mono text-[11px]" data-testid={`provider-expiry-${p.id}`}>{p.package_expiration ?? "—"}<div className={p.expiry?.status === "expired" ? "text-rose-700" : p.expiry?.status === "expiring" ? "text-amber-700" : "text-slate-500"}>{p.expiry?.status}</div></td>
             <td className="td">{can("system.write") && <><button className="text-[11px] text-blue-800 underline" onClick={() => setProv(p)} data-testid={`edit-provider-${p.id}`}>Edit</button>
-              <label className="ml-2 cursor-pointer text-[11px] text-blue-800 underline" data-testid={`crm-import-${p.id}`}>Import CRM CSV<input type="file" accept=".csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const fd = new FormData(); fd.append("file", f); act(() => api.post(`/providers/${p.id}/responsibility-matrix`, fd), "Responsibility matrix imported"); }} /></label></>}</td></tr>)}
+              <button className="ml-2 text-[11px] text-blue-800 underline" onClick={() => setCrm(p)} data-testid={`crm-import-${p.id}`}>Import CRM (CSV / Excel)</button></>}</td></tr>)}
         </Table>
       </Panel>
       <Panel title="Shared & inherited controls – provider vs system responsibility" eyebrow="Seeded text is a synthetic demo responsibility matrix · CSV columns: control_id, responsibility, provider_responsibility, customer_responsibility" className="mb-5" testId="shared-panel">
         <Table head={["Control", "Type", "Provider responsibility", "System responsibility", "System part (this system's own evidence)"]}>
-          {data.shared.map((x: Row) => <tr key={x.control_id} data-testid={`shared-${x.control_id}`}><td className="td"><ControlLink systemId={sid} controlId={x.control_id} /></td><td className="td text-[11px]">{x.responsibility}</td>
+          {data.shared.map((x: Row) => <tr key={x.control_id} data-testid={`shared-${x.control_id}`}><td className="td"><ControlLink systemId={sid} controlId={x.control_id} /></td><td className="td text-[11px]">{x.responsibility}{x.provider_name && <div className={x.provider_expiry === "expired" ? "text-rose-700" : "text-slate-500"} data-testid={`shared-provider-${x.control_id}`}>from {x.provider_name}{x.provider_expiry === "expired" ? " (authorization expired)" : x.provider_expiry === "expiring" ? " (expiring soon)" : ""}</div>}</td>
             {x.split_missing ? <td colSpan={2} className="td text-[12px] text-amber-800" data-testid={`split-missing-${x.control_id}`}>Responsibility split not documented</td> : <>
             <td className="td max-w-[320px] text-[12px]">{x.provider_responsibility ?? "—"}</td><td className="td max-w-[320px] text-[12px]">{x.system_responsibility ?? "—"}</td></>}
             <td className="td text-[12px]"><S v={x.system_part.monitoring_status} label="monitoring" /> <S v={x.system_part.evidence_freshness_status} /> <span className="font-mono">{x.system_part.open_findings} open</span></td></tr>)}
@@ -80,8 +89,9 @@ export function InheritancePage() {
       {hist && <Modal title="Attestation history (signed records preserved)" onClose={() => setHist(null)} testId="att-history-modal">
         {hist.map((h) => <div key={h.id} className="border-b border-slate-100 py-1 text-[12px]">v{h.version} · <S v={h.status} /> · signed {h.signed_at ? `${fmtDate(h.signed_at)} by ${h.signer_name}` : "—"} · expires {h.expires_at ?? "—"}</div>)}</Modal>}
       {prov && <Modal title={prov.id ? "Edit provider" : "Add provider"} onClose={() => setProv(null)} testId="provider-modal">
-        {["name", "package", "basis", "coverage_text", "last_validated_at", "package_expiration"].map((k) => <label key={k} className="block text-[13px]">{k.replace(/_/g, " ")}<input className="input" type={k.endsWith("_at") || k.endsWith("expiration") ? "date" : "text"} value={prov[k] ?? ""} onChange={(e) => setProv({ ...prov, [k]: e.target.value })} data-testid={`provider-${k}`} /></label>)}
-        <button className="btn-primary mt-3" onClick={() => { const b = Object.fromEntries(["name", "package", "basis", "coverage_text", "last_validated_at", "package_expiration"].map((k) => [k, prov[k] || null])); act(() => prov.id ? api.patch(`/providers/${prov.id}`, b) : api.post("/providers", b), "Provider saved").then(() => setProv(null)); }} data-testid="provider-save">Save</button></Modal>}
+        {["name", "package", "authorization_type", "basis", "coverage_text", "last_validated_at", "package_expiration"].map((k) => <label key={k} className="block text-[13px]">{({ package: "Package / system it comes from", authorization_type: "Authorization type (e.g. ATO, FedRAMP P-ATO, DoD PA)", package_expiration: "Authorization expiration date", coverage_text: "What it covers" } as Record<string, string>)[k] ?? k.replace(/_/g, " ")}<input className="input" type={k.endsWith("_at") || k.endsWith("expiration") ? "date" : "text"} value={prov[k] ?? ""} onChange={(e) => setProv({ ...prov, [k]: e.target.value })} data-testid={`provider-${k}`} /></label>)}
+        <button className="btn-primary mt-3" onClick={() => { const b = Object.fromEntries(["name", "package", "authorization_type", "basis", "coverage_text", "last_validated_at", "package_expiration"].map((k) => [k, prov[k] || null])); act(() => prov.id ? api.patch(`/providers/${prov.id}`, b) : api.post("/providers", b), "Provider saved").then(() => setProv(null)); }} data-testid="provider-save">Save</button></Modal>}
+      {crm && <CrmImportModal provider={crm} sid={sid} onClose={() => setCrm(null)} onDone={reload} />}
       {assign && <Modal title="Assign inheritance" onClose={() => setAssign(null)} testId="assign-modal">
         <div className="grid gap-2 text-[13px]">
           <label>Control<input className="input" placeholder="sc-28" value={assign.control_id} onChange={(e) => setAssign({ ...assign, control_id: e.target.value })} data-testid="assign-control" /></label>
