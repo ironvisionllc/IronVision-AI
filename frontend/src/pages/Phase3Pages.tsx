@@ -7,6 +7,7 @@ import { useApi, Row } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { ControlLink, NeedSystem, S, Stat, Table } from "@/components/common/Bits";
 import { Modal } from "@/components/common/Workflow";
+import { MapToControlModal, PolicyMappingsPanel } from "@/components/controls/PolicyMappings";
 import { cn, fmtDate } from "@/lib/format";
 
 export function InheritancePage() {
@@ -141,6 +142,7 @@ export function PolicyDetailPage() {
   const { can } = useAuth();
   const { data, reload } = useApi<Row>(`/policies/${id}`);
   const [msg, setMsg] = useState("");
+  const [mapFor, setMapFor] = useState<string[] | null>(null);
   if (!data) return null;
   const p = data.policy;
   const act = async (pf: Row, action: string) => {
@@ -155,6 +157,9 @@ export function PolicyDetailPage() {
         <a className="btn-secondary" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/policies/${id}/parameters.csv`} onClick={async (e) => { e.preventDefault(); const r = await api.get(`/policies/${id}/parameters.csv`, { responseType: "blob" }); const u = URL.createObjectURL(r.data as Blob); const a = document.createElement("a"); a.href = u; a.download = "parameters.csv"; a.click(); }} data-testid="export-params-btn">Export parameter comparison (CSV)</a>
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="policy-msg">{msg}</div>}
+      <Panel title="Mapped controls (confidence · basis · matched text)" className="mb-5" testId="policy-control-mappings">
+        <PolicyMappingsPanel policyId={id} data={data} canMap={can("finding.map")} reload={reload} setMsg={setMsg} />
+      </Panel>
       <Panel title="Values this policy sets" className="mb-5" testId="policy-values">
         <Table head={["Control", "Parameter", "Policy value & exact quote", "Approved ODP", "Observed / enforced", "Evidence age", "Result"]}>
           {data.values.map((v: Row, i: number) => <tr key={i} data-testid={`value-${v.control_id}`}><td className="td"><ControlLink systemId={v.system_id} controlId={v.control_id} /></td><td className="td text-[12px]">{v.parameter}</td>
@@ -173,9 +178,11 @@ export function PolicyDetailPage() {
               <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(pf, "dismiss")} data-testid={`pf-dismiss-${pf.id}`}>Dismiss</button>
               <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(pf, "request-review")} data-testid={`pf-review-${pf.id}`}>Request review</button>
               <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => act(pf, "link")} data-testid={`pf-link-${pf.id}`}>Link to control</button></div>}
+              {can("finding.map") && <button className="mt-1 btn-secondary px-2 py-0.5 text-[11px]" onClick={() => setMapFor(pf.control_id ? [pf.control_id] : [])} data-testid={`pf-map-control-${pf.id}`}>Map to control</button>}
               {pf.finding_id && <Link className="text-[11px] text-blue-800 underline" to={`/findings/${pf.finding_id}`} data-testid={`pf-finding-link-${pf.id}`}>Finding → Add to POA&M</Link>}</td></tr>)}
         </Table>
       </Panel>
+      {mapFor && <MapToControlModal policyId={id} initial={mapFor} onClose={() => setMapFor(null)} onDone={(m) => { setMapFor(null); setMsg(m); reload(); }} />}
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel title="Versions" testId="policy-versions">{data.versions.map((v: Row) => <div key={v.id} className="text-[12px]"><Link className="text-blue-800 underline" to={`/policy-auditor/${v.id}`}>v{v.version}</Link> <S v={v.status} /> {v.approval_date}</div>)}</Panel>
         <Panel title="Extracted text (preview)" testId="policy-text"><pre className="max-h-72 overflow-y-auto whitespace-pre-wrap text-[11px]">{data.text_preview || "No document loaded (metadata-only policy)."}</pre></Panel>

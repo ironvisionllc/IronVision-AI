@@ -21,6 +21,7 @@ import { FindingPage, ReviewDetailPage, ReviewsPage } from "@/pages/ReviewPages"
 import { InheritancePage, PolicyAuditorPage, PolicyDetailPage, RmfWorkflowPage } from "@/pages/Phase3Pages";
 import { AuditLogPage, AuthorizationPage, NotificationPrefsPage } from "@/pages/Phase3Extras";
 import { EmassPage, MappingReviewPage } from "@/pages/Phase4Pages";
+import { Toaster } from "sonner";
 
 function ControlsEntry() {
   const { selectedId, systems, loaded } = useSystems();
@@ -90,6 +91,7 @@ function Shell() {
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster richColors position="top-right" />
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

@@ -25,9 +25,12 @@ def summary(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser 
 
     rows = list(db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == system_id)))
     c = lambda pred: sum(1 for a in rows if pred(a))  # noqa: E731
-    m = metrics(db, get_system(db, system_id))
-    return {"overlapping_counts_note": "Counts overlap: one control can appear in several categories.", "metrics": m,
-            "total_assigned": m["assigned_controls"], "with_current_evidence": m["controls_with_current_evidence"],
+    sysobj = get_system(db, system_id)
+    m = metrics(db, sysobj)
+    from app.services.counts import system_counts
+    counts = system_counts(db, sysobj)
+    return {"overlapping_counts_note": "Counts overlap: one control can appear in several categories.", "metrics": m, "counts": counts,
+            "total_assigned": counts["assigned"], "with_current_evidence": counts["with_current_evidence"], "with_evidence": counts["with_evidence"],
             "fully_inherited": c(lambda a: a.responsibility == "inherited"), "shared": c(lambda a: a.responsibility == "shared"),
             "not_assessed": c(lambda a: a.assessment_status == "not_assessed"),
             "with_open_findings": c(lambda a: (a.evaluation or {}).get("open_findings", 0) > 0),
@@ -39,20 +42,29 @@ def summary(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser 
 
 @router.get("/systems/{system_id}/workbench/controls")
 def controls(system_id: uuid.UUID, queue: bool = False, q: str | None = None, implementation_status: str | None = None,
-             responsibility: str | None = None, limit: int = 400, db: Session = Depends(get_db),
+             responsibility: str | None = None, assessment_status: str | None = None, monitoring_status: str | None = None,
+             family: str | None = None, origin: str | None = None, has_evidence: str | None = None, evidence: str | None = None,
+             limit: int = 2000, db: Session = Depends(get_db),
              _: CurrentUser = Depends(require_permission("system.read"))) -> list[dict]:
     from app.models import Control
+    from app.services.evaluation import FRESH_OK
 
-    stmt = select(ControlAssignment, Control.title, Control.label).join(Control, Control.id == ControlAssignment.control_uuid).where(ControlAssignment.system_id == system_id)
+    get_system(db, system_id)
+    A = ControlAssignment
+    stmt = select(A, Control.title, Control.label).join(Control, Control.id == A.control_uuid).where(A.system_id == system_id)
     if queue:
-        stmt = stmt.where(ControlAssignment.priority_score > 2)
-    if implementation_status:
-        stmt = stmt.where(ControlAssignment.implementation_status == implementation_status)
-    if responsibility:
-        stmt = stmt.where(ControlAssignment.responsibility == responsibility)
+        stmt = stmt.where(A.priority_score > 2)
+    for col, v in ((A.implementation_status, implementation_status), (A.responsibility, responsibility), (A.assessment_status, assessment_status),
+                   (A.monitoring_status, monitoring_status), (A.origin, origin), (Control.family_id, family.lower() if family else None)):
+        if v:
+            stmt = stmt.where(col == v)
+    if has_evidence in ("yes", "no"):   # same predicate as counts.system_counts["with_evidence"]
+        stmt = stmt.where(A.evidence_freshness_status != "no_evidence" if has_evidence == "yes" else A.evidence_freshness_status == "no_evidence")
+    if evidence == "current":           # same predicate as counts.system_counts["with_current_evidence"]
+        stmt = stmt.where(A.evidence_freshness_status.in_(FRESH_OK))
     if q:
-        stmt = stmt.where(ControlAssignment.control_id.ilike(f"%{q}%") | Control.title.ilike(f"%{q}%"))
-    stmt = stmt.order_by(ControlAssignment.priority_score.desc(), Control.sort_id).limit(min(limit, 500))
+        stmt = stmt.where(A.control_id.ilike(f"%{q}%") | Control.title.ilike(f"%{q}%"))
+    stmt = stmt.order_by(A.priority_score.desc(), Control.sort_id).limit(min(limit, 5000))
     return [{**to_dict(a, ("evaluation",)), "title": t, "label": lbl, "evaluation": a.evaluation} for a, t, lbl in db.execute(stmt).all()]
 
 
@@ -103,6 +115,8 @@ def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(
     cci_cv = db.scalar(select(ContentVersion).where(ContentVersion.content_type == "cci_list", ContentVersion.is_active.is_(True)))
     weights = {w.reason_code: w.description for w in db.scalars(select(PriorityWeight))}
     return {
+        "status_last_changed": _status_last_changed(db, a),
+        "policy_mappings": _policy_mappings(db, a),
         "assignment": {**to_dict(a), "provider_name": prov.name if prov else None,
                        "reason_details": [{**r, "description": weights.get(r["code"])} for r in (a.reasons or [])]},
         "catalog": catalog,
@@ -369,6 +383,46 @@ def save_narrative(system_id: uuid.UUID, control_id: str, body: NarrativeIn, req
     evaluate_system(db, system_id)
     db.commit()
     return to_dict(impl)
+
+
+class StatusIn(BaseModel):
+    implementation_status: str = Field(pattern="^(planned|partially_implemented|implemented|not_applicable|inherited|not_implemented)$")
+
+
+@router.put("/systems/{system_id}/workbench/controls/{control_id}/status")
+def save_status(system_id: uuid.UUID, control_id: str, body: StatusIn, request: Request, db: Session = Depends(get_db),
+                current: CurrentUser = Depends(require_permission("implementation.write"))) -> dict:
+    a = assignment_for(db, system_id, control_id)
+    before = a.implementation_status
+    a.implementation_status = body.implementation_status
+    audit.record(db, action="implementation.status_changed", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="control_assignment",
+                 entity_id=str(a.id), before={"implementation_status": before}, after={"implementation_status": body.implementation_status},
+                 **audit.request_meta(request))
+    db.flush()
+    evaluate_system(db, system_id)
+    db.commit()
+    return {"implementation_status": a.implementation_status, "status_last_changed": _status_last_changed(db, a)}
+
+
+def _status_last_changed(db: Session, a: ControlAssignment) -> dict | None:
+    from app.models import AuditEvent, User
+    ev = db.scalar(select(AuditEvent).where(AuditEvent.entity_id == str(a.id), AuditEvent.action.in_(("implementation.status_changed", "implementation.saved")))
+                   .order_by(AuditEvent.occurred_at.desc()).limit(1))
+    if ev is None:
+        return None
+    u = db.get(User, ev.actor_user_id) if ev.actor_user_id else None
+    return {"by": u.display_name if u else ev.actor_email, "email": ev.actor_email, "at": ev.occurred_at.isoformat(), "action": ev.action}
+
+
+def _policy_mappings(db: Session, a: ControlAssignment) -> list[dict]:
+    from app.models import Policy, PolicyControlMap as PCM
+    s = db.get(System, a.system_id)
+    ids = {a.control_id, a.control_id.split(".")[0]}
+    rows = db.execute(select(PCM, Policy).join(Policy, Policy.id == PCM.policy_id)
+                      .where(PCM.org_id == s.org_id, PCM.control_id.in_(ids), PCM.valid_to.is_(None), PCM.status.in_(("mapped", "proposed")),
+                             Policy.status == "current")).all()
+    out = [{**to_dict(m), "policy_title": p.title, "policy_version": p.version} for m, p in rows if not p.system_ids or str(s.id) in p.system_ids]
+    return attach(db, out, "decided_by", "decider")
 
 
 class CommentIn(BaseModel):

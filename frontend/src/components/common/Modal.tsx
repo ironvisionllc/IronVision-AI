@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export function Modal({ title, onClose, children, testId, wide }: { title: string; onClose: () => void; children: ReactNode; testId: string; wide?: boolean }) {
@@ -11,7 +12,7 @@ export function Modal({ title, onClose, children, testId, wide }: { title: strin
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, []);
-  return (
+  return createPortal(
     <div className="iv-overlay fixed inset-0 z-50 flex items-start justify-center p-10" data-testid={testId}>
       <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title}
         className={`iv-popover animate-fade-up max-h-[85vh] w-full overflow-y-auto p-6 focus:outline-none ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
@@ -19,6 +20,7 @@ export function Modal({ title, onClose, children, testId, wide }: { title: strin
           <button className="btn-ghost px-1.5 py-1.5" onClick={onClose} aria-label="Close" data-testid={`${testId}-close`}><X className="h-4 w-4" /></button></div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,  // portal: a transformed ancestor (animate-fade-up panels) would otherwise clip a fixed overlay
   );
 }

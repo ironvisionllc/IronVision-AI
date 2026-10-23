@@ -8,7 +8,6 @@ import { Panel } from "@/components/common/Panel";
 import { S } from "@/components/common/Bits";
 import { fmtDate } from "@/lib/format";
 
-const STATUSES = ["planned", "partially_implemented", "implemented", "not_applicable", "inherited", "not_implemented"];
 
 function diffLines(a: string, b: string) {
   const A = a.split(/(?<=[.!?])\s+|\n/), B = b.split(/(?<=[.!?])\s+|\n/);
@@ -18,12 +17,12 @@ function diffLines(a: string, b: string) {
 export function ImplementationPanel({ systemId, controlId, d, reload }: { systemId: string; controlId: string; d: Row; reload: () => void }) {
   const { can } = useAuth();
   const [narr, setNarr] = useState("");
-  const [impl, setImpl] = useState("planned");
   const [ai, setAi] = useState<Row | null>(null);
+  const impl = d.assignment.implementation_status;  // status is saved in the separate Status section
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [diff, setDiff] = useState<Row | null>(null);
-  useEffect(() => { setNarr(d.implementations[0]?.narrative ?? ""); setImpl(d.assignment.implementation_status); setAi(null); }, [d]);
+  useEffect(() => { setNarr(d.implementations[0]?.narrative ?? ""); setAi(null); }, [d]);
   const versions: Row[] = d.implementations;
   const latest = versions[0];
   const approved = d.approved_implementation;
@@ -55,7 +54,7 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
       {ai?.template ? <div className="mb-2 inline-block rounded bg-sky-100 px-2 py-0.5 text-[11px] font-bold tracking-wide text-sky-900" data-testid="template-draft-label">TEMPLATE DRAFT (no AI) · {ai.prompt_version}{!ai.ai_status?.configured && ai.ai_status?.reason ? ` · ${ai.ai_status.reason}` : ""}</div>
         : (ai || latest?.ai_generated) && <div className="mb-2 inline-block rounded bg-amber-100 px-2 py-0.5 text-[11px] font-bold tracking-wide text-amber-900" data-testid="ai-draft-label">AI DRAFT – not reviewed{ai && ` · ${ai.model} · ${ai.prompt_id}@${ai.prompt_version}`}</div>}
       {!ai && latest?.prompt_version?.startsWith("template") && <div className="mb-2 inline-block rounded bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-900">TEMPLATE DRAFT (no AI)</div>}
-      <textarea className="input" rows={7} value={narr} onChange={(e) => setNarr(e.target.value)} disabled={!can("implementation.write")} data-testid="wb-narrative-input" />
+      <textarea className="input" rows={7} id="wb-narrative" value={narr} onChange={(e) => setNarr(e.target.value)} disabled={!can("implementation.write")} data-testid="wb-narrative-input" />
       {ai && ai.stripped_citations.length > 0 && <div className="mt-1 text-[11px] text-rose-700" data-testid="ai-stripped">{ai.stripped_citations.length} citation(s) to non-existent evidence were removed.</div>}
       {(ai?.draft.citations ?? latest?.citations ?? []).length > 0 && <div className="mt-2 text-[12px]" data-testid="ai-citations"><b>Citations:</b> {(ai?.draft.citations ?? latest.citations).map((c: string) => <Link key={c} to="/evidence-ledger" className="mr-2 text-blue-800 underline">{evName(c)}</Link>)}</div>}
       {sections && <div className="mt-2 grid gap-2 md:grid-cols-2" data-testid="ai-sections">
@@ -64,7 +63,6 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
       </div>}
       {ai && <div className="mt-1 text-[11px] text-slate-500">Grounded on {ai.grounding.evidence_count} current evidence item(s). Policies: {ai.grounding.policies}</div>}
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <select className="input w-52" value={impl} onChange={(e) => setImpl(e.target.value)} disabled={!can("implementation.write")} data-testid="wb-impl-status">{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
         {can("implementation.write") && <>
           <button className="btn-secondary" onClick={() => generate("auto")} disabled={busy} data-testid="ai-generate-btn">{busy ? "Generating…" : "Generate draft"}</button>
           <button className="btn-secondary" onClick={() => generate("template")} disabled={busy} data-testid="template-generate-btn">Template draft</button>

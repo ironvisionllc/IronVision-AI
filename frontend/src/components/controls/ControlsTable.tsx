@@ -95,6 +95,8 @@ export function ControlsTable() {
       <div className="flex items-center justify-between px-4 py-2.5 text-[12px] text-slate-600">
         <span data-testid="controls-result-count">
           {total === 0 ? "0 results" : `${(offset + 1).toLocaleString()}–${Math.min(offset + PAGE, total).toLocaleString()} of ${total.toLocaleString()}`}
+          <span className="ml-2 text-[11px] text-slate-500" data-testid="controls-count-label">
+            {baseline ? "in this baseline (base + enhancements)" : withdrawn ? "in the Rev 5 catalog incl. withdrawn" : "selectable controls + enhancements (withdrawn hidden)"}{family || dq ? " matching the filter" : ""}</span>
         </span>
         <div className="flex gap-1">
           <button className="btn-secondary px-2 py-1" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))} data-testid="controls-prev-page" aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>

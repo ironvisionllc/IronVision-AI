@@ -145,7 +145,7 @@ def _clear_records(db: Session, org: Organization) -> dict:
     user_ids = select(User.id).where(User.org_id == org.id)
     for m in (Policy, ContentUpdate, EmassSyncRun, EmassChange, RiskSnapshot, Poam, CommonControlProvider):
         db.execute(delete(m).where(m.org_id == org.id))
-    db.execute(delete(AppSetting).where(AppSetting.org_id == org.id, AppSetting.key.in_(("emass", "emass_mock_failures"))))
+    db.execute(delete(AppSetting).where(AppSetting.org_id == org.id, AppSetting.key.in_(("emass", "emass_mock_failures", "demo_data"))))
     db.execute(delete(Notification).where(Notification.user_id.in_(user_ids)))
     db.execute(delete(RoleAssignment).where(RoleAssignment.scope_type == "system", RoleAssignment.scope_id.in_(sys_ids)))
     db.execute(delete(System).where(System.id.in_(sys_ids)))
@@ -324,3 +324,36 @@ def seed_demo_account(db: Session, password: str | None) -> Organization:
         ident.secret_hash = hash_password(password)
     db.flush()
     return org
+
+
+DEMO_DATA_KEY = "demo_data"
+
+
+def has_demo_data(db: Session, org_id) -> bool:
+    """Synthetic sample content is visible only to the shared demo tenant, non-sandbox tenants (unchanged) and sandboxes that
+    explicitly loaded demo data."""
+    from app.models import AppSetting
+    org = db.get(Organization, org_id)
+    if org is None or not org.is_sandbox or is_demo(db, org):
+        return True
+    return db.scalar(select(AppSetting.id).where(AppSetting.org_id == org_id, AppSetting.key == DEMO_DATA_KEY)) is not None
+
+
+def load_demo_data(db: Session, org: Organization, actor: User) -> dict:
+    """Idempotent: the same synthetic seed pipeline as the demo account, into THIS sandbox only. Removed by Clear my workspace."""
+    from app.services.rmf import set_setting
+    from app.seed_phase1 import seed_phase1
+
+    if not org.is_sandbox or is_demo(db, org):
+        raise PermissionError("Load demo data applies to private sandbox workspaces only")
+    if has_demo_data(db, org.id):
+        return {"loaded": True, "already_loaded": True}
+    if db.scalar(select(System.id).where(System.org_id == org.id).limit(1)):
+        raise ValueError("Your workspace already has systems – clear it first (Clear my workspace), then load the demo data")
+    sd = check_samples()["samples_dir"]
+    seed_phase1(db, org, sd)
+    n = db.scalar(select(func.count()).select_from(System).where(System.org_id == org.id))
+    set_setting(db, org.id, DEMO_DATA_KEY, {"loaded_at": now().isoformat(), "by": actor.email, "synthetic": True, "systems": n})
+    audit.record(db, action="sandbox.demo_data_loaded", actor_user_id=actor.id, actor_email=actor.email, entity_type="organization",
+                 entity_id=str(org.id), details={"systems": n, "synthetic": True})
+    return {"loaded": True, "already_loaded": False, "systems": n}

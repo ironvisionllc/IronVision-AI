@@ -1056,3 +1056,21 @@ class RetentionPolicy(CoreMixin, Base):
     description: Mapped[str | None] = mapped_column(Text)
     last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_result: Mapped[dict | None] = mapped_column(JSONB)
+
+
+class PolicyControlMap(CoreMixin, Base):
+    """Versioned policy→control mapping. Rows are never edited in place: a decision closes the current row (valid_to) and adds one."""
+    __tablename__ = "policy_control_maps"
+    policy_id: Mapped[uuid.UUID] = _fk("policies.id")
+    org_id: Mapped[uuid.UUID] = _fk("organizations.id")
+    control_id: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)          # proposed | mapped | rejected
+    source: Mapped[str] = mapped_column(String(30), nullable=False)          # explicit_id | statement_language | title_language | ai | manual
+    confidence: Mapped[str] = mapped_column(String(10), nullable=False)      # High | Medium | Low
+    basis: Mapped[str | None] = mapped_column(Text)
+    snippets: Mapped[list | None] = mapped_column(JSONB)
+    parts: Mapped[list | None] = mapped_column(JSONB)
+    justification: Mapped[str | None] = mapped_column(Text)
+    decided_by: Mapped[uuid.UUID | None] = _fk("users.id", nullable=True, ondelete="SET NULL")
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

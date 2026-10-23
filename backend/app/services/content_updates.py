@@ -124,22 +124,25 @@ def register_staged(db: Session) -> int:
 
 
 # ---------- overview ----------
-def overview(db: Session) -> list[dict]:
-    rows = list(db.scalars(select(ContentVersion).order_by(ContentVersion.content_type, ContentVersion.loaded_at)))
+def overview(db: Session, show_synthetic: bool = True, show_updates: bool = True) -> list[dict]:
+    """show_synthetic=False: a clean tenant without loaded demo data never sees the synthetic sample STIG content.
+    show_updates=False: tenant has no systems → reference content is listed as installed, never as updates/diffs to review."""
+    rows = [r for r in db.scalars(select(ContentVersion).order_by(ContentVersion.content_type, ContentVersion.loaded_at))
+            if show_synthetic or not (r.meta or {}).get("synthetic")]
     out = []
     for t, label in TYPE_LABELS.items():
         items = [r for r in rows if r.content_type == t]
         if t == "overlay":
             from app.models import Overlay
-            ov = list(db.scalars(select(Overlay)))
+            ov = list(db.scalars(select(Overlay))) if show_synthetic else []
             out.append({"content_type": t, "label": label, "installed": [{"title": o.title, "version": o.version, "status": "installed"} for o in ov],
                         "available": [], "note": "Overlays are versioned records; synthetic demo overlay only"})
             continue
         out.append({"content_type": t, "label": label,
                     "installed": [_cv_out(r) for r in items if r.is_active],
-                    "available": [_cv_out(r) for r in items if r.status == "available"],
-                    "superseded": [_cv_out(r) for r in items if r.status == "superseded"],
-                    "note": NOT_CONFIGURED.get(t) if not items else None})
+                    "available": [_cv_out(r) for r in items if r.status == "available"] if show_updates else [],
+                    "superseded": [_cv_out(r) for r in items if r.status == "superseded"] if show_updates else [],
+                    "note": NOT_CONFIGURED.get(t) if not items else (None if show_updates else "reference content – no updates to review until you register a system")})
     return out
 
 

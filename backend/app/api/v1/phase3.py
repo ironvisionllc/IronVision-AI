@@ -384,8 +384,15 @@ async def upload_policy(request: Request, file: UploadFile = File(...), title: s
     key = policy_key or title.lower().replace(" ", "-")[:100]
     prev = db.scalar(select(Policy).where(Policy.org_id == current.user.org_id, Policy.policy_key == key, Policy.status == "current"))
     evs = [rmf.store_evidence(db, uuid.UUID(sid), file.filename, data, "policy", current.user.email, "policy_library") for sid in sids]
+    if not evs:   # no system yet (fresh account): keep the document in the policy library only
+        import hashlib
+        from app.services.storage import get_storage
+        sha = hashlib.sha256(data).hexdigest()
+        lib_key = f"policies/{current.user.org_id}/{sha}/{file.filename}"
+        get_storage().put(lib_key, data, "application/octet-stream")
     p = Policy(org_id=current.user.org_id, policy_key=key, title=title, version=(prev.version + 1) if prev else 1, owner=owner or None,
-               system_ids=sids, file_name=file.filename, storage_key=evs[0].storage_key, sha256=evs[0].sha256, evidence_ids=[str(e.id) for e in evs],
+               system_ids=sids, file_name=file.filename, storage_key=evs[0].storage_key if evs else lib_key, sha256=evs[0].sha256 if evs else sha,
+               evidence_ids=[str(e.id) for e in evs],
                text_content=text, analysis_status="queued", review_due=date.fromisoformat(review_due) if review_due else None,
                supersedes_id=prev.id if prev else None, approval_date=date.today())
     if prev:
@@ -422,7 +429,70 @@ def policy_detail(policy_id: uuid.UUID, db: Session = Depends(get_db), current: 
                            "quote_offsets": [v.get("start"), v.get("end")]})
     versions = [to_dict(x, ("text_content",)) for x in db.scalars(select(Policy).where(Policy.org_id == p.org_id, Policy.policy_key == p.policy_key)
                                                                    .order_by(Policy.version.desc()))]
-    return {"policy": _policy_out(db, p), "findings": fs, "values": values, "versions": versions, "text_preview": (p.text_content or "")[:4000]}
+    from app.models import PolicyControlMap as PCM
+    from app.services.policy_mapping import CONF_RANK
+    hist = attach(db, [to_dict(m) for m in db.scalars(select(PCM).where(PCM.policy_id == p.id).order_by(PCM.created_at))], "decided_by", "decider")
+    cur = sorted([m for m in hist if m["valid_to"] is None], key=lambda m: (m["status"] == "rejected", CONF_RANK.get(m["confidence"], 3), m["control_id"]))
+    from app.models import Control
+    from app.services.content.loader import active_catalog_id
+    titles = dict(db.execute(select(Control.control_id, Control.title).where(Control.catalog_version_id == active_catalog_id(db),
+                                                                               Control.control_id.in_({m["control_id"] for m in hist}))).all())
+    for m in hist:
+        m["control_title"] = titles.get(m["control_id"])
+    return {"policy": _policy_out(db, p), "findings": fs, "values": values, "versions": versions, "text_preview": (p.text_content or "")[:4000],
+            "control_mappings": cur, "mapping_history": hist}
+
+
+class MapIn(BaseModel):
+    control_ids: list[str] = Field(min_length=1, max_length=50)
+    justification: str = Field(default="", max_length=5000)
+
+
+class RejectIn(BaseModel):
+    control_id: str
+    justification: str = Field(min_length=10, max_length=5000)
+
+
+def _own_policy(db: Session, policy_id: uuid.UUID, current: CurrentUser) -> Policy:
+    p = db.get(Policy, policy_id)
+    if p is None or p.org_id != current.user.org_id:
+        raise HTTPException(404, "Policy not found")
+    return p
+
+
+@router.post("/policies/{policy_id}/control-mappings")
+def map_policy_controls(policy_id: uuid.UUID, body: MapIn, request: Request, db: Session = Depends(get_db),
+                        current: CurrentUser = Depends(require_permission("finding.map"))) -> dict:
+    from app.models import Control
+    from app.services import policy_mapping as pm
+    from app.services.content.loader import active_catalog_id
+    p = _own_policy(db, policy_id, current)
+    ids = sorted({c.strip().lower().replace("(", ".").replace(")", "") for c in body.control_ids if c.strip()})
+    known = set(db.scalars(select(Control.control_id).where(Control.catalog_version_id == active_catalog_id(db), Control.control_id.in_(ids))))
+    if set(ids) - known:
+        raise HTTPException(422, f"Unknown control(s): {', '.join(sorted(set(ids) - known))}")
+    rows = [pm.decide(db, p, cid, "mapped", current.user, body.justification or None) for cid in ids]
+    audit.record(db, action="policy.control_mapped", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="policy",
+                 entity_id=str(p.id), after={"control_ids": ids, "justification": body.justification}, **audit.request_meta(request))
+    db.commit()
+    return {"mapped": [r.control_id for r in rows]}
+
+
+@router.post("/policies/{policy_id}/control-mappings/reject")
+def reject_policy_control(policy_id: uuid.UUID, body: RejectIn, request: Request, db: Session = Depends(get_db),
+                          current: CurrentUser = Depends(require_permission("finding.map"))) -> dict:
+    from app.services import policy_mapping as pm
+    p = _own_policy(db, policy_id, current)
+    if not body.justification.strip() or len(body.justification.strip()) < 10:
+        raise HTTPException(422, "Rejecting a mapping requires a justification (min 10 chars)")
+    cid = body.control_id.strip().lower()
+    if not any(m.control_id == cid for m in pm.current(db, p.id)):
+        raise HTTPException(404, f"No current mapping to {cid}")
+    r = pm.decide(db, p, cid, "rejected", current.user, body.justification.strip())
+    audit.record(db, action="policy.control_mapping_rejected", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="policy",
+                 entity_id=str(p.id), after={"control_id": cid, "justification": r.justification}, **audit.request_meta(request))
+    db.commit()
+    return {"rejected": cid}
 
 
 class PFDecision(BaseModel):
@@ -463,13 +533,23 @@ def policy_finding_action(pf_id: uuid.UUID, action: str, body: PFDecision, reque
 
 @router.get("/policies/{policy_id}/parameters.csv")
 def export_params(policy_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> Response:
+    """One row per value the policy sets (per linked system, or one row with empty system columns when no system is linked)
+    plus one row per current control mapping. Always starts with the header row."""
     d = policy_detail(policy_id, db, current)
+    p = d["policy"]
+    cols = ["row_type", "policy", "policy_version", "system_id", "control_id", "parameter", "policy_value", "odp_value", "observed_value",
+            "observed_age_days", "result", "policy_quote", "mapping_status", "mapping_confidence", "mapping_basis"]
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["# Parameter comparison export (CSV). OSCAL export arrives in Phase 4."])
-    w.writerow(["system_id", "control_id", "parameter", "policy_value", "odp_value", "observed_value", "observed_age_days", "result"])
-    for v in d["values"]:
-        w.writerow([v[k] for k in ("system_id", "control_id", "parameter", "policy_value", "odp_value", "observed_value", "observed_age_days", "result")])
+    w.writerow(cols)
+    vals = d["values"] or [{"system_id": "", "control_id": v["control_id"], "parameter": v["parameter"], "policy_value": v["value"], "quote": v.get("quote")}
+                           for v in (db.get(Policy, policy_id).analysis or {}).get("values", [])]
+    for v in vals:
+        w.writerow(["parameter", p["title"], p["version"], v.get("system_id", ""), v["control_id"].upper(), v["parameter"], v.get("policy_value"),
+                    v.get("odp_value"), v.get("observed_value"), v.get("observed_age_days"), v.get("result") or "no observation", v.get("quote"), "", "", ""])
+    for m in d["control_mappings"]:
+        w.writerow(["control_mapping", p["title"], p["version"], "", m["control_id"].upper(), "", "", "", "", "", "", "; ".join(m.get("snippets") or [])[:500],
+                    m["status"], m["confidence"], m.get("basis")])
     return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="policy-{policy_id}-parameters.csv"'})
 
 

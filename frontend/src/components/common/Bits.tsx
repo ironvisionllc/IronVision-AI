@@ -1,4 +1,5 @@
 import { fmtControl } from "@/lib/format";
+import { useSystems } from "@/context/SystemContext";
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { StatusPill, Tone } from "@/components/common/StatusPill";
@@ -59,9 +60,13 @@ export function Stat({ label, value, testId, hint }: { label: string; value: Rea
 }
 
 export function NeedSystem() {
+  const { systems } = useSystems();
+  const none = !systems || systems.length === 0;
   return <div className="panel p-6 text-sm text-slate-600" data-testid="need-system">
-    <div className="t-title text-slate-900">No system selected</div>
-    <p className="mt-1">This module works on one system at a time. Pick one in the sidebar – or, if you have none yet, register your first system.</p>
-    <Link to="/systems/new" className="btn-primary mt-3 inline-flex" data-testid="need-system-register">Register your first system</Link>
+    <div className="t-title text-slate-900">{none ? "No system yet" : "Choose a system"}</div>
+    <p className="mt-1">{none
+      ? "Everything here (controls, evidence, POA&Ms) belongs to a system – the thing you are seeking an ATO for. Start by registering it; you pick its baseline (Low/Moderate/High) and the app assigns the controls. Want to look around first? Use “Load demo data” in the bar above."
+      : "This page works on one system at a time. Pick the system in the “Active system” box on the left."}</p>
+    {none && <Link to="/systems/new" className="btn-primary mt-3 inline-flex" data-testid="need-system-register">Register your first system</Link>}
   </div>;
 }

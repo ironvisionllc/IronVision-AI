@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useSystems } from "@/context/SystemContext";
 import { api, errorMessage } from "@/lib/api";
@@ -11,6 +11,7 @@ import { AccessDenied } from "@/components/common/AccessDenied";
 import { cn, fmtDate } from "@/lib/format";
 import { AddToPoamButton, PoamLink } from "@/components/common/Workflow";
 import { ImplementationPanel } from "@/components/workbench/ImplementationPanel";
+import { MappedPoliciesPanel, StatusSection } from "@/components/workbench/StatusSection";
 import { AssessmentPanel } from "@/pages/Phase3Extras";
 
 const REASON: Record<string, string> = { failed_technical_checks: "Failed checks", kev: "KEV", cat1_open: "CAT I", expired_evidence: "Expired evidence",
@@ -61,56 +62,88 @@ function WorkQueue({ systemId, active }: { systemId: string; active?: string }) 
     </div>);
 }
 
+const WB_FILTERS: [string, string, string[]][] = [
+  ["implementation_status", "Implementation", ["planned", "partially_implemented", "implemented", "inherited", "not_applicable"]],
+  ["assessment_status", "Assessment", ["not_assessed", "satisfied", "other_than_satisfied"]],
+  ["responsibility", "Inheritance", ["system", "shared", "inherited"]],
+  ["origin", "Origin", ["baseline", "overlay", "tailored_in"]],
+  ["monitoring_status", "Monitoring", ["passing", "failing", "no_data", "inherited"]],
+  ["has_evidence", "Has evidence", ["yes", "no"]],
+  ["evidence", "Evidence freshness", ["current"]],
+];
+const FILTER_KEYS = ["family", ...WB_FILTERS.map(([k]) => k)];
+
+export function WorkbenchFilters({ params, set }: { params: URLSearchParams; set: (k: string, v: string) => void }) {
+  const { data: fam } = useApi<Row[]>("/controls/families");
+  return (
+    <div className="grid grid-cols-2 gap-2 border-b border-slate-200 p-3" data-testid="workbench-filters">
+      <select className="input" value={params.get("family") ?? ""} onChange={(e) => set("family", e.target.value)} data-testid="filter-family" aria-label="Family">
+        <option value="">All families</option>{(fam || []).map((f) => <option key={f.family_id} value={f.family_id}>{f.family_id.toUpperCase()} – {f.family_title}</option>)}</select>
+      {WB_FILTERS.map(([k, l, vals]) => <select key={k} className="input" value={params.get(k) ?? ""} onChange={(e) => set(k, e.target.value)} data-testid={`filter-${k}`} aria-label={l}>
+        <option value="">{l}: all</option>{vals.map((v) => <option key={v} value={v}>{l}: {v.replace(/_/g, " ")}</option>)}</select>)}
+    </div>);
+}
+
 export default function WorkbenchPage() {
   const { id = "", controlId } = useParams();
   const nav = useNavigate();
   const { select } = useSystems();
-  const [status, setStatus] = useState("");
+  const [params, setParams] = useSearchParams();
   const [all, setAll] = useState(false);
   useEffect(() => { if (id) select(id); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const { data: sum } = useApi<Row>(`/systems/${id}/workbench/summary`);
-  const { data: list, reload } = useApi<Row[]>(`/systems/${id}/workbench/controls`, { queue: !all, implementation_status: status || undefined });
+  const filters = Object.fromEntries(FILTER_KEYS.filter((k) => params.get(k)).map((k) => [k, params.get(k) as string]));
+  const filtered = Object.keys(filters).length > 0;
+  const setFilter = (k: string, v: string) => setParams((prev) => { const p = new URLSearchParams(prev); if (v) p.set(k, v); else p.delete(k); return p; }, { replace: true });
+  const { data: sum, reload: reloadSum } = useApi<Row>(`/systems/${id}/workbench/summary`);
+  const { data: list, reload } = useApi<Row[]>(`/systems/${id}/workbench/controls`, { queue: !(all || filtered), ...filters });
+  const refresh = () => { reload(); reloadSum(); };
+  const showList = all || filtered;
+  const evLink = (q: string) => `/systems/${id}/controls?${q}`;
   return (
     <div data-testid="workbench-page">
-      <PageHeader title="Control Workbench" subtitle="Separate statuses: implementation · assessment (SCA only) · monitoring (technical checks) · evidence freshness. Passing checks never mean 'compliant'.">
-        <Link to="/catalog" className="btn-secondary" data-testid="open-catalog-btn">Reference catalog</Link>
+      <PageHeader title="Control Workbench" subtitle="Work through your system's controls for the ATO: set each control's status, write how it is implemented, attach evidence, and see what is still open. Pick a control from the list on the left to start.">
+        <Link to="/catalog" className="btn-secondary" data-testid="open-catalog-btn" title="Browse every NIST SP 800-53 Rev 5 control and baseline">Reference catalog</Link>
       </PageHeader>
       {sum && (
         <>
           <div className="mb-1 text-[11px] text-slate-500" data-testid="overlap-note">{sum.overlapping_counts_note}</div>
+          <div className="mb-1 text-[11px] text-slate-600" data-testid="wb-counts-reconciliation">{sum.counts.labels.reconciliation}</div>
           <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
-            <Stat label="Assigned" value={sum.total_assigned} testId="wb-total-assigned" />
-            <Stat label="Controls w/ current evidence" value={`${sum.with_current_evidence} of ${sum.total_assigned}`} testId="wb-current-evidence" hint={`collected evidence items within freshness window: ${sum.metrics.evidence_items_fresh_pct ?? "—"}%`} />
+            <Stat label="Assigned after tailoring" value={sum.total_assigned} testId="wb-total-assigned" hint={sum.counts.labels.baseline} />
+            <Link to={evLink("evidence=current")} data-testid="wb-current-evidence-link"><Stat label="Controls w/ current evidence" value={`${sum.with_current_evidence} of ${sum.total_assigned}`} testId="wb-current-evidence" hint="click to list them" /></Link>
+            <Link to={evLink("has_evidence=yes")} data-testid="wb-has-evidence-link"><Stat label="Controls w/ any evidence" value={`${sum.with_evidence} of ${sum.total_assigned}`} testId="wb-has-evidence" hint="click to list them" /></Link>
             <Stat label="Fully inherited" value={sum.fully_inherited} testId="wb-inherited" />
             <Stat label="Shared" value={sum.shared} testId="wb-shared" />
             <Stat label="Not assessed" value={sum.not_assessed} testId="wb-not-assessed" />
             <Stat label="Open findings" value={sum.with_open_findings} testId="wb-open-findings" />
-            <Stat label="Manual action" value={sum.requiring_manual_action} testId="wb-manual-action" />
             <Stat label="Unmapped findings" value={sum.unmapped_findings} testId="wb-unmapped" hint="system-level queue item" />
           </div>
         </>
       )}
       <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
         <div className="panel" data-testid="isso-queue">
-          <div className="flex items-center gap-2 border-b border-slate-200 p-3">
-            <select className="input" value={status} onChange={(e) => setStatus(e.target.value)} data-testid="lifecycle-filter"><option value="">All implementation statuses</option>{["planned", "partially_implemented", "implemented", "inherited", "not_applicable"].map((s) => <option key={s} value={s}>{s}</option>)}</select>
-            <label className="flex items-center gap-1 whitespace-nowrap text-[12px]"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} data-testid="show-all-toggle" />All controls</label>
+          <WorkbenchFilters params={params} set={setFilter} />
+          <div className="flex items-center gap-2 px-3 py-2 text-[12px]">
+            <label className="flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} data-testid="show-all-toggle" />All controls</label>
+            {showList && <span className="text-slate-600" data-testid="filter-result-count">{list ? `${list.length} control(s) match` : "…"}</span>}
+            {filtered && <button className="ml-auto text-[11px] text-blue-800 underline" onClick={() => setParams(new URLSearchParams(), { replace: true })} data-testid="filter-clear">Clear filters</button>}
           </div>
           {(sum?.unmapped_findings ?? 0) > 0 && <Link to="/mapping-review" className="block border-b border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid="queue-unmapped-item">System: {sum?.unmapped_findings} unmapped open findings need mapping or disposition →</Link>}
-          {all ? <ul className="max-h-[640px] overflow-y-auto">
+          {showList ? <ul className="max-h-[640px] overflow-y-auto" data-testid="filtered-control-list">
             {list?.map((a) => (
               <li key={a.id}>
-                <button onClick={() => nav(`/systems/${id}/controls/${a.control_id}`)} data-testid={`queue-item-${a.control_id}`}
+                <button onClick={() => nav(`/systems/${id}/controls/${a.control_id}?${params.toString()}`)} data-testid={`queue-item-${a.control_id}`}
                   className={cn("w-full border-b border-slate-100 px-3 py-2 text-left transition-colors hover:bg-blue-50", controlId === a.control_id && "bg-blue-50")}>
                   <div className="flex items-center justify-between"><span className="font-mono text-[12px] font-semibold text-blue-800">{a.label}</span>
-                    <span className="font-mono text-[11px] text-slate-600" data-testid={`queue-score-${a.control_id}`}>score {a.priority_score}</span></div>
+                    <span className="text-[10px] text-slate-600" data-testid={`queue-status-${a.control_id}`}>{a.implementation_status.replace(/_/g, " ")}</span></div>
                   <div className="truncate text-[12px] text-slate-700">{a.title}</div>
                 </button>
               </li>
             ))}
+            {list?.length === 0 && <li className="px-3 py-4 text-[12px] text-slate-500" data-testid="filter-empty">No controls match these filters.</li>}
           </ul> : <WorkQueue systemId={id} active={controlId} />}
         </div>
-        {controlId ? <ControlPanel systemId={id} controlId={controlId} onChange={reload} /> : <div className="panel p-6 text-sm text-slate-500">Select a control from the queue.</div>}
+        {controlId ? <ControlPanel systemId={id} controlId={controlId} onChange={refresh} /> : <div className="panel p-6 text-sm text-slate-500">Select a control from the queue.</div>}
       </div>
     </div>
   );
@@ -162,6 +195,8 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
               {p.poams.map((x: Row) => <div key={x.id}><PoamLink id={x.id} humanId={x.human_id} /></div>)}</td></tr>)}
         </Table>
       </Panel>}
+      <StatusSection systemId={systemId} controlId={controlId} d={d} reload={() => { reload(); onChange(); }} />
+      <MappedPoliciesPanel d={d} />
       <ImplementationPanel systemId={systemId} controlId={controlId} d={d} reload={() => { reload(); onChange(); }} />
       <Panel title="POA&Ms for this control" testId="wb-poams">{d.poams.length === 0 ? <div className="text-[12px] text-slate-500">None</div> : d.poams.map((p: Row) => <div key={p.id} className="text-[12px]"><PoamLink id={p.id} humanId={p.human_id} /> {p.weakness} <S v={p.status} /> due {p.due_date ?? "—"}</div>)}</Panel>
       <Panel title="SCA assessment" testId="wb-assessment-panel"><AssessmentPanel systemId={systemId} controlId={controlId} objectives={c.objectives} onDone={() => { reload(); onChange(); }} /></Panel>

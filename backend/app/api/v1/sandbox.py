@@ -183,6 +183,7 @@ def sandbox_status(db: Session = Depends(get_db), current: CurrentUser = Depends
     steps = {**(real.onboarding or {}), **onboarding_events(db, org)}
     demo = sbx.is_demo(db, org)
     return {"sandbox": True, "is_demo": demo, "workspace": "demo" if demo else "clean",
+            "demo_data_loaded": sbx.has_demo_data(db, org.id),
             "reset_label": "Reset demo data" if demo else "Clear my workspace",
             "reset_confirm": ("Re-seed the 4 synthetic demo systems? Your changes in the demo are discarded." if demo else
                               "Delete ALL your systems, evidence, findings, POA&Ms, policies and reviews? Your account and reference content are kept."), "status": org.sandbox_status, "progress": org.sandbox_progress, "org_name": org.name,
@@ -235,6 +236,19 @@ def act_as(body: ActAs, request: Request, db: Session = Depends(get_db), current
     from app.models import AuthSession
     cur = db.get(AuthSession, uuid.UUID(request.state.sid))  # keep the IdP id_token_hint so persona sessions still end the SSO session
     return _issue(db, p, current.auth_provider, request, operator=real, id_token_hint=cur.id_token_hint if cur else None)
+
+
+@router.post("/sandbox/demo-data")
+def load_demo_data(db: Session = Depends(get_db), current: CurrentUser = Depends(self_scoped)) -> dict:
+    org = _sandbox_org(db, current)
+    try:
+        r = sbx.load_demo_data(db, org, _real(current))
+    except PermissionError as e:
+        raise HTTPException(403, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
+    db.commit()
+    return r
 
 
 @router.post("/sandbox/reset")

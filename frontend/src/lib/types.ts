@@ -116,6 +116,7 @@ export interface ContentStats {
   ccis?: number;
   cci_rev5_mappings?: number;
   cci_rev5_mappings_resolved?: number;
+  counts?: { labels: { rev5_total: string; selectable: string; baselines: Record<string, string> } };
 }
 
 export interface HealthComponent {

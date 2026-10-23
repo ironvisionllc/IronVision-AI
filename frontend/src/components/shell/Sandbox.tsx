@@ -5,6 +5,7 @@ import { api, errorMessage, MUTATED_EVENT } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 import type { Row } from "@/lib/useApi";
 import { Modal } from "@/components/common/Modal";
+import { showNextStep } from "@/components/common/NextStep";
 
 const ROLE_COLOR: Record<string, string> = {
   isso: "bg-blue-700", issm: "bg-violet-700", sca: "bg-teal-700", ao: "bg-rose-700", system_owner: "bg-amber-700",
@@ -94,12 +95,21 @@ export function SandboxBar() {
     a.click(); URL.revokeObjectURL(a.href);
   };
   const ex = data.expiry;
+  const loadDemo = async () => {
+    if (!window.confirm("Load the SYNTHETIC demo data (4 sample systems, scans, findings, POA&Ms) into your workspace? Remove it any time with “Clear my workspace”.")) return;
+    setBusy(true); try { const r = await api.post("/sandbox/demo-data");
+      showNextStep({ message: r.data.already_loaded ? "Demo data was already loaded." : `SYNTHETIC demo data loaded: ${r.data.systems} fictional sample systems with scans, findings and POA&Ms.`, label: "open the Control Workbench and pick a control", to: "/controls" });
+      window.location.reload(); } catch (e) { window.alert(errorMessage(e)); } finally { setBusy(false); }
+  };
   return (
     <div data-testid="sandbox-bar">
       <div className={`flex flex-wrap items-center gap-3 border-b px-6 py-1.5 text-[12px] ${ex?.warn ? "border-amber-300 bg-amber-50 text-amber-900" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
         <span data-testid="sandbox-label"><b>{data.is_demo ? "Demo workspace" : "Private sandbox"}</b> · {data.org_name} · acting as <b>{data.acting_as}</b> — operated by {data.operator.email}</span>
         <span className="text-[11px] text-slate-500">Persona approvals are simulated signatures – not CAC/PIV · sandbox persona</span>
         <span className="ml-auto" data-testid="sandbox-expiry">{ex?.warn ? `Inactive ${ex.idle_days} days – deleted in ${ex.expires_in_days} day(s) without activity` : ex?.message}</span>
+        {!data.is_demo && !data.demo_data_loaded && <button className="btn-primary px-2 py-0.5 text-[11px]" disabled={busy} onClick={loadDemo} data-testid="sandbox-load-demo-btn"
+          title="Adds fictional sample systems, scans, findings and POA&Ms to YOUR workspace so you can explore every feature. Clearly labelled SYNTHETIC. Remove any time with “Clear my workspace”.">{busy ? "Loading demo data…" : "Load demo data (SYNTHETIC)"}</button>}
+        {!data.is_demo && data.demo_data_loaded && <span className="rounded bg-amber-100 px-1.5 text-[10px] font-semibold text-amber-800" data-testid="sandbox-demo-loaded">SYNTHETIC demo data loaded</span>}
         <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => setConfirm(true)} data-testid="sandbox-reset-btn">{data.reset_label}</button>
       </div>
       {confirm && <Modal title={data.reset_label} onClose={() => setConfirm(false)} testId="sandbox-reset-modal">

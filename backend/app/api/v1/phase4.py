@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.api.v1.records import get_system, to_dict
 from app.db import get_db
 from app.models import (ContentUpdate, ContentVersion, ControlAssignment, EmassChange, EmassSyncRun, Evidence, Finding, FindingControlMap, Poam,
-                        PriorityWeight, ScheduledJob, StigRule)
+                        PriorityWeight, ScheduledJob, StigRule, System)
 from app.security.deps import CurrentUser, enforce, get_current_user, require_body_permission, require_object_permission, require_permission
 from app.services import audit, content_updates as cu, emass, oscal_export as ox, risk, scheduler
 from app.services import workflow as wf
@@ -37,7 +37,16 @@ def content_overview(db: Session = Depends(get_db), current: CurrentUser = Depen
         to, fr = db.get(ContentVersion, u.to_version_id), db.get(ContentVersion, u.from_version_id) if u.from_version_id else None
         d.update(to_version=to.version if to else None, from_version=fr.version if fr else None, counts=(u.impact or {}).get("counts"))
         rows.append(d)
-    return {"types": cu.overview(db), "history": attach(db, attach(db, rows, "applied_by", "applier"), "requested_by", "requester")}
+    return {"types": cu.overview(db, *tenant_content_flags(db, current.user.org_id)),
+            "history": attach(db, attach(db, rows, "applied_by", "applier"), "requested_by", "requester")}
+
+
+def tenant_content_flags(db: Session, org_id) -> tuple[bool, bool]:
+    """(show_synthetic, show_updates) – a clean tenant sees no synthetic sample content and no update/diff offers."""
+    from app.services import sandbox as sbx
+    demo = sbx.has_demo_data(db, org_id)
+    has_systems = db.scalar(select(System.id).where(System.org_id == org_id).limit(1)) is not None
+    return demo, demo or has_systems
 
 
 @router.post("/content-updates/register")
@@ -50,6 +59,10 @@ def content_register(db: Session = Depends(get_db), current: CurrentUser = Depen
 
 @router.post("/content-versions/{version_id}/preview", status_code=201)
 def content_preview(version_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    v = db.get(ContentVersion, version_id)
+    show_synth, show_updates = tenant_content_flags(db, current.user.org_id)
+    if v is None or ((v.meta or {}).get("synthetic") and not show_synth) or not show_updates:
+        raise HTTPException(404, "No content update to preview for this workspace")
     u = cu.preview(db, current.user.org_id, current.user, version_id)
     db.commit()
     return to_dict(u)

@@ -10,6 +10,23 @@ import { PageHeader, Panel } from "@/components/common/Panel";
 import { ControlLink, NeedSystem, S, Sev, Table } from "@/components/common/Bits";
 import { fmtDate } from "@/lib/format";
 import { AddToPoamButton } from "@/components/common/Workflow";
+import { showNextStep } from "@/components/common/NextStep";
+
+/** Upload rejection in plain language: what happened · how to fix it · accepted formats. */
+function UploadError({ e, onClose }: { e: { file: string; text: string }; onClose: () => void }) {
+  const [what, rest] = e.text.split(/Supported scan formats:/);
+  const [supported, note] = (rest || "").split(/\.\s+(?=Policy documents)/);
+  const reason = what.replace(`${e.file}: `, "").trim();
+  return (
+    <div className="mb-3 rounded border border-rose-200 bg-rose-50 p-3 text-[12px] text-rose-900" role="alert" data-testid="upload-error">
+      <div className="font-semibold">“{e.file}” was not imported</div>
+      <div className="mt-1"><b>What happened:</b> <span data-testid="upload-error-reason">{reason}</span></div>
+      <div className="mt-1"><b>How to fix it:</b> export the results from your scanner or STIG Viewer in one of the accepted formats{supported ? ":" : "."}</div>
+      {supported && <ul className="ml-5 mt-1 list-disc" data-testid="upload-error-formats">{supported.replace(/\.\s*$/, "").split(";").map((s) => <li key={s}>{s.trim()}</li>)}</ul>}
+      {note && <div className="mt-1">{note}</div>}
+      <button className="mt-2 text-[11px] underline" onClick={onClose} data-testid="upload-error-dismiss">Dismiss</button>
+    </div>);
+}
 
 const sourceKey = (all: { source_type?: unknown }[], i: number) => { const n = all.slice(0, i).filter((x) => x.source_type === all[i].source_type).length; return n ? `${String(all[i].source_type)}-${n + 1}` : String(all[i].source_type); };
 
@@ -23,6 +40,7 @@ export function SourcesPage() {
   const [form, setForm] = useState<Row | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadSrc, setUploadSrc] = useState("");
+  const [uploadErr, setUploadErr] = useState<{ file: string; text: string } | null>(null);
   if (!sid) return <NeedSystem />;
   const act = async (key: string, fn: () => Promise<{ data: Row }>) => {
     try { const r = await fn(); setMsg({ ...msg, [key]: r.data.message ?? `Status: ${r.data.status}` }); sources.reload(); runs.reload(); }
@@ -30,7 +48,12 @@ export function SourcesPage() {
   };
   const upload = async (f: File) => {
     const fd = new FormData(); fd.append("file", f); if (uploadSrc) fd.append("source_id", uploadSrc);
-    await act("upload", () => api.post(`/systems/${sid}/uploads`, fd));
+    setUploadErr(null);
+    try {
+      const r = await api.post<Row>(`/systems/${sid}/uploads`, fd);
+      setMsg({ ...msg, upload: `“${f.name}” received – processing (status: ${r.data.status}). Results appear in the table below in a few seconds.` });
+      showNextStep({ message: `Scan “${f.name}” uploaded.`, label: "see the controls it affects in the Control Workbench", to: `/systems/${sid}/controls` });
+    } catch (e) { setUploadErr({ file: f.name, text: errorMessage(e) }); }
     setTimeout(() => { runs.reload(); sources.reload(); }, 3000);
   };
   return (
@@ -79,9 +102,11 @@ export function SourcesPage() {
       <Panel title="Latest ingest" testId="ingest-runs-panel" actions={can("ingest.upload") && (
         <div className="flex gap-2">
           <select className="input w-56" value={uploadSrc} onChange={(e) => setUploadSrc(e.target.value)} data-testid="upload-source-select"><option value="">(no source)</option>{sources.data?.filter((s) => s.adapter_mode === "file_import").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-          <input ref={fileRef} type="file" accept=".nessus,.csv,.ckl,.cklb" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} data-testid="upload-file-input" />
-          <button className="btn-primary" onClick={() => fileRef.current?.click()} data-testid="upload-btn"><Upload className="h-4 w-4" />Upload .nessus / .csv / .ckl / .cklb</button>
+          <input ref={fileRef} type="file" accept=".ckl,.cklb,.xml,.nessus,.csv,.sarif,.json" className="hidden" onChange={(e) => { if (e.target.files?.[0]) upload(e.target.files[0]); e.target.value = ""; }} data-testid="upload-file-input" />
+          <button className="btn-primary" onClick={() => fileRef.current?.click()} data-testid="upload-btn" title="DISA STIG checklists (.ckl, .cklb), SCAP / XCCDF results (.xml, incl. SCAP Compliance Checker and ARF), Nessus / ACAS (.nessus or CSV), SARIF"><Upload className="h-4 w-4" />Upload scan results</button>
         </div>)}>
+        <p className="mb-2 text-[12px] text-slate-600">Upload scan or checklist results for this system. Accepted: DISA STIG checklists (.ckl, .cklb), SCAP/XCCDF results (.xml – SCAP Compliance Checker, OpenSCAP, ARF), Nessus/ACAS (.nessus or CSV export), SARIF. The format is detected from the file content. Policy documents (.docx/.pdf) go to the Policy Auditor.</p>
+        {uploadErr && <UploadError e={uploadErr} onClose={() => setUploadErr(null)} />}
         {msg.upload && <div className="mb-2 text-[12px] text-slate-700" data-testid="upload-msg">{msg.upload}</div>}
         <Table head={["Received", "Source", "File", "Status", "Results", "Mapped results", "Unmapped results", "Controls touched", "SHA-256"]} testId="ingest-runs-table">
           {runs.data?.map((r) => (

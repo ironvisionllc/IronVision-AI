@@ -51,7 +51,7 @@ export default function LeadershipPage() {
                 <td className="td font-mono text-[11px]">{s.authorization_expiration ?? "—"}{s.days_to_expiration !== null && <div className="text-amber-700">{s.days_to_expiration}d</div>}</td>
                 <td className="td font-mono">{s.open_findings}</td><td className="td font-mono">{s.open_cat1}</td><td className="td font-mono">{s.kev_open}</td>
                 <td className="td font-mono">{s.open_poams} / {s.overdue_poams}</td><td className="td font-mono">{s.pending_risk_decisions}</td>
-                <td className="td font-mono" data-testid={`leadership-coverage-${s.acronym}`}>{s.controls_with_current_evidence} of {s.assigned_controls}<div className="text-[10px] text-slate-500">items fresh {s.evidence_items_fresh_pct ?? "—"}%</div></td>
+                <td className="td font-mono" data-testid={`leadership-coverage-${s.acronym}`}><Link className="text-blue-800 underline" to={`/systems/${s.id ?? s.system_id}/controls?evidence=current`} data-testid={`leadership-coverage-link-${s.acronym}`}>{s.controls_with_current_evidence} of {s.assigned_controls}</Link><div className="text-[10px] text-slate-500">items fresh {s.evidence_items_fresh_pct ?? "—"}%</div></td>
               </tr>
             ))}
           </Table>

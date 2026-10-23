@@ -338,7 +338,10 @@ def verbatim_quote(text: str, quote: str | None) -> dict:
     return {"quote": q, "quote_status": "paraphrase", "label": "paraphrase – not a quote"}
 
 
-def rule_extract(text: str) -> dict:
+def rule_extract(text: str, families: set[str] | None = None, top_policy_control: str | None = "ac-1") -> dict:
+    """families: control families the policy maps to (None = legacy behaviour: AC). Required-section checks apply only to the
+    policy's own subject – an RA policy is never flagged for a missing AC-17 remote-access section."""
+    fam = {"ac"} if families is None else families
     vals = []
     for cid, param, rx, unit in PARAMS:
         m = re.search(rx, text, re.IGNORECASE)
@@ -348,8 +351,9 @@ def rule_extract(text: str) -> dict:
             vals.append({"control_id": cid, "parameter": param, "value": f"{v} {unit}", "numeric_value": float(v), "unit": unit,
                          "quote": text[s:e], "start": s, "end": e, "quote_status": "verbatim", "location": locate(text, s)})
     low = text.lower()
-    missing = [{"control_id": c, "section": label} for c, kw, label in REQUIRED_SECTIONS
-               if (kw not in low) or (kw == "official" and re.search(r"official:\s*(tbd|\[?name\]?|_+)?\s*$", low, re.M) and "named official" not in low)]
+    missing = [{"control_id": c if c != "ac-1" else (top_policy_control or "ac-1"), "section": label} for c, kw, label in REQUIRED_SECTIONS
+               if (c == "ac-17" and "ac" in fam or c == "ac-1" and top_policy_control)
+               and ((kw not in low) or (kw == "official" and re.search(r"official:\s*(tbd|\[?name\]?|_+)?\s*$", low, re.M) and "named official" not in low))]
     outdated = [{"quote": text[slice(*sentence_at(text, m.start(), m.end()))]} for m in re.finditer(r"(?:NIST\s+)?SP\s*800-53\s*(?:Rev(?:ision)?\.?\s*4|r4)", text, re.IGNORECASE)][:3]
     return {"values": vals, "missing_sections": missing, "outdated_references": outdated}
 
@@ -357,8 +361,13 @@ def rule_extract(text: str) -> dict:
 def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, ai_interaction_id=None) -> list[PolicyFinding]:
     """Deterministic extractor + optional AIService suggestions; every finding is 'proposed' until a human confirms/dismisses."""
     from app.models import Control
+    from app.services import policy_mapping as pm
 
-    ex = rule_extract(policy.text_content or "")
+    mappings = pm.extract_mappings(db, policy.text_content or "")
+    families = {m["control_id"].split("-")[0] for m in mappings}
+    top1 = next((m["control_id"] for m in mappings if re.fullmatch(r"[a-z]{2}-1", m["control_id"])), None)
+    ex = rule_extract(policy.text_content or "", families, top1)
+    pm.store_proposals(db, policy, mappings)
     known = set(db.scalars(select(Control.control_id)))
     out: list[PolicyFinding] = []
     db.query(PolicyFinding).filter(PolicyFinding.policy_id == policy.id, PolicyFinding.status == "proposed").delete()
@@ -392,7 +401,8 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
             add(finding_type="ai_suggested_needs_validation", control_id=cid, description=s.get("description", "")[:2000], quote=(qtxt or "")[:1000],
                 origin="ai", ai_interaction_id=ai_interaction_id)
     policy.analysis_status = "analyzed"
-    policy.analysis = {**ex, "ai_used": ai_output is not None, "ai_dropped_unknown_controls": [s.get("control_id") for s in (ai_output or {}).get("findings", [])
+    policy.analysis = {**ex, "control_mappings": [{k: m[k] for k in ("control_id", "confidence", "sources", "basis", "snippets", "parts")} for m in mappings],
+                       "ai_used": ai_output is not None, "ai_dropped_unknown_controls": [s.get("control_id") for s in (ai_output or {}).get("findings", [])
                                                                                                  if (s.get("control_id") or "").lower().replace("(", ".").replace(")", "") not in known]}
     db.flush()
     return out
@@ -468,7 +478,7 @@ def workflow_stages(db: Session, s: System) -> list[dict]:
         ("1. Prepare", st(not need, bool(roles), "All key roles assigned" if not need else f"Missing system roles: {', '.join(sorted(need))}", f"/systems/{s.id}")),
         ("2. Categorize", st(bool(s.confidentiality_impact and s.integrity_impact and s.availability_impact), False,
                              f"FIPS 199 C/I/A = {s.confidentiality_impact}/{s.integrity_impact}/{s.availability_impact}", f"/systems/{s.id}")),
-        ("3. Select", st(bool(ac), False, f"{len(ac)} controls assigned (baseline {s.baseline_key})", f"/systems/{s.id}/controls")),
+        ("3. Select", st(bool(ac), False, _select_label(db, s), f"/systems/{s.id}/controls")),
         ("4. Implement", st(need_stmt and narr == len(need_stmt), narr > 0, f"{narr} of {len(need_stmt)} non-inherited controls have an approved or submitted statement",
                             f"/systems/{s.id}/controls")),
         ("5. Assess", st(ac and assessed == len(ac), assessed > 0, f"{assessed} of {len(ac)} controls assessed by SCA", "/reviews")),
@@ -539,3 +549,9 @@ def search(db: Session, q: str, systems: list, org_id, selected=None) -> list[di
 
 
 _ = (CommonControlProvider,)
+
+
+def _select_label(db: Session, s) -> str:
+    from app.services.counts import system_counts
+    c = system_counts(db, s)["labels"]
+    return f"{c['assigned']} ({c['reconciliation']})"

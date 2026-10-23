@@ -4,6 +4,7 @@ import { SyntheticBanner } from "@/components/shell/SyntheticBanner";
 import { Header } from "@/components/shell/Header";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { SandboxBar } from "@/components/shell/Sandbox";
+import { NextStepBanner } from "@/components/common/NextStep";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [nav, setNav] = useState(false);
@@ -12,6 +13,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <SyntheticBanner />
       <Header />
       <SandboxBar />
+      <NextStepBanner />
       <div className="relative flex min-h-0 flex-1">
         <button className="absolute left-2 top-2 z-30 rounded-md border border-slate-200 bg-white p-1.5 lg:hidden" onClick={() => setNav(!nav)} aria-label="Toggle navigation" data-testid="nav-toggle"><Menu size={16} /></button>
         <div className={`${nav ? "absolute inset-y-0 left-0 z-20 flex shadow-xl" : "hidden"} lg:static lg:flex`} onClick={() => setNav(false)}><Sidebar /></div>

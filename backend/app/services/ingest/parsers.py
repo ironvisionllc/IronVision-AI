@@ -18,22 +18,54 @@ class ParseError(ValueError):
     pass
 
 
+SUPPORTED = ("Supported scan formats: DISA STIG checklist .ckl (XML) and .cklb (JSON, STIG Viewer 3); SCAP/XCCDF results .xml (DISA STIG XCCDF "
+             "results, SCAP Compliance Checker output, SCAP ARF); Nessus/ACAS .nessus (XML) and CSV export; SARIF (.sarif/.json). "
+             "Policy documents (.docx/.pdf) are uploaded in Policy Auditor.")
+
+
+def _root_tag(data: bytes) -> str | None:
+    import re
+    s = data[:200_000].decode("utf-8", "ignore")
+    s = re.sub(r"<\?.*?\?>|<!--.*?-->", "", s, flags=re.S)
+    m = re.search(r"<(?:[A-Za-z_][\w.-]*:)?([A-Za-z_][\w.-]*)", s)
+    return m.group(1) if m else None
+
+
 def detect_format(file_name: str, data: bytes) -> str:
-    name = file_name.lower()
-    head = data[:4000].decode("utf-8", "ignore")
-    if name.endswith(".nessus") or "<NessusClientData_v2" in head:
-        return "nessus_xml"
-    if name.endswith(".ckl") or "<CHECKLIST" in head:
-        return "ckl"
-    if name.endswith(".cklb"):
-        return "cklb"
-    if name.endswith(".csv") and "Plugin ID" in head:
+    """By CONTENT (the extension is only a hint). Every rejection says exactly why and lists the supported formats."""
+    body = data.lstrip(b"\xef\xbb\xbf \t\r\n")
+    if body[:5] == b"%PDF-" or (body[:4] == b"PK\x03\x04" and b"word/" in data[:300_000]):
+        raise ParseError(f"{file_name}: this is a policy document ({'PDF' if body[:5] == b'%PDF-' else 'DOCX'}), not a scan result. {SUPPORTED}")
+    if body[:1] == b"<":
+        root = _root_tag(body)
+        if root == "NessusClientData_v2":
+            return "nessus_xml"
+        if root == "CHECKLIST":
+            return "ckl"
+        if root in ("Benchmark", "TestResult", "asset-report-collection", "data-stream-collection"):
+            if b"TestResult" in data:   # anywhere: SCC/DISA results put TestResult after all Rule definitions (often > 2 MB)
+                return "xccdf"
+            raise ParseError(f"{file_name}: XCCDF {root} without results – no <TestResult> element. This is STIG/SCAP content, not a scan result: "
+                             f"run SCAP Compliance Checker (or OpenSCAP) against it and upload the XCCDF results file. {SUPPORTED}")
+        raise ParseError(f"{file_name}: XML but not a supported scan format – root element is <{root}>. {SUPPORTED}")
+    if body[:1] in (b"{", b"["):
+        try:
+            doc = json.loads(data.decode("utf-8-sig"))
+        except (ValueError, UnicodeDecodeError) as exc:
+            raise ParseError(f"{file_name}: malformed JSON ({exc}). {SUPPORTED}") from exc
+        if isinstance(doc, dict) and "stigs" in doc:
+            return "cklb"
+        if isinstance(doc, dict) and "runs" in doc:
+            return "sarif"
+        keys = sorted(doc)[:8] if isinstance(doc, dict) else "a list"
+        raise ParseError(f"{file_name}: JSON but neither CKLB (no 'stigs') nor SARIF (no 'runs'); top level: {keys}. {SUPPORTED}")
+    first = data.decode("utf-8-sig", "ignore").splitlines()[0] if data else ""
+    cols = [c.strip().strip('"') for c in first.split(",")]
+    if "Plugin ID" in cols or ("Plugin" in cols and ({"Host", "IP Address", "DNS Name"} & set(cols))):
         return "nessus_csv"
-    if name.endswith(".sarif") or (name.endswith(".json") and '"runs"' in head and "sarif" in head.lower()):
-        return "sarif"
-    if name.endswith(".xml") and ("TestResult" in data[:2_000_000].decode("utf-8", "ignore") or "asset-report-collection" in head):
-        return "xccdf"
-    raise ParseError("Unsupported file: expected .nessus, Nessus CSV export, .ckl, .cklb, XCCDF results / SCAP ARF (.xml) or SARIF (.sarif/.json)")
+    if "," in first:
+        raise ParseError(f"{file_name}: CSV but not a Nessus/ACAS export – no 'Plugin ID' column (columns: {', '.join(cols[:8])}). {SUPPORTED}")
+    raise ParseError(f"{file_name}: unrecognized content (starts with {body[:16]!r}). {SUPPORTED}")
 
 
 def _safe_xml(data: bytes) -> ET.Element:
@@ -127,6 +159,8 @@ def parse_nessus_csv(data: bytes) -> list[dict]:
     rows = csv.DictReader(io.StringIO(data.decode("utf-8-sig")))
     merged: dict[tuple, dict] = {}
     for r in rows:
+        r = {**r, "Plugin ID": r.get("Plugin ID") or r.get("Plugin"), "Host": r.get("Host") or r.get("IP Address") or r.get("DNS Name"),
+             "Risk": r.get("Risk") or r.get("Severity"), "Name": r.get("Name") or r.get("Plugin Name")}
         risk = (r.get("Risk") or "None").lower()
         if risk in ("none", ""):
             continue
