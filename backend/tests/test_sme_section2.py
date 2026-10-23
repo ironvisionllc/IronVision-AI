@@ -104,3 +104,25 @@ def test_status_suggestion_requires_approval_and_respects_sod(client, ws):
     if len(st) > 1:
         assert _post(client, ws, st[1:2], "reject", "Evidence is for a different boundary").status_code == 200
         assert not [i for i in _queue(client, ws)["queue"] if i["kind"] == "status" and i["control_id"] == st[1]["control_id"]]
+
+
+
+def test_bulk_status_approval_without_assessor_role_does_not_deadlock(client, ws):
+    """Regression: an SoD check after audit rows were written used to self-deadlock on the audit-chain lock."""
+    import signal
+
+    st = _items(_queue(client, ws), "status", 3)
+    if len(st) < 2:
+        pytest.skip("needs at least two status suggestions")
+
+    def boom(*_):
+        raise TimeoutError("decide hung – audit-lock deadlock")
+
+    signal.signal(signal.SIGALRM, boom)
+    signal.alarm(60)
+    try:
+        r = _post(client, ws, st[:2], "approve", "Evidence reviewed in bulk")
+    finally:
+        signal.alarm(0)
+    assert r.status_code == 200, r.text
+    assert r.json()["approved"] == 2

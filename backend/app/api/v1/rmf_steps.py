@@ -147,7 +147,12 @@ def select_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
     rs.ensure_overlays(db)
     db.commit()
     ovs = {}
+    from app.services.sandbox import has_demo_data
+
+    demo = has_demo_data(db, s.org_id)
     for o in db.scalars(select(Overlay).where(Overlay.is_active.is_(True)).order_by(Overlay.overlay_key, Overlay.created_at)):
+        if o.is_synthetic and not demo and o.overlay_key not in (s.overlay_keys or []):
+            continue
         ovs[o.overlay_key] = o
     return {"baseline_key": s.baseline_key, "recommended_baseline": (s.categorization or "").lower() or None, "include_privacy": s.include_privacy,
             "processes_pii": s.processes_pii, "overlay_keys": s.overlay_keys or [], "counts": system_counts(db, s),

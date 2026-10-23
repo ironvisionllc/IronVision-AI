@@ -14,6 +14,7 @@ from app.db import get_db
 from app.models import (ContentUpdate, ContentVersion, ControlAssignment, EmassChange, EmassSyncRun, Evidence, Finding, FindingControlMap, Poam,
                         PriorityWeight, Policy, ScheduledJob, StigRule, System)
 from app.security.deps import CurrentUser, enforce, get_current_user, require_body_permission, require_object_permission, require_permission
+from app.security.rbac import has_permission
 from app.services import audit, content_updates as cu, emass, oscal_export as ox, risk, scheduler
 from app.services import workflow as wf
 from app.services.evaluation import evaluate_system
@@ -234,6 +235,9 @@ def mapping_review_decide(body: QueueDecision, request: Request, db: Session = D
     from app.services.evaluation import evaluate_system
 
     enforce(request, current, "finding.map", body.system_id)
+    if body.action == "approve" and any(i.kind == "status" for i in body.items):
+        enforce(request, current, "implementation.write", body.system_id)  # checked before any audit row takes the chain lock
+    can_assess = has_permission(current.assignments, "assessment.perform", current.user.org_id, body.system_id)
     just = body.justification.strip()
     if body.action in ("reject", "edit") and len(just) < 10:
         raise HTTPException(422, "Please give a reason (at least 10 characters) – it is required to reject or edit and is kept in the audit history.")
@@ -260,13 +264,11 @@ def mapping_review_decide(body: QueueDecision, request: Request, db: Session = D
             if body.action != "approve":
                 rq.dismiss_status(db, system, a.control_id, it.evidence_fp or "", current.user, just)
             else:
-                enforce(request, current, "implementation.write", body.system_id)
                 before = {"implementation_status": a.implementation_status, "assessment_status": a.assessment_status}
                 a.implementation_status = "implemented"
-                try:   # separation of duties: only the assessor role may set the assessment result
-                    enforce(request, current, "assessment.perform", body.system_id)
+                if can_assess:   # separation of duties: only the assessor role may set the assessment result
                     a.assessment_status = "satisfied"
-                except HTTPException:
+                else:
                     result["partial"].append(a.control_id)
                 ev = [e["id"] for e in next((s for s in rq.status_suggestions(db, system) if s["control_id"] == a.control_id), {"evidence": []})["evidence"]]
                 audit.record(db, action="control.status_suggestion_approved", actor_user_id=current.user.id, actor_email=current.user.email,

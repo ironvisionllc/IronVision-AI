@@ -434,3 +434,8 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Pending: SME sections 3–7 + final flow (stopped: session context budget).
 
 ## SME Section 3 – RMF 7 steps (stepper, Prepare roles, SP 800-60 categorization, Select tailoring/overlays, step pages, breadcrumbs, traceability). Report docs/SME_SECTION3_REPORT.md
+
+## SME remediation Sections 2–7 + final flow (Sep 2026)
+- S2 94002f0 STIG run detail + unified Mapping Review queue; S3 79c2433 RMF 7 steps (Prepare roles, SP 800-60 categorization, Select tailoring, traceability); S4 f24d0da Upload a file vs Connect a tool; S5 435ce50 bulk inheritance + CRM import + provider expiry; S6 fa0e3d4 visible role, gated-but-visible actions, plain 403s, Help role matrix; S7 b32fcc6 per-user page size 50/100/250/All.
+- Final flow fix: Mapping Review status approval self-deadlock on audit advisory lock (fixed + regression test). Report: docs/SME_FINAL_REPORT.md.
+- Backlog: legacy "View" button needs SME repro; official CNSSI overlay lists; live connectors still MOCK; server-side page-size persistence; independent testing of S2–7.

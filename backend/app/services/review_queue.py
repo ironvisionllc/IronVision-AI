@@ -60,8 +60,10 @@ def status_suggestions(db: Session, system: System) -> list[dict]:
         fp = ",".join(sorted(str(e.id) for e in evs))
         if dismissed.get(a.control_id, {}).get("evidence") == fp:
             continue
-        out.append({"kind": "status", "key": f"st:{a.control_id}", "ids": [str(a.id)], "control_id": a.control_id,
-                    "title": f"Set {a.control_id.upper()} to Implemented + Satisfied", "source": "Evidence-based status suggestion",
+        sca_only = a.implementation_status == "implemented"
+        out.append({"kind": "status", "key": f"st:{a.control_id}", "ids": [str(a.id)], "control_id": a.control_id, "awaiting_sca": sca_only,
+                    "title": (f"{a.control_id.upper()}: implementation approved – waiting for the SCA to confirm Satisfied" if sca_only
+                              else f"Set {a.control_id.upper()} to Implemented + Satisfied"), "source": "Evidence-based status suggestion",
                     "confidence": "Suggestion", "current": {"implementation": a.implementation_status, "assessment": a.assessment_status},
                     "reasoning": f"{len(evs)} current evidence item(s) pass and no open finding is mapped to this control. "
                                  "Approving sets Implementation → Implemented; Assessment → Satisfied only if you hold the assessor (SCA) role.",
