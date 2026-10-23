@@ -14,6 +14,7 @@ import { ImplementationPanel } from "@/components/workbench/ImplementationPanel"
 import { MappedPoliciesPanel, StatusSection } from "@/components/workbench/StatusSection";
 import { AssessmentPanel } from "@/pages/Phase3Extras";
 import { Gated } from "@/components/common/RoleGate";
+import { PageSizeSelect, Pager, usePageSize } from "@/components/common/PageSize";
 
 const REASON: Record<string, string> = { failed_technical_checks: "Failed checks", kev: "KEV", cat1_open: "CAT I", expired_evidence: "Expired evidence",
   missing_implementation_statement: "No narrative", missing_assessment_evidence: "No assessment evidence", unmapped_findings: "Unmapped findings",
@@ -91,6 +92,8 @@ export default function WorkbenchPage() {
   const { select } = useSystems();
   const [params, setParams] = useSearchParams();
   const [all, setAll] = useState(false);
+  const [size, setSize] = usePageSize("workbench");
+  const [page, setPage] = useState(0);
   useEffect(() => { if (id) select(id); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   const filters = Object.fromEntries(FILTER_KEYS.filter((k) => params.get(k)).map((k) => [k, params.get(k) as string]));
   const filtered = Object.keys(filters).length > 0;
@@ -127,12 +130,13 @@ export default function WorkbenchPage() {
           <div className="flex items-center gap-2 px-3 py-2 text-[12px]">
             <label className="flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} data-testid="show-all-toggle" />All controls</label>
             {showList && <span className="text-slate-600" data-testid="filter-result-count">{list ? `${list.length} control(s) match` : "…"}</span>}
+            {showList && <PageSizeSelect value={size} onChange={(n) => { setSize(n); setPage(0); }} testId="wb-page-size" />}
             {filtered && <button className="ml-auto text-[11px] text-blue-800 underline" onClick={() => setParams(new URLSearchParams(), { replace: true })} data-testid="filter-clear">Clear filters</button>}
           </div>
           {(sum?.unmapped_findings ?? 0) > 0 && <Link to="/mapping-review" className="block border-b border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid="queue-unmapped-item">System: {sum?.unmapped_findings} unmapped open findings need mapping or disposition →</Link>}
           {showList ? <ul className="max-h-[640px] overflow-y-auto" data-testid="filtered-control-list">
-            {list?.map((a) => (
-              <li key={a.id}>
+            {(size ? list?.slice(page * size, (page + 1) * size) : list)?.map((a) => (
+              <li key={a.id} className="[content-visibility:auto] [contain-intrinsic-size:auto_52px]">
                 <button onClick={() => nav(`/systems/${id}/controls/${a.control_id}?${params.toString()}`)} data-testid={`queue-item-${a.control_id}`}
                   className={cn("w-full border-b border-slate-100 px-3 py-2 text-left transition-colors hover:bg-blue-50", controlId === a.control_id && "bg-blue-50")}>
                   <div className="flex items-center justify-between"><span className="font-mono text-[12px] font-semibold text-blue-800">{a.label}</span>
@@ -142,6 +146,7 @@ export default function WorkbenchPage() {
               </li>
             ))}
             {list?.length === 0 && <li className="px-3 py-4 text-[12px] text-slate-500" data-testid="filter-empty">No controls match these filters.</li>}
+            {list && <li className="flex justify-end px-3 py-2"><Pager total={list.length} size={size} page={Math.min(page, Math.max(0, Math.ceil(list.length / (size || 1)) - 1))} setPage={setPage} testId="wb-pager" /></li>}
           </ul> : <WorkQueue systemId={id} active={controlId} />}
         </div>
         {controlId ? <ControlPanel systemId={id} controlId={controlId} onChange={refresh} /> : <div className="panel p-6 text-sm text-slate-500">Select a control from the queue.</div>}

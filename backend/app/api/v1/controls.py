@@ -39,7 +39,7 @@ def list_controls(
     baseline: str | None = Query(None, pattern="^(low|moderate|high|privacy)$"),
     include_withdrawn: bool = False,
     enhancements: bool = True,
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(100, ge=1, le=2000),
     offset: int = Query(0, ge=0),
 ) -> ControlList:
     cat_id = active_catalog_id(db)

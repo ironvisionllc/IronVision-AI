@@ -4,8 +4,8 @@ import { api, errorMessage } from "@/lib/api";
 import type { ControlList, Family } from "@/lib/types";
 import { BaselinePill, StatusPill } from "@/components/common/StatusPill";
 import { ControlDetailDrawer } from "@/components/controls/ControlDetailDrawer";
+import { PageSizeSelect, usePageSize } from "@/components/common/PageSize";
 
-const PAGE = 50;
 
 function useDebounced<T>(value: T, ms = 300): T {
   const [v, setV] = useState(value);
@@ -27,17 +27,21 @@ export function ControlsTable() {
   const [error, setError] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const dq = useDebounced(q);
+  const [size, setSize] = usePageSize("catalog");
+  const PAGE = size || 2000;
 
   useEffect(() => {
     api.get<Family[]>("/controls/families").then((r) => setFamilies(r.data)).catch(() => setFamilies([]));
   }, []);
 
-  useEffect(() => setOffset(0), [dq, family, baseline, withdrawn]);
+  useEffect(() => setOffset(0), [dq, family, baseline, withdrawn, size]);
 
   useEffect(() => {
     const params = { q: dq || undefined, family: family || undefined, baseline: baseline || undefined, include_withdrawn: withdrawn, limit: PAGE, offset };
-    api.get<ControlList>("/controls", { params }).then((r) => { setData(r.data); setError(""); }).catch((e) => setError(errorMessage(e)));
-  }, [dq, family, baseline, withdrawn, offset]);
+    let live = true;
+    api.get<ControlList>("/controls", { params }).then((r) => { if (live) { setData(r.data); setError(""); } }).catch((e) => live && setError(errorMessage(e)));
+    return () => { live = false; };
+  }, [dq, family, baseline, withdrawn, offset, PAGE]);
 
   const total = data?.total ?? 0;
   return (
@@ -73,7 +77,7 @@ export function ControlsTable() {
           <tbody>
             {data?.items.map((c) => (
               <tr key={c.control_id} onClick={() => setOpenId(c.control_id)} data-testid={`control-row-${c.control_id}`}
-                className="cursor-pointer transition-colors duration-100 hover:bg-blue-50/60">
+                className="cursor-pointer transition-colors duration-100 hover:bg-blue-50/60 [content-visibility:auto] [contain-intrinsic-size:auto_44px]">
                 <td className="td font-mono text-[12px] font-semibold text-blue-800">{c.label ?? c.control_id}</td>
                 <td className="td">
                   {c.is_enhancement && <span className="mr-1 text-slate-400">↳</span>}
@@ -98,7 +102,8 @@ export function ControlsTable() {
           <span className="ml-2 text-[11px] text-slate-500" data-testid="controls-count-label">
             {baseline ? "in this baseline (base + enhancements)" : withdrawn ? "in the Rev 5 catalog incl. withdrawn" : "selectable controls + enhancements (withdrawn hidden)"}{family || dq ? " matching the filter" : ""}</span>
         </span>
-        <div className="flex gap-1">
+        <div className="flex items-center gap-2">
+          <PageSizeSelect value={size} onChange={setSize} testId="controls-page-size" />
           <button className="btn-secondary px-2 py-1" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))} data-testid="controls-prev-page" aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>
           <button className="btn-secondary px-2 py-1" disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)} data-testid="controls-next-page" aria-label="Next page"><ChevronRight className="h-4 w-4" /></button>
         </div>

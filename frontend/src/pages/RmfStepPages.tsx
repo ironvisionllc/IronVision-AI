@@ -11,6 +11,7 @@ import { showNextStep } from "@/components/common/NextStep";
 import { NextActionButton, STEP_STATUS, StepChips, useActiveSystemId, useRmfSteps } from "@/components/rmf/Stepper";
 import { Help, RolesEditor, rolesFromHolders } from "@/components/rmf/RolesEditor";
 import { CategorizeForm, catBody, catFromSystem } from "@/components/rmf/CategorizeForm";
+import { PageSizeSelect, Pager, usePageSize } from "@/components/common/PageSize";
 import { Gated } from "@/components/common/RoleGate";
 
 function StepFrame({ k, title, purpose, children }: { k: string; title: string; purpose: string; children?: ReactNode }) {
@@ -302,20 +303,23 @@ export function TraceabilityPage() {
   const sid = useActiveSystemId();
   const { data } = useApi<Row[]>(sid ? `/systems/${sid}/traceability` : null);
   const [q, setQ] = useState("");
+  const [size, setSize] = usePageSize("traceability");
+  const [page, setPage] = useState(0);
   if (!sid) return <NeedSystem />;
   const rows = (data ?? []).filter((r) => !q || JSON.stringify(r).toLowerCase().includes(q.toLowerCase()));
   return (
     <div data-testid="traceability-page">
       <PageHeader title="Traceability matrix" subtitle="Every assigned control with its origin, implementation statement, evidence, open findings, POA&Ms and assessment – one row per control." />
-      <Panel testId="traceability-panel" actions={<input className="input w-64" placeholder="Search controls, statuses…" value={q} onChange={(e) => setQ(e.target.value)} data-testid="trace-search" />}>
+      <Panel testId="traceability-panel" actions={<div className="flex items-center gap-2"><input className="input w-64" placeholder="Search controls, statuses…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} data-testid="trace-search" /><PageSizeSelect value={size} onChange={(n) => { setSize(n); setPage(0); }} testId="trace-page-size" /></div>}>
         <div className="mb-2 text-[12px] text-slate-600" data-testid="trace-count">{data ? `${rows.length.toLocaleString()} of ${data.length.toLocaleString()} controls` : "Loading the matrix…"}</div>
         {data && !data.length && <p className="text-[12px] text-slate-600" data-testid="trace-empty">No controls are selected for this system yet – apply a baseline in <Link className="underline" to="/rmf/select">Step 3 · Select</Link>.</p>}
         <div className="max-h-[65vh] overflow-auto"><table className="w-full text-[12px]"><thead className="sticky top-0 bg-white"><tr className="text-left text-slate-500">
           {["Control", "Origin", "Responsibility", "Statement", "Implementation", "Evidence", "Open findings", "Open POA&Ms", "Assessment", "Freshness"].map((h) => <th key={h} className="py-1 pr-2">{h}</th>)}</tr></thead>
-          <tbody>{rows.slice(0, 1500).map((r) => <tr key={r.control_id} className="border-t border-slate-100" data-testid={`trace-row-${r.control_id}`}>
+          <tbody>{(size ? rows.slice(page * size, (page + 1) * size) : rows).map((r) => <tr key={r.control_id} className="border-t border-slate-100 [content-visibility:auto] [contain-intrinsic-size:auto_30px]" data-testid={`trace-row-${r.control_id}`}>
             <td className="py-1 pr-2"><Link to={`/systems/${sid}/controls/${r.control_id}`} className="font-mono text-blue-800 hover:underline">{fmtControl(r.control_id)}</Link></td>
             <td>{r.origin}</td><td>{r.responsibility}</td><td>{r.statement}</td><td>{r.implementation_status.replace(/_/g, " ")}</td><td className="font-mono">{r.evidence}</td>
             <td className="font-mono">{r.open_findings}</td><td className="font-mono">{r.open_poams}</td><td>{r.assessment_status.replace(/_/g, " ")}</td><td>{r.freshness.replace(/_/g, " ")}</td></tr>)}</tbody></table></div>
+        <div className="mt-2 flex justify-end"><Pager total={rows.length} size={size} page={page} setPage={setPage} testId="trace-pager" /></div>
       </Panel>
     </div>);
 }
