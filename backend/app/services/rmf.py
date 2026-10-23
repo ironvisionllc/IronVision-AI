@@ -310,10 +310,12 @@ def locate(text: str, start: int) -> str:
     """Page / section reference for an offset: nearest preceding heading line (numbered or Title Case) and form-feed page count."""
     page = text.count("\f", 0, start) + 1
     head = None
-    for line in reversed(text[:start].splitlines()[-40:]):
+    eol = text.find("\n", start)
+    for line in reversed(text[:eol if eol >= 0 else len(text)].splitlines()[-40:]):  # include the snippet's own line (A4: a "2. Scope." sentence is § 2)
         t = line.strip()
         if re.match(r"^(\d+(\.\d+)*\.?\s+\S|section\s+\d+|[A-Z][A-Za-z &/-]{3,60}$)", t, re.IGNORECASE):
-            head = t[:80]
+            m = re.match(r"^((?:section\s+)?\d+(?:\.\d+)*\.?\s+[^.:;]{1,60})[.:;]", t, re.IGNORECASE)
+            head = (m.group(1) if m else t)[:80]
             break
     return f"p. {page}" + (f", § {head}" if head else "")
 
@@ -358,7 +360,7 @@ def rule_extract(text: str, families: set[str] | None = None, top_policy_control
     return {"values": vals, "missing_sections": missing, "outdated_references": outdated}
 
 
-def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, ai_interaction_id=None) -> list[PolicyFinding]:
+def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, ai_interaction_id=None, use_ai: bool = False) -> list[PolicyFinding]:
     """Deterministic extractor + optional AIService suggestions; every finding is 'proposed' until a human confirms/dismisses."""
     from app.models import Control
     from app.services import policy_mapping as pm
@@ -368,9 +370,6 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
     top1 = next((m["control_id"] for m in mappings if re.fullmatch(r"[a-z]{2}-1", m["control_id"])), None)
     ex = rule_extract(policy.text_content or "", families, top1)
     pm.store_proposals(db, policy, mappings)
-    from app.services import policy_coverage as pc
-
-    pc.analyze(db, policy)
     known = set(db.scalars(select(Control.control_id)))
     out: list[PolicyFinding] = []
     db.query(PolicyFinding).filter(PolicyFinding.policy_id == policy.id, PolicyFinding.status == "proposed").delete()
@@ -407,6 +406,9 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
     policy.analysis = {**ex, "control_mappings": [{k: m[k] for k in ("control_id", "confidence", "sources", "basis", "snippets", "parts")} for m in mappings],
                        "ai_used": ai_output is not None, "ai_dropped_unknown_controls": [s.get("control_id") for s in (ai_output or {}).get("findings", [])
                                                                                                  if (s.get("control_id") or "").lower().replace("(", ".").replace(")", "") not in known]}
+    from app.services import policy_coverage as pc
+
+    pc.analyze(db, policy, use_ai=use_ai)  # after policy.analysis is set, so requirement-level values reach the top-level list
     db.flush()
     return out
 

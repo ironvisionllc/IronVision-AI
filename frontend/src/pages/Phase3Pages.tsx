@@ -118,7 +118,7 @@ export function PolicyAuditorPage() {
   const [msg, setMsg] = useState("");
   const up = async (file: File) => {
     const fd = new FormData(); fd.append("file", file); fd.append("title", f.title || file.name); fd.append("owner", f.owner); if (sid) fd.append("system_ids", sid);
-    try { const r = await api.post<Row>("/policies", fd); setMsg(`Uploaded v${r.data.version} – analysis job queued (worker)`); setTimeout(reload, 4000); reload(); } catch (e) { setMsg(errorMessage(e)); }
+    try { const r = await api.post<Row>("/policies", fd); window.dispatchEvent(new Event("iv:processing-started")); setMsg(`Uploaded v${r.data.version} – Processing… a summary appears when the analysis finishes`); setTimeout(reload, 4000); reload(); } catch (e) { setMsg(errorMessage(e)); }
   };
   if (!data) return null;
   const c = data.cards;

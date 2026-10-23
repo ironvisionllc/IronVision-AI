@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Lock } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { api, getActingLabel, ROLE_LABEL, setDeniedFormatter } from "@/lib/api";
 import { Row } from "@/lib/useApi";
 import { useAuth } from "@/context/AuthContext";
@@ -44,6 +45,8 @@ export function Gated({ perm, children, block }: { perm: string; children: React
 export function DeniedDialog() {
   const { user, actAs } = useAuth();
   const [d, setD] = useState<{ perm: string; roles?: string[] } | null>(null);
+  const { pathname } = useLocation();
+  useEffect(() => setD(null), [pathname]);  // a denial belongs to the screen that raised it
   useEffect(() => {
     loadRoleMatrix();
     const on = (e: Event) => { loadRoleMatrix().then(() => setD((e as CustomEvent).detail)); };

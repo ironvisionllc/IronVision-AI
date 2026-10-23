@@ -444,3 +444,9 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - 01257be: Privacy/Classified/Space overlays parsed from official PDFs (versioned JSON, SHA-256, page refs); Intelligence/CDS FOUO → admin import only; exact overlay reversal; reconciled counts; page size on all tables; Awaiting-SCA tab; per-item audit; system-wide parameter export. Report: docs/SME_OVERLAYS_REPORT.md
 - CCI coverage: policy_requirement_coverage (CCIs + 800-53A objectives, MET/PARTIAL/MISSING with snippets/values), policy_status suggestions in Mapping Review, gap → POA&M / covered elsewhere, Workbench policy filters with counts, CCI view (/ccis), traceability Policy→Control→CCI, filtered CSV exports. Report: docs/SME_CCI_POLICY_REPORT.md
 - Backlog: AI refinement of coverage (deterministic only now); suggestions beyond XX-1 controls; NC3 overlay document.
+
+## Policy Auditor v2 + automatic processing/propagation (Oct 2026)
+- Fixed A1 (downgrade suggestion when Implemented + policy gap), AO view-only approve, A3 per-policy CCI/Workbench coverage + matched_by, A4 section labels, A5 top-level policy values, A6 current/superseded versions.
+- Non-XX-1 coverage via requirement profiles (services/policy_profile.py), optional strict-JSON AI refinement with exact-quote check, policy-vs-implementation rule, Low confidence = review needed (no suggestion). Eval set P/R 1.00/1.00 deterministic (tuned on same set).
+- Upload processing state endpoint + badges/toasts/Retry, global refetch on mutations and finished jobs, worker re-analyses stale policies (coverage_version).
+- Report docs/SME_POLICY_AUDITOR_V2_REPORT.md. Backlog: AC-2/IR-4 labels, ARF sample, analyzer version for ingest runs.

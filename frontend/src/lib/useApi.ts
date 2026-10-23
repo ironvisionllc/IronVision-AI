@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, deniedInfo, Denied, errorMessage } from "@/lib/api";
+import { api, deniedInfo, Denied, errorMessage, MUTATED_EVENT } from "@/lib/api";
 
 export function useApi<T>(url: string | null, params?: Record<string, unknown>) {
   const [data, setData] = useState<T | null>(null);
@@ -20,6 +20,14 @@ export function useApi<T>(url: string | null, params?: Record<string, unknown>) 
     window.addEventListener("iv:identity", reload);
     return () => window.removeEventListener("iv:identity", reload);
   }, [reload]);
+  useEffect(() => {  // propagation: any approval/upload (mutation) or finished background job refreshes every mounted screen quietly
+    if (!url) return;
+    let t: ReturnType<typeof setTimeout>;
+    const quiet = () => { clearTimeout(t); t = setTimeout(() => api.get<T>(url, { params: JSON.parse(key) }).then((r) => setData(r.data)).catch(() => undefined), 600); };
+    window.addEventListener(MUTATED_EVENT, quiet);
+    window.addEventListener("iv:processed", quiet);
+    return () => { clearTimeout(t); window.removeEventListener(MUTATED_EVENT, quiet); window.removeEventListener("iv:processed", quiet); };
+  }, [url, key]);
   return { data, error, denied, reload, loading };
 }
 

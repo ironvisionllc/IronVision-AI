@@ -110,20 +110,23 @@ def system_ccis(system_id: uuid.UUID, mapped: str | None = None, coverage: str |
     idx = pc.index(db, s)
     pols = {str(p.id): p for p in pc.applicable_policies(db, s)}
     want = {x for x in (policy or "").split(",") if x}
+    mapped = {"true": "yes", "1": "yes", "false": "no", "0": "no"}.get((mapped or "").lower(), (mapped or "").lower() or None)
     defs = dict(db.execute(select(Cci.cci_id, Cci.definition)).all())
-    rank = {"met": 0, "partial": 1, "missing": 2}
     out, seen = [], set()
     for m in db.scalars(select(CciControlMap).where(CciControlMap.version == "5", CciControlMap.control_id.in_(assigned)).order_by(CciControlMap.control_id, CciControlMap.cci_id)):
         if (m.cci_id, m.control_id) in seen:
             continue
         seen.add((m.cci_id, m.control_id))
-        cov = [c for c in (idx.get(m.control_id) or {}).get("rows", []) if c.requirement_id == m.cci_id]
-        best = min(cov, key=lambda c: rank[pc.effective(c)], default=None)
+        cov = [c for c in pc.scoped(idx.get(m.control_id), want or None) if c.requirement_id == m.cci_id]
+        allcov = [c for c in (idx.get(m.control_id) or {}).get("rows", []) if c.requirement_id == m.cci_id and (not want or str(c.policy_id) in want)]
+        best = cov[0] if cov else None
         st = pc.effective(best) if best else None
         row = {"cci_id": m.cci_id, "definition": defs.get(m.cci_id), "control_id": m.control_id, "reference": m.reference_index,
                "implementation_status": assigned[m.control_id].implementation_status, "mapped": bool(cov), "coverage": st,
-               "policies": sorted({pols[str(c.policy_id)].title for c in cov if str(c.policy_id) in pols}),
-               "policy_ids": sorted({str(c.policy_id) for c in cov}),
+               "policies": sorted({f"{pols[str(c.policy_id)].title} v{pols[str(c.policy_id)].version}" for c in allcov if str(c.policy_id) in pols}),
+               "policy_ids": sorted({str(c.policy_id) for c in allcov}),
+               "matched_by": (f"{pols[str(best.policy_id)].title} v{pols[str(best.policy_id)].version}" if best and st != "missing" and str(best.policy_id) in pols else None),
+               "confidence": best.confidence if best else None,
                "snippet": ((best.snippets or [{}])[0] if best and best.snippets else None), "reason": best.reason if best else None,
                "covered_elsewhere": bool(best and best.override)}
         if mapped == "yes" and not row["mapped"] or mapped == "no" and row["mapped"]:
@@ -210,10 +213,11 @@ def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(
                         .order_by(PolicyRequirementCoverage.requirement_type, PolicyRequirementCoverage.requirement_id)):
         pcov.setdefault(str(c.policy_id), []).append(c)
     return {
-        "policy_coverage": [{"policy_id": k, "policy_title": next((p.title for p in pc.applicable_policies(db, sysobj) if str(p.id) == k), ""),
+        "policy_coverage": [{"policy_id": k, "policy_title": next((f"{p.title} v{p.version}" for p in pc.applicable_policies(db, sysobj) if str(p.id) == k), ""),
                              "summary": (sm := pc.summarize(v)), "line": pc.summary_line(a.control_id, sm),
                              "requirements": [{"id": str(c.id), "type": c.requirement_type, "label": c.label, "text": c.text, "status": pc.effective(c),
                                                "reason": c.reason, "snippets": c.snippets, "parameter": c.parameter, "value": c.parameter_value, "needs": c.needs,
+                                               "confidence": c.confidence, "basis": pc.basis_label(c), "kind": pc.kind_label(c),
                                                "linked": c.linked, "override": c.override} for c in v]} for k, v in pcov.items()],
         "overlay_notes": control_notes(db, sysobj, a.control_id),
         "status_last_changed": _status_last_changed(db, a),

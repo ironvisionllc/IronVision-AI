@@ -93,6 +93,18 @@ def main() -> None:
     signal.signal(signal.SIGTERM, _stop)
     signal.signal(signal.SIGINT, _stop)
     log.info("Worker starting", extra={"worker_id": WORKER_ID, "handlers": sorted(HANDLERS)})
+    try:  # analyzer_version check: policies analysed by an older worker build are re-run once (idempotent)
+        from sqlalchemy import select as _sel
+
+        from app.models import Policy
+        from app.services import policy_coverage as pc
+
+        with SessionLocal() as db:
+            n = pc.ensure_current(db, list(db.scalars(_sel(Policy).where(Policy.status == "current"))))
+            db.commit()
+        log.info("Stale policy coverage re-analysed", extra={"count": n, "analyzer_version": pc.ANALYZER_VERSION})
+    except Exception as exc:  # never block the worker loop
+        log.error("Stale re-analysis failed", extra={"error": str(exc)[:300]})
     last_beat = 0.0
     last_sched = 0.0
     interval = float(os.environ.get("SCHEDULER_TICK_SECONDS", "30"))

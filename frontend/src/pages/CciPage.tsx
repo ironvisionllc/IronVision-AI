@@ -29,7 +29,7 @@ export default function CciPage() {
         <div className="mb-2 grid grid-cols-2 gap-2 md:grid-cols-6" data-testid="cci-filters">
           <select className="input" value={f.mapped || ""} onChange={(e) => set("mapped", e.target.value)} data-testid="cci-filter-mapped"><option value="">Mapped: all</option><option value="yes">Mapped to a policy</option><option value="no">Not mapped</option></select>
           <select className="input" value={f.coverage || ""} onChange={(e) => set("coverage", e.target.value)} data-testid="cci-filter-coverage"><option value="">Coverage: all</option>{["met", "partial", "missing"].map((v) => <option key={v} value={v}>{v.toUpperCase()}</option>)}</select>
-          <select className="input" value={f.policy || ""} onChange={(e) => set("policy", e.target.value)} data-testid="cci-filter-policy"><option value="">Policy: all</option>{(facets?.policy || []).map((p: Row) => <option key={p.id} value={p.id}>{p.title} v{p.version}</option>)}</select>
+          <select className="input" value={f.policy || ""} onChange={(e) => set("policy", e.target.value)} data-testid="cci-filter-policy"><option value="">Policy: all (best match across current policies)</option>{(facets?.policy || []).map((p: Row) => <option key={p.id} value={p.id}>{p.title} v{p.version}</option>)}</select>
           <input className="input" placeholder="Control, e.g. ra-1" value={f.control || ""} onChange={(e) => set("control", e.target.value.trim())} data-testid="cci-filter-control" />
           <input className="input" placeholder="Family, e.g. ra" value={f.family || ""} onChange={(e) => set("family", e.target.value.trim())} data-testid="cci-filter-family" />
           <input className="input" placeholder="Search CCI text" value={f.q || ""} onChange={(e) => set("q", e.target.value)} data-testid="cci-filter-q" />
@@ -42,6 +42,7 @@ export default function CciPage() {
             <td className="py-1"><Link className="font-mono text-blue-800 underline" to={`/systems/${sid}/controls/${r.control_id}`}>{fmt(r.control_id)}</Link></td>
             <td className="py-1">{r.implementation_status.replace(/_/g, " ")}</td><td className="py-1">{r.coverage ? <CovBadge s={r.coverage} /> : <span className="text-slate-400">not mapped</span>}{r.covered_elsewhere && <div className="text-[10px] text-slate-500">covered elsewhere</div>}</td>
             <td className="py-1 text-[11px]">{r.policy_ids.map((p: string, i: number) => <Link key={p} className="text-blue-800 underline" to={`/policy-auditor/${p}`}>{r.policies[i] || "policy"}</Link>)}
+              {r.matched_by && <div className="text-[10px] text-slate-500" data-testid={`cci-matched-by-${r.cci_id}`}>Matched by {r.matched_by}{r.confidence ? ` · ${r.confidence} confidence` : ""}</div>}
               {r.snippet && <div className="text-slate-600">“{r.snippet.text.slice(0, 160)}” <span className="text-[10px] text-slate-500">{r.snippet.location}</span></div>}</td></tr>)}
         </tbody></table>
         <div className="mt-2 flex justify-end">{pg.pager}</div>

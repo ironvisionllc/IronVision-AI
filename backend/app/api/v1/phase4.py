@@ -147,8 +147,9 @@ def mapping_review(system_id: uuid.UUID, request: Request, db: Session = Depends
     sysobj = db.get(System, system_id)
     from app.services import policy_coverage as pc
 
-    queue = rq.status_suggestions(db, sysobj) + pc.suggestions(db, sysobj) + rq.policy_proposals(db, sysobj) + rq.automated_maps(db, system_id)
-    return {"queue": queue, "queue_counts": {k: sum(1 for q in queue if q["kind"] == k) for k in ("status", "policy_status", "policy_map", "finding_map")},
+    review_needed: list = []
+    queue = rq.status_suggestions(db, sysobj) + pc.suggestions(db, sysobj, review_needed) + rq.policy_proposals(db, sysobj) + rq.automated_maps(db, system_id)
+    return {"queue": queue, "review_needed": review_needed, "queue_counts": {k: sum(1 for q in queue if q["kind"] == k) for k in ("status", "policy_status", "policy_map", "finding_map")},
             "pending": [{**to_dict(m), "finding_title": f.title, "vuln_id": f.vuln_id or f.plugin_id} for m, f in rows],
             "unmapped": [{**g, "host_count": len(set(g["hosts"])), "pending_disposition": next((pend[i] for i in g["finding_ids"] if i in pend), None)}
                          for g in groups.values()],

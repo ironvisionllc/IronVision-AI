@@ -5,6 +5,7 @@ import { Row } from "@/lib/useApi";
 import { showNextStep } from "@/components/common/NextStep";
 
 export const CCI_TIP = "A CCI (Control Correlation Identifier) is DISA's ID for one testable requirement inside a NIST control – e.g. RA-1 is split into 21 CCIs such as “define the review frequency”. Assessment objectives (SP 800-53A) are NIST's own per-requirement checks.";
+export const TECH_TIP = "Policy vs implementation: a policy can show that this requirement is defined and documented, but not that the system does it. Implemented is only suggested when current, passing technical evidence (scan, STIG checklist or configuration) is also linked.";
 const TONE: Record<string, string> = { met: "bg-emerald-100 text-emerald-800", partial: "bg-amber-100 text-amber-900", missing: "bg-rose-100 text-rose-800" };
 const fmt = (c: string) => c.toUpperCase().replace(/\.(\d+)$/, "($1)");
 
@@ -17,7 +18,10 @@ export function RequirementRow({ r, actions }: { r: Row; actions?: ReactElement 
   const st = r.effective || r.status;
   return (
     <tr className="border-t border-slate-100 align-top" data-testid={`req-${r.requirement_id || r.label}`}>
-      <td className="py-1 pr-2"><CovBadge s={st} />{r.override && <div className="text-[10px] text-slate-500" title={r.override.reason}>covered elsewhere</div>}</td>
+      <td className="py-1 pr-2"><CovBadge s={st} />{r.override && <div className="text-[10px] text-slate-500" title={r.override.reason}>covered elsewhere</div>}
+        {r.confidence && <div className={`text-[10px] ${r.confidence === "Low" && st !== "missing" ? "font-semibold text-amber-800" : "text-slate-500"}`} data-testid={`req-confidence-${r.requirement_id || r.label}`}>{r.confidence}{r.confidence === "Low" && st !== "missing" ? " – review needed" : ""}</div>}
+        {r.basis && <div className="text-[10px] text-slate-500" title="How the match was made">{r.basis}</div>}
+        {r.kind === "technical" && <div className="text-[10px] text-amber-800" title={TECH_TIP} data-testid={`req-technical-${r.requirement_id || r.label}`}>needs technical evidence</div>}</td>
       <td className="py-1 pr-2 font-mono text-[11px]" title={r.requirement_type === "cci" || r.type === "cci" ? CCI_TIP : "SP 800-53A assessment objective"}>{r.label}</td>
       <td className="py-1 pr-2 text-[11px]">{r.text}{r.parameter && <div className="mt-0.5 text-slate-600">{r.parameter}: <b className="font-mono">{r.parameter_value || r.value || "—"}</b></div>}</td>
       <td className="py-1 pr-2 text-[11px] text-slate-700">{r.reason}
@@ -53,7 +57,9 @@ export function CoverageChecklist({ policyId, data, systemId, canMap, canPoam, r
         {systemId && rows.length > 0 && <Link className="text-blue-800 underline" to={`/systems/${systemId}/controls?policy=${policyId}`} data-testid="coverage-view-in-workbench">View these {rows.length} controls in the Workbench →</Link>}
         {systemId && <Link className="text-blue-800 underline" to={`/ccis?policy=${policyId}&mapped=yes`} data-testid="coverage-view-ccis">View the CCIs →</Link>}
         <span className="text-slate-500" title={CCI_TIP}>What is a CCI? ⓘ</span>
+        <span className="text-slate-500" title={TECH_TIP} data-testid="coverage-policy-vs-impl">Policy vs implementation ⓘ</span>
       </div>
+      {data.superseded_by && <div className="mb-2 rounded bg-amber-50 p-2 text-[12px] text-amber-900" data-testid="coverage-superseded">This version is superseded by <Link className="underline" to={`/policy-auditor/${data.superseded_by.id}`}>v{data.superseded_by.version}</Link> – coverage, filters and status suggestions use the current version only.</div>}
       {rows.length === 0 && <p className="text-[12px] text-slate-600" data-testid="coverage-empty">No requirement checklist yet. It is built for each control this policy maps to (approved, or proposed with High/Medium confidence) when the policy is analysed.</p>}
       {rows.map((c: Row) => (
         <div key={c.control_id} className="border-t border-slate-100 py-2" data-testid={`coverage-${c.control_id}`}>

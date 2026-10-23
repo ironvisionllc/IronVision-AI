@@ -38,6 +38,17 @@ class MappingSuggestOutput(BaseModel):
     suggestions: list[MappingSuggestion] = Field(default_factory=list, max_length=5)
 
 
+class CoverageRefineItem(BaseModel):
+    requirement_id: str
+    status: str = Field(pattern="^(met|partial|missing)$")
+    quote: str = ""
+    rationale: str = ""
+
+
+class CoverageRefineOutput(BaseModel):
+    items: list[CoverageRefineItem]
+
+
 @dataclass(frozen=True)
 class PromptTemplate:
     prompt_id: str
@@ -52,6 +63,15 @@ class PromptTemplate:
 
 
 PROMPTS: dict[tuple[str, str], PromptTemplate] = {
+    ("policy.coverage_refine", "1.0.0"): PromptTemplate(
+        "policy.coverage_refine", "1.0.0",
+        "You assess whether an organizational policy document addresses each NIST SP 800-53A assessment objective / DISA CCI of one control. "
+        "A requirement is MET only if the policy explicitly states it, including any organization-defined value it asks for. "
+        "Policy text cannot prove technical implementation; judge only whether the policy states the requirement. "
+        "For MET or PARTIAL you MUST copy an exact, contiguous quote from the policy (no paraphrase). If unsure, answer missing. "
+        "Return ONLY JSON: {\"items\": [{\"requirement_id\": str, \"status\": \"met\"|\"partial\"|\"missing\", \"quote\": str, \"rationale\": str}]}.",
+        "Control: {control_id}\nRequirements (with the deterministic result):\n{requirements}\n\nPolicy text:\n<<<\n{policy}\n>>>",
+        CoverageRefineOutput, 3000),
     ("mapping.suggest", "1.0.0"): PromptTemplate(
         prompt_id="mapping.suggest", version="1.0.0",
         system=("You map security findings to NIST SP 800-53 Rev 5 controls. Respond ONLY with one JSON object, no markdown. "

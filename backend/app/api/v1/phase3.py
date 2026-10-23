@@ -537,9 +537,12 @@ def policy_detail(policy_id: uuid.UUID, db: Session = Depends(get_db), current: 
                         .order_by(PolicyRequirementCoverage.control_id, PolicyRequirementCoverage.requirement_type, PolicyRequirementCoverage.requirement_id)):
         cov.setdefault(c.control_id, []).append(c)
     coverage = [{"control_id": k, "summary": (s := pc.summarize(v)), "line": pc.summary_line(k, s),
-                 "requirements": [{**to_dict(c), "effective": pc.effective(c), "gap": pc.gap_name(c)} for c in v]} for k, v in cov.items()]
+                 "requirements": [{**to_dict(c), "effective": pc.effective(c), "gap": pc.gap_name(c), "basis": pc.basis_label(c), "kind": pc.kind_label(c)}
+                                  for c in v]} for k, v in cov.items()]
+    newer = db.scalar(select(Policy).where(Policy.supersedes_id == p.id))
     return {"policy": _policy_out(db, p), "findings": fs, "values": values, "versions": versions, "text_preview": (p.text_content or "")[:4000],
-            "control_mappings": cur, "mapping_history": hist, "coverage": coverage}
+            "control_mappings": cur, "mapping_history": hist, "coverage": coverage, "is_current": p.status == "current",
+            "superseded_by": {"id": str(newer.id), "version": newer.version} if p.status == "superseded" and newer else None}
 
 
 class CoveredElsewhere(BaseModel):

@@ -11,7 +11,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Cci, CciControlMap, Control, ControlAssignment, ControlObjective, Policy, PolicyControlMap, PolicyRequirementCoverage, System
+from app.services import policy_profile as pp
 from app.services.rmf import locate
+
+ANALYZER_VERSION = "coverage-2"
 
 ELEMENTS = [("purpose", r"\bpurpose\b"), ("scope", r"\bscope\b"), ("roles", r"\broles?\b"), ("responsibilities", r"\bresponsibilit"),
             ("management commitment", r"management commitment|commitment (?:of|from) (?:senior |executive )?(?:management|leadership)|leadership commitment"),
@@ -210,7 +213,20 @@ def requirements(db: Session, control_id: str) -> list[dict]:
     return out
 
 
-def analyze(db: Session, policy: Policy) -> list[PolicyRequirementCoverage]:
+def is_xx1(control_id: str) -> bool:
+    return bool(re.fullmatch(r"[a-z]{2}-1", control_id))
+
+
+def evaluate_req(text: str, sents: list, control_id: str, req: dict, fam: str) -> tuple[str, dict]:
+    if not is_xx1(control_id):
+        r = pp.evaluate(text, sents, control_id, req["text"], lambda hits: _snip(text, hits))
+        if r is not None:
+            return f"profile-{r.pop('basis')}", r
+    concept, target, elem = classify(req["text"])
+    return concept, evaluate(text, concept, target, elem, fam, req["text"])
+
+
+def analyze(db: Session, policy: Policy, use_ai: bool = False) -> list[PolicyRequirementCoverage]:
     """Recompute coverage for every current proposed/mapped control of this policy; covered-elsewhere overrides are kept."""
     maps = [m for m in db.scalars(select(PolicyControlMap).where(PolicyControlMap.policy_id == policy.id, PolicyControlMap.valid_to.is_(None)))
             if m.status == "mapped" or (m.status == "proposed" and m.confidence in ("High", "Medium"))]
@@ -219,30 +235,95 @@ def analyze(db: Session, policy: Policy) -> list[PolicyRequirementCoverage]:
         db.delete(c)
     db.flush()
     text = policy.text_content or ""
+    sents = _sentences(text)
     out = []
     for m in maps:
         fam = db.scalar(select(Control.family_title).where(Control.control_id == m.control_id).limit(1)) or m.control_id.split("-")[0].upper()
-        for req in requirements(db, m.control_id):
-            concept, target, elem = classify(req["text"])
-            r = evaluate(text, concept, target, elem, fam, req["text"])
+        reqs = requirements(db, m.control_id)
+        results = [evaluate_req(text, sents, m.control_id, req, fam) for req in reqs]
+        if use_ai and not is_xx1(m.control_id):
+            ai = ai_refine(text, m.control_id, reqs, results, policy.org_id)
+            merged = [(c, pp.apply_ai(text, r, ai.get(req["id"]))) for req, (c, r) in zip(reqs, results)]
+            results = [("profile-ai" if r.get("basis") == "ai" else c, r) for c, r in merged]
+        for req, (concept, r) in zip(reqs, results):
+            r.pop("basis", None)
+            r.pop("ai_discarded", None)
             prev = old.get((m.control_id, req["id"]))
             row = PolicyRequirementCoverage(id=uuid.uuid4(), org_id=policy.org_id, policy_id=policy.id, policy_version=policy.version, control_id=m.control_id,
                                             requirement_type=req["type"], requirement_id=req["id"], label=req["label"], text=req["text"], concept=concept,
                                             status=r["status"], confidence=r["confidence"], reason=r["reason"], snippets=r["snippets"],
                                             parameter=r["parameter"], parameter_value=r["value"], needs=r["needs"] if r["status"] != "met" else None,
-                                            source="deterministic", override=prev.override if prev else None,
+                                            source="ai" if concept == "profile-ai" else "deterministic", override=prev.override if prev else None,
                                             linked=prev.linked if prev else None)
             db.add(row)
             out.append(row)
+    policy.analysis = {**(policy.analysis or {}), "coverage_version": ANALYZER_VERSION,
+                       "values": _merge_values((policy.analysis or {}).get("values", []), out)}
     db.flush()
     return out
+
+
+def _merge_values(values: list, rows: list) -> list:
+    """Top-level policy values = analyzer values + every organization-defined value found at requirement level (A5)."""
+    out = [v for v in values if v.get("source") != "coverage"]
+    seen = {(v["control_id"], v["parameter"]) for v in out}
+    for c in rows:
+        if c.parameter_value and c.status == "met" and (c.control_id, c.parameter) not in seen:
+            seen.add((c.control_id, c.parameter))
+            out.append({"control_id": c.control_id, "parameter": c.parameter, "value": c.parameter_value, "requirement": c.requirement_id,
+                        "quote": (c.snippets or [{}])[0].get("text"), "location": (c.snippets or [{}])[0].get("location"), "source": "coverage"})
+    return out
+
+
+def ensure_current(db: Session, policies) -> int:
+    """Re-run coverage for policies analysed by an older analyzer (the worker does not hot-reload). Idempotent."""
+    n = 0
+    for p in policies:
+        if p.analysis_status == "analyzed" and (p.analysis or {}).get("coverage_version") != ANALYZER_VERSION:
+            analyze(db, p)
+            n += 1
+    if n:
+        db.flush()
+    return n
+
+
+AI_PROMPT = "policy.coverage_refine"
+
+
+def ai_refine(text: str, control_id: str, reqs: list, results: list, org_id) -> dict:
+    """One strict-JSON AI call per control; returns {requirement_id: {status, quote, rationale}}. Any failure → {} (deterministic stands)."""
+    import asyncio
+
+    from app.services.ai.service import get_ai_service
+
+    svc = get_ai_service()
+    if not svc.configured:
+        return {}
+    items = [{"requirement_id": q["id"], "text": q["text"][:500], "deterministic": r["status"]} for q, (_, r) in zip(reqs, results)]
+    try:
+        res = asyncio.run(svc.run(AI_PROMPT, "1.0.0", {"control_id": control_id.upper(), "requirements": __import__("json").dumps(items),
+                                                         "policy": text[:24000]}))
+    except Exception:
+        return {}
+    return {i.requirement_id: i.model_dump() for i in res.output.items}
 
 
 def effective(c: PolicyRequirementCoverage) -> str:
     return "met" if c.override else c.status
 
 
+def basis_label(c: PolicyRequirementCoverage) -> str:
+    return {"profile-id": "explicit control ID + concepts", "profile-concept": "concept match", "profile-ai": "AI-verified quote"}.get(
+        c.concept, "policy-element rule" if is_xx1(c.control_id) else "keyword similarity")
+
+
+def kind_label(c: PolicyRequirementCoverage) -> str:
+    return "policy" if is_xx1(c.control_id) else pp.req_kind(c.text)
+
+
 def gap_name(c: PolicyRequirementCoverage) -> str:
+    if not is_xx1(c.control_id):
+        return f"{c.label}: {(c.needs or c.text)[:90]}"
     concept, target, elem = classify(c.text)
     return LABEL.get(concept, "requirement").format(target=target, elem=elem or "")
 
@@ -264,6 +345,27 @@ def summary_line(control_id: str, s: dict) -> str:
     return f"{cid}: {s['met']} of {s['total']} requirements met ({s['ccis']} CCIs, {s['objectives']} objectives){tail}"
 
 
+RANK = {"met": 0, "partial": 1, "missing": 2}
+
+
+def combine(rows: list[PolicyRequirementCoverage]) -> list[PolicyRequirementCoverage]:
+    """Best result per requirement across policies (each row keeps its policy_id, so the UI can say which policy matched)."""
+    best: dict = {}
+    for c in rows:
+        k = (c.control_id, c.requirement_id)
+        if k not in best or RANK[effective(c)] < RANK[effective(best[k])]:
+            best[k] = c
+    return list(best.values())
+
+
+def scoped(e: dict | None, policies: set[str] | None) -> list[PolicyRequirementCoverage]:
+    """Coverage rows for one control: only the selected policies when a policy filter is set (A3), else best-of across policies."""
+    if not e:
+        return []
+    rows = [c for c in e["rows"] if not policies or str(c.policy_id) in policies]
+    return combine(rows)
+
+
 def applicable_policies(db: Session, system: System) -> list[Policy]:
     return [p for p in db.scalars(select(Policy).where(Policy.org_id == system.org_id, Policy.status == "current"))
             if not p.system_ids or str(system.id) in [str(x) for x in p.system_ids]]
@@ -283,7 +385,7 @@ def index(db: Session, system: System) -> dict:
         if e is not None and str(c.policy_id) in e["mapped"] | e["proposed"]:
             e["rows"].append(c)
     for e in out.values():
-        e["coverage"] = summarize(e["rows"])["state"] if e["rows"] else None
+        e["coverage"] = summarize(combine(e["rows"]))["state"] if e["rows"] else None
     return out
 
 
@@ -299,8 +401,10 @@ def matches(e: dict | None, policy_mapping: str | None, policies: set[str] | Non
         return False
     if policies and not (e and (e["mapped"] | e["proposed"]) & policies):
         return False
-    if policy_coverage and not (e and e["coverage"] == policy_coverage):
-        return False
+    if policy_coverage:
+        rows = scoped(e, policies)
+        if not rows or summarize(rows)["state"] != policy_coverage:
+            return False
     return True
 
 
@@ -320,7 +424,55 @@ def fingerprint(rows) -> str:
 DISMISSED = "policy_status_dismissed"
 
 
-def suggestions(db: Session, system: System) -> list[dict]:
+def technical_evidence(db: Session, a: ControlAssignment, policy: Policy) -> bool:
+    """Current, passing technical evidence (scan/STIG/config – not the policy file itself) and no open findings for the control."""
+    from app.models import Evidence, EvidenceControl
+    from app.services.evaluation import FRESH_OK
+
+    if a.evidence_freshness_status not in FRESH_OK or (a.evaluation or {}).get("open_findings", 0):
+        return False
+    pol_ev = {str(e) for e in (policy.evidence_ids or [])}
+    for eid, et in db.execute(select(Evidence.id, Evidence.evidence_type).join(EvidenceControl, EvidenceControl.evidence_id == Evidence.id)
+                              .where(EvidenceControl.assignment_id == a.id, Evidence.state.in_(("current", "near_expiration")))):
+        if str(eid) not in pol_ev and "policy" not in (et or "").lower():
+            return True
+    return False
+
+
+def decide_target(db: Session, a: ControlAssignment, rows: list, policy: Policy) -> dict | None:
+    """Status rule. XX-1: the policy itself is the implementation. Other controls: policy coverage alone is at most
+    Partially Implemented; Implemented also needs current passing technical evidence. Low-confidence → no suggestion."""
+    from app.services import policy_profile as pp
+
+    s = summarize(rows)
+    low = [c for c in rows if c.confidence == "Low" and effective(c) != "missing" and not c.override]
+    if low:
+        return {"review_only": True, "summary": s, "low": [c.label for c in low]}
+    if is_xx1(a.control_id):
+        target = "implemented" if s["state"] == "met" else "partially_implemented"
+        policy_gap = s["state"] != "met"
+        why = "All requirements are met by the policy text." if not policy_gap else f"Gaps: {'; '.join(s['gaps'])}."
+        tech_needed = []
+    else:
+        tech = [c for c in rows if pp.req_kind(c.text) == "technical"]
+        policy_gap = any(effective(c) != "met" for c in rows)
+        has_ev = technical_evidence(db, a, policy)
+        tech_needed = [c.label for c in tech] if not has_ev else []
+        target = "implemented" if not policy_gap and has_ev else "partially_implemented"
+        why = (f"The policy covers {s['met']} of {s['total']} requirements." + (f" Gaps: {'; '.join(s['gaps'][:4])}." if policy_gap else "")
+               + (f" Technical evidence (scan/STIG/configuration) is still required for: {', '.join(tech_needed[:6])}." if tech_needed else
+                  " Current passing technical evidence is linked." if has_ev else ""))
+    cur = a.implementation_status
+    if cur == target or (s["met"] == 0 and cur != "implemented"):
+        return None
+    if cur == "implemented" and target == "partially_implemented" and not policy_gap:
+        return None  # only a policy gap downgrades; missing scan evidence alone does not
+    return {"target": target, "summary": s, "reasoning": why, "downgrade": cur == "implemented" and target != "implemented", "tech_needed": tech_needed}
+
+
+def suggestions(db: Session, system: System, review: list | None = None) -> list[dict]:
+    """PARTIAL/gap or MET results of the CURRENT policy version for every mapped control → one Mapping Review item (A1), including a
+    downgrade when the control is Implemented. Low-confidence results go to `review` (review needed) and never become suggestions."""
     from app.services.rmf import get_setting
 
     dismissed = get_setting(db, system.org_id, DISMISSED, {}).get(str(system.id), {})
@@ -333,24 +485,30 @@ def suggestions(db: Session, system: System) -> list[dict]:
             rows.setdefault(c.control_id, []).append(c)
         for cid, rs in rows.items():
             a, m = assigned.get(cid), maps.get(cid)
-            if a is None or m is None or m.status == "rejected" or not re.fullmatch(r"[a-z]{2}-1", cid):
+            if a is None or m is None or m.status == "rejected":
                 continue
-            s = summarize(rs)
-            if s["met"] == 0:
-                continue
-            target = "implemented" if s["state"] == "met" else "partially_implemented"
-            if a.implementation_status == target or (target == "partially_implemented" and a.implementation_status == "implemented"):
+            d = decide_target(db, a, rs, p)
+            if d is None:
                 continue
             fp = fingerprint(rs)
             if dismissed.get(f"{p.id}:{cid}") == fp:
                 continue
-            line = summary_line(cid, s)
-            out.append({"kind": "policy_status", "key": f"ps:{p.id}:{cid}", "ids": [str(p.id)], "control_id": cid, "policy_id": str(p.id), "target": target,
-                        "title": f"{line} → Implementation: {'Implemented' if target == 'implemented' else 'Partially Implemented'}",
-                        "source": f"Policy Auditor – CCI/objective coverage of “{p.title}” v{p.version}", "confidence": "Suggestion", "coverage": s,
+            s, CID = d["summary"], cid.upper()
+            if d.get("review_only"):
+                if review is not None:
+                    review.append({"control_id": cid, "policy_id": str(p.id), "policy": f"{p.title} v{p.version}", "summary": s, "low_confidence": d["low"][:10],
+                                   "message": f"{CID}: {len(d['low'])} requirement(s) matched with low confidence – review the coverage; no status is suggested."})
+                continue
+            label = "Implemented" if d["target"] == "implemented" else "Partially Implemented"
+            if d["downgrade"]:
+                title = f"{CID} is Implemented but the latest policy version (v{p.version}) is missing: {'; '.join(s['gaps'][:4]) or 'some requirements'} – suggest {label}"
+            else:
+                title = f"{summary_line(cid, s)} → Implementation: {label}"
+            out.append({"kind": "policy_status", "key": f"ps:{p.id}:{cid}", "ids": [str(p.id)], "control_id": cid, "policy_id": str(p.id), "target": d["target"],
+                        "title": title, "downgrade": d["downgrade"], "tech_needed": d["tech_needed"], "policy_version": p.version,
+                        "source": f"Policy Auditor – CCI/objective coverage of “{p.title}” v{p.version} (current version)", "confidence": "Suggestion", "coverage": s,
                         "current": {"implementation": a.implementation_status, "assessment": a.assessment_status},
-                        "reasoning": ("All requirements are met by the policy text." if target == "implemented" else f"Gaps: {'; '.join(s['gaps'])}.")
-                                     + " Approving sets the implementation status and links the policy as evidence for the met CCIs; the SCA still confirms assessment.",
+                        "reasoning": d["reasoning"] + " Approving sets the implementation status and links the policy as evidence for the met requirements; the SCA still confirms assessment.",
                         "snippets": [x["text"] for c in rs if effective(c) == "met" for x in (c.snippets or [])][:2],
                         "evidence": [{"id": str(e), "file_name": p.file_name} for e in (p.evidence_ids or [])][:1], "evidence_fp": fp})
     return out
@@ -372,8 +530,10 @@ def approve(db: Session, system: System, policy: Policy, control_id: str, actor)
     rows = list(db.scalars(select(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id == policy.id, PolicyRequirementCoverage.control_id == control_id)))
     if a is None or not rows:
         raise ValueError("Nothing to approve for this control")
-    s = summarize(rows)
-    target = "implemented" if s["state"] == "met" else "partially_implemented"
+    d = decide_target(db, a, rows, policy)
+    if d is None or d.get("review_only"):
+        raise ValueError("No status suggestion is open for this control (already at the suggested status, or low-confidence coverage needs review first)")
+    s, target = d["summary"], d["target"]
     before = {"implementation_status": a.implementation_status}
     a.implementation_status = target
     stamp = {"assignment_id": str(a.id), "system_id": str(system.id), "by": actor.email, "at": now().isoformat()}

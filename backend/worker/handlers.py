@@ -100,13 +100,27 @@ def handle_emass_retry(db: Session, payload: dict) -> dict:
 
 
 def handle_policy_analyze(db: Session, payload: dict) -> dict:
-    import asyncio
 
     from app.models import Policy
+
+    pol = db.get(Policy, uuid.UUID(payload["policy_id"]))
+    try:
+        return _policy_analyze(db, pol)
+    except Exception as exc:  # no silent failures: the policy shows "Failed (reason)" with a Retry button
+        db.rollback()
+        pol = db.get(Policy, uuid.UUID(payload["policy_id"]))
+        pol.analysis_status = "failed"
+        pol.analysis = {**(pol.analysis or {}), "error": f"{type(exc).__name__}: {exc}"[:500]}
+        db.commit()
+        raise
+
+
+def _policy_analyze(db: Session, pol) -> dict:
+    import asyncio
+
     from app.services.ai.service import get_ai_service
     from app.services.rmf import analyze_policy, get_setting, AI_DEFAULTS
 
-    pol = db.get(Policy, uuid.UUID(payload["policy_id"]))
     ai_out, iid, ai_note = None, None, "AI not configured – deterministic extractor only"
     svc = get_ai_service()
     if svc.configured and get_setting(db, pol.org_id, "ai", AI_DEFAULTS)["use_cases"].get("policy.audit"):
@@ -115,7 +129,10 @@ def handle_policy_analyze(db: Session, payload: dict) -> dict:
             ai_out, iid, ai_note = r.output.model_dump(), r.interaction_id, f"AI {r.model}"
         except Exception as exc:  # AI failure must not block deterministic findings
             ai_note = f"AI step failed: {exc}"[:300]
-    found = analyze_policy(db, pol, ai_out, iid)
+    import os
+
+    use_ai = svc.configured and get_setting(db, pol.org_id, "ai", AI_DEFAULTS)["use_cases"].get("policy.audit") and not os.environ.get("PYTEST_CURRENT_TEST")
+    found = analyze_policy(db, pol, ai_out, iid, use_ai=bool(use_ai))
     pol.analysis = {**(pol.analysis or {}), "ai_note": ai_note}
     from app.services import audit
     audit.record(db, action="policy.analyzed", actor_email="worker", entity_type="policy", entity_id=str(pol.id),

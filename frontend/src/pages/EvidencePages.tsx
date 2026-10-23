@@ -11,6 +11,7 @@ import { PageHeader, Panel } from "@/components/common/Panel";
 import { ControlLink, NeedSystem, S, Sev, Table } from "@/components/common/Bits";
 import { fmtDate } from "@/lib/format";
 import { AddToPoamButton } from "@/components/common/Workflow";
+import { PROCESSING_STARTED, ProcessingList } from "@/components/shell/Processing";
 import { showNextStep } from "@/components/common/NextStep";
 import { StigDetail } from "@/components/evidence/StigDetail";
 import { SampleFilesLink } from "@/components/shell/Sandbox";
@@ -56,14 +57,13 @@ function UploadFilePanel({ sid, sources, types, onUploaded }: { sid: string; sou
       if (/\.(docx|pdf)$/i.test(f.name)) {
         const fd = new FormData(); fd.append("file", f); fd.append("title", f.name.replace(/\.[^.]+$/, "")); fd.append("owner", ""); fd.append("system_ids", sid);
         const r = await api.post<Row>("/policies", fd);
-        setMsg(`Policy “${f.name}” uploaded (version ${r.data.version}) – the Policy Auditor is analysing it.`);
-        showNextStep({ message: `Policy “${f.name}” uploaded.`, label: "review its control mappings in the Policy Auditor", to: "/policy-auditor" });
+        setMsg(`Policy “${f.name}” uploaded (version ${r.data.version}) – Processing… You will get a summary when the analysis finishes.`);
       } else {
         const fd = new FormData(); fd.append("file", f); if (src) fd.append("source_id", src);
         const r = await api.post<Row>(`/systems/${sid}/uploads`, fd);
-        setMsg(`“${f.name}” received – processing (status: ${r.data.status}). Results appear under “Latest ingest” in a few seconds.`);
-        showNextStep({ message: `Scan “${f.name}” uploaded.`, label: "see the controls it affects in the Control Workbench", to: `/systems/${sid}/controls` });
+        setMsg(r.data.status === "duplicate" ? `“${f.name}” is identical to a file already processed – not double-counted.` : `“${f.name}” received – Processing… You will get a summary when it finishes.`);
       }
+      window.dispatchEvent(new Event(PROCESSING_STARTED));
     } catch (e) { setErr({ file: f.name, text: errorMessage(e) }); }
     setTimeout(onUploaded, 3000);
   };
@@ -94,6 +94,7 @@ function UploadFilePanel({ sid, sources, types, onUploaded }: { sid: string; sou
           {fileTypes.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}</select>
         <button className="btn-primary" onClick={createSrc} data-testid="file-source-save">Create</button>
         <span className="w-full text-[11px] text-slate-500">{fileTypes.find((t) => t.key === newSrc.source_type)?.when}</span></div>}
+      <ProcessingList sid={sid} />
       <div className="mt-3"><SampleFilesLink /></div>
     </Panel>);
 }
