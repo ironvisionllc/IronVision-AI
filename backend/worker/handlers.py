@@ -19,9 +19,45 @@ def handle_content_load(db: Session, payload: dict) -> dict:
 
 
 def handle_ingest(db: Session, payload: dict) -> dict:
+    from app.models import IngestRun
+    from app.services import jobs
     from app.services.ingest.pipeline import process_run
 
-    return process_run(db, uuid.UUID(payload["run_id"]))
+    res = process_run(db, uuid.UUID(payload["run_id"]))
+    run = db.get(IngestRun, uuid.UUID(payload["run_id"]))
+    if run is not None and not payload.get("skip_inventory_check"):
+        jobs.enqueue(db, "inventory.check", {"system_id": str(run.system_id)})  # scans change inventory consistency
+    return res
+
+
+def handle_inventory_import(db: Session, payload: dict) -> dict:
+    from app.models import InventoryImport
+    from app.services.inventory import hwsw
+
+    imp = db.get(InventoryImport, uuid.UUID(payload["import_id"]))
+    imp.status = "processing"
+    db.commit()
+    try:
+        counts = hwsw.run_import(db, imp, payload.get("actor_email"))
+    except Exception as exc:  # visible "Failed (reason)"
+        db.rollback()
+        imp = db.get(InventoryImport, uuid.UUID(payload["import_id"]))
+        imp.status, imp.error = "failed", f"{exc}"[:500]
+        db.commit()
+        raise
+    return counts
+
+
+def handle_inventory_check(db: Session, payload: dict) -> dict:
+    from app.services.inventory import consistency
+
+    return consistency.run(db, uuid.UUID(payload["system_id"]))
+
+
+def handle_inventory_ai(db: Session, payload: dict) -> dict:
+    from app.services.inventory import ai
+
+    return ai.run(db, payload["kind"], uuid.UUID(payload["id"]), uuid.UUID(payload["actor_id"]) if payload.get("actor_id") else None)
 
 
 def handle_integrity(db: Session, payload: dict) -> dict:
@@ -99,6 +135,48 @@ def handle_emass_retry(db: Session, payload: dict) -> dict:
     return retry_due(db)
 
 
+def handle_tr_detect(db: Session, payload: dict) -> dict:
+    from app.models import TrWorkbook
+    from app.services.tr import service as trs
+
+    wb = db.get(TrWorkbook, uuid.UUID(payload["workbook_id"]))
+    wb.status = "processing"
+    db.commit()
+    try:
+        trs.detect_and_match(db, wb)
+    except Exception as exc:  # visible "Failed (reason)"
+        db.rollback()
+        wb = db.get(TrWorkbook, uuid.UUID(payload["workbook_id"]))
+        wb.status, wb.error = "failed", f"{exc}"[:500]
+        db.commit()
+        raise
+    return wb.counts
+
+
+def handle_tr_generate(db: Session, payload: dict) -> dict:
+    from app.models import TrWorkbook
+    from app.services.tr import service as trs
+
+    wb = db.get(TrWorkbook, uuid.UUID(payload["workbook_id"]))
+    return trs.generate(db, wb, populate=bool(payload.get("populate")))
+
+
+def handle_tr_analyze(db: Session, payload: dict) -> dict:
+    from sqlalchemy import select
+
+    from app.models import TrRow, TrWorkbook
+    from app.services.tr import analysis
+
+    wb = db.get(TrWorkbook, uuid.UUID(payload["workbook_id"]))
+    actor = uuid.UUID(payload["actor_id"]) if payload.get("actor_id") else None
+    modes: dict = {}
+    for r in db.scalars(select(TrRow).where(TrRow.workbook_id == wb.id, TrRow.id.in_([uuid.UUID(i) for i in payload["row_ids"]]))):
+        a = analysis.analyze_row(db, wb, r, actor)
+        modes[a.mode] = modes.get(a.mode, 0) + 1
+        db.commit()
+    return modes
+
+
 def handle_policy_analyze(db: Session, payload: dict) -> dict:
 
     from app.models import Policy
@@ -148,6 +226,12 @@ HANDLERS: dict[str, Callable[[Session, dict], dict]] = {
     "evidence.verify_integrity": handle_integrity,
     "evidence.evaluate_freshness": handle_freshness,
     "policy.analyze": handle_policy_analyze,
+    "tr.detect": handle_tr_detect,
+    "tr.generate": handle_tr_generate,
+    "tr.analyze": handle_tr_analyze,
+    "inventory.import": handle_inventory_import,
+    "inventory.check": handle_inventory_check,
+    "inventory.ai": handle_inventory_ai,
     "attestations.evaluate": handle_attestations,
     "notifications.deadlines": handle_notifications,
     "risk.snapshot": handle_risk_snapshot,

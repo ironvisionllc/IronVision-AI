@@ -51,3 +51,5 @@ starlette==1.7.0
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 urllib3==2.8.0
+openpyxl==3.1.5
+et_xmlfile==2.0.0

@@ -139,7 +139,7 @@ def mapping_review(system_id: uuid.UUID, request: Request, db: Session = Depends
         g["hosts"].append(host or "—")
     passing = db.scalar(select(func.count()).select_from(Finding).where(Finding.system_id == system_id, Finding.mapping_status == "unmapped",
                                                                          Finding.current_state != "open"))
-    from app.models import ApprovalRequest
+    from app.models import ApprovalRequest, AssetCorrelation
     pend = {str(r.finding_id): r.human_id for r in db.scalars(select(ApprovalRequest).where(ApprovalRequest.system_id == system_id,
                                                                                           ApprovalRequest.status == "pending",
                                                                                           ApprovalRequest.request_type == "finding_out_of_scope"))}
@@ -156,6 +156,8 @@ def mapping_review(system_id: uuid.UUID, request: Request, db: Session = Depends
                          for g in groups.values()],
             "unmapped_findings_total": sum(len(g["finding_ids"]) for g in groups.values()),
             "passing_unmapped_excluded": passing, "ai_configured": get_ai_service().configured,
+            "asset_correlations_pending": db.scalar(select(func.count()).select_from(AssetCorrelation).where(
+                AssetCorrelation.system_id == system_id, AssetCorrelation.status == "needs_review")),
             "ai_status": get_ai_service().describe()}
 
 

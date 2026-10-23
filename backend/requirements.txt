@@ -164,3 +164,5 @@ Werkzeug==3.1.9
 xmltodict==1.0.4
 yarl==1.25.1
 zipp==4.1.1
+openpyxl==3.1.5
+et_xmlfile==2.0.0

@@ -123,6 +123,7 @@ export function MappingReviewPage() {
     <div data-testid="mapping-review-page">
       <PageHeader title="Mapping review" subtitle="Everything the app linked or suggested automatically waits here for a person: STIG rule → control mappings, Policy Auditor mappings and evidence-based status suggestions. Nothing changes until you approve." />
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="mapping-review-msg">{msg}</div>}
+      {!!data?.asset_correlations_pending && <div className="panel mb-4 p-3 text-[13px]" data-testid="mapping-review-asset-links">{data.asset_correlations_pending} scanned host(s) could match more than one inventory asset (shared IP or conflicting identifiers). <Link className="text-blue-800 underline" to="/inventory#correlations">Review asset correlation</Link></div>}
       {data && <ReviewQueue sid={sid} queue={data.queue} counts={data.queue_counts} canMap={can("finding.map")} reload={reload} setMsg={setMsg} reviewNeeded={data.review_needed || []} statusNotes={data.status_notes || []} />}
       <Panel title={`Pending review (${data ? data.pending.length : "…"})`} className="mb-5" testId="mapping-pending">
         <Table head={["Finding", "Control", "Source", "Confidence", "Rationale", "Status", ""]}>

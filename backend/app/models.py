@@ -162,6 +162,12 @@ class Asset(CoreMixin, ProvenanceMixin, Base):
     is_unmatched: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     review_status: Mapped[str] = mapped_column(String(30), nullable=False, server_default=text("'confirmed'"))
     recheck_reason: Mapped[str | None] = mapped_column(Text)
+    fqdn: Mapped[str | None] = mapped_column(String(255), index=True)
+    mac_address: Mapped[str | None] = mapped_column(String(64), index=True)
+    serial_number: Mapped[str | None] = mapped_column(String(255))
+    ip_addresses: Mapped[list | None] = mapped_column(JSONB)
+    inventory: Mapped[dict | None] = mapped_column(JSONB)                 # eMASS HW/SW template fields
+    correlated_asset_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("assets.id", ondelete="SET NULL"))  # scan-observed → inventory asset
 
 
 class ContentVersion(CoreMixin, ProvenanceMixin, Base):
@@ -1114,3 +1120,179 @@ class PolicyRequirementCoverage(CoreMixin, Base):
     source: Mapped[str] = mapped_column(String(20), nullable=False)               # deterministic | ai
     override: Mapped[dict | None] = mapped_column(JSONB)                          # covered elsewhere: {reason, evidence_id, by, at}
     linked: Mapped[dict | None] = mapped_column(JSONB)                            # linked as evidence on approval: {assignment_id, by, at}
+
+
+class TrTemplate(CoreMixin, Base):
+    """Reusable eMASS Test Result template definition (sheet, header row, column roles, value vocabulary) per org, versioned."""
+    __tablename__ = "tr_templates"
+    org_id: Mapped[uuid.UUID] = _fk("organizations.id")
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    definition: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    created_by: Mapped[str | None] = mapped_column(String(255))
+
+
+class TrWorkbook(CoreMixin, Base):
+    __tablename__ = "tr_workbooks"
+    org_id: Mapped[uuid.UUID] = _fk("organizations.id")
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    template_id: Mapped[uuid.UUID | None] = _fk("tr_templates.id", True, "SET NULL")
+    file_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(1000), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)      # queued | processing | mapped | generating | generated | failed
+    error: Mapped[str | None] = mapped_column(Text)
+    detection: Mapped[dict | None] = mapped_column(JSONB)
+    definition: Mapped[dict | None] = mapped_column(JSONB)
+    counts: Mapped[dict | None] = mapped_column(JSONB)
+    uploaded_by: Mapped[str | None] = mapped_column(String(255))
+    generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class TrRow(CoreMixin, Base):
+    __tablename__ = "tr_rows"
+    __table_args__ = (UniqueConstraint("workbook_id", "row_number", name="uq_tr_rows_wb_row"),)
+    workbook_id: Mapped[uuid.UUID] = _fk("tr_workbooks.id")
+    row_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    added: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    control_acronym: Mapped[str | None] = mapped_column(String(50))
+    ap_acronym: Mapped[str | None] = mapped_column(String(50))
+    cci_id: Mapped[str | None] = mapped_column(String(20))
+    control_id: Mapped[str | None] = mapped_column(String(50), index=True)
+    match_status: Mapped[str] = mapped_column(String(20), nullable=False)   # matched | ambiguous | unmatched | resolved
+    match_reason: Mapped[str | None] = mapped_column(Text)
+    proposed: Mapped[dict | None] = mapped_column(JSONB)
+    sources: Mapped[list | None] = mapped_column(JSONB)
+    flags: Mapped[list | None] = mapped_column(JSONB)
+    state: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'missing'"))  # auto | edited | approved | missing | conflict
+    final: Mapped[dict | None] = mapped_column(JSONB)
+    decided_by: Mapped[str | None] = mapped_column(String(255))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    justification: Mapped[str | None] = mapped_column(Text)
+    last_exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class TrExport(CoreMixin, Base):
+    __tablename__ = "tr_exports"
+    workbook_id: Mapped[uuid.UUID] = _fk("tr_workbooks.id")
+    system_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    file_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(1000), nullable=False)
+    exported_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    counts: Mapped[dict | None] = mapped_column(JSONB)
+    evidence_ids: Mapped[list | None] = mapped_column(JSONB)
+    verification: Mapped[dict | None] = mapped_column(JSONB)
+    template_version: Mapped[int | None] = mapped_column(Integer)
+
+
+class TrAnalysis(CoreMixin, Base):
+    __tablename__ = "tr_analyses"
+    row_id: Mapped[uuid.UUID] = _fk("tr_rows.id")
+    workbook_id: Mapped[uuid.UUID] = _fk("tr_workbooks.id")
+    mode: Mapped[str] = mapped_column(String(20), nullable=False)            # ai | deterministic
+    provider: Mapped[str | None] = mapped_column(String(50))
+    model: Mapped[str | None] = mapped_column(String(200))
+    prompt_version: Mapped[str] = mapped_column(String(100), nullable=False)
+    input_ids: Mapped[list] = mapped_column(JSONB, nullable=False)
+    input_bundle: Mapped[list] = mapped_column(JSONB, nullable=False)
+    output: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    dropped: Mapped[list | None] = mapped_column(JSONB)
+    error: Mapped[str | None] = mapped_column(Text)
+    requested_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+
+
+class AssetIdentifier(CoreMixin, Base):
+    __tablename__ = "asset_identifiers"
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    asset_id: Mapped[uuid.UUID] = _fk("assets.id")
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)          # hostname | fqdn | ip | mac | serial | os | cpe | benchmark
+    value: Mapped[str] = mapped_column(String(500), nullable=False)
+    source: Mapped[str] = mapped_column(String(100), nullable=False)
+    source_ref: Mapped[str | None] = mapped_column(String(100))
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class InventoryImport(CoreMixin, Base):
+    __tablename__ = "inventory_imports"
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    org_id: Mapped[uuid.UUID] = _fk("organizations.id")
+    file_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(1000), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    error: Mapped[str | None] = mapped_column(Text)
+    detection: Mapped[dict | None] = mapped_column(JSONB)
+    counts: Mapped[dict | None] = mapped_column(JSONB)
+    uploaded_by: Mapped[str | None] = mapped_column(String(255))
+
+
+class SoftwareItem(CoreMixin, Base):
+    __tablename__ = "software_items"
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    asset_id: Mapped[uuid.UUID | None] = _fk("assets.id", True, "SET NULL")
+    vendor: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(500), nullable=False)
+    version: Mapped[str | None] = mapped_column(String(255))
+    sw_type: Mapped[str | None] = mapped_column(String(100))
+    attributes: Mapped[dict | None] = mapped_column(JSONB)
+    source: Mapped[str] = mapped_column(String(100), nullable=False)
+    import_id: Mapped[uuid.UUID | None] = _fk("inventory_imports.id", True, "SET NULL")
+
+
+class InventoryExport(CoreMixin, Base):
+    __tablename__ = "inventory_exports"
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    import_id: Mapped[uuid.UUID | None] = _fk("inventory_imports.id", True, "SET NULL")
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    file_name: Mapped[str] = mapped_column(String(500), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(1000), nullable=False)
+    exported_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    counts: Mapped[dict | None] = mapped_column(JSONB)
+    verification: Mapped[dict | None] = mapped_column(JSONB)
+
+
+class InventoryDiscrepancy(CoreMixin, Base):
+    __tablename__ = "inventory_discrepancies"
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    kind: Mapped[str] = mapped_column(String(50), nullable=False)
+    key: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)       # open | pending_approval | applied | ignored | resolved
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    records: Mapped[list] = mapped_column(JSONB, nullable=False)
+    details: Mapped[dict | None] = mapped_column(JSONB)
+    recommendation: Mapped[str | None] = mapped_column(Text)
+    proposed_change: Mapped[dict | None] = mapped_column(JSONB)
+    ai: Mapped[dict | None] = mapped_column(JSONB)
+    decided_by: Mapped[str | None] = mapped_column(String(255))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reason: Mapped[str | None] = mapped_column(Text)
+    applied_by: Mapped[str | None] = mapped_column(String(255))
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_detected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AssetCorrelation(CoreMixin, Base):
+    __tablename__ = "asset_correlations"
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    key: Mapped[str] = mapped_column(String(64), nullable=False)
+    facts: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    candidates: Mapped[list] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)       # matched | new | needs_review | confirmed | rejected
+    method: Mapped[str | None] = mapped_column(String(100))
+    reason: Mapped[str | None] = mapped_column(Text)
+    observed_asset_id: Mapped[uuid.UUID | None] = _fk("assets.id", True)
+    chosen_asset_id: Mapped[uuid.UUID | None] = _fk("assets.id", True, "SET NULL")
+    source_format: Mapped[str | None] = mapped_column(String(30))
+    evidence_ids: Mapped[list | None] = mapped_column(JSONB)
+    ai: Mapped[dict | None] = mapped_column(JSONB)
+    decided_by: Mapped[str | None] = mapped_column(String(255))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    justification: Mapped[str | None] = mapped_column(Text)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

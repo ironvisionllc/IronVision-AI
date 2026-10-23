@@ -450,3 +450,11 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Non-XX-1 coverage via requirement profiles (services/policy_profile.py), optional strict-JSON AI refinement with exact-quote check, policy-vs-implementation rule, Low confidence = review needed (no suggestion). Eval set P/R 1.00/1.00 deterministic (tuned on same set).
 - Upload processing state endpoint + badges/toasts/Retry, global refetch on mutations and finished jobs, worker re-analyses stale policies (coverage_version).
 - Report docs/SME_POLICY_AUDITOR_V2_REPORT.md. Backlog: AC-2/IR-4 labels, ARF sample, analyzer version for ingest runs.
+
+## eMASS TR + AI evidence analysis + HW/SW inventory / STIG→asset (Oct 2026)
+- TR: import real BLANK_TRExport.xlsx, mapping, generation from real records, SCA-only approval (backend), bounded export + XML/cell diff report (/test-results).
+- AI evidence analysis per TR row (worker job; validated IDs/quotes; deterministic fallback; "Use this text" → audited AI-assisted text; AI never sets status/tester/date).
+- HW/SW inventory (/inventory): eMASS .xlsm import/export (VBA byte-identical), scan host facts → deterministic correlation, shared-IP/conflicts → review, consistency discrepancies with proposal → approval → audit, AI rank/explain (suggestion only), MOCKED source badges.
+- Tests: backend 540 passed / 43 skipped; frontend 6/6; testing agent iteration 14 100%. Report: docs/TR_INVENTORY_REPORT.md.
+- HUMAN_REQUIRED: open exports in Microsoft Excel, import into eMASS, spot-check rows.
+- Backlog: software↔asset assignment UI, duplicate-asset merge, show "potentially related" findings in the UI, TR row labels per asset.

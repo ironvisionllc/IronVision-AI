@@ -109,6 +109,9 @@ def require_permission(permission: str, system_id_param: str = "system_id"):
     return dependency
 
 
+SYSTEM_SCOPED = {"TrExport", "InventoryDiscrepancy", "AssetCorrelation", "InventoryExport"}
+
+
 def _object_system(model_name: str, raw: str | None, org_id) -> uuid.UUID:
     """System that owns the addressed object (tenant-scoped; 404 when missing or in another tenant)."""
     from app.db import SessionLocal
@@ -125,6 +128,8 @@ def _object_system(model_name: str, raw: str | None, org_id) -> uuid.UUID:
         elif model_name == "FindingControlMap" and obj is not None:
             obj = db.get(models.Finding, obj.finding_id)
         if obj is None or getattr(obj, "org_id", org_id) != org_id and getattr(obj, "org_id", None) is not None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
+        if model_name in SYSTEM_SCOPED and db.get(models.System, obj.system_id).org_id != org_id:  # tenant check via the owning system
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
         return obj.system_id
 

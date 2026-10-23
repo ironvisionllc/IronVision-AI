@@ -1,4 +1,5 @@
 """Parsers for ACAS/Nessus (.nessus XML, CSV) and DISA STIG checklists (.ckl XML, .cklb JSON) → normalized records."""
+import re
 import csv
 import io
 import json
@@ -283,4 +284,51 @@ def stig_header(fmt: str, data: bytes) -> dict:
     rm = re.search(r"Release:\s*(\S+)", out["release"] or "")
     if rm:
         out["release"] = rm.group(1)
+    return out
+
+
+def asset_facts(fmt: str, data: bytes) -> dict[tuple, dict]:
+    """Host facts actually present in the file, keyed like the finding records (host, ip). Nothing is inferred."""
+    out: dict[tuple, dict] = {}
+
+    def put(key_host, key_ip, **f):
+        out[(key_host, key_ip)] = {k: v for k, v in f.items() if v}
+
+    if fmt == "ckl":
+        root = _safe_xml(data)
+        g = lambda k: (root.findtext(f"ASSET/{k}") or "").strip() or None  # noqa: E731
+        benches = [next((s.findtext("SID_DATA") for s in i.iterfind("STIG_INFO/SI_DATA") if s.findtext("SID_NAME") == "title"), None)
+                   for i in root.iterfind("STIGS/iSTIG")]
+        put(root.findtext("ASSET/HOST_NAME") or root.findtext("ASSET/HOST_FQDN"), root.findtext("ASSET/HOST_IP"),
+            host=g("HOST_NAME"), fqdn=g("HOST_FQDN"), ips=[g("HOST_IP")] if g("HOST_IP") else [], macs=[g("HOST_MAC")] if g("HOST_MAC") else [],
+            target_type=g("ASSET_TYPE"), role=g("ROLE"), benchmarks=[b for b in benches if b])
+    elif fmt == "cklb":
+        doc = json.loads(data)
+        t = doc.get("target_data", {})
+        put(t.get("host_name") or t.get("fqdn"), t.get("ip_address"), host=t.get("host_name"), fqdn=t.get("fqdn"),
+            ips=[t["ip_address"]] if t.get("ip_address") else [], macs=[t["mac_address"]] if t.get("mac_address") else [],
+            target_type=t.get("target_type"), role=t.get("role"),
+            benchmarks=[s.get("display_name") or s.get("stig_name") for s in doc.get("stigs", []) if s.get("display_name") or s.get("stig_name")])
+    elif fmt == "nessus_xml":
+        root = _safe_xml(data)
+        for rh in root.iterfind("Report/ReportHost"):
+            tags = {t.get("name"): (t.text or "").strip() for t in rh.iterfind("HostProperties/tag")}
+            put(tags.get("hostname") or tags.get("host-fqdn") or rh.get("name"), tags.get("host-ip") or rh.get("name"),
+                host=tags.get("hostname") or tags.get("netbios-name"), fqdn=tags.get("host-fqdn"), ips=[tags.get("host-ip") or rh.get("name")],
+                macs=[m for m in re.split(r"[\s,]+", tags.get("mac-address", "")) if m], os=tags.get("operating-system"),
+                cpe=[v for k, v in tags.items() if k.startswith("cpe") and v.startswith("cpe:")])
+    elif fmt == "xccdf":
+        root = _safe_xml(data)
+        for tr in (e for e in root.iter() if _ln(e.tag) == "TestResult"):
+            host = next((c.text for c in tr if _ln(c.tag) == "target"), None)
+            ip = next((c.text for c in tr if _ln(c.tag) == "target-address"), None)
+            facts = {(f.get("name") or "").rsplit(":", 1)[-1]: (f.text or "").strip() for c in tr if _ln(c.tag) == "target-facts" for f in c}
+            put(host, ip, host=host, fqdn=facts.get("fqdn"), ips=[a.text for a in tr if _ln(a.tag) == "target-address" and a.text],
+                macs=[facts["mac"]] if facts.get("mac") else [], os=facts.get("os_name"))
+    elif fmt == "nessus_csv":
+        for r in csv.DictReader(io.StringIO(data.decode("utf-8-sig"))):
+            h = r.get("Host") or r.get("IP Address") or r.get("DNS Name")
+            put(h, h, host=r.get("NetBIOS Name") or (h if h and not re.fullmatch(r"[\d.]+", h) else None), fqdn=r.get("DNS Name"),
+                ips=[r.get("IP Address") or h] if (r.get("IP Address") or (h and re.fullmatch(r"[\d.]+", h))) else [],
+                macs=[r["MAC Address"]] if r.get("MAC Address") else [])
     return out

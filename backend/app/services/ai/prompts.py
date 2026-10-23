@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 
-from pydantic import BaseModel, Field
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class HealthCheckOutput(BaseModel):
@@ -49,6 +51,57 @@ class CoverageRefineOutput(BaseModel):
     items: list[CoverageRefineItem]
 
 
+class _Strict(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class EvSource(_Strict):
+    id: str
+    verdict: Literal["supports", "contradicts", "does_not_establish"]
+    reason: str
+    quote: str = ""
+
+
+class EvConflict(_Strict):
+    ids: list[str]
+    reason: str
+
+
+class CorrRank(_Strict):
+    asset_id: str
+    confidence: float
+    explanation: str
+    identifiers: list[str] = []
+
+
+class CorrelationRankOutput(_Strict):
+    ranking: list[CorrRank]
+    summary: str
+
+
+class DiscRank(_Strict):
+    record_id: str
+    score: float
+    reason: str
+
+
+class DiscrepancyExplainOutput(_Strict):
+    explanation: str
+    ranking: list[DiscRank] = []
+    refs: list[str] = []
+
+
+class EvidenceAnalysisOutput(_Strict):
+    """No compliance_status / tested_by / date_tested fields exist; extra keys fail validation."""
+    sources: list[EvSource]
+    missing: list[str] = []
+    stale: list[str] = []
+    conflicts: list[EvConflict] = []
+    unsupported: list[str] = []
+    explanation: str
+    explanation_refs: list[str] = []
+
+
 @dataclass(frozen=True)
 class PromptTemplate:
     prompt_id: str
@@ -63,6 +116,35 @@ class PromptTemplate:
 
 
 PROMPTS: dict[tuple[str, str], PromptTemplate] = {
+    ("inventory.correlation_rank", "1.0.0"): PromptTemplate(
+        "inventory.correlation_rank", "1.0.0",
+        "You help an ISSO decide which inventory asset a scanned host (STIG checklist / ACAS scan) belongs to. Use ONLY the supplied observed facts and "
+        "candidate assets. Rank the candidates by how likely they are the same machine, with a confidence between 0 and 1, a one-sentence explanation and the "
+        "identifier kinds (hostname, fqdn, ip, mac, serial) that support it. Shared or re-used IPs are weak evidence. You never link assets and never create "
+        "assets or findings – a human confirms. Reference candidates ONLY by their exact asset_id. "
+        "Return ONLY JSON: {\"ranking\": [{\"asset_id\": str, \"confidence\": number, \"explanation\": str, \"identifiers\": [str]}], \"summary\": str}.",
+        "Observed host facts (JSON):\n{observed}\n\nCandidate inventory assets (JSON):\n{candidates}",
+        CorrelationRankOutput, 1200),
+    ("inventory.discrepancy_explain", "1.0.0"): PromptTemplate(
+        "inventory.discrepancy_explain", "1.0.0",
+        "You explain one hardware/software inventory discrepancy to an ISSO in plain language (max 80 words), using ONLY the supplied records. "
+        "If records may be duplicates, rank them (score 0-1) with a reason. Reference records ONLY by their exact id. You never change inventory data. "
+        "Return ONLY JSON: {\"explanation\": str, \"ranking\": [{\"record_id\": str, \"score\": number, \"reason\": str}], \"refs\": [id]}.",
+        "Discrepancy: {title}\nDeterministic recommendation: {recommendation}\nRecords (JSON):\n{records}",
+        DiscrepancyExplainOutput, 900),
+    ("tr.evidence_analysis", "1.1.0"): PromptTemplate(
+        "tr.evidence_analysis", "1.1.0",
+        "You review the evidence bundle for ONE eMASS Test Result row (one NIST SP 800-53 control / DISA CCI). Use ONLY the supplied records. "
+        "For every record decide whether it supports, contradicts or does_not_establish that the CCI is implemented, with a one-sentence reason. "
+        "A quote, if given, MUST be an exact contiguous substring of that record's text. Reference records ONLY by their exact \"id\". "
+        "Report missing evidence, stale evidence ids, conflicts (ids + reason) and unsupported conclusions. Policy text cannot prove technical implementation. "
+        "Write a factual Test Results explanation (max 120 words) for an eMASS reviewer, describing the records by what they are (e.g. STIG V-number and state, policy title) – "
+        "never put record ids in the explanation; list the ids you relied on in explanation_refs. You do NOT decide Compliance Status, tester or test date. "
+        "Return ONLY JSON: {\"sources\": [{\"id\": str, \"verdict\": \"supports\"|\"contradicts\"|\"does_not_establish\", \"reason\": str, \"quote\": str}], "
+        "\"missing\": [str], \"stale\": [id], \"conflicts\": [{\"ids\": [id], \"reason\": str}], \"unsupported\": [str], "
+        "\"explanation\": str, \"explanation_refs\": [id]}.",
+        "Control: {control}\nCCI: {cci}\nRecords (JSON):\n{records}",
+        EvidenceAnalysisOutput, 2500),
     ("policy.coverage_refine", "1.0.0"): PromptTemplate(
         "policy.coverage_refine", "1.0.0",
         "You assess whether an organizational policy document addresses each NIST SP 800-53A assessment objective / DISA CCI of one control. "

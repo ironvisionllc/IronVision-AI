@@ -12,7 +12,7 @@ from app.models import (Asset, EvidenceSource, Implementation, Cci, CciControlMa
                         EvidenceControl, Finding, FindingControlMap, FindingObservation, IngestRun, OrgMappingRule,
                         StigRuleCci, System)
 from app.services import audit
-from app.services.ingest.parsers import MAX_BYTES, PARSERS, SOURCE_TYPE, ParseError, detect_format
+from app.services.ingest.parsers import MAX_BYTES, PARSERS, SOURCE_TYPE, ParseError, asset_facts, detect_format
 from app.services.evaluation import apply_freshness
 from app.services.kev import is_kev
 from app.services.workflow import on_remediation_observed
@@ -109,22 +109,15 @@ def backfill_attribution(db: Session, system_id) -> None:
             run.source_id = src.id
 
 
-def _match_asset(db: Session, system_id, host: str | None, ip: str | None, fmt: str) -> Asset:
-    short = (host or "").split(".")[0].lower()
-    conds = []
-    if short:
-        conds.append(func.lower(Asset.hostname) == short)
-    if ip:
-        conds.append(Asset.ip_address == ip)
-    asset = db.scalar(select(Asset).where(Asset.system_id == system_id, or_(*conds)).limit(1)) if conds else None
-    if asset is None:
-        asset = Asset(system_id=system_id, name=short or ip or "unknown", hostname=short or None, ip_address=ip,
-                      asset_type="unknown", inventory_source=f"ingest:{fmt}", is_unmatched=True, review_status="needs_review",
-                      source="ingest", provenance={"reason": "host in scan not found in inventory"})
-        db.add(asset)
-        db.flush()
-    asset.last_observed_at = now()
-    return asset
+def _match_asset(db: Session, system_id, host: str | None, ip: str | None, fmt: str, facts_by_host: dict | None = None, evidence_id=None) -> Asset:
+    """Deterministic correlation on reliable identifiers; ambiguous hosts get a scan-observed asset and go to review."""
+    from app.services.inventory.correlate import match_for_ingest
+
+    facts = (facts_by_host or {}).get((host, ip)) or {"host": host, "ips": [ip] if ip else []}
+    facts.setdefault("host", host)
+    if ip and ip not in (facts.get("ips") or []):
+        facts["ips"] = [*(facts.get("ips") or []), ip]
+    return match_for_ingest(db, system_id, facts, fmt, evidence_id)
 
 
 def _dedup(rule: DedupRule, rec: dict, asset: Asset) -> tuple[str, dict]:
@@ -194,6 +187,10 @@ def process_run(db: Session, run_id: uuid.UUID) -> dict:
         return {"failed": True}
     try:
         records = PARSERS[run.file_format](data)
+        try:
+            facts_by_host = asset_facts(run.file_format, data)
+        except Exception:  # host facts are optional enrichment; findings still ingest
+            facts_by_host = {}
     except ParseError as exc:
         run.status, run.errors, run.finished_at = "failed", [str(exc)], now()
         return {"failed": True, "error": str(exc)}
@@ -214,7 +211,7 @@ def process_run(db: Session, run_id: uuid.UUID) -> dict:
     mapped = unmapped = created = updated = 0
     finding_ids, finding_ids_fixed = set(), set()
     for rec in records:
-        asset = _match_asset(db, run.system_id, rec["host"], rec["ip"], run.file_format)
+        asset = _match_asset(db, run.system_id, rec["host"], rec["ip"], run.file_format, facts_by_host, ev.id)
         key, fields = _dedup(rule, rec, asset)
         f = db.scalar(select(Finding).where(Finding.system_id == run.system_id, Finding.dedup_key == key))
         if f is None:

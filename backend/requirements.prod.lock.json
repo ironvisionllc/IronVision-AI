@@ -95,6 +95,10 @@
    "requires": [],
    "version": "0.18.0"
   },
+  "et-xmlfile": {
+   "requires": [],
+   "version": "2.0.0"
+  },
   "fastapi": {
    "requires": [
     "annotated-doc",
@@ -242,6 +246,12 @@
     "typing-extensions"
    ],
    "version": "1.99.9"
+  },
+  "openpyxl": {
+   "requires": [
+    "et-xmlfile"
+   ],
+   "version": "3.1.5"
   },
   "opentelemetry-api": {
    "requires": [
@@ -527,7 +537,7 @@
  },
  "generated_by": "python3 -m venv --clear /tmp/lock-prod && /tmp/lock-prod/bin/pip install --no-deps --index-url https://pypi.org/simple -r backend/requirements.prod.txt && /tmp/lock-prod/bin/python scripts/check_requirements.py --write-lock --target prod",
  "manifest": "backend/requirements.prod.txt",
- "manifest_sha256": "d29069943ca37cf8147b964104277e13621f3b9283954b1f8afd41015b56f4c3",
+ "manifest_sha256": "dd7e0c5777419a59c70c072738b56322654c950f28d7794de620ac3262cfb758",
  "modules": {
   "PIL": [
    "pillow"
@@ -604,6 +614,9 @@
   "dotenv": [
    "python-dotenv"
   ],
+  "et_xmlfile": [
+   "et-xmlfile"
+  ],
   "fastapi": [
    "fastapi"
   ],
@@ -669,6 +682,9 @@
   ],
   "openai": [
    "openai"
+  ],
+  "openpyxl": [
+   "openpyxl"
   ],
   "opentelemetry": [
    "opentelemetry-api"

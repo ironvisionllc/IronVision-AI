@@ -71,6 +71,10 @@
    "requires": [],
    "version": "0.7.1"
   },
+  "et-xmlfile": {
+   "requires": [],
+   "version": "2.0.0"
+  },
   "fastapi": {
    "requires": [
     "annotated-doc",
@@ -148,6 +152,12 @@
   "msgpack": {
    "requires": [],
    "version": "1.2.3"
+  },
+  "openpyxl": {
+   "requires": [
+    "et-xmlfile"
+   ],
+   "version": "3.1.5"
   },
   "opentelemetry-api": {
    "requires": [
@@ -292,7 +302,7 @@
  },
  "generated_by": "python3 -m venv --clear /tmp/lock-recovery && /tmp/lock-recovery/bin/pip install --no-deps --index-url https://pypi.org/simple -r deploy/recovery/requirements.recovery.txt && /tmp/lock-recovery/bin/python scripts/check_requirements.py --write-lock --target recovery",
  "manifest": "deploy/recovery/requirements.recovery.txt",
- "manifest_sha256": "1e35cf8c18c75c64667998198727f3465be6bbe1fbb3b46e83acfae330601a09",
+ "manifest_sha256": "fb85439c5434a2a3966fe03e07b6f128d2cccd4752fe6de7885201be19b33d2c",
  "modules": {
   "_cffi_backend": [
    "cffi"
@@ -348,6 +358,9 @@
   "dotenv": [
    "python-dotenv"
   ],
+  "et_xmlfile": [
+   "et-xmlfile"
+  ],
   "fastapi": [
    "fastapi"
   ],
@@ -392,6 +405,9 @@
   ],
   "multipart": [
    "python-multipart"
+  ],
+  "openpyxl": [
+   "openpyxl"
   ],
   "opentelemetry": [
    "opentelemetry-api"
