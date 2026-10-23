@@ -428,3 +428,7 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 ## 2026-10-23 – SME Section 1 (broken features) + UX pass
 - No demo data in new accounts (synthetic content hidden per tenant) + Load demo data (SYNTHETIC); counts service; policy→control mapping (parser + manual map/reject, versioned, migration 0014); parameter export; all workbench filters + has-evidence deep links; separate Status save; content-based scan format detection; Next-step banner; plain-language empty states/errors. Report: docs/SME_SECTION1_REPORT.md
 - Pending: SME sections 2–7; item 8 (legacy mappings View) needs a screenshot.
+
+## 2026-10-23 – SME Section 2
+- STIG run detail (all rules, totals, source check), unified Mapping Review queue (STIG/policy/status suggestions, bulk + justification, SoD), evidence-based status suggestions (approval only), Evidence Ledger + unmapped explanations. Report: docs/SME_SECTION2_REPORT.md
+- Pending: SME sections 3–7 + final flow (stopped: session context budget).

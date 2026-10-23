@@ -311,3 +311,44 @@ def _vet(name: str, data: bytes, kind: str) -> None:
         validate_upload(name, data, kind)
     except UploadRejected as exc:
         raise HTTPException(415 if "type" in str(exc) or "match" in str(exc) else 413 if "limit" in str(exc) else 422, str(exc))
+
+
+STATUS_LABEL = {"open": "Open", "pass": "Not a Finding", "not_applicable": "Not Applicable", "not_reviewed": "Not Reviewed"}
+CAT_LABEL = {"high": "CAT I", "medium": "CAT II", "low": "CAT III"}
+
+
+@router.get("/ingest-runs/{run_id}/stig")
+def run_stig_detail(run_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    """Every rule of a STIG checklist / XCCDF import with status, details and comments, totals, and a check against the source file."""
+    from collections import Counter
+
+    from app.models import FindingObservation
+    from app.services.ingest.parsers import PARSERS, stig_header
+    from app.services.storage import get_storage
+
+    run = db.get(IngestRun, run_id)
+    if run is None:
+        raise HTTPException(404, "Run not found")
+    enforce(request, current, "system.read", run.system_id)
+    if run.file_format not in ("ckl", "cklb", "xccdf"):
+        raise HTTPException(409, "This import is not a STIG checklist or XCCDF result")
+    target = run.duplicate_of_run_id or run.id
+    obs = db.execute(select(FindingObservation, Finding).join(Finding, Finding.id == FindingObservation.finding_id)
+                     .where(FindingObservation.ingest_run_id == target)).all()
+    rules = [{"finding_id": str(f.id), "vuln_id": f.vuln_id, "rule_id": f.rule_id, "title": f.title, "severity": CAT_LABEL.get((f.severity or "").lower(), f.cat or f.severity),
+              "status": STATUS_LABEL.get(o.observed_status, o.observed_status), "finding_details": (o.raw or {}).get("finding_details"),
+              "comments": (o.raw or {}).get("comments"), "ccis": f.ccis or []} for o, f in obs]
+    ev = db.get(Evidence, run.evidence_id) if run.evidence_id else None
+    header, source_rules = {}, None
+    if ev is not None:
+        try:
+            data = get_storage().get(ev.storage_key)
+            header = stig_header(run.file_format, data)
+            source_rules = len(PARSERS[run.file_format](data))
+        except Exception:  # noqa: BLE001 – file unreadable: report it instead of failing the page
+            header = {}
+    return {"run": {"id": str(run.id), "file_name": run.file_name, "file_format": run.file_format, "received_at": run.received_at.isoformat() if run.received_at else None},
+            "header": header or {"title": obs[0][1].benchmark if obs else None},
+            "rules": sorted(rules, key=lambda r: (r["status"] != "Open", r["severity"] or "", r["vuln_id"] or "")),
+            "totals": {"by_status": dict(Counter(r["status"] for r in rules)), "by_severity": dict(Counter(r["severity"] for r in rules))},
+            "parse_check": {"source_rules": source_rules, "stored_rules": len(rules), "match": source_rules == len(rules) if source_rules is not None else None}}

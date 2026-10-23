@@ -8,8 +8,11 @@ import { PageHeader, Panel } from "@/components/common/Panel";
 import { NeedSystem, S, Stat, Table } from "@/components/common/Bits";
 import { Modal } from "@/components/common/Workflow";
 import { cn, fmtControl, fmtDate } from "@/lib/format";
+import { ReviewQueue } from "@/components/evidence/ReviewQueue";
 
 const DIFF_TABS: [string, string][] = [["added", "Added"], ["removed", "Removed"], ["changed_requirement", "Changed requirement"], ["changed_severity", "Changed severity"]];
+const DIFF_TIP: Record<string, string> = { added: "Rules that exist only in the new version – assets will need them checked", removed: "Rules dropped by the new version – their findings stop counting",
+  changed_requirement: "Same rule, but its title or check/fix text changed – re-check affected assets", changed_severity: "Same rule, but its CAT level (I/II/III) changed – affects priority and POA&M dates" };
 
 export function ContentUpdatesPanel() {
   const { can } = useAuth();
@@ -26,6 +29,7 @@ export function ContentUpdatesPanel() {
   const imp = up?.impact;
   return (
     <Panel title="Content updates (installed vs available)" className="mb-5" testId="content-updates-panel">
+      <p className="mb-2 text-[12px] text-slate-600" data-testid="content-updates-intro"><b title="The version your workspace uses right now for findings, mappings and evaluations">Installed</b> = the version of each reference (STIG benchmark, CCI list, catalog) the app uses today. <b title="A newer version that has been loaded but not yet applied – nothing changes until someone approves it">Available</b> = a newer version you can preview and apply. Applying never rewrites history: past results keep the version they were made with.</p>
       {msg && <div className="mb-2 text-[12px]" role="alert" data-testid="content-msg">{msg}</div>}
       <Table head={["Content type", "Installed", "Effective", "Available", "Status", ""]} testId="content-types-table">
         {data.types.map((t: Row) => <tr key={t.content_type} data-testid={`content-type-${t.content_type}`}>
@@ -43,7 +47,8 @@ export function ContentUpdatesPanel() {
           <td className="td text-[11px]">{h.applier_name ?? h.requester_name}{h.justification && <div className="text-slate-500">{h.justification}</div>}</td></tr>)}
       </Table>
       {up && <Modal title={`Update preview: ${imp.from ?? ""} → ${imp.to ?? ""}`} onClose={() => setUp(null)} testId="content-preview-modal" wide>
-        <div className="mb-2 flex flex-wrap gap-2" data-testid="diff-summary">{DIFF_TABS.map(([k, l]) => <button key={k} className={cn("rounded px-2 py-0.5 text-[12px]", tab === k ? "bg-brand-700 text-white" : "bg-slate-100 text-slate-700 hover:bg-blue-50")} onClick={() => setTab(k)} data-testid={`diff-tab-${k}`}>{l} ({up.diff_summary?.[k] ?? 0})</button>)}</div>
+        <p className="mb-2 text-[12px] text-slate-600" data-testid="diff-intro">What changes if you move from <b>{imp.from ?? "the installed version"}</b> to <b>{imp.to ?? "the new version"}</b>: <b>added</b> = new rules, <b>removed</b> = rules dropped from the benchmark, <b>changed</b> = same rule with new title/check text, <b>severity</b> = the rule's CAT level changed. Click a tab to see the rules.</p>
+        <div className="mb-2 flex flex-wrap gap-2" data-testid="diff-summary">{DIFF_TABS.map(([k, l]) => <button key={k} title={DIFF_TIP[k]} className={cn("rounded px-2 py-0.5 text-[12px]", tab === k ? "bg-brand-700 text-white" : "bg-slate-100 text-slate-700 hover:bg-blue-50")} onClick={() => setTab(k)} data-testid={`diff-tab-${k}`}>{l} ({up.diff_summary?.[k] ?? 0})</button>)}</div>
         <div className="max-h-56 overflow-y-auto" data-testid="diff-list">{(imp.diff?.[tab] || []).map((r: Row, i: number) => <div key={i} className="border-b border-slate-100 py-1 text-[12px]">
           <span className="font-mono">{r.vuln_id ?? r}</span> {r.title}{r.old_severity && <b> {r.old_severity} → {r.new_severity}</b>}{r.old_title && r.old_title !== r.new_title && <div className="text-[11px] text-slate-500">was: {r.old_title}</div>}</div>)}</div>
         {imp.counts && <div className="my-3 grid grid-cols-4 gap-2">{Object.entries(imp.counts).map(([k, v]) => <Stat key={k} label={`Affected ${k}`} value={String(v)} testId={`impact-${k}`} />)}</div>}
@@ -115,8 +120,9 @@ export function MappingReviewPage() {
   const suggest = async (fid: string) => { try { const r = await api.post<Row>(`/findings/${fid}/suggest-mapping`); setMsg(`AI proposed ${r.data.suggested.join(", ") || "nothing valid"}${r.data.dropped_invalid.length ? ` (dropped invalid: ${r.data.dropped_invalid.join(", ")})` : ""}`); reload(); } catch (e) { setMsg(errorMessage(e)); } };
   return (
     <div data-testid="mapping-review-page">
-      <PageHeader title="Mapping review" subtitle="Suggested and low-confidence mappings need a human decision with justification. AI suggestions are proposals only." />
+      <PageHeader title="Mapping review" subtitle="Everything the app linked or suggested automatically waits here for a person: STIG rule → control mappings, Policy Auditor mappings and evidence-based status suggestions. Nothing changes until you approve." />
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="mapping-review-msg">{msg}</div>}
+      {data && <ReviewQueue sid={sid} queue={data.queue} counts={data.queue_counts} canMap={can("finding.map")} reload={reload} setMsg={setMsg} />}
       <Panel title={`Pending review (${data ? data.pending.length : "…"})`} className="mb-5" testId="mapping-pending">
         <Table head={["Finding", "Control", "Source", "Confidence", "Rationale", "Status", ""]}>
           {data?.pending.map((m: Row) => <tr key={m.id} data-testid={`pending-map-${m.id}`}><td className="td text-[12px]"><Link className="text-blue-800 underline" to={`/findings/${m.finding_id}`}>{m.vuln_id}</Link> {m.finding_title}</td>

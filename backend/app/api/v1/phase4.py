@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.api.v1.records import get_system, to_dict
 from app.db import get_db
 from app.models import (ContentUpdate, ContentVersion, ControlAssignment, EmassChange, EmassSyncRun, Evidence, Finding, FindingControlMap, Poam,
-                        PriorityWeight, ScheduledJob, StigRule, System)
+                        PriorityWeight, Policy, ScheduledJob, StigRule, System)
 from app.security.deps import CurrentUser, enforce, get_current_user, require_body_permission, require_object_permission, require_permission
 from app.services import audit, content_updates as cu, emass, oscal_export as ox, risk, scheduler
 from app.services import workflow as wf
@@ -142,7 +142,11 @@ def mapping_review(system_id: uuid.UUID, request: Request, db: Session = Depends
     pend = {str(r.finding_id): r.human_id for r in db.scalars(select(ApprovalRequest).where(ApprovalRequest.system_id == system_id,
                                                                                           ApprovalRequest.status == "pending",
                                                                                           ApprovalRequest.request_type == "finding_out_of_scope"))}
-    return {"pending": [{**to_dict(m), "finding_title": f.title, "vuln_id": f.vuln_id or f.plugin_id} for m, f in rows],
+    from app.services import review_queue as rq
+    sysobj = db.get(System, system_id)
+    queue = rq.status_suggestions(db, sysobj) + rq.policy_proposals(db, sysobj) + rq.automated_maps(db, system_id)
+    return {"queue": queue, "queue_counts": {k: sum(1 for q in queue if q["kind"] == k) for k in ("status", "policy_map", "finding_map")},
+            "pending": [{**to_dict(m), "finding_title": f.title, "vuln_id": f.vuln_id or f.plugin_id} for m, f in rows],
             "unmapped": [{**g, "host_count": len(set(g["hosts"])), "pending_disposition": next((pend[i] for i in g["finding_ids"] if i in pend), None)}
                          for g in groups.values()],
             "unmapped_findings_total": sum(len(g["finding_ids"]) for g in groups.values()),
@@ -204,6 +208,78 @@ def mapping_rule_action(body: RuleAction, request: Request, db: Session = Depend
 class MapReview(BaseModel):
     action: str = Field(pattern="^(approve|reject)$")
     justification: str = Field(min_length=10, max_length=2000)
+
+
+class QueueItem(BaseModel):
+    kind: str = Field(pattern="^(status|policy_map|finding_map)$")
+    ids: list[str] = Field(min_length=1)
+    control_id: str
+    evidence_fp: str | None = None
+
+
+class QueueDecision(BaseModel):
+    system_id: uuid.UUID
+    items: list[QueueItem] = Field(min_length=1, max_length=500)
+    action: str = Field(pattern="^(approve|reject|edit)$")
+    justification: str = Field(default="", max_length=2000)
+    edit_control_ids: list[str] = []
+
+
+@router.post("/mapping-review/decide")
+def mapping_review_decide(body: QueueDecision, request: Request, db: Session = Depends(get_db),
+                          current: CurrentUser = Depends(require_body_permission("finding.map"))) -> dict:
+    """Approve / reject / edit one or many queue items with ONE shared justification (required for reject and edit)."""
+    from app.models import ControlAssignment, PolicyControlMap
+    from app.services import audit, policy_mapping as pm, review_queue as rq
+    from app.services.evaluation import evaluate_system
+
+    enforce(request, current, "finding.map", body.system_id)
+    just = body.justification.strip()
+    if body.action in ("reject", "edit") and len(just) < 10:
+        raise HTTPException(422, "Please give a reason (at least 10 characters) – it is required to reject or edit and is kept in the audit history.")
+    edit = [c.strip().lower().replace("(", ".").replace(")", "") for c in body.edit_control_ids if c.strip()]
+    if body.action == "edit" and not edit:
+        raise HTTPException(422, "Choose the control(s) the mapping should point to instead")
+    system = db.get(System, body.system_id)
+    result = {"approved": 0, "rejected": 0, "edited": 0, "partial": []}
+    for it in body.items:
+        if it.kind == "finding_map":
+            rq.decide_finding_maps(db, it.ids, body.action, current.user, just, body.system_id, edit)
+        elif it.kind == "policy_map":
+            m = db.get(PolicyControlMap, uuid.UUID(it.ids[0]))
+            pol = db.get(Policy, m.policy_id) if m else None
+            if m is None or pol is None or pol.org_id != current.user.org_id:
+                raise HTTPException(404, "Policy mapping not found")
+            pm.decide(db, pol, m.control_id, "mapped" if body.action == "approve" else "rejected", current.user, just or None)
+            for c in edit if body.action == "edit" else []:
+                pm.decide(db, pol, c, "mapped", current.user, just)
+        else:
+            a = db.get(ControlAssignment, uuid.UUID(it.ids[0]))
+            if a is None or a.system_id != body.system_id:
+                raise HTTPException(404, "Control not found in this system")
+            if body.action != "approve":
+                rq.dismiss_status(db, system, a.control_id, it.evidence_fp or "", current.user, just)
+            else:
+                enforce(request, current, "implementation.write", body.system_id)
+                before = {"implementation_status": a.implementation_status, "assessment_status": a.assessment_status}
+                a.implementation_status = "implemented"
+                try:   # separation of duties: only the assessor role may set the assessment result
+                    enforce(request, current, "assessment.perform", body.system_id)
+                    a.assessment_status = "satisfied"
+                except HTTPException:
+                    result["partial"].append(a.control_id)
+                ev = [e["id"] for e in next((s for s in rq.status_suggestions(db, system) if s["control_id"] == a.control_id), {"evidence": []})["evidence"]]
+                audit.record(db, action="control.status_suggestion_approved", actor_user_id=current.user.id, actor_email=current.user.email,
+                             entity_type="control_assignment", entity_id=str(a.id), before=before,
+                             after={"implementation_status": a.implementation_status, "assessment_status": a.assessment_status, "evidence_ids": ev,
+                                    "justification": just}, **audit.request_meta(request))
+        result[{"approve": "approved", "reject": "rejected", "edit": "edited"}[body.action]] += 1
+    audit.record(db, action=f"mapping_review.{body.action}", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
+                 entity_id=str(body.system_id), after={"items": [i.model_dump() for i in body.items], "justification": just, "edit": edit},
+                 **audit.request_meta(request))
+    evaluate_system(db, body.system_id)
+    db.commit()
+    return result
 
 
 @router.post("/mappings/{map_id}/review")

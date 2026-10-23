@@ -255,3 +255,32 @@ def parse_sarif(data: bytes) -> list[dict]:
 PARSERS = {"ckl": parse_ckl, "cklb": parse_cklb, "nessus_xml": parse_nessus_xml, "nessus_csv": parse_nessus_csv, "xccdf": parse_xccdf,
            "sarif": parse_sarif}
 SOURCE_TYPE = {"ckl": "stig_checklist", "cklb": "stig_checklist", "xccdf": "stig_checklist", "sarif": "sarif"}
+
+
+def stig_header(fmt: str, data: bytes) -> dict:
+    """STIG name / version / release / benchmark date from the source file (.ckl STIG_INFO, .cklb, XCCDF Benchmark)."""
+    import re
+    out = {"title": None, "version": None, "release": None, "date": None}
+    try:
+        if fmt == "ckl":
+            info = {s.findtext("SID_NAME"): s.findtext("SID_DATA") for s in _safe_xml(data).iterfind(".//STIG_INFO/SI_DATA")}
+            out.update(title=info.get("title") or info.get("stigid"), version=info.get("version"), release=info.get("releaseinfo"))
+        elif fmt == "cklb":
+            s = (json.loads(data.decode("utf-8-sig")).get("stigs") or [{}])[0]
+            out.update(title=s.get("display_name") or s.get("stig_name"), version=s.get("version"), release=s.get("release_info"))
+        elif fmt == "xccdf":
+            root = _safe_xml(data)
+            bench = next((e for e in root.iter() if e.tag.split("}")[-1] == "Benchmark"), root)
+            kids = {c.tag.split("}")[-1]: c for c in bench}
+            rel = next((e.text for e in bench if e.tag.split("}")[-1] == "plain-text" and e.get("id") == "release-info"), None)
+            out.update(title=kids["title"].text if "title" in kids else None, version=kids["version"].text if "version" in kids else None, release=rel,
+                       date=kids["status"].get("date") if "status" in kids else None)
+    except Exception:  # noqa: BLE001 – header is informational; the rule table comes from stored observations
+        return out
+    m = re.search(r"Benchmark Date:\s*([^\n]+)", out["release"] or "")
+    if m and not out["date"]:
+        out["date"] = m.group(1).strip()
+    rm = re.search(r"Release:\s*(\S+)", out["release"] or "")
+    if rm:
+        out["release"] = rm.group(1)
+    return out

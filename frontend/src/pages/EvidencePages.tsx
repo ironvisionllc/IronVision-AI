@@ -11,6 +11,7 @@ import { ControlLink, NeedSystem, S, Sev, Table } from "@/components/common/Bits
 import { fmtDate } from "@/lib/format";
 import { AddToPoamButton } from "@/components/common/Workflow";
 import { showNextStep } from "@/components/common/NextStep";
+import { StigDetail } from "@/components/evidence/StigDetail";
 
 /** Upload rejection in plain language: what happened · how to fix it · accepted formats. */
 function UploadError({ e, onClose }: { e: { file: string; text: string }; onClose: () => void }) {
@@ -145,7 +146,11 @@ export function IngestRunPage() {
       {r.status === "duplicate" && <div className="panel mb-4 border-sky-300 bg-sky-50 p-3 text-sm text-sky-900" data-testid="duplicate-notice">Duplicate upload: identical SHA-256 already ingested. Not re-processed or double-counted. Showing results of the original run.</div>}
       {data.evidence && <div className="mb-4 font-mono text-[11px] text-slate-600" data-testid="run-evidence-hash">evidence sha256 {data.evidence.sha256} · signature {data.evidence.signature_status} · integrity {data.evidence.integrity_status}</div>}
       {err && <div className="mb-3 text-sm text-rose-700" role="alert">{err}</div>}
-      <Panel title={`Unmapped (${unmapped.length})`} eyebrow="No authoritative/approved mapping – requires explicit mapping or disposition" className="mb-5" testId="unmapped-panel">
+      {["ckl", "cklb", "xccdf"].includes(r.file_format) && <StigDetail runId={r.duplicate_of_run_id ?? r.id} />}
+      <Panel title={`Unmapped (${unmapped.length})`} eyebrow="These results are not linked to any NIST 800-53 control yet" className="mb-5" testId="unmapped-panel">
+        {unmapped.length > 0 && <div className="mb-3 rounded bg-slate-50 p-3 text-[12px] text-slate-700" data-testid="unmapped-explainer">
+          <b>What this means:</b> the app links a result to a control through DISA's CCI list (STIG rule → CCI → NIST 800-53 Rev 5 control). A result lands here when its CCI has <b>no Rev 5 mapping</b> in that list (some CCIs map only to Rev 4 or were retired), or when it names no CCI at all (e.g. vulnerability scan results).
+          <div className="mt-1"><b>What to do:</b> either <b>Map</b> it to the control it supports (vulnerabilities usually belong to RA-5 Vulnerability Monitoring or SI-2 Flaw Remediation), or choose <b>No control needed</b> with a reason if it doesn&apos;t affect any control in your 800-53 ATO. Both are recorded with your reason.</div></div>}
         <Table head={["Finding", "Asset", "State", "CCIs / CVEs", "Map to control / disposition (justification required)"]}>
           {unmapped.map((f: Row) => (
             <tr key={f.id} data-testid={`unmapped-${f.rule_id}-${f.asset_name}`}>
@@ -156,7 +161,7 @@ export function IngestRunPage() {
                   <input className="input w-24" placeholder="ra-5" onChange={(e) => setEdit({ ...edit, [f.id]: { ...edit[f.id], control_id: e.target.value } })} data-testid={`map-control-${f.id}`} />
                   <input className="input" placeholder="Justification (min 10 chars)" onChange={(e) => setEdit({ ...edit, [f.id]: { ...edit[f.id], justification: e.target.value } })} data-testid={`map-justification-${f.id}`} />
                   <button className="btn-primary px-2 py-1 text-xs" onClick={() => send(f.id, "map")} data-testid={`map-btn-${f.id}`}>Map</button>
-                  <button className="btn-secondary px-2 py-1 text-xs" onClick={() => send(f.id, "disposition")} data-testid={`disposition-btn-${f.id}`}>Disposition</button>
+                  <button className="btn-secondary px-2 py-1 text-xs" onClick={() => send(f.id, "disposition")} data-testid={`disposition-btn-${f.id}`} title="Record that this result does not need a control mapping (reason required)">No control needed</button>
                 </div>) : "—"}</td>
             </tr>
           ))}

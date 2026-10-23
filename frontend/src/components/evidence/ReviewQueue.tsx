@@ -1,0 +1,65 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { api, errorMessage } from "@/lib/api";
+import { Row } from "@/lib/useApi";
+import { Panel } from "@/components/common/Panel";
+import { showNextStep } from "@/components/common/NextStep";
+
+const KIND: Record<string, string> = { status: "Status suggestion", policy_map: "Policy → control", finding_map: "STIG rule → control" };
+const fmt = (c: string) => c.toUpperCase().replace(/\.(\d+)$/, "($1)");
+
+/** Unified review queue: approve / reject / edit, one at a time or in bulk, with one shared justification. */
+export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg }: { sid: string; queue: Row[]; counts: Row; canMap: boolean; reload: () => void; setMsg: (m: string) => void }) {
+  const [sel, setSel] = useState<string[]>([]);
+  const [kind, setKind] = useState("");
+  const [just, setJust] = useState("");
+  const [editTo, setEditTo] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const rows = queue.filter((q) => !kind || q.kind === kind);
+  const toggle = (k: string) => setSel(sel.includes(k) ? sel.filter((x) => x !== k) : [...sel, k]);
+  const decide = async (action: string, keys: string[]) => {
+    setErr("");
+    if (action !== "approve" && just.trim().length < 10) { setErr("Write a reason (at least 10 characters) in the box above – it is required to reject or edit and is kept in the audit history."); return; }
+    if (action === "edit" && !editTo.trim()) { setErr("Enter the control(s) the mapping should point to instead, e.g. AC-17(2)."); return; }
+    const items = queue.filter((q) => keys.includes(q.key)).map((q) => ({ kind: q.kind, ids: q.ids, control_id: q.control_id, evidence_fp: q.evidence_fp }));
+    setBusy(true);
+    try {
+      const r = await api.post<Row>("/mapping-review/decide", { system_id: sid, items, action, justification: just, edit_control_ids: editTo.split(/[,\s]+/).filter(Boolean) });
+      const n = r.data.approved + r.data.rejected + r.data.edited;
+      const part = r.data.partial.length ? ` Assessment status was left for the assessor (SCA) on ${r.data.partial.map(fmt).join(", ")} – your role can't set it.` : "";
+      setMsg(`${n} item(s) ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "edited"}.${part}`);
+      showNextStep({ message: `${n} review item(s) ${action}d.`, label: "review the updated controls in the Workbench", to: `/systems/${sid}/controls` });
+      setSel([]); setJust(""); setEditTo(""); reload();
+    } catch (e) { setErr(`Nothing was changed: ${errorMessage(e)}`); } finally { setBusy(false); }
+  };
+  return (
+    <Panel title={`Review queue (${queue.length})`} className="mb-5" testId="review-queue">
+      <div className="mb-2 flex flex-wrap gap-2 text-[12px]">
+        {[["", `All (${queue.length})`], ["status", `Status suggestions (${counts.status})`], ["policy_map", `Policy mappings (${counts.policy_map})`], ["finding_map", `STIG mappings (${counts.finding_map})`]].map(([k, l]) =>
+          <button key={k} className={`rounded px-2 py-0.5 ${kind === k ? "bg-brand-700 text-white" : "bg-slate-100"}`} onClick={() => setKind(k)} data-testid={`queue-tab-${k || "all"}`}>{l}</button>)}
+      </div>
+      {queue.length === 0 ? <div className="text-[13px] text-slate-600" data-testid="queue-empty">Nothing to review. New items appear here after you upload STIG/scan results or a policy. <Link className="text-blue-800 underline" to="/evidence-sources">Upload evidence →</Link></div> : <>
+        {canMap && <div className="mb-3 rounded bg-slate-50 p-2" data-testid="queue-bulk-bar">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="text-[12px]"><input type="checkbox" checked={rows.length > 0 && rows.every((r) => sel.includes(r.key))} onChange={(e) => setSel(e.target.checked ? rows.map((r) => r.key) : [])} data-testid="queue-select-all" /> Select all shown</label>
+            <span className="text-[12px] text-slate-600" data-testid="queue-selected-count">{sel.length} selected</span>
+            <button className="btn-primary px-2 py-0.5 text-[12px]" disabled={!sel.length || busy} onClick={() => decide("approve", sel)} data-testid="queue-bulk-approve">Approve selected</button>
+            <button className="btn-secondary px-2 py-0.5 text-[12px]" disabled={!sel.length || busy} onClick={() => decide("reject", sel)} data-testid="queue-bulk-reject">Reject selected</button>
+            <input className="input w-40" placeholder="Edit to control, e.g. AC-17(2)" value={editTo} onChange={(e) => setEditTo(e.target.value)} data-testid="queue-edit-to" />
+            <button className="btn-secondary px-2 py-0.5 text-[12px]" disabled={!sel.length || busy} onClick={() => decide("edit", sel)} data-testid="queue-bulk-edit" title="Replace the suggested control with the one you enter (reason required)">Edit selected</button>
+          </div>
+          <input className="input mt-2" placeholder="Reason / justification – shared by all selected items (required to reject or edit)" value={just} onChange={(e) => setJust(e.target.value)} data-testid="queue-justification" />
+          {err && <div className="mt-1 text-[12px] text-rose-700" role="alert" data-testid="queue-error">{err}</div>}
+        </div>}
+        <div className="max-h-[560px] overflow-y-auto"><table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-slate-500"><th /><th>Type</th><th>Control</th><th>What was found</th><th>Why it was suggested</th><th>Evidence</th><th /></tr></thead><tbody>
+          {rows.map((q) => <tr key={q.key} className="border-t border-slate-100 align-top" data-testid={`queue-item-${q.key}`}>
+            <td className="py-1">{canMap && <input type="checkbox" checked={sel.includes(q.key)} onChange={() => toggle(q.key)} data-testid={`queue-check-${q.key}`} />}</td>
+            <td className="py-1 whitespace-nowrap">{KIND[q.kind]}</td><td className="py-1 font-mono font-semibold">{fmt(q.control_id)}</td>
+            <td className="py-1">{q.policy_id ? <Link className="text-blue-800 underline" to={`/policy-auditor/${q.policy_id}`}>{q.title}</Link> : q.title}{q.current && <div className="text-[10px] text-slate-500">now: {q.current.implementation.replace(/_/g, " ")} · {q.current.assessment.replace(/_/g, " ")}</div>}</td>
+            <td className="max-w-[320px] py-1 text-[11px] text-slate-600">{q.source}: {q.reasoning}{(q.snippets || []).slice(0, 1).map((s: string) => <div key={s}>“{s}”</div>)}</td>
+            <td className="py-1 text-[11px]">{(q.evidence || []).map((e: Row) => <div key={e.id}><Link className="text-blue-800 underline" to={`/evidence-ledger?evidence=${e.id}`}>{e.file_name}</Link></div>)}</td>
+            <td className="py-1">{canMap && <button className="btn-primary px-2 py-0.5 text-[11px]" disabled={busy} onClick={() => decide("approve", [q.key])} data-testid={`queue-approve-${q.key}`}>Approve</button>}</td></tr>)}
+        </tbody></table></div></>}
+    </Panel>);
+}
