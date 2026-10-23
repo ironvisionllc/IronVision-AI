@@ -12,6 +12,7 @@ import { fmtDate } from "@/lib/format";
 import { AddToPoamButton } from "@/components/common/Workflow";
 import { showNextStep } from "@/components/common/NextStep";
 import { StigDetail } from "@/components/evidence/StigDetail";
+import { SampleFilesLink } from "@/components/shell/Sandbox";
 
 /** Upload rejection in plain language: what happened · how to fix it · accepted formats. */
 function UploadError({ e, onClose }: { e: { file: string; text: string }; onClose: () => void }) {
@@ -31,6 +32,97 @@ function UploadError({ e, onClose }: { e: { file: string; text: string }; onClos
 
 const sourceKey = (all: { source_type?: unknown }[], i: number) => { const n = all.slice(0, i).filter((x) => x.source_type === all[i].source_type).length; return n ? `${String(all[i].source_type)}-${n + 1}` : String(all[i].source_type); };
 
+const UPLOAD_KINDS: [string, string][] = [
+  ["DISA STIG checklist (.ckl, .cklb)", "After a STIG Viewer review of a host or application."],
+  ["SCAP / XCCDF results (.xml, incl. ARF)", "Automated SCAP Compliance Checker or OpenSCAP benchmark scans."],
+  ["ACAS / Nessus (.nessus or CSV export)", "Vulnerability scans exported from ACAS / Tenable.sc / Nessus."],
+  ["SARIF (.sarif / .json)", "Static code or container scans exported from a pipeline."],
+  ["Policy or procedure (.docx, .pdf)", "Sent to the Policy Auditor and mapped to the -1 policy controls."],
+];
+
+function UploadFilePanel({ sid, sources, types, onUploaded }: { sid: string; sources: Row[]; types: Row[]; onUploaded: () => void }) {
+  const { can } = useAuth();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [src, setSrc] = useState("");
+  const [err, setErr] = useState<{ file: string; text: string } | null>(null);
+  const [msg, setMsg] = useState("");
+  const [newSrc, setNewSrc] = useState<Row | null>(null);
+  const fileTypes = types.filter((t) => t.adapter_mode === "file_import");
+  const upload = async (f: File) => {
+    setErr(null); setMsg("");
+    try {
+      if (/\.(docx|pdf)$/i.test(f.name)) {
+        const fd = new FormData(); fd.append("file", f); fd.append("title", f.name.replace(/\.[^.]+$/, "")); fd.append("owner", ""); fd.append("system_ids", sid);
+        const r = await api.post<Row>("/policies", fd);
+        setMsg(`Policy “${f.name}” uploaded (version ${r.data.version}) – the Policy Auditor is analysing it.`);
+        showNextStep({ message: `Policy “${f.name}” uploaded.`, label: "review its control mappings in the Policy Auditor", to: "/policy-auditor" });
+      } else {
+        const fd = new FormData(); fd.append("file", f); if (src) fd.append("source_id", src);
+        const r = await api.post<Row>(`/systems/${sid}/uploads`, fd);
+        setMsg(`“${f.name}” received – processing (status: ${r.data.status}). Results appear under “Latest ingest” in a few seconds.`);
+        showNextStep({ message: `Scan “${f.name}” uploaded.`, label: "see the controls it affects in the Control Workbench", to: `/systems/${sid}/controls` });
+      }
+    } catch (e) { setErr({ file: f.name, text: errorMessage(e) }); }
+    setTimeout(onUploaded, 3000);
+  };
+  const createSrc = async () => {
+    try { await api.post(`/systems/${sid}/sources`, newSrc); setNewSrc(null); onUploaded(); setMsg(`Source “${newSrc?.name}” created – pick it below when you upload its files.`); }
+    catch (e) { setErr({ file: newSrc?.name ?? "source", text: errorMessage(e) }); }
+  };
+  return (
+    <Panel title="Upload a file" eyebrow="Manual or air-gapped – never asks for credentials" testId="upload-panel">
+      <ul className="mb-3 text-[12px]" data-testid="upload-kinds">{UPLOAD_KINDS.map(([k, w]) => <li key={k} className="border-b border-slate-100 py-1"><b className="font-medium">{k}</b> – <span className="text-slate-600">{w}</span></li>)}</ul>
+      <p className="mb-2 text-[11px] text-slate-500">The format is detected from the file content, not just its extension.</p>
+      {err && <UploadError e={err} onClose={() => setErr(null)} />}
+      {msg && <div className="mb-2 rounded bg-emerald-50 p-2 text-[12px] text-emerald-900" role="status" data-testid="upload-msg">{msg}</div>}
+      {can("ingest.upload") ? <div className="flex flex-wrap items-end gap-2">
+        <label className="text-[12px] font-medium text-slate-700">Link to a source (optional)
+          <select className="input mt-1 w-72" value={src} onChange={(e) => setSrc(e.target.value)} data-testid="upload-source-select"
+            title="Linking groups repeated uploads (e.g. monthly ACAS exports) under one source so its history and freshness are tracked">
+            <option value="">One-off file – don't link to a source</option>
+            {sources.filter((s) => s.adapter_mode === "file_import").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+        <input ref={fileRef} type="file" accept=".ckl,.cklb,.xml,.nessus,.csv,.sarif,.json,.docx,.pdf" className="hidden" onChange={(e) => { if (e.target.files?.[0]) upload(e.target.files[0]); e.target.value = ""; }} data-testid="upload-file-input" />
+        <button className="btn-primary" onClick={() => fileRef.current?.click()} data-testid="upload-btn"><Upload className="h-4 w-4" />Choose file and upload</button>
+      </div> : <p className="text-[12px] text-slate-600" data-testid="upload-denied">Uploading needs the “ingest.upload” permission (ISSO, System Owner or DevSecOps).</p>}
+      <p className="mt-2 text-[11px] text-slate-500">“One-off file” = upload without linking to a source – use it for single files. For files you upload regularly, create a file source so they are grouped:
+        {can("source.manage") && <button className="ml-1 underline" onClick={() => setNewSrc({ name: "", source_type: "stig_checklist" })} data-testid="create-file-source-btn">create a file source</button>}</p>
+      {newSrc && <div className="mt-2 flex flex-wrap gap-2" data-testid="file-source-form">
+        <input className="input w-48" placeholder="Name, e.g. Monthly ACAS" value={newSrc.name} onChange={(e) => setNewSrc({ ...newSrc, name: e.target.value })} data-testid="file-source-name" />
+        <select className="input w-56" value={newSrc.source_type} onChange={(e) => setNewSrc({ ...newSrc, source_type: e.target.value })} data-testid="file-source-type">
+          {fileTypes.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}</select>
+        <button className="btn-primary" onClick={createSrc} data-testid="file-source-save">Create</button>
+        <span className="w-full text-[11px] text-slate-500">{fileTypes.find((t) => t.key === newSrc.source_type)?.when}</span></div>}
+      <div className="mt-3"><SampleFilesLink /></div>
+    </Panel>);
+}
+
+function ConnectToolPanel({ sid, types, onSaved }: { sid: string; types: Row[]; onSaved: () => void }) {
+  const { can } = useAuth();
+  const live = types.filter((t) => t.adapter_mode !== "file_import");
+  const [f, setF] = useState<Row>({ name: "", source_type: "", credential: "" });
+  const [m, setM] = useState<{ ok?: string; err?: string }>({});
+  const type = live.find((t) => t.key === (f.source_type || live[0]?.key));
+  const save = async () => {
+    try { await api.post(`/systems/${sid}/sources`, { name: f.name, source_type: type?.key, credential: f.credential || undefined });
+      setF({ name: "", source_type: "", credential: "" }); onSaved(); setM({ ok: `Connected “${f.name}”. Use “Test connection”, then “Run collection” on its card below.` });
+    } catch (e) { setM({ err: errorMessage(e) }); }
+  };
+  return (
+    <Panel title="Connect a tool" eyebrow="Live API sources – the only place that asks for a token" testId="source-form">
+      <ul className="mb-3 text-[12px]">{live.map((t) => <li key={t.key} className="border-b border-slate-100 py-1"><b className="font-medium">{t.label}</b> – <span className="text-slate-600">{t.when}</span></li>)}</ul>
+      {m.ok && <div className="mb-2 rounded bg-emerald-50 p-2 text-[12px] text-emerald-900" role="status" data-testid="connect-ok">{m.ok}</div>}
+      {m.err && <div className="mb-2 rounded bg-rose-50 p-2 text-[12px] text-rose-800" role="alert" data-testid="connect-error">{m.err}</div>}
+      {can("source.manage") ? <div className="grid gap-2 md:grid-cols-2">
+        <select className="input" value={type?.key ?? ""} onChange={(e) => setF({ ...f, source_type: e.target.value })} data-testid="source-type">{live.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}</select>
+        <input className="input" placeholder="Name, e.g. Prod GovCloud account" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} data-testid="source-name" />
+        <input className="input md:col-span-2" type="password" placeholder="API token / credential (stored encrypted, never shown again)" value={f.credential} onChange={(e) => setF({ ...f, credential: e.target.value })} data-testid="source-credential" />
+        <button className="btn-primary md:col-span-2" onClick={save} disabled={!f.name} data-testid="source-save-btn">Connect</button>
+        <p className="text-[11px] text-slate-500 md:col-span-2">In this deployment these connectors are MOCK/DEMO adapters: they generate synthetic results and make no network calls.</p>
+      </div> : <p className="text-[12px] text-slate-600">Connecting tools needs the “source.manage” permission (ISSO or System Owner).</p>}
+    </Panel>);
+}
+
+
 export function SourcesPage() {
   const { selectedId: sid } = useSystems();
   const { can } = useAuth();
@@ -38,46 +130,26 @@ export function SourcesPage() {
   const runs = useApi<Row[]>(sid ? `/systems/${sid}/ingest-runs` : null);
   const { data: types } = useApi<Row[]>("/source-types");
   const [msg, setMsg] = useState<Record<string, string>>({});
-  const [form, setForm] = useState<Row | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploadSrc, setUploadSrc] = useState("");
-  const [uploadErr, setUploadErr] = useState<{ file: string; text: string } | null>(null);
   if (!sid) return <NeedSystem />;
   const act = async (key: string, fn: () => Promise<{ data: Row }>) => {
     try { const r = await fn(); setMsg({ ...msg, [key]: r.data.message ?? `Status: ${r.data.status}` }); sources.reload(); runs.reload(); }
     catch (e) { setMsg({ ...msg, [key]: errorMessage(e) }); }
   };
-  const upload = async (f: File) => {
-    const fd = new FormData(); fd.append("file", f); if (uploadSrc) fd.append("source_id", uploadSrc);
-    setUploadErr(null);
-    try {
-      const r = await api.post<Row>(`/systems/${sid}/uploads`, fd);
-      setMsg({ ...msg, upload: `“${f.name}” received – processing (status: ${r.data.status}). Results appear in the table below in a few seconds.` });
-      showNextStep({ message: `Scan “${f.name}” uploaded.`, label: "see the controls it affects in the Control Workbench", to: `/systems/${sid}/controls` });
-    } catch (e) { setUploadErr({ file: f.name, text: errorMessage(e) }); }
-    setTimeout(() => { runs.reload(); sources.reload(); }, 3000);
-  };
   return (
     <div data-testid="sources-page">
-      <PageHeader title="Evidence Sources" subtitle="All metrics computed from the database. Non-file connectors are MOCK/DEMO adapters.">
-        {can("source.manage") && <button className="btn-secondary" onClick={() => setForm({ name: "", source_type: "manual_upload", credential: "" })} data-testid="add-source-btn">Add source</button>}
+      <PageHeader title="Evidence Sources" subtitle="Add evidence for this system: upload exported files, or connect a tool that sends results automatically. All counts are computed from the database; live API connectors are MOCK/DEMO adapters in this deployment.">
+        <a className="btn-secondary" href="#add-evidence" data-testid="add-source-btn">Add evidence</a>
       </PageHeader>
-      {sources.data && sources.data.length === 0 && !form && (
+      {sources.data && sources.data.length === 0 && runs.data?.length === 0 && (
         <div className="panel mb-5 p-6" data-testid="sources-empty">
-          <div className="t-title text-slate-900">Add a source or upload a scan</div>
-          <p className="mt-1 text-[13px] text-slate-600">This system has no evidence yet. Add a source (file import or a MOCK connector), or upload a STIG checklist (.ckl/.cklb), ACAS export (.nessus/.csv), SCAP XCCDF or SARIF file below.</p>
+          <div className="t-title text-slate-900">This system has no evidence yet</div>
+          <p className="mt-1 text-[13px] text-slate-600">Most teams start by uploading a STIG checklist or an ACAS scan with <b>Upload a file</b> below. Use <b>Connect a tool</b> only for tools that can send results over an API.</p>
         </div>
       )}
-      {form && (
-        <Panel title="Add evidence source" className="mb-5" testId="source-form">
-          <div className="grid grid-cols-4 gap-2">
-            <input className="input" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="source-name" />
-            <select className="input" value={form.source_type} onChange={(e) => setForm({ ...form, source_type: e.target.value })} data-testid="source-type">{types?.map((t) => <option key={t.key} value={t.key}>{t.label} ({t.adapter_mode})</option>)}</select>
-            <input className="input" type="password" placeholder="Credential / API token (stored encrypted server-side)" value={form.credential} onChange={(e) => setForm({ ...form, credential: e.target.value })} data-testid="source-credential" />
-            <button className="btn-primary" onClick={() => act("form", () => api.post(`/systems/${sid}/sources`, { ...form, credential: form.credential || undefined })).then(() => setForm(null))} data-testid="source-save-btn">Save</button>
-          </div>
-        </Panel>
-      )}
+      <div id="add-evidence" className="mb-5 grid gap-5 xl:grid-cols-2" data-testid="add-evidence">
+        <UploadFilePanel sid={sid} sources={sources.data ?? []} types={types ?? []} onUploaded={() => { runs.reload(); sources.reload(); }} />
+        <ConnectToolPanel sid={sid} types={types ?? []} onSaved={sources.reload} />
+      </div>
       <div className="mb-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {sources.data?.map((s, i, all) => { const tk = sourceKey(all, i); return (
           <div key={s.id} className="panel p-4" data-testid={`source-card-${tk}`}>
@@ -100,15 +172,8 @@ export function SourcesPage() {
           </div>
         ); })}
       </div>
-      <Panel title="Latest ingest" testId="ingest-runs-panel" actions={can("ingest.upload") && (
-        <div className="flex gap-2">
-          <select className="input w-56" value={uploadSrc} onChange={(e) => setUploadSrc(e.target.value)} data-testid="upload-source-select"><option value="">(no source)</option>{sources.data?.filter((s) => s.adapter_mode === "file_import").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-          <input ref={fileRef} type="file" accept=".ckl,.cklb,.xml,.nessus,.csv,.sarif,.json" className="hidden" onChange={(e) => { if (e.target.files?.[0]) upload(e.target.files[0]); e.target.value = ""; }} data-testid="upload-file-input" />
-          <button className="btn-primary" onClick={() => fileRef.current?.click()} data-testid="upload-btn" title="DISA STIG checklists (.ckl, .cklb), SCAP / XCCDF results (.xml, incl. SCAP Compliance Checker and ARF), Nessus / ACAS (.nessus or CSV), SARIF"><Upload className="h-4 w-4" />Upload scan results</button>
-        </div>)}>
-        <p className="mb-2 text-[12px] text-slate-600">Upload scan or checklist results for this system. Accepted: DISA STIG checklists (.ckl, .cklb), SCAP/XCCDF results (.xml – SCAP Compliance Checker, OpenSCAP, ARF), Nessus/ACAS (.nessus or CSV export), SARIF. The format is detected from the file content. Policy documents (.docx/.pdf) go to the Policy Auditor.</p>
-        {uploadErr && <UploadError e={uploadErr} onClose={() => setUploadErr(null)} />}
-        {msg.upload && <div className="mb-2 text-[12px] text-slate-700" data-testid="upload-msg">{msg.upload}</div>}
+      <Panel title="Latest ingest" testId="ingest-runs-panel">
+        <p className="mb-2 text-[12px] text-slate-600">Every uploaded or collected file appears here. Open a row to see its rules / findings and how they mapped to controls.</p>
         <Table head={["Received", "Source", "File", "Status", "Results", "Mapped results", "Unmapped results", "Controls touched", "SHA-256"]} testId="ingest-runs-table">
           {runs.data?.map((r) => (
             <tr key={r.id} data-testid={`ingest-run-${r.id}`}>

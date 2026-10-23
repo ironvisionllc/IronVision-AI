@@ -12,7 +12,7 @@ from app.models import (Asset, ControlAssignment, Evidence, EvidenceControl, Evi
                         FreshnessPolicy, IngestRun, IntegrityCheck)
 from app.security.deps import CurrentUser, enforce, get_current_user, require_object_permission, require_permission
 from app.services import audit, jobs
-from app.services.connectors import SOURCE_TYPES, adapter_for
+from app.services.connectors import SOURCE_TYPES, SOURCE_WHEN, adapter_for
 from app.services.evaluation import evaluate_freshness, evaluate_system
 from app.services.ingest.parsers import ParseError
 from app.services.ingest.pipeline import receive_upload
@@ -44,7 +44,7 @@ def _source_out(db: Session, s: EvidenceSource) -> dict:
 
 @router.get("/source-types")
 def source_types(_: CurrentUser = Depends(get_current_user)) -> list[dict]:
-    return [{"key": k, "label": v[0], "adapter_mode": v[1]} for k, v in SOURCE_TYPES.items()]
+    return [{"key": k, "label": v[0], "adapter_mode": v[1], "when": SOURCE_WHEN.get(k, "")} for k, v in SOURCE_TYPES.items()]
 
 
 @router.get("/systems/{system_id}/sources")
@@ -70,6 +70,9 @@ def create_source(system_id: uuid.UUID, body: SourceIn, db: Session = Depends(ge
                   current: CurrentUser = Depends(require_permission("source.manage"))) -> dict:
     if body.source_type not in SOURCE_TYPES or not body.name:
         raise HTTPException(422, "name and a valid source_type are required")
+    if SOURCE_TYPES[body.source_type][1] == "file_import" and body.credential:
+        raise HTTPException(422, "File-upload sources never take credentials – you upload exported files instead. "
+                                 "Use “Connect a tool” for live API sources that need a token.")
     s = EvidenceSource(system_id=get_system(db, system_id).id, name=body.name, source_type=body.source_type,
                        adapter=SOURCE_TYPES[body.source_type][1], config=body.config or {}, schedule_hours=body.schedule_hours,
                        secret_ciphertext=SecretStore().encrypt(body.credential) if body.credential else None, source="ui")

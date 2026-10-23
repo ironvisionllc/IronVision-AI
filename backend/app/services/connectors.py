@@ -22,6 +22,21 @@ SOURCE_TYPES = {
 }
 EVIDENCE_TYPE = {"devsecops_pipeline": "pipeline", "aws_govcloud": "cloud_config", "azure_gov": "cloud_config",
                  "manual_attestation": "training", "on_prem": "on_prem_config", "emass": "emass_record"}
+SOURCE_WHEN = {
+    "emass": "Pull system and control records from your eMASS instance (needs an eMASS API key).",
+    "aws_govcloud": "Collect configuration evidence from an AWS GovCloud account (needs an access role / key).",
+    "azure_gov": "Collect configuration evidence from an Azure Government subscription (needs a service principal).",
+    "devsecops_pipeline": "Receive scan results automatically from a CI/CD pipeline (needs a pipeline token).",
+    "on_prem": "A collector inside your network that pushes host and network configuration (needs a collector token).",
+    "manual_attestation": "Track people-based evidence such as training completion or signed rules of behavior.",
+    "acas": "Recurring ACAS / Tenable / Nessus exports (.nessus or CSV) you upload yourself.",
+    "stig_checklist": "DISA STIG Viewer checklists (.ckl / .cklb) you upload after each review.",
+    "scap": "SCAP Compliance Checker / OpenSCAP results (XCCDF or ARF .xml).",
+    "disconnected": "Air-gapped or classified enclaves: export files on the inside, upload them here.",
+    "oscal_catalog": "Load an OSCAL catalog or profile file.",
+    "manual_upload": "Any other recurring exported file you want grouped under one name.",
+    "sarif": "SAST / container scan results exported as SARIF (.sarif / .json).",
+}
 
 
 class ConnectorAdapter:
