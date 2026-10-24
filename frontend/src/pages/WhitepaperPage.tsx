@@ -28,6 +28,7 @@ export default function WhitepaperPage() {
             {CHAPTERS.map((c) => <li key={c} className="flex gap-2"><span className="text-blue-700">•</span>{c}</li>)}
           </ul>
         </div>
+        <Link to="/demo-video" className="mt-8 mr-6 inline-block text-[13px] text-blue-800 underline" data-testid="whitepaper-demo-video-link">Watch the product demo video</Link>
         <Link to="/login" className="mt-8 inline-block text-[13px] text-blue-800 underline" data-testid="whitepaper-back-login">Back to sign in</Link>
       </main>
     </div>

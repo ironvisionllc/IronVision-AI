@@ -23,7 +23,9 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [diff, setDiff] = useState<Row | null>(null);
-  useEffect(() => { setNarr(d.implementations[0]?.narrative ?? ""); setAi(null); }, [d]);
+  // reset only when the control or its latest saved version changes – quiet background refreshes must not discard an unsaved draft
+  const latestKey = `${controlId}:${d.implementations[0]?.id ?? ""}:${d.implementations[0]?.version ?? ""}`;
+  useEffect(() => { setNarr(d.implementations[0]?.narrative ?? ""); setAi(null); }, [latestKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const versions: Row[] = d.implementations;
   const latest = versions[0];
   const approved = d.approved_implementation;

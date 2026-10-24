@@ -258,7 +258,7 @@ def generate(db: Session, wb: TrWorkbook, populate: bool = False) -> dict:
             stale = stale or e.state not in ("current", "near_expiration")
             src.append({"type": "evidence", "id": str(e.id), "label": f"Evidence {e.file_name} ({e.collected_at:%Y-%m-%d}, SHA-256 {e.sha256[:12]}…){' – STALE' if e.state not in ('current', 'near_expiration') else ''}"})
         for p in poams.get(cid, [])[:3]:
-            src.append({"type": "poam", "id": str(p.id), "label": f"POA&M “{p.title[:60]}” ({p.status})"})
+            src.append({"type": "poam", "id": str(p.id), "label": f"POA&M {p.human_id} “{p.weakness[:60]}” ({p.status})"})
             parts.append(src[-1]["label"])
         sugg = "Non-Compliant" if opn or acas.get(cid) else ("Compliant" if any(f.current_state in ("pass", "not_applicable") for f in st)
                                                              or any(c.status == "met" for c in cov.get(cci, [])) else None)

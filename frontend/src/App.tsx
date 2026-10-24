@@ -9,6 +9,7 @@ import LoginPage from "@/pages/LoginPage";
 import ControlsPage from "@/pages/ControlsPage";
 import AdminPage from "@/pages/AdminPage";
 import WhitepaperPage from "@/pages/WhitepaperPage";
+import DemoVideoPage from "@/pages/DemoVideoPage";
 import DocsCenterPage from "@/pages/DocsCenterPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import LeadershipPage from "@/pages/LeadershipPage";
@@ -114,6 +115,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/whitepaper" element={<WhitepaperPage />} />
+          <Route path="/demo-video" element={<DemoVideoPage />} />
           <Route path="/*" element={<Protected><Shell /></Protected>} />
         </Routes>
       </AuthProvider>

@@ -1,0 +1,115 @@
+1
+00:00:00,000 --> 00:00:06,000
+This is IronVision AI: human-approved AI for the NIST Risk Management Framework.
+
+2
+00:00:06,500 --> 00:00:13,000
+Everything here runs in a shared demonstration workspace with synthetic data, one click from sign-in.
+
+3
+00:00:13,500 --> 00:00:20,000
+Personas let one presenter act as ISSO, assessor and AO, and every action stays labelled.
+
+4
+00:00:20,000 --> 00:00:31,000
+The RMF overview is the command center: all seven NIST 800-37 steps, computed from live records, with the criteria behind every status.
+
+5
+00:00:31,000 --> 00:00:36,000
+Ongoing work and the single next action are always one click away.
+
+6
+00:00:36,000 --> 00:00:45,000
+As the ISSM, the portfolio shows authorizations, CAT I and KEV exposure, overdue POA&Ms, and what is waiting on you.
+
+7
+00:00:45,000 --> 00:00:56,000
+Prepare and Categorize start at registration: name the system, assign the RMF key roles, and answer whether it is a National Security System.
+
+8
+00:00:56,000 --> 00:01:02,000
+Step one tracks every required role. Here, the assessor is still missing.
+
+9
+00:01:02,000 --> 00:01:08,000
+Federal systems use FIPS 199: information types roll up to a high-water mark.
+
+10
+00:01:08,000 --> 00:01:16,000
+For a national security system, CNSSI 1253 keeps confidentiality, integrity and availability separate, and prompts for the Privacy Overlay.
+
+11
+00:01:16,000 --> 00:01:25,000
+Integrity was raised to High with a recorded rationale, and the change waited for the AO's approval before it took effect.
+
+12
+00:01:25,500 --> 00:01:35,000
+Select then applies the CNSSI 1253 baseline: five hundred fifty-nine controls, each traced to its source table, plus overlays, tailoring and parameters.
+
+13
+00:01:35,500 --> 00:01:47,500
+Implementation happens in the Control Workbench. For AC-2, the ISSO sees status, supporting evidence with hashes and freshness, open findings and mapped policies in one place.
+
+14
+00:01:48,000 --> 00:01:58,000
+AI can draft the statement, grounded in that evidence with validated citations. It is labelled as AI and never auto-approved.
+
+15
+00:01:58,500 --> 00:02:20,000
+Mapping Review puts the control requirement next to the exact policy passage. Automated matching and AI only propose; a person accepts, rejects or overrides with a justification. Nothing changes a compliance record until a human decides.
+
+16
+00:02:20,000 --> 00:02:26,000
+Evidence arrives as STIG, SCAP, ACAS or Nessus files. Live connectors here are mocked.
+
+17
+00:02:26,000 --> 00:02:36,000
+Each ingest run is hashed, deduplicated and mapped through CCIs to NIST 800-53 controls, including this Log4j finding from an ACAS scan.
+
+18
+00:02:36,500 --> 00:02:49,000
+Test Results imports the eMASS Test Result template and is designed to preserve it. Rows are proposed from assessments, scans and evidence; AI explains each row.
+
+19
+00:02:49,500 --> 00:03:05,000
+Only the Security Control Assessor approves a result, and must record who actually tested and when. AI never sets compliance status, tester or test date.
+
+20
+00:03:05,000 --> 00:03:16,000
+The authorization package brings together the SSP, assessment results, POA&Ms and risk acceptances, with OSCAL exports. The ISSO can submit it, but the decision is AO-only.
+
+21
+00:03:16,000 --> 00:03:24,000
+POA&Ms rank risk, flag KEV and CAT I items, and show sync status with a mocked eMASS connector.
+
+22
+00:03:24,000 --> 00:03:45,000
+After ISSM endorsement, the Authorizing Official records the decision: ATO, ATO with conditions, IATT or denial, with rationale and expiration. Separation of duties is enforced; no one approves their own work, and in a real organization that means a different person.
+
+23
+00:03:45,000 --> 00:03:53,000
+Continuous monitoring watches evidence freshness, CAT I findings, CISA KEV and overdue POA&Ms.
+
+24
+00:03:53,000 --> 00:04:00,000
+The Evidence Ledger keeps every artifact with its SHA-256 hash, provenance and versions.
+
+25
+00:04:00,000 --> 00:04:05,500
+Traceability links each control to evidence, findings, POA&Ms and assessment.
+
+26
+00:04:06,000 --> 00:04:25,000
+And every action, including each review and approval, lands in a hash-chained, append-only audit log you can verify and export.
+
+27
+00:04:25,000 --> 00:04:33,000
+From preparation to continuous monitoring, the whole lifecycle stays in one place.
+
+28
+00:04:33,500 --> 00:04:46,000
+IronVision AI: human-approved AI for the NIST Risk Management Framework. AI does the heavy lifting; people keep the authority.
+
+29
+00:04:46,500 --> 00:04:56,000
+Get audit-ready, and stay audit-ready. Request your demo today.
