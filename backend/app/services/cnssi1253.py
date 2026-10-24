@@ -1,6 +1,7 @@
 """CNSSI No. 1253 (29 July 2022) Appendix D NSS baselines: selection per security objective (Task S-1, §3.2.1, p. 10).
 Data: content/cnssi1253_baselines.json (parsed by scripts/parse_cnssi1253.py from the SHA-256-pinned source PDF)."""
 import json
+import re
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -154,3 +155,57 @@ def accept(db: Session, s: System, actor, expected_to: str) -> dict:
                                                            "added": added, "removed": gone,
                                                            "kept_with_work": p["keep_with_work"]})
     return {"added": len(added), "removed": len(gone), "kept_with_work": len(p["keep_with_work"]), "applied": p["to"]}
+
+
+PRIVACY_OVERLAY = "CNSSI 1253F Privacy Overlay (Attachment 6)"
+
+
+def privacy_gap(db: Session) -> list[str]:
+    """NIST SP 800-53B privacy-baseline controls marked '--' in the Appendix D privacy column (left to the Privacy Overlay)."""
+    from app.services.systems import baseline_control_ids
+
+    dash = {r["control_id"] for r in rows() if r["privacy_baseline"] == "--"}
+    return sorted(set(baseline_control_ids(db, "privacy")) & dash, key=lambda c: (c.split("-")[0], [int(x) for x in re.findall(r"\d+", c)]))
+
+
+def privacy_prompt(db: Session, s: System) -> dict | None:
+    """NSS + PII yes / unknown → prompt to apply the Privacy Overlay; coverage only as recorded in the overlay data."""
+    from app.models import Control, Overlay
+    from app.services.content.loader import active_catalog_id
+
+    pii = "yes" if s.processes_pii else "unknown" if (s.pta or {}).get("pii_status") == "unknown" and s.processes_pii is None else None
+    if s.categorization_mode != "cnssi1253" or not pii:
+        return None
+    gap = privacy_gap(db)
+    ovs = list(db.scalars(select(Overlay).where(Overlay.group_key == "privacy", Overlay.is_active.is_(True)).order_by(Overlay.overlay_key)))
+    applied = next((o for o in ovs if o.overlay_key in (s.overlay_keys or [])), None)
+    titles = dict(db.execute(select(Control.control_id, Control.title).where(Control.catalog_version_id == active_catalog_id(db), Control.control_id.in_(gap))).all())
+
+    def cov(o, cid):
+        d = (o.details or {}).get(cid)
+        return (d.get("detail_page") or True) if cid in (o.controls_add or []) and d and d.get("action") != "remove" else None
+
+    items = []
+    for cid in gap:
+        pages = {o.variant: cov(o, cid) for o in ovs}
+        page = next((p for p in pages.values() if p not in (None, True)), None)
+        base = {"control_id": cid, "title": titles.get(cid), "variants": [v for v, p in pages.items() if p]}
+        if applied:
+            ok = cov(applied, cid)
+            base["coverage"] = (f"covered by Privacy Overlay p. {ok}" if ok not in (None, True) else "covered by Privacy Overlay") if ok else \
+                f"not covered by the applied Privacy Overlay ({applied.variant}) – SME review"
+            base["covered"] = bool(ok)
+        else:
+            base["coverage"] = (f"covered by Privacy Overlay p. {page}" if page else "covered by Privacy Overlay") if base["variants"] and len(base["variants"]) == len(ovs) else \
+                (f"covered only by the {', '.join(base['variants'])} variant(s), p. {page}" if base["variants"] else "not covered by the Privacy Overlay – SME review")
+            base["covered"] = bool(base["variants"])
+        items.append(base)
+    n = len(gap)
+    by_variant = {o.variant: sum(1 for c in gap if cov(o, c)) for o in ovs}
+    if applied:
+        k = sum(1 for i in items if i["covered"])
+        return {"state": "applied", "pii": pii, "count": n, "covered": k, "variant": applied.variant, "overlay_key": applied.overlay_key, "items": items,
+                "by_variant": by_variant, "message": f"Privacy Overlay applied – {k} of {n} covered"}
+    return {"state": "prompt", "pii": pii, "count": n, "items": items, "by_variant": by_variant, "link": "/rmf/select?overlay=privacy",
+            "message": f"This system handles PII. CNSSI 1253 leaves {n} NIST privacy-baseline controls to the {PRIVACY_OVERLAY}. "
+                       "Apply the Privacy Overlay to select them."}

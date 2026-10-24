@@ -132,7 +132,10 @@ def categorization_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: 
     keep = ("categorization_mode", "information_types", "confidentiality_impact", "integrity_impact", "availability_impact", "categorization",
             "categorization_detail", "mission_criticality", "system_type", "acquisition_category", "authorization_type", "operating_environment",
             "environment_detail", "processes_pii", "pta", "baseline_key", "include_privacy", "nss_determination", "applicability_flags")
-    return {k: getattr(s, k) for k in keep}
+    out = {k: getattr(s, k) for k in keep}
+    from app.services import cnssi1253
+
+    return {**out, "privacy_prompt": cnssi1253.privacy_prompt(db, s)}
 
 
 @router.put("/systems/{system_id}/categorization")
@@ -188,7 +191,7 @@ def select_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
     groups = [g for g in groups if g["available"] or any(v.get("applied") for v in g.get("variants", [])) or g["group"] in ("privacy", "classified")]
 
     return {"baseline_key": s.baseline_key, "framework": s.categorization_mode, "review_flags": review_flags(s),
-            "cnssi": _cnssi_view(db, s),
+            "cnssi": _cnssi_view(db, s), "privacy_prompt": _privacy_prompt(db, s),
             "classified_information": (s.applicability_flags or {}).get("classified_information"), "recommended_baseline": (s.categorization or "").lower() or None, "include_privacy": s.include_privacy,
             "processes_pii": s.processes_pii, "overlay_keys": s.overlay_keys or [], "counts": system_counts(db, s),
             "overlay_groups": groups,
@@ -210,6 +213,12 @@ def select_overlay_controls(system_id: uuid.UUID, overlay_key: str, db: Session 
 class BaselineIn(BaseModel):
     baseline_key: str = Field(pattern="^(low|moderate|high)$")
     include_privacy: bool = False
+
+
+def _privacy_prompt(db: Session, s) -> dict | None:
+    from app.services import cnssi1253
+
+    return cnssi1253.privacy_prompt(db, s)
 
 
 def _cnssi_view(db: Session, s) -> dict | None:
@@ -235,6 +244,55 @@ def _cnssi_view(db: Session, s) -> dict | None:
 
 class CnssiAcceptIn(BaseModel):
     to: str = Field(pattern="^[LMH]-[LMH]-[LMH]$")
+
+
+class AdoptItem(BaseModel):
+    control_id: str = Field(max_length=50)
+    parameter_id: str = Field(max_length=100)
+
+
+class AdoptIn(BaseModel):
+    items: list[AdoptItem] = []
+    control_id: str | None = Field(None, max_length=50)  # bulk: every mapped CNSSI value of this control
+    family: str | None = Field(None, pattern="^[a-z]{2}$")  # bulk: every mapped CNSSI value of this family's assigned controls
+    confirm_conflicts: bool = False
+
+
+@router.post("/systems/{system_id}/parameters/cnssi-adopt")
+def adopt_cnssi_values(system_id: uuid.UUID, body: AdoptIn, db: Session = Depends(get_db),
+                       current: CurrentUser = Depends(require_permission("system.write"))):
+    from fastapi.responses import JSONResponse
+
+    from app.models import ControlAssignment
+    from app.services import cnssi_params
+
+    s = get_system(db, system_id)
+    items = [(i.control_id.lower(), i.parameter_id) for i in body.items]
+    if body.control_id or body.family:
+        m = cnssi_params.mapping(db)
+        have = set(db.scalars(select(ControlAssignment.control_id).where(ControlAssignment.system_id == s.id)))
+        ids = [body.control_id.lower()] if body.control_id else sorted(c for c in have if c.split("-")[0] == body.family)
+        items += [(c, p) for c in ids if c in have for p in (m.get(c) or {}).get("odps", {})]
+    if not items:
+        raise HTTPException(422, "No CNSSI 1253 values to adopt for this selection")
+    try:
+        out = cnssi_params.adopt(db, s, items, body.confirm_conflicts, current.user)
+    except cnssi_params.Conflict as c:
+        return JSONResponse(status_code=409, content={"detail": "Confirm the conflicts to replace them", "conflicts": c.items})
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    db.commit()
+    return out
+
+
+@router.post("/systems/{system_id}/parameters/cnssi-adopt/{event_id}/undo")
+def undo_cnssi_values(system_id: uuid.UUID, event_id: uuid.UUID, db: Session = Depends(get_db),
+                      current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+    from app.services import cnssi_params
+
+    out = _err(cnssi_params.undo, db, get_system(db, system_id), event_id, current.user)
+    db.commit()
+    return out
 
 
 @router.post("/systems/{system_id}/select/cnssi-baseline")

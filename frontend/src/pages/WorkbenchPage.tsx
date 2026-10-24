@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { CnssiParams } from "@/components/rmf/CnssiParams";
 import { useAuth } from "@/context/AuthContext";
 import { useSystems } from "@/context/SystemContext";
 import { api, errorMessage } from "@/lib/api";
@@ -227,6 +228,7 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
       </Panel>}
       <StatusSection systemId={systemId} controlId={controlId} d={d} reload={() => { reload(); onChange(); }} />
       <MappedPoliciesPanel d={d} />
+      {d.cnssi_parameters && <CnssiParams sid={systemId} cid={controlId} p={d.cnssi_parameters} reload={reload} />}
       <ImplementationPanel systemId={systemId} controlId={controlId} d={d} reload={() => { reload(); onChange(); }} />
       <Panel title="POA&Ms for this control" testId="wb-poams">{d.poams.length === 0 ? <div className="text-[12px] text-slate-500">None</div> : d.poams.map((p: Row) => <div key={p.id} className="text-[12px]"><PoamLink id={p.id} humanId={p.human_id} /> {p.weakness} <S v={p.status} /> due {p.due_date ?? "—"}</div>)}</Panel>
       <Panel title="SCA assessment" testId="wb-assessment-panel"><AssessmentPanel systemId={systemId} controlId={controlId} objectives={c.objectives} onDone={() => { reload(); onChange(); }} /></Panel>

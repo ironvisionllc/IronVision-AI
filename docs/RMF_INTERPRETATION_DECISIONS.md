@@ -75,3 +75,54 @@ Sources consulted on the web: DISA Cloud Computing SRG (dl.dod.cyber.mil/wp-cont
 - A changed trigraph (after re-approval) or an existing NSS system shows a proposal: "CNSSI 1253 baseline loaded – N added / M removed – review". It is applied only on Accept.
 - On Accept, tailored-out controls stay out, and baseline controls with statement, evidence or assessment work are kept as tailored in, never dropped.
 - The PTA defaults and ACCT layering SME items are unchanged.
+
+## CNSSI 1253 parameter values (Appendix D "Parameter Value" column)
+
+The notation is defined in Appendix D, pp. D-2–D-3: a paragraph label ("a.", "c.1.") and/or "1st PV" / "2nd PV" locates a value, and no annotation means the control has only one value to define. `backend/app/services/cnssi_params.py` ties a value to a Rev 5 ODP only when that is unambiguous:
+- Each catalog placeholder is matched to its ODP by its exact rendered text, in reading order. If any placeholder can't be matched, the whole control stays at control level.
+- The paragraph is resolved from the statement's labels (a., 1., (a)).
+- "Nth PV" is counted only where the paragraph has no nested placeholders.
+- A placeholder that aggregates several ODPs (e.g. the policy and procedures "personnel or roles") is never split.
+
+Result: 162 controls carry a value. 204 values are mapped to single ODPs, and 27 stay at control level ("applies to control – choose parameter"). Those 27 are listed below; none was guessed.
+
+| Control | Source | Document text | Why not mapped |
+|---|---|---|---|
+| AC-16 | Table D-1 p. D-13 | “f. 2nd PV: 90 days” | placeholder covers several ODPs (ac-16_odp.10, ac-16_odp.11) |
+| AT-1 | Table D-2 p. D-19 | “a. all personnel” | placeholder covers several ODPs (at-01_odp.01, at-01_odp.02) |
+| AT-2 | Table D-2 p. D-19 | “a.1. at least annually” | placeholder covers several ODPs (at-02_odp.01, at-02_odp.02) |
+| AU-1 | Table D-3 p. D-22 | “a. all personnel” | placeholder covers several ODPs (au-01_odp.01, au-01_odp.02) |
+| CM-14 | Table D-5 p. D-43 | “any software and firmware” | placeholder covers several ODPs (cm-14_odp.01, cm-14_odp.02) |
+| CM-3.4 | Table D-5 p. D-35 | “1st PV: at a minimum, the” | placeholder covers several ODPs (cm-03.04_odp.01, cm-03.04_odp.02) |
+| CM-5.5 | Table D-5 p. D-37 | “5.b. at least annually” | placeholder covers several ODPs (cm-05.05_odp.01, cm-05.05_odp.02) |
+| CM-7 | Table D-5 p. D-39 | “b. all functions, ports,” | placeholder covers several ODPs (cm-07_odp.02, cm-07_odp.03, cm-07_odp.04, cm-07_odp.05, cm-07_odp.06) |
+| CM-7.1 | Table D-5 p. D-39 | “b. all functions, ports,” | placeholder covers several ODPs (cm-07.01_odp.02, cm-07.01_odp.03, cm-07.01_odp.04, cm-07.01_odp.05, cm-07.01_odp.06) |
+| CP-1 | Table D-6 p. D-44 | “a. at a minimum, key” | placeholder covers several ODPs (cp-01_odp.01, cp-01_odp.02) |
+| CP-10 | Table D-6 p. D-50 | “a time period as defined in” | placeholder covers several ODPs (cp-10_odp.01, cp-10_odp.02) |
+| CP-2 | Table D-6 p. D-44 | “b. key personnel or roles and” | placeholder covers several ODPs (cp-02_odp.03, cp-02_odp.04) |
+| CP-2 | Table D-6 p. D-44 | “f. key personnel and” | placeholder covers several ODPs (cp-02_odp.06, cp-02_odp.07) |
+| CP-4 | Table D-6 p. D-46 | “a. 2nd PV: tests as defined” | placeholder covers several ODPs (cp-04_odp.02, cp-04_odp.03) |
+| CP-9.1 | Table D-6 p. D-49 | “at least monthly or as” | placeholder covers several ODPs (cp-09.01_odp.01, cp-09.01_odp.02) |
+| IR-8 | Table D-8 p. D-64 | “d. all personnel with a role” | placeholder covers several ODPs (ir-08_odp.06, ir-08_odp.05, ir-08_odp.07) |
+| MA-4.1 | Table D-9 p. D-67 | “a. as defined in the” | placeholder covers several ODPs (ma-04.01_odp.01, ma-04.01_odp.02) |
+| MP-2 | Table D-10 p. D-69 | “1st PV: all types of digital” | placeholder covers several ODPs (mp-02_odp.01, mp-02_odp.03) |
+| MP-6.2 | Table D-10 p. D-70 | “at least annually” | placeholder covers several ODPs (mp-06.02_odp.01, mp-06.02_odp.02) |
+| PM-17 | Table D-13 p. D-81 | “b. at least annually” | placeholder covers several ODPs (pm-17_odp.01, pm-17_odp.02) |
+| PM-25 | Table D-13 p. D-82 | “d. at least annually” | placeholder covers several ODPs (pm-25_odp.01, pm-25_odp.02, pm-25_odp.03, pm-25_odp.04) |
+| RA-5 | Table D-16 p. D-90 | “a. at least every 30 days” | placeholder covers several ODPs (ra-05_odp.01, ra-05_odp.02) |
+| SI-3 | Table D-19 p. D-125 | “c.2 1st PV: block and” | '1st PV' counted within nested parameters |
+| SI-3 | Table D-19 p. D-125 | “c.2 2nd PV: system” | '2nd PV' counted within nested parameters |
+| SI-4.4 | Table D-19 p. D-126 | “b. 1st PV: continuously” | placeholder covers several ODPs (si-04.04_odp.01, si-04.04_odp.03) |
+| SI-5 | Table D-19 p. D-128 | “a. minimally the US-CERT” | catalog statement has 5 placeholders for 5 ODPs (order not verifiable) |
+| SR-1 | Table D-20 p. D-137 | “a. at a minimum, key” | placeholder covers several ODPs (sr-01_odp.01, sr-01_odp.02) |
+
+Adopting a value sets the system ODP with source "CNSSI 1253 (2022) Table D-x p. D-n", the adopter and the date. It is audited (`system.parameter_cnssi_adopted`) and can be undone (`system.parameter_cnssi_undone` restores the previous value). Before replacing a differing policy value, overlay value or other system value it returns 409 and lists the conflicts, and the user must confirm.
+
+## Privacy Overlay prompt (NSS + PII)
+
+- **Gap:** the 27 controls are computed as (NIST SP 800-53B privacy baseline) ∩ (rows marked "--" in the Appendix D Privacy Control Baseline column). The legend (p. D-1) says these "are addressed in the Privacy Overlay".
+- **Coverage:** taken only from the loaded CNSSI 1253F Attachment 6 overlay data (controls_add plus a detail entry that is not "remove", with its page).
+  - Low, Moderate and High each cover 27 of 27.
+  - ACCT covers 23 of 27. It does not cover SA-4, SC-7(24), SI-12(2) or SI-19.
+  - When ACCT is applied, those four show "not covered by the applied Privacy Overlay (acct) – SME review".
+- **Display:** the prompt appears in Categorize, in the Select overlays panel and as the stepper's next action (once Prepare and Categorize are complete). It shows for PII = Yes or Unknown only, never for FIPS systems, and the overlay is never applied automatically.

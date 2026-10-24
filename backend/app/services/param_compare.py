@@ -73,6 +73,8 @@ def rows(db: Session, s: System, family: str | None = None, status: str | None =
         for name in sorted({k.removeprefix("overlay:") for k in so} | set(po)):  # named parameters not mapped to a catalog ODP id
             pol = po.get(name)
             out.append(_row(cid, name, "Named parameter (not mapped to a catalog ODP id)", pol, so.get(name), so.get(f"overlay:{name}"), (pol or {}).get("title")))
+    if s.categorization_mode == "cnssi1253":
+        out = _with_cnssi(db, out)
     if policy_id:
         out = [r for r in out if r["policy_value"]]
     if family:
@@ -85,6 +87,37 @@ def rows(db: Session, s: System, family: str | None = None, status: str | None =
     return out
 
 
-def table(rs: list[dict], extra: list[tuple[str, str]] | None = None) -> tuple[list[str], list[list]]:
-    cols = (extra or []) + COLUMNS
+CNSSI_COLUMNS = [("cnssi_value", "CNSSI 1253 value"), ("cnssi_ref", "CNSSI 1253 reference"), ("cnssi_status_label", "CNSSI comparison")]
+CNSSI_STATUS = {"matches": "Matches CNSSI", "differs": "Differs from CNSSI", "not_set": "Not set – CNSSI value available"}
+CONTROL_LEVEL = "(control level)"
+
+
+def _with_cnssi(db: Session, out: list[dict]) -> list[dict]:
+    """NSS systems: CNSSI 1253 Appendix D value beside each mapped ODP; values not tied to one ODP become a control-level row."""
+    from app.services import cnssi_params
+
+    m = cnssi_params.mapping(db)
+    res, seen = [], set()
+    for r in out:
+        cid = (r["enhancement"] or r["control_id"]).lower()
+        mc = m.get(cid)
+        v = (mc or {}).get("odps", {}).get(r["parameter_id"])
+        if v:
+            st = "not_set" if not r["effective_value"] else "matches" if _norm(r["effective_value"]) == _norm(v["value"]) else "differs"
+            r = {**r, "cnssi_value": v["value"], "cnssi_ref": f"{mc['table']}, p. {mc['doc_page']}", "cnssi_source": mc["source"],
+                 "cnssi_status": st, "cnssi_status_label": CNSSI_STATUS[st]}
+        res.append(r)
+        if mc and mc["control_level"] and cid not in seen:
+            seen.add(cid)
+            for x in mc["control_level"]:
+                res.append({**{k: "" for k, _ in COLUMNS}, "control_id": r["control_id"], "enhancement": r["enhancement"], "parameter_id": CONTROL_LEVEL,
+                            "description": f"CNSSI 1253 value applies to control – choose parameter ({x['reason']})", "status": "not_set",
+                            "status_label": "CNSSI value at control level – choose parameter", "effective_value": None,
+                            "cnssi_value": x["value"], "cnssi_ref": f"{mc['table']}, p. {mc['doc_page']}", "cnssi_status": "control_level",
+                            "cnssi_status_label": "applies to control – choose parameter", "cnssi_annotation": x["annotation"]})
+    return res
+
+
+def table(rs: list[dict], extra: list[tuple[str, str]] | None = None, tail: list[tuple[str, str]] | None = None) -> tuple[list[str], list[list]]:
+    cols = (extra or []) + COLUMNS + (tail or [])
     return [lbl for _, lbl in cols], [[r.get(k) for k, _ in cols] for r in rs]

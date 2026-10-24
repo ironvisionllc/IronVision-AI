@@ -719,11 +719,14 @@ def _param_system(db: Session, system_id: uuid.UUID, current: CurrentUser) -> Sy
 def system_param_comparison(system_id: uuid.UUID, family: str | None = None, status: str | None = None, q: str | None = None, limit: int = 100, offset: int = 0,
                             db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
     """The on-screen parameter comparison; the CSV export uses the same rows and filters."""
-    rs = param_compare.rows(db, _param_system(db, system_id, current), family, status, q)
+    s = _param_system(db, system_id, current)
+    rs = param_compare.rows(db, s, family, status, q)
     counts: dict = {}
     for r in rs:
         counts[r["status"]] = counts.get(r["status"], 0) + 1
-    return {"columns": [{"key": k, "label": lbl} for k, lbl in param_compare.COLUMNS], "omitted_columns": param_compare.OMITTED,
+    nss = s.categorization_mode == "cnssi1253"
+    return {"columns": [{"key": k, "label": lbl} for k, lbl in param_compare.COLUMNS + (param_compare.CNSSI_COLUMNS if nss else [])],
+            "omitted_columns": param_compare.OMITTED, "cnssi": nss,
             "statuses": param_compare.STATUS, "counts": counts, "total": len(rs), "items": rs[offset: offset + min(limit, 500)]}
 
 
@@ -731,7 +734,7 @@ def system_param_comparison(system_id: uuid.UUID, family: str | None = None, sta
 def export_system_params(system_id: uuid.UUID, family: str | None = None, status: str | None = None, q: str | None = None, db: Session = Depends(get_db),
                          current: CurrentUser = Depends(require_permission("system.read"))) -> Response:
     s = _param_system(db, system_id, current)
-    header, data = param_compare.table(param_compare.rows(db, s, family, status, q))
+    header, data = param_compare.table(param_compare.rows(db, s, family, status, q), tail=param_compare.CNSSI_COLUMNS if s.categorization_mode == "cnssi1253" else None)
     return _csv_or_empty(header, data, f"{s.acronym or 'system'}-parameter-comparison.csv",
                          "No parameter rows match - this system has no assigned controls with parameters for the current filters.")
 

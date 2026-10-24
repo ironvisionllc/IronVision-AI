@@ -294,6 +294,12 @@ def steps(db: Session, s: System) -> dict:
                "Review continuous monitoring", "/rmf/monitor", cnt["labels"]["with_current_evidence"])))
     rows = [{"key": k, "number": i + 1, "label": lbl, **v} for i, (k, lbl, v) in enumerate(out)]
     nxt = next((r for r in rows if r["status"] != "complete"), None)
+    from app.services import cnssi1253
+
+    pp = cnssi1253.privacy_prompt(db, s)
+    if pp and pp["state"] == "prompt" and (nxt is None or nxt["key"] not in ("prepare", "categorize")):  # NSS + PII: Privacy Overlay not yet applied
+        return {"system": {"id": str(s.id), "name": s.name, "acronym": s.acronym}, "steps": rows, "privacy_prompt": pp["message"],
+                "next_action": {"step": "Select", "label": f"Apply the Privacy Overlay ({pp['count']} privacy controls left to it)", "link": pp["link"]}}
     return {"system": {"id": str(s.id), "name": s.name, "acronym": s.acronym}, "steps": rows,
             "next_action": ({"step": nxt["label"], **nxt["next_action"]} if nxt else
                             {"step": "Monitor", "label": "All steps complete – keep monitoring", "link": "/rmf/monitor"})}

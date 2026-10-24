@@ -224,6 +224,7 @@ def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(
         "policy_mappings": _policy_mappings(db, a),
         "assignment": {**to_dict(a), "provider_name": prov.name if prov else None, "selection_basis": _selection_basis(sysobj, a),
                        "reason_details": [{**r, "description": weights.get(r["code"])} for r in (a.reasons or [])]},
+        "cnssi_parameters": _cnssi_parameters(db, sysobj, a.control_id),
         "catalog": catalog,
         "cci_provenance": {"source": "DISA CCI List", "version": cci_cv.version if cci_cv else None, "sha256": cci_cv.sha256 if cci_cv else None},
         "evidence_summary": [{"source_type": k, "assets_scanned": len(v["assets"]), "failed_rules": len(v["failed_rules"]), "passed_checks": v["passed"]}
@@ -507,6 +508,12 @@ def save_status(system_id: uuid.UUID, control_id: str, body: StatusIn, request: 
     evaluate_system(db, system_id)
     db.commit()
     return {"implementation_status": a.implementation_status, "status_last_changed": _status_last_changed(db, a)}
+
+
+def _cnssi_parameters(db: Session, s, cid: str) -> dict | None:
+    from app.services import cnssi_params
+
+    return cnssi_params.control_view(db, s, cid)
 
 
 def _selection_basis(s, a: ControlAssignment) -> str | None:

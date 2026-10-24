@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSearchParams as _usp } from "react-router-dom";
 import { api, errorMessage } from "@/lib/api";
@@ -17,6 +17,7 @@ import { AuthStrategy } from "@/components/rmf/AuthStrategy";
 import { CategorizationApproval } from "@/components/rmf/CategorizationApproval";
 import { PtaPanel } from "@/components/rmf/PtaPanel";
 import { CnssiBaseline } from "@/components/rmf/CnssiBaseline";
+import { PrivacyOverlayPrompt } from "@/components/rmf/PrivacyOverlayPrompt";
 import { PageSizeSelect, Pager, usePageSize, usePaged } from "@/components/common/PageSize";
 import { downloadFile } from "@/lib/download";
 import { Gated } from "@/components/common/RoleGate";
@@ -96,6 +97,7 @@ export function CategorizePage() {
   return (
     <StepFrame k="categorize" title="Step 2 · Categorize" purpose="Choose the kinds of information the system handles. The app applies NIST's provisional impact levels, takes the high-water mark (FIPS 199) and picks the matching 800-53B baseline.">
       <Msg m={m} />
+      <PrivacyOverlayPrompt p={data?.privacy_prompt} />
       {v && <CategorizeForm v={v} onChange={setV} />}
       {v && <label className="mt-4 block text-[12px] font-medium text-slate-700">Categorization rationale<textarea className="input mt-1" rows={2} value={v.rationale ?? ""}
         onChange={(e) => setV({ ...v, rationale: e.target.value })} placeholder="Why these types and impacts (recorded with the revision)" data-testid="cat-rationale" /></label>}
@@ -155,9 +157,13 @@ function OverlayControls({ sid, k }: { sid: string; k: string }) {
 
 function OverlayGroup({ sid, g, busy, apply }: { sid: string; g: Row; busy: boolean; apply: (key: string, on: boolean, title: string) => void }) {
   const [open, setOpen] = useState(false);
+  const [sp] = _usp();
+  const focus = sp.get("overlay") === g.group;
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (focus) ref.current?.scrollIntoView({ block: "center" }); }, [focus]);
   const cur = g.variants.find((v: Row) => v.applied);
   return (
-    <div className="border-t border-slate-100 py-3" data-testid={`overlay-group-${g.group}`}>
+    <div ref={ref} className={`border-t border-slate-100 py-3 ${focus ? "rounded ring-2 ring-amber-400 ring-offset-2" : ""}`} data-testid={`overlay-group-${g.group}`} data-focused={focus || undefined}>
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-[260px] flex-1"><b className="text-[13px]">{g.title}</b>
           {g.document && <span className="ml-1 text-[11px] text-slate-500" title={`SHA-256 ${g.document.sha256} · ${g.document.marking}`}>{g.document.cite} · {g.document.date}</span>}
@@ -211,6 +217,7 @@ function Overlays({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
       <p className="text-[11px] text-slate-500">Control lists are parsed from the official CNSS documents (file, date and SHA-256 shown on hover). Removing an overlay reverses exactly its own changes.</p>
       {(d.review_flags || []).map((f: Row, i: number) => <p key={i} className="mb-2 rounded bg-amber-50 p-2 text-[11px] text-amber-900" data-testid={`overlay-review-flag-${i}`}>{f.message} ({f.value})</p>)}
       {d.framework !== "cnssi1253" && <p className="mb-2 rounded bg-blue-50 p-2 text-[11px] text-blue-900" data-testid="overlay-fips-note">This system uses FIPS 199 (non-NSS): CNSSI 1253 overlays do not apply. Privacy controls come from the NIST SP 800-53B privacy baseline, selected through the PTA / PII determination.</p>}
+      <PrivacyOverlayPrompt p={d.privacy_prompt} onApply={() => document.querySelector("[data-testid=overlay-group-privacy]")?.scrollIntoView({ block: "center" })} />
       {(d.overlay_groups || []).map((g: Row) => <OverlayGroup key={g.group} sid={sid} g={g} busy={busy || !can("system.write")} apply={apply} />)}
       {legacy.length > 0 && <table className="mt-3 w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th className="py-1">Other overlays</th><th>Controls</th><th>Status</th><th /></tr></thead><tbody>
         {legacy.map((o: Row) => <tr key={o.key} className="border-t border-slate-100 align-top" data-testid={`overlay-${o.key}`}>

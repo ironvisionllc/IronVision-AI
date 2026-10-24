@@ -2,18 +2,26 @@ import { useState } from "react";
 import { useApi, Row } from "@/lib/useApi";
 import { Panel } from "@/components/common/Panel";
 import { downloadFile } from "@/lib/download";
+import { useAuth } from "@/context/AuthContext";
+import { adoptCnssi } from "@/components/rmf/CnssiParams";
 
 /** On-screen ODP comparison; the CSV export uses the same endpoint rows and the same filters. */
 export function ParameterComparison({ sid }: { sid: string }) {
+  const { can } = useAuth();
   const [f, setF] = useState<Record<string, string>>({ family: "", status: "", q: "" });
   const [page, setPage] = useState(0);
   const qs = new URLSearchParams(Object.fromEntries(Object.entries(f).filter(([, v]) => v))).toString();
-  const { data } = useApi<Row>(`/systems/${sid}/parameter-comparison?${qs}&limit=50&offset=${page * 50}`);
+  const { data, reload } = useApi<Row>(`/systems/${sid}/parameter-comparison?${qs}&limit=50&offset=${page * 50}`);
   const set = (k: string, v: string) => { setF({ ...f, [k]: v }); setPage(0); };
+  const fam = f.family.trim().toLowerCase();
+  const bulk = data?.cnssi && /^[a-z]{2}$/.test(fam) && can("system.write");
   return (
     <Panel title="Parameter comparison (organization-defined parameters)" testId="param-compare"
-      actions={<button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => downloadFile(`/systems/${sid}/parameters.csv?${qs}`, "parameter-comparison.csv", "Parameter comparison")}
-        data-testid="param-compare-export">Export these rows (CSV)</button>}>
+      actions={<div className="flex gap-1">{bulk && <button className="btn-secondary px-2 py-0.5 text-[11px]" data-testid="param-cnssi-adopt-family"
+        onClick={() => window.confirm(`Adopt all CNSSI 1253 values for the ${fam.toUpperCase()} family? Current values are kept in history and can be undone.`) && adoptCnssi(sid, { family: fam }, reload)}>
+        Adopt all CNSSI values for {fam.toUpperCase()}</button>}
+        <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => downloadFile(`/systems/${sid}/parameters.csv?${qs}`, "parameter-comparison.csv", "Parameter comparison")}
+        data-testid="param-compare-export">Export these rows (CSV)</button></div>}>
       <div className="mb-2 flex flex-wrap gap-2 text-[12px]">
         <input className="input w-28" placeholder="Family (AC)" value={f.family} onChange={(e) => set("family", e.target.value)} data-testid="param-filter-family" />
         <select className="input w-64" value={f.status} onChange={(e) => set("status", e.target.value)} data-testid="param-filter-status">
