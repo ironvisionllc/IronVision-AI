@@ -34,6 +34,7 @@ x-kc-admin-env: &kc-admin-env
   BACKEND_INTERNAL_URL: http://backend:8001
 
 x-kc-app-env: &kc-app-env           # backend + worker: registration check (REGISTER events) and purge offboarding
+  ALLOW_DEMO_LOGIN: ${ALLOW_DEMO_LOGIN:-false}
   KEYCLOAK_URL: http://keycloak:8080
   KEYCLOAK_REALM: ${KEYCLOAK_REALM:-ironvision-demo}
   KEYCLOAK_ALLOW_REGISTRATION: ${KEYCLOAK_ALLOW_REGISTRATION:-false}
@@ -137,6 +138,10 @@ services:
     environment:
       AUTH_DOMAIN: ${AUTH_DOMAIN}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-ironvision-demo}
+    networks:
+      default:
+        aliases:
+          - ${AUTH_DOMAIN:?AUTH_DOMAIN must be set}
     volumes:
       - ./deploy/digitalocean/nginx/edge-auth.conf.template:/etc/nginx/templates/auth.conf.template:ro
       - ${DATA_ROOT}/edge/auth-admin-allow.conf:/etc/nginx/ironvision/auth-admin-allow.conf:ro
