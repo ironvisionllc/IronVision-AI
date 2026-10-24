@@ -37,6 +37,8 @@ def _post(client, org, **kw):
 
 def test_impact_level_rules_enforced_on_create_and_update(client, org):
     r = _post(client, org, operating_environment="on_premises", environment_detail={"impact_level": "IL6"})
+    assert r.status_code == 422 and "on_prem_gov" in str(r.json()["detail"]) and "cloud_iaas" in str(r.json()["detail"]), "enum lists allowed values"
+    r = _post(client, org, operating_environment="on_prem_gov", environment_detail={"impact_level": "IL6"})
     assert r.status_code == 422 and "cloud" in r.json()["detail"]
     r = _post(client, org, operating_environment="on_prem_gov", environment_detail={"impact_level": "IL2"})
     assert r.status_code == 422 and "no cloud component" in r.json()["detail"]
@@ -51,9 +53,11 @@ def test_impact_level_rules_enforced_on_create_and_update(client, org):
     il5 = _post(client, org, operating_environment="cloud_iaas", environment_detail={"impact_level": "IL5"}).json()
     url = f"/api/v1/systems/{il5['id']}"
     assert client.patch(url, json={"environment_detail": {"impact_level": "IL6"}}, headers=org["h"]).status_code == 422
-    r = client.patch(url, json={"operating_environment": "on_premises"}, headers=org["h"])
+    r = client.patch(url, json={"operating_environment": "on_prem_gov"}, headers=org["h"])
     assert r.status_code == 422 and "no cloud component" in r.json()["detail"]
-    assert client.patch(url, json={"operating_environment": "on_premises", "environment_detail": {}}, headers=org["h"]).status_code == 200
+    assert client.patch(url, json={"operating_environment": "on_prem_gov", "environment_detail": {}}, headers=org["h"]).status_code == 200
+    env = client.get("/api/openapi.json").json()["components"]["schemas"]["SystemCreate"]["properties"]["operating_environment"]
+    assert "cloud_saas" in str(env) and "hybrid" in str(env), "documented enum in OpenAPI"
     with SessionLocal() as db:  # legacy inconsistent record: kept, flagged, and unrelated edits still work
         s = db.get(System, uuid.UUID(il5["id"]))
         s.operating_environment, s.environment_detail = "on_prem_gov", {"impact_level": "IL6"}
@@ -65,9 +69,14 @@ def test_impact_level_rules_enforced_on_create_and_update(client, org):
 
 
 def test_unknown_and_alias_role_keys_rejected(client, org):
-    for alias in ("common_control_provider", "user_representative", "userrep"):
-        r = _post(client, org, key_roles={alias: {"name": "Pat Doe"}})
-        assert r.status_code == 422 and "cannot be assigned at system registration" in r.json()["detail"], alias
+    allowed = "Allowed at registration: system_owner, isso"
+    for keys, want, not_in in ((("ccp", "common_control_provider"), "assign CCP under Inheritance providers", "AODR"),
+                               (("aodr", "ao_designated_representative"), "assign AODR under Authorize", "CCP"),
+                               (("user_rep", "user_representative", "userrep"), "User Representative isn't assigned in this app's registration", "CCP")):
+        for k in keys:
+            d = _post(client, org, key_roles={k: {"name": "Pat Doe"}}).json()["detail"]
+            assert want in d and allowed in d and not_in not in d.split("Allowed")[0], (k, d)
+    assert "AODR" not in _post(client, org, key_roles={"userrep": {"name": "P"}}).json()["detail"].split("Allowed")[0]
     r = _post(client, org, key_roles={"isso": {"name": "Ann"}, "chief_wizard": {"name": "X"}})
     d = r.json()["detail"]
     assert r.status_code == 422 and "Unknown role key(s): chief_wizard" in d and "Allowed at registration: system_owner, isso" in d and "ccp" not in d.split("Allowed")[1]
@@ -113,6 +122,16 @@ def test_excerpts_cite_section_and_page_and_old_policies_are_reprocessed(client,
         assert pc.ensure_current(db, [p]) == 0, "idempotent"
     ex = client.get(f"/api/v1/policies/{pid}/mappings/ac-2/review", headers=org["h"]).json()["mapping"]["excerpts"][0]
     assert ex["page"] == 2 and ex["section"] == "AC-2 Account Management"
+
+
+def test_excerpt_before_first_heading_is_preamble():
+    t = "Risk Assessment Policy and Procedures (RA-1)\nThe organization shall assess risk annually.\n1. Purpose\nRisk assessments shall be documented."
+    title = mapping_sbs.locate(t, "Risk Assessment Policy and Procedures (RA-1)")
+    assert title["start"] == 0 and title["end"] == 44 and title["section"] == "Preamble / title"
+    assert mapping_sbs.locate(t, "The organization shall assess risk annually.")["section"] == "Preamble / title"
+    assert mapping_sbs.locate(t, "Risk assessments shall be documented.")["section"] == "1. Purpose"
+    far = "Title line (x)\n" + "\n".join(f"text line {i}." for i in range(80)) + "\n2. Scope\n" + "\n".join(f"more {i}." for i in range(60)) + "\nTarget sentence."
+    assert mapping_sbs.locate(far, "Target sentence.")["section"] == "2. Scope", "heading beyond the 40-line window is still found"
 
 
 def _csv(text: str) -> list[dict]:

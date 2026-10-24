@@ -1,5 +1,6 @@
 import uuid
 from datetime import date
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -16,6 +17,7 @@ from app.services.systems import high_water_mark, register_system
 
 router = APIRouter(tags=["systems"])
 Impact = Field(None, pattern="^(Low|Moderate|High)$")
+OperatingEnvironment = Literal["on_prem_gov", "contractor", "cloud_iaas", "cloud_paas", "cloud_saas", "hybrid", "tactical", "other"]  # = rmf_steps.ENVIRONMENTS
 
 
 def to_dict(obj, exclude: tuple = ()) -> dict:
@@ -58,7 +60,7 @@ class SystemBase(BaseModel):
     isso_id: uuid.UUID | None = None
     issm_id: uuid.UUID | None = None
     ao_id: uuid.UUID | None = None
-    operating_environment: str | None = Field(None, max_length=100)
+    operating_environment: OperatingEnvironment | None = Field(None, description="Hosting environment; SRG impact levels apply only to cloud_iaas, cloud_paas, cloud_saas and hybrid.")
     deployment_type: str | None = Field(None, max_length=100)
     boundary_description: str | None = Field(None, max_length=5000)
     lifecycle_phase: str | None = Field(None, pattern="^(Design|Build|Test|Onboard|Operations)$")
@@ -95,17 +97,19 @@ def _registration_role_errors(roles: dict | None) -> list[str]:
     from app.services.rmf_steps import NOT_AT_REGISTRATION, ROLE_ALIASES, ROLE_KEYS, unknown_role_keys
 
     roles = roles or {}
-    out = []
-    removed = sorted({NOT_AT_REGISTRATION[ROLE_ALIASES.get(k, k)] for k, v in roles.items()
-                      if ROLE_ALIASES.get(k, k) in NOT_AT_REGISTRATION and (v or k in ROLE_ALIASES)})
-    if removed:
-        out.append(f"{', '.join(removed)} cannot be assigned at system registration – assign them later in the workflow that uses them "
-                   "(CCP under Inheritance providers, AODR under Authorize).")
+    out = [REMOVED_ROLE_MSG[c] for c in NOT_AT_REGISTRATION
+           if any(ROLE_ALIASES.get(k, k) == c and (v or k in ROLE_ALIASES) for k, v in roles.items())]
     unknown = unknown_role_keys(roles)
     if unknown:
-        out.append(f"Unknown role key(s): {', '.join(unknown)}. Allowed at registration: "
-                   f"{', '.join(k for k in ROLE_KEYS if k not in NOT_AT_REGISTRATION)}.")
+        out.append(f"Unknown role key(s): {', '.join(unknown)}.")
+    if out:
+        out.append(f"Allowed at registration: {', '.join(k for k in ROLE_KEYS if k not in NOT_AT_REGISTRATION)}.")
     return out
+
+
+REMOVED_ROLE_MSG = {"aodr": "AODR cannot be assigned at system registration – assign AODR under Authorize.",
+                    "ccp": "Common Control Provider (CCP) cannot be assigned at system registration – assign CCP under Inheritance providers.",
+                    "user_rep": "User Representative isn't assigned in this app's registration."}
 
 
 def _check_impact_level(env, detail, framework, classified) -> None:

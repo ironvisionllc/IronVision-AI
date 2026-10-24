@@ -30,7 +30,7 @@ def test_registration_role_picker_excludes_three_roles(client, org):
     assert roles["ao"]["registration"] and roles["isso"]["registration"]
     for k in ("aodr", "ccp", "user_rep"):
         r = client.post("/api/v1/systems", json={"name": "Bad", "acronym": "BAD", **SYS, "key_roles": {k: {"name": "Pat Doe"}}}, headers=org["h"])
-        assert r.status_code == 422 and "cannot be assigned at system registration" in r.json()["detail"]
+        assert r.status_code == 422 and ("cannot be assigned at system registration" in r.json()["detail"] or "isn't assigned" in r.json()["detail"])
 
 
 def test_authorization_type_moved_to_authorize(client, org):

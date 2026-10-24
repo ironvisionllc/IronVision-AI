@@ -10,6 +10,7 @@ from app.models import Control, PolicyControlMap, PolicyRequirementCoverage
 from app.services.content.loader import active_catalog_id
 
 NO_TEXT = "No supporting text found – manual review required"
+PREAMBLE = "Preamble / title"
 LEGEND = {"High": "Explicit control ID together with requirement language (shall / must / required …) in the same passage – direct evidence.",
           "Medium": "Requirement language that matches the control's requirement, or an explicit ID without requirement language – direct but partial evidence.",
           "Low": "Inferred relevance only (e.g. the control's name appears) – no requirement language tied to the control.",
@@ -30,7 +31,7 @@ def locate(text: str, snippet: str) -> dict:
     if i < 0:
         return {"exact": False}
     page = text.count("\f", 0, i) + 1 if "\f" in text else None
-    sec = section_at(text, i)
+    sec = section_at(text, i, window=None) or PREAMBLE  # nothing before the first heading → title / preamble
     ctx_s, ctx_e = max(0, i - 160), min(len(text), i + len(snippet) + 160)
     return {"exact": True, "start": i, "end": i + len(snippet), "page": page, "section": sec,
             "context_before": text[ctx_s:i], "context_after": text[i + len(snippet):ctx_e]}

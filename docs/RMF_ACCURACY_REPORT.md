@@ -69,3 +69,8 @@ If the deploy fails, `deploy.sh` prints `#### DEPLOYMENT FAILED at step "<step>"
 - Excerpts use the coverage section finder (`rmf.section_at`); page comes from form feeds only (otherwise "not available"). PDF text is now extracted per page and DOCX page-break markers become form feeds (`TEXT_VERSION = text-2`); older policies are re-extracted from the stored original by the worker's analyzer-version check.
 - Archive system (migration 0027, additive): `POST /systems/{id}/archive` and `/restore` (system.register, reason required, audited). Archived systems are hidden from `/systems` unless `include_archived=true`. The four ZZ test systems in jordan.qa7731 were archived.
 - Tests: `backend/tests/test_rmf_fix1.py` (7 tests), including CSV "=1+1" → "'=1+1" via the API, the no-supporting-text path, and High + MISSING ≠ Fully Addressed.
+
+## Fix 2 after retest of ee94e0a
+- Excerpts before the first heading (e.g. the title line at chars 0–44) are labelled "Preamble / title". The excerpt section search now scans all preceding text, not just the last 40 lines.
+- Removed-role 422 messages are role-specific: CCP → "assign CCP under Inheritance providers", AODR → "assign AODR under Authorize", User Representative → "User Representative isn't assigned in this app's registration". Every role-key 422 ends with the allowed registration keys.
+- `operating_environment` on POST/PATCH /systems is a documented enum in OpenAPI: on_prem_gov, contractor, cloud_iaas, cloud_paas, cloud_saas, hybrid, tactical, other. These match the UI list; there is no `on_premises` value, and the on-premises value is `on_prem_gov`. Invalid values return a 422 validation error that lists the allowed values. Existing free-text values stay as stored.

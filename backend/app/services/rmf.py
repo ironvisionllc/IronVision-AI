@@ -337,10 +337,11 @@ def refresh_text(db: Session, p: Policy) -> bool:
     return changed
 
 
-def section_at(text: str, start: int) -> str | None:
+def section_at(text: str, start: int, window: int | None = 40) -> str | None:
     """Nearest preceding heading line (numbered, 'Section n', control ID or Title Case), including the offset's own line."""
     eol = text.find("\n", start)
-    for line in reversed(text[:eol if eol >= 0 else len(text)].splitlines()[-40:]):  # include the snippet's own line (A4: a "2. Scope." sentence is § 2)
+    lines = text[:eol if eol >= 0 else len(text)].splitlines()
+    for line in reversed(lines[-window:] if window else lines):  # include the snippet's own line (A4: a "2. Scope." sentence is § 2)
         t = line.strip()
         if re.match(r"^(\d+(\.\d+)*\.?\s+\S|section\s+\d+|[A-Z]{2}-\d+(?:\s*\(\d+\))?\s+[A-Z]|[A-Z][A-Za-z &/-]{3,60}$)", t, re.IGNORECASE):
             m = re.match(r"^((?:section\s+)?\d+(?:\.\d+)*\.?\s+[^.:;]{1,60}|[A-Z]{2}-\d+(?:\s*\(\d+\))?\s+[^.:;]{1,60})(?:[.:;]|$)", t, re.IGNORECASE)
