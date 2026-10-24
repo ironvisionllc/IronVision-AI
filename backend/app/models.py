@@ -1109,6 +1109,10 @@ class PolicyControlMap(CoreMixin, Base):
     decided_by: Mapped[uuid.UUID | None] = _fk("users.id", nullable=True, ondelete="SET NULL")
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reanalysis: Mapped[dict | None] = mapped_column(JSONB)          # re-analysis result that differs from an approved decision
+    review_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    comments: Mapped[list | None] = mapped_column(JSONB)
+    coverage_override: Mapped[dict | None] = mapped_column(JSONB)
 
 
 class PolicyRequirementCoverage(CoreMixin, Base):

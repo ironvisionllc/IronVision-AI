@@ -194,3 +194,78 @@ def create_agency_overlay(body: AgencyOverlayIn, request: Request, db: Session =
                  entity_id=str(o.id), after=body.model_dump(mode="json"), **audit.request_meta(request))
     db.commit()
     return _ao_out(o)
+
+
+# ---------- side-by-side policy mapping review ----------
+def _pmap(db: Session, policy_id: uuid.UUID, control_id: str, current: CurrentUser):
+    from app.models import Policy, PolicyControlMap
+    from app.services import policy_mapping as pm
+
+    p = db.get(Policy, policy_id)
+    if p is None or p.org_id != current.user.org_id:
+        raise HTTPException(404, "Policy not found")
+    m = next((x for x in pm.current(db, p.id) if x.control_id == control_id.lower()), None)
+    if m is None:
+        raise HTTPException(404, "No current mapping for this control")
+    return p, m
+
+
+@router.get("/policies/{policy_id}/mappings/{control_id}/review")
+def mapping_review_sbs(policy_id: uuid.UUID, control_id: str, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    from app.services import mapping_sbs
+
+    p, m = _pmap(db, policy_id, control_id, current)
+    return mapping_sbs.review(db, p, m)
+
+
+class MapDecisionIn(BaseModel):
+    action: str = Field(pattern="^(accept|reject|edit|reanalyze|flag|override_coverage)$")
+    comment: str = Field("", max_length=4000)
+    edit_control_id: str | None = None
+    coverage_outcome: str | None = Field(None, pattern="^(Fully Addressed|Partially Addressed|Not Addressed|Requires Manual Review)$")
+
+
+@router.post("/policies/{policy_id}/mappings/{control_id}/decision")
+def mapping_decision(policy_id: uuid.UUID, control_id: str, body: MapDecisionIn, request: Request, db: Session = Depends(get_db),
+                     current: CurrentUser = Depends(get_current_user)) -> dict:
+    """Accept / Reject / Edit mapping / Request reanalysis / Flag for manual review / Override coverage – each with a comment, audited."""
+    from app.models import PolicyControlMap
+    from app.services import mapping_sbs, policy_mapping as pm
+
+    p, m = _pmap(db, policy_id, control_id, current)
+    sids = [uuid.UUID(str(x)) for x in (p.system_ids or [])] or [None]
+    if not any(has_permission(current.assignments, "finding.map", p.org_id, sid) for sid in sids):
+        raise HTTPException(403, "Missing permission: finding.map")
+    need = {"reject": 10, "edit": 10, "flag": 5, "override_coverage": 10}.get(body.action, 0)
+    if len(body.comment.strip()) < need:
+        raise HTTPException(422, f"A comment of at least {need} characters is required for {body.action.replace('_', ' ')}.")
+    before = {"status": m.status, "control_id": m.control_id}
+    who = current.user.email
+    if body.action == "accept":
+        m = pm.decide(db, p, m.control_id, "mapped", current.user, body.comment or None)
+        m.reanalysis = None
+    elif body.action == "reject":
+        m = pm.decide(db, p, m.control_id, "rejected", current.user, body.comment)
+    elif body.action == "edit":
+        new = (body.edit_control_id or "").strip().lower().replace("(", ".").replace(")", "")
+        if not new or new == m.control_id:
+            raise HTTPException(422, "Choose the control the mapping should point to instead")
+        pm.decide(db, p, m.control_id, "rejected", current.user, f"Edited to {new.upper()}: {body.comment}")
+        m = pm.decide(db, p, new, "mapped", current.user, body.comment)
+    elif body.action == "reanalyze":
+        from app.services.policy_mapping import extract_mappings, store_proposals
+
+        store_proposals(db, p, extract_mappings(db, p.text_content or ""))
+        m = next(x for x in pm.current(db, p.id) if x.control_id == m.control_id)
+    elif body.action == "flag":
+        m.review_flag = True
+    elif body.action == "override_coverage":
+        if not body.coverage_outcome:
+            raise HTTPException(422, "Pick the coverage outcome")
+        m.coverage_override = {"outcome": body.coverage_outcome, "justification": body.comment, "by": who, "at": mapping_sbs.now().isoformat()}
+    mapping_sbs.comment(m, who, body.action, body.comment)
+    audit.record(db, action=f"policy_mapping.{body.action}", actor_user_id=current.user.id, actor_email=who, entity_type="policy", entity_id=str(p.id),
+                 before=before, after={"status": m.status, "control_id": m.control_id, "coverage_override": m.coverage_override, "review_flag": m.review_flag},
+                 details={"comment": body.comment}, **audit.request_meta(request))
+    db.commit()
+    return mapping_sbs.review(db, p, m)

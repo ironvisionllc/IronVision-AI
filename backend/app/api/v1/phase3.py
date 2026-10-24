@@ -532,8 +532,13 @@ def policy_detail(policy_id: uuid.UUID, db: Session = Depends(get_db), current: 
     from app.services.content.loader import active_catalog_id
     titles = dict(db.execute(select(Control.control_id, Control.title).where(Control.catalog_version_id == active_catalog_id(db),
                                                                                Control.control_id.in_({m["control_id"] for m in hist}))).all())
+    from app.services import mapping_sbs
+
+    cur_rows = {str(r.id): r for r in db.scalars(select(PCM).where(PCM.policy_id == p.id, PCM.valid_to.is_(None)))}
     for m in hist:
         m["control_title"] = titles.get(m["control_id"])
+        if str(m["id"]) in cur_rows:  # every mapping carries its located excerpt or an explicit "no supporting text"
+            m.update(mapping_sbs.explain(cur_rows[str(m["id"])], p.text_content or ""))
     from app.models import PolicyRequirementCoverage
     from app.services import policy_coverage as pc
 

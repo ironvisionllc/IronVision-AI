@@ -3,6 +3,7 @@ import { api, errorMessage } from "@/lib/api";
 import { Row } from "@/lib/useApi";
 import { Modal } from "@/components/common/Modal";
 import { showNextStep } from "@/components/common/NextStep";
+import { ConfidenceBadge, SideBySideReview } from "@/components/controls/SideBySideReview";
 
 /** Searchable multi-select of catalog controls (ID, title, enhancements) → POST /policies/{id}/control-mappings. */
 export function MapToControlModal({ policyId, initial = [], onClose, onDone }: { policyId: string; initial?: string[]; onClose: () => void; onDone: (m: string, ids: string[]) => void }) {
@@ -41,6 +42,7 @@ export function MapToControlModal({ policyId, initial = [], onClose, onDone }: {
 export function PolicyMappingsPanel({ policyId, data, canMap, reload, setMsg }: { policyId: string; data: Row; canMap: boolean; reload: () => void; setMsg: (m: string) => void }) {
   const [open, setOpen] = useState<string[] | null>(null);
   const [reject, setReject] = useState<Row | null>(null);
+  const [sbs, setSbs] = useState<string | null>(null);
   const [just, setJust] = useState("");
   const [err, setErr] = useState("");
   const sid = (data.policy?.system_ids || [])[0];
@@ -61,19 +63,22 @@ export function PolicyMappingsPanel({ policyId, data, canMap, reload, setMsg }: 
       <p className="mb-2 text-[12px] text-slate-600">Controls this policy supports. <b>Confirm</b> the suggestions you agree with, <b>reject</b> the rest, or <b>map</b> more controls yourself. Confirmed mappings show on each control in the Control Workbench.</p>
       {canMap && <button className="btn-primary mb-2 px-3 py-1 text-[12px]" onClick={() => setOpen([])} data-testid="map-to-control-btn">Map to control</button>}
       {rows.length === 0 && <div className="text-[12px] text-slate-500" data-testid="policy-mappings-empty">No controls suggested yet. If the policy is still being analysed this fills in shortly – or use “Map to control”.</div>}
-      {rows.length > 0 && <table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-slate-500"><th>Control</th><th title="High = the policy quotes the control ID · Medium = the policy's wording matches the control's requirement · Low = only the control's name appears">Confidence <span className="cursor-help underline decoration-dotted">ⓘ</span></th><th>Why it was suggested</th><th>Matching text in the policy</th><th>Status</th><th /></tr></thead><tbody>
+      {rows.length > 0 && <table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-slate-500"><th>Control</th><th title="High = explicit control ID + requirement language · Medium = requirement language only (or ID without requirement language) · Low = inferred relevance · Requires manual review = no supporting text">Confidence <span className="cursor-help underline decoration-dotted">ⓘ</span></th><th>Why it was suggested</th><th>Matching text in the policy</th><th>Status</th><th /></tr></thead><tbody>
         {rows.map((m) => <tr key={m.id} className="border-t border-slate-100 align-top" data-testid={`policy-mapping-${m.control_id}`}>
           <td className="py-1"><span className="font-mono font-semibold">{fmtId(m.control_id)}</span>{m.control_title && <div className="text-[11px] text-slate-700">{m.control_title}</div>}{(m.parts || []).length > 0 && <div className="text-[10px] text-slate-500">parts: {m.parts.join(", ")}</div>}</td>
-          <td className="py-1"><span className={m.confidence === "High" ? "font-semibold text-emerald-700" : m.confidence === "Medium" ? "font-semibold text-amber-700" : "text-slate-600"} data-testid={`mapping-confidence-${m.control_id}`}>{m.confidence}</span></td>
+          <td className="py-1"><span className="sr-only" data-testid={`mapping-confidence-${m.control_id}`}>{m.confidence}</span><ConfidenceBadge m={m} /></td>
           <td className="max-w-[260px] py-1 text-[11px] text-slate-600" data-testid={`mapping-basis-${m.control_id}`}>{basisText(m.source)}</td>
-          <td className="max-w-[340px] py-1 text-[11px] text-slate-700">{(m.snippets || []).slice(0, 2).map((s: string, i: number) => <div key={i}>“{s}”</div>)}</td>
+          <td className="max-w-[340px] py-1 text-[11px] text-slate-700">{m.no_supporting_text ? <b className="text-rose-700" data-testid={`mapping-no-text-${m.control_id}`}>No supporting text found – manual review required</b>
+            : (m.excerpts || []).slice(0, 2).map((e: Row, i: number) => <div key={i}>“{e.text}”<span className="block text-[10px] text-slate-500">{e.section ? `§ ${e.section}` : ""}{e.page ? ` · p. ${e.page}` : ""}</span></div>)}
+            {m.reanalysis && <div className="text-[10px] text-amber-800">Re-analysis differs from approved</div>}{m.review_flag && <div className="text-[10px] text-rose-700">Flagged for manual review</div>}</td>
           <td className="py-1" data-testid={`mapping-status-${m.control_id}`}>{STATUS[m.status] ?? m.status}{m.decider_name && <div className="text-[10px] text-slate-500">{m.decider_name} · {new Date(m.decided_at).toLocaleString()}</div>}{m.justification && <div className="text-[10px] text-slate-500">Reason: {m.justification}</div>}</td>
-          <td className="py-1">{canMap && m.status !== "rejected" && <div className="flex gap-1">
+          <td className="py-1"><button className="mb-1 text-[11px] text-blue-800 underline" onClick={() => setSbs(m.control_id)} data-testid={`mapping-sbs-${m.control_id}`}>Review side by side</button>{canMap && m.status !== "rejected" && <div className="flex gap-1">
             {m.status === "proposed" && <button className="btn-primary px-2 py-0.5 text-[11px]" onClick={() => confirm(m.control_id)} data-testid={`mapping-confirm-${m.control_id}`}>Confirm</button>}
             <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => { setReject(m); setErr(""); }} data-testid={`mapping-reject-${m.control_id}`}>Reject mapping</button></div>}</td></tr>)}
       </tbody></table>}
       <details className="mt-2 text-[11px]" data-testid="mapping-history"><summary className="cursor-pointer text-slate-600">Mapping history ({(data.mapping_history || []).length} entries – every decision is kept)</summary>
         {(data.mapping_history || []).map((h: Row) => <div key={h.id}>{new Date(h.created_at).toLocaleString()} · {fmtId(h.control_id)} · {STATUS[h.status] ?? h.status} · {basisText(h.source)}{h.decider_name ? ` · ${h.decider_name}` : ""}{h.valid_to ? " (replaced by a later decision)" : ""}</div>)}</details>
+      {sbs && <SideBySideReview policyId={policyId} controlId={sbs} canDecide={canMap} onClose={() => setSbs(null)} onChanged={reload} />}
       {open && <MapToControlModal policyId={policyId} initial={open} onClose={() => setOpen(null)} onDone={(m, ids) => { setOpen(null); setMsg(m); if (ids[0]) next(m, ids[0]); reload(); }} />}
       {reject && <Modal title={`Reject the mapping to ${fmtId(reject.control_id)}?`} onClose={() => setReject(null)} testId="reject-mapping-modal">
         <p className="mb-2 text-[12px] text-slate-600">The suggestion is removed from this policy but kept in the history with your reason, so assessors can see why.</p>

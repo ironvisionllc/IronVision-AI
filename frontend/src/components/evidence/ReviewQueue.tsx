@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Panel } from "@/components/common/Panel";
 import { showNextStep } from "@/components/common/NextStep";
 import { PageSizeSelect, Pager, usePageSize } from "@/components/common/PageSize";
+import { SideBySideReview } from "@/components/controls/SideBySideReview";
 
 const KIND: Record<string, string> = { policy_status: "Policy coverage → status", status: "Status suggestion", policy_map: "Policy → control", finding_map: "STIG rule → control" };
 const fmt = (c: string) => c.toUpperCase().replace(/\.(\d+)$/, "($1)");
@@ -36,6 +37,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
   const canApprove = (q: Row) => canMap && (!["status", "policy_status"].includes(q.kind) || can("implementation.write"));
   const denyWhy = `Approving needs the ${APPROVER} role – your current role can view this item but not approve it.`;
   const [sel, setSel] = useState<string[]>([]);
+  const [sbs, setSbs] = useState<{ p: string; c: string } | null>(null);
   const [kind, setKind] = useState(() => new URLSearchParams(window.location.search).get("tab") || "");
   const [just, setJust] = useState("");
   const [editTo, setEditTo] = useState("");
@@ -70,6 +72,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
   const tabs: [string, string][] = [["", `All open (${open.length})`], ["status", `Status suggestions (${open.filter((q) => q.kind === "status").length})`], ["policy_status", `Policy coverage (${open.filter((q) => q.kind === "policy_status").length})`], ["policy_map", `Policy mappings (${counts.policy_map})`],
     ["finding_map", `STIG mappings (${counts.finding_map})`], ["sca", `Awaiting assessor (SCA) (${waiting.length})`]];
   return (
+    <>{sbs && <SideBySideReview policyId={sbs.p} controlId={sbs.c} canDecide={canMap} onClose={() => setSbs(null)} onChanged={reload} />}
     <Panel title={`Review queue (${open.length} open${waiting.length ? `, ${waiting.length} awaiting SCA` : ""})`} className="mb-5" testId="review-queue">
       <ReviewNeeded items={reviewNeeded} />
       <StatusNotes notes={statusNotes} />
@@ -100,6 +103,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
             <td className="py-1 whitespace-nowrap">{KIND[q.kind]}{q.awaiting_sca && <div className="text-[10px] font-medium text-amber-800">awaiting SCA</div>}</td><td className="py-1 font-mono font-semibold">{fmt(q.control_id)}</td>
             <td className="py-1">{q.downgrade && <div className="text-[10px] font-semibold uppercase text-rose-700" data-testid={`queue-downgrade-${q.key}`}>Downgrade suggested – policy gap</div>}
               {q.policy_id ? <Link className="text-blue-800 underline" to={`/policy-auditor/${q.policy_id}`}>{q.title}</Link> : q.title}
+              {q.kind === "policy_map" && q.policy_id && <button className="ml-1 text-[11px] text-blue-800 underline" onClick={() => setSbs({ p: q.policy_id, c: q.control_id })} data-testid={`queue-sbs-${q.key}`}>Review side by side</button>}
               {q.mapping_note && <div className="text-[10px] text-blue-800" data-testid={`queue-mapping-note-${q.key}`}>{q.mapping_note}</div>}
               {(q.tech_needed || []).length > 0 && <div className="text-[10px] text-amber-800" data-testid={`queue-tech-needed-${q.key}`}>Policy alone cannot prove these – technical evidence (scan/STIG/config) still needed: {q.tech_needed.slice(0, 4).join(", ")}{q.tech_needed.length > 4 ? "…" : ""}</div>}{q.coverage && <div className="text-[10px] text-slate-600" data-testid={`queue-coverage-${q.key}`}>{q.coverage.met} of {q.coverage.total} requirements met{q.coverage.gaps.length ? ` – missing: ${q.coverage.gaps.join("; ")}` : ""}</div>}{q.current && <div className="text-[10px] text-slate-500">now: {q.current.implementation.replace(/_/g, " ")} · {q.current.assessment.replace(/_/g, " ")}</div>}</td>
             <td className="max-w-[320px] py-1 text-[11px] text-slate-600">{q.source}: {q.reasoning}{(q.snippets || []).slice(0, 1).map((s: string) => <div key={s}>“{s}”</div>)}</td>
@@ -108,5 +112,5 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
               {!canApprove(q) && <div className="mt-0.5 max-w-[140px] text-[10px] text-slate-600" data-testid={`queue-approve-denied-${q.key}`}>Needs {APPROVER}</div>}</td></tr>)}
         </tbody></table>
         <div className="mt-2 flex justify-end"><Pager size={size} page={page} total={all.length} setPage={setPage} testId="queue-pager" /></div></>}
-    </Panel>);
+    </Panel></>);
 }

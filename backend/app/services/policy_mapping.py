@@ -100,7 +100,10 @@ def store_proposals(db: Session, policy, mappings: list[dict]) -> None:
             m.valid_to = now()
     for m in mappings:
         prev = cur.get(m["control_id"])
-        if prev is not None and prev.status != "proposed":
+        if prev is not None and prev.status != "proposed":  # never overwrite a human decision – keep a proposal that "differs from approved"
+            if prev.confidence != m["confidence"] or sorted(prev.snippets or []) != sorted(m["snippets"]):
+                prev.reanalysis = {"label": "differs from approved", "confidence": m["confidence"], "snippets": m["snippets"],
+                                   "basis": "; ".join(m["basis"]), "at": now().isoformat()}
             continue
         db.add(PolicyControlMap(id=uuid.uuid4(), policy_id=policy.id, org_id=policy.org_id, control_id=m["control_id"], status="proposed",
                                 source="+".join(m["sources"]), confidence=m["confidence"], basis="; ".join(m["basis"]),
@@ -112,10 +115,16 @@ def decide(db: Session, policy, control_id: str, status: str, actor, justificati
     prev = next((m for m in current(db, policy.id) if m.control_id == control_id), None)
     if prev is not None:
         prev.valid_to = now()
+    found = None if prev else next((m for m in extract_mappings(db, policy.text_content or "") if m["control_id"] == control_id), None)
+    # A manual mapping is not "High" by default: it gets the evidence the text actually contains, or Low with no excerpt (manual review).
     row = PolicyControlMap(id=uuid.uuid4(), policy_id=policy.id, org_id=policy.org_id, control_id=control_id, status=status,
-                           source=prev.source if prev else "manual", confidence=prev.confidence if prev else "High",
-                           basis=(prev.basis if prev else "manual mapping by a reviewer"), snippets=prev.snippets if prev else [],
-                           parts=prev.parts if prev else [], justification=justification, decided_by=actor.id, decided_at=now())
+                           source=prev.source if prev else ("+".join(found["sources"])[:30] if found else "manual"),
+                           confidence=prev.confidence if prev else (found["confidence"] if found else "Low"),
+                           basis=(prev.basis if prev else ("manual mapping by a reviewer; " + "; ".join(found["basis"]) if found else
+                                                           "manual mapping by a reviewer – no supporting text found, manual review required")),
+                           snippets=prev.snippets if prev else (found["snippets"] if found else []),
+                           parts=prev.parts if prev else (found["parts"] if found else []), justification=justification, decided_by=actor.id, decided_at=now(),
+                           comments=prev.comments if prev else None, review_flag=prev.review_flag if prev else False)
     db.add(row)
     db.flush()
     from app.services import policy_coverage as pc
