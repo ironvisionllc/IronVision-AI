@@ -27,7 +27,7 @@ def _err(fn, *a):
 @router.get("/reference/rmf")
 def rmf_reference(db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
     users = db.scalars(select(User).where(User.org_id == current.user.org_id).order_by(User.display_name))
-    return {"key_roles": [{"key": k, "label": l, "help": h, "required": r} for k, l, h, r in rs.KEY_ROLES],
+    return {"key_roles": [{"key": k, "label": l, "help": h, "required": r, "registration": k not in rs.NOT_AT_REGISTRATION} for k, l, h, r in rs.KEY_ROLES],
             "users": [{"id": str(u.id), "display_name": u.display_name, "email": u.email} for u in users],
             "emass_note": rs.EMASS,
             "mission_criticality": [{"value": v, "label": l, "help": h} for v, l, h in rs.MISSION_CRITICALITY],

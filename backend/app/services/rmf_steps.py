@@ -29,6 +29,8 @@ KEY_ROLES = [
     ("user_rep", "User Representative", "Speaks for the operational users of the system.", False),
 ]
 REQUIRED_ROLES = [k for k, _, _, req in KEY_ROLES if req]
+# Not offered in the system registration role picker (they stay in the authorization model: CCP in Inheritance, AODR in Authorize).
+NOT_AT_REGISTRATION = {"aodr": "AODR", "ccp": "Common Control Provider (CCP)", "user_rep": "User Representative"}
 ROLE_USER_FIELD = {"system_owner": "system_owner_id", "isso": "isso_id", "issm": "issm_id", "ao": "ao_id"}
 
 EMASS = "eMASS-aligned; verify against your eMASS instance"

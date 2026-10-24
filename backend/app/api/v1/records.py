@@ -34,6 +34,11 @@ def get_system(db: Session, system_id: uuid.UUID) -> System:
     return s
 
 
+class AuthStrategyIn(BaseModel):
+    authorization_type: str | None = Field(None, max_length=50, description="Authorization type sought (ATO, IATT, ATO with conditions …); null clears it.")
+    justification: str = Field(min_length=5, max_length=2000)
+
+
 class Tailor(BaseModel):
     control_id: str = Field(max_length=50)
     action: str = Field(pattern="^(add|remove)$")
@@ -99,6 +104,14 @@ def list_systems(db: Session = Depends(get_db), current: CurrentUser = Depends(g
 @router.post("/systems", status_code=201)
 def create_system(body: SystemCreate, request: Request, db: Session = Depends(get_db),
                   current: CurrentUser = Depends(require_permission("system.register"))) -> dict:
+    from app.services.rmf_steps import NOT_AT_REGISTRATION
+
+    bad = [NOT_AT_REGISTRATION[k] for k, v in (body.key_roles or {}).items() if k in NOT_AT_REGISTRATION and v]
+    if bad:
+        raise HTTPException(422, f"{', '.join(bad)} cannot be assigned at system registration – assign them later in the workflow that uses them "
+                                 "(CCP under Inheritance providers, AODR under Authorize).")
+    if body.authorization_type:
+        raise HTTPException(422, "Authorization type sought is set in 6 · Authorize (authorization strategy), not at registration.")
     data = body.model_dump(exclude={"tailoring", "provider_ids", "key_roles"}, exclude_none=True)
     data.setdefault("lifecycle_phase", "Design")
     if body.information_types:
@@ -272,3 +285,23 @@ def assignment_for(db: Session, system_id: uuid.UUID, control_id: str) -> Contro
 
 
 __all__ = ["router", "to_dict", "get_system", "assignment_for", "enforce", "visible_systems"]
+
+
+@router.put("/systems/{system_id}/authorization-strategy")
+def set_authorization_strategy(system_id: uuid.UUID, body: AuthStrategyIn, request: Request, db: Session = Depends(get_db),
+                               current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+    """6 · Authorize – authorization strategy/planning: the authorization type sought. Audited; existing values are preserved."""
+    from app.services.rmf_steps import AUTHORIZATION_TYPES
+
+    s = get_system(db, system_id)
+    if s.org_id != current.user.org_id:
+        raise HTTPException(404, "System not found")
+    if body.authorization_type and body.authorization_type not in [v for v, _ in AUTHORIZATION_TYPES]:
+        raise HTTPException(422, "Unknown authorization type")
+    before = s.authorization_type
+    s.authorization_type = body.authorization_type
+    audit.record(db, action="system.authorization_strategy_updated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
+                 entity_id=str(s.id), before={"authorization_type": before}, after={"authorization_type": s.authorization_type},
+                 details={"justification": body.justification}, **audit.request_meta(request))
+    db.commit()
+    return {"authorization_type": s.authorization_type}

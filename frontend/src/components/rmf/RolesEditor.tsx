@@ -6,17 +6,17 @@ export function Help({ text }: { text: string }) {
 }
 
 /** Key RMF roles: assign an existing user, or a name/e-mail placeholder when the person has no account yet. */
-export function RolesEditor({ meta: refData, value, onChange }: { meta: Row | null; value: Row; onChange: (v: Row) => void }) {
+export function RolesEditor({ meta: refData, value, onChange, registration }: { meta: Row | null; value: Row; onChange: (v: Row) => void; registration?: boolean }) {
   const users: Row[] = refData?.users ?? [];
   const set = (k: string, v: Row) => onChange({ ...value, [k]: v });
   return (
     <div className="grid gap-3 md:grid-cols-2" data-testid="roles-editor">
-      {(refData?.key_roles ?? []).map((r: Row) => {
+      {(refData?.key_roles ?? []).filter((r: Row) => !registration || r.registration !== false).map((r: Row) => {
         const v = value[r.key] ?? {};
         const mode = v.user_id ? "user" : v.name !== undefined ? "placeholder" : "";
         return (
           <div key={r.key} className="rounded-md border border-slate-200 p-3 text-[12px]" data-testid={`role-${r.key}`}>
-            <div className="mb-1 flex items-center gap-1.5 font-medium text-slate-800">{r.label} <Help text={r.help} />
+            <div className="mb-1 flex items-center gap-1.5 font-medium text-slate-800">{r.label}{r.registration === false && <span className="font-normal text-slate-500" data-testid={`role-${r.key}-not-at-registration`}>(not assigned at registration)</span>} <Help text={r.help} />
               {r.required && <span className="rounded bg-slate-100 px-1 text-[10px] text-slate-600">required</span>}</div>
             <select className="input" value={v.user_id ?? (mode === "placeholder" ? "__ph" : "")} data-testid={`role-${r.key}-user`}
               onChange={(e) => set(r.key, e.target.value === "__ph" ? { name: "", email: "" } : e.target.value ? { user_id: e.target.value } : {})}>

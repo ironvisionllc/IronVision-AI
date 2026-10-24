@@ -245,9 +245,9 @@ def test_manual_map_reject_history_workbench_and_export(client, token):
     if other:
         assert client.post(f"/api/v1/policies/{pid}/control-mappings", json={"control_ids": ["ra-1"]}, headers=other).status_code in (403, 404)
     csvr = client.get(f"/api/v1/policies/{pid}/parameters.csv", headers=h)
-    rows = list(csv.reader(io.StringIO(csvr.text)))
-    assert rows[0][:5] == ["row_type", "policy", "policy_version", "system_id", "control_id"] and len(rows) > 1
-    assert any(r[0] == "control_mapping" and r[4] == "RA-1" and r[12] == "mapped" for r in rows)
+    rows = list(csv.reader(io.StringIO(csvr.text.lstrip("\ufeff"))))
+    assert rows[0][:4] == ["System", "Control ID", "Enhancement", "Parameter ID"] and len(rows) > 1
+    assert any(r[1] == "RA-1" and r[5] for r in rows[1:]), "the policy's RA-1 parameter value is in the comparison"
 
 
 def _other_tenant_token(client):
@@ -260,8 +260,8 @@ def test_export_parameters_for_policy_values(client, token):
     pols = client.get("/api/v1/policies", headers=h).json()
     items = pols if isinstance(pols, list) else next(v for v in pols.values() if isinstance(v, list))
     pid = next(p["id"] for p in items if p.get("analysis_status") == "analyzed" and p.get("title", "").startswith("Access"))
-    rows = list(csv.reader(io.StringIO(client.get(f"/api/v1/policies/{pid}/parameters.csv", headers=h).text)))
-    assert rows[0][0] == "row_type" and any(r[0] == "parameter" and r[5] for r in rows[1:]), rows[:4]
+    rows = list(csv.reader(io.StringIO(client.get(f"/api/v1/policies/{pid}/parameters.csv", headers=h).text.lstrip("\ufeff"))))
+    assert rows[0][0] == "System" and any(r[5] for r in rows[1:]), rows[:4]
 
 
 # ---- evidence formats: synthetic fixtures, detection by content ----

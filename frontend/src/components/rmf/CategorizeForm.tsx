@@ -6,19 +6,20 @@ import { Help } from "@/components/rmf/RolesEditor";
 
 const LV = ["Low", "Moderate", "High"];
 export const EMPTY_CAT: Row = { mode: "fips199", information_types: [], cia: { c: "", i: "", a: "" }, mission_criticality: "", system_type: "",
-  acquisition_category: "", authorization_type: "", operating_environment: "", environment_detail: {}, processes_pii: null, pta: {} };
+  acquisition_category: "", operating_environment: "", environment_detail: {}, processes_pii: null, pta: {} };
 
 export function catFromSystem(s: Row): Row {
   return { ...EMPTY_CAT, mode: s.categorization_mode || "fips199",
     information_types: (s.information_types ?? []).map((t: Row) => ({ id: t.id, c: t.c, i: t.i, a: t.a, rationale: t.rationale ?? "" })),
     cia: { c: s.confidentiality_impact ?? "", i: s.integrity_impact ?? "", a: s.availability_impact ?? "" },
-    ...Object.fromEntries(["mission_criticality", "system_type", "acquisition_category", "authorization_type", "operating_environment"].map((k) => [k, s[k] ?? ""])),
+    ...Object.fromEntries(["mission_criticality", "system_type", "acquisition_category", "operating_environment"].map((k) => [k, s[k] ?? ""])),
     environment_detail: s.environment_detail ?? {}, processes_pii: s.processes_pii ?? null, pta: s.pta ?? {} };
 }
 
 export function catBody(v: Row): Row {
   const b: Row = { ...v, information_types: v.information_types, cia: v.mode === "cnssi1253" ? v.cia : null };
-  for (const k of ["mission_criticality", "system_type", "acquisition_category", "authorization_type", "operating_environment"]) if (!b[k]) delete b[k];
+  delete b.authorization_type;  // set in 6 · Authorize (authorization strategy)
+  for (const k of ["mission_criticality", "system_type", "acquisition_category", "operating_environment"]) if (!b[k]) delete b[k];
   return b;
 }
 
@@ -137,7 +138,6 @@ export function CategorizeForm({ v, onChange }: { v: Row; onChange: (v: Row) => 
         <div className="grid gap-3 md:grid-cols-3">
           <Choice label="System type" help="eMASS system type – what kind of system this is." value={v.system_type} options={ref?.system_types ?? []} onChange={(x) => set("system_type", x)} testId="cat-system-type" />
           <Choice label="Acquisition category" help="DoD acquisition category (ACAT) of the program, if any." value={v.acquisition_category} options={ref?.acquisition_categories ?? []} onChange={(x) => set("acquisition_category", x)} testId="cat-acat" />
-          <Choice label="Authorization type sought" help="The kind of authorization decision you are working toward." value={v.authorization_type} options={ref?.authorization_types ?? []} onChange={(x) => set("authorization_type", x)} testId="cat-auth-type" />
         </div>
       </Panel>
       <Panel title="Operating environment">
@@ -158,8 +158,11 @@ export function CategorizeForm({ v, onChange }: { v: Row; onChange: (v: Row) => 
       <Panel title="Privacy (Privacy Threshold Analysis)">
         <div className="text-[12px]" data-testid="cat-privacy">
           <div className="font-medium text-slate-700">Does the system collect, use, store or share personally identifiable information (PII)? <Help text="PII = information that can identify a person (name, SSN, e-mail, biometrics…). A 'Yes' adds the privacy controls." /></div>
-          <div className="mt-1 flex gap-4">{[["Yes", true], ["No", false]].map(([l, b]) => (
-            <label key={String(l)} className="flex items-center gap-1.5"><input type="radio" checked={v.processes_pii === b} onChange={() => set("processes_pii", b)} data-testid={`pii-${String(l).toLowerCase()}`} />{l as string}</label>))}</div>
+          <div className="mt-1 flex flex-wrap gap-4" role="radiogroup" aria-label="Processes PII">{([["Yes", "yes", true], ["No", "no", false], ["Unknown – requires review", "unknown", null]] as const).map(([l, k, b]) => (
+            <label key={k} className="flex items-center gap-1.5"><input type="radio" name="pii" checked={k === "unknown" ? v.processes_pii === null && pta.pii_status === "unknown" : v.processes_pii === b}
+              onChange={() => onChange({ ...v, processes_pii: b, pta: { ...pta, pii_status: k } })} data-testid={`pii-${k}`} />{l}</label>))}
+            {v.processes_pii === null && pta.pii_status !== "unknown" && <span className="text-[11px] text-amber-800" data-testid="pii-unanswered">Not answered yet</span>}</div>
+          {pta.pii_status === "unknown" && <p className="mt-2 rounded bg-amber-50 p-2 text-[11px] text-amber-900" data-testid="pii-unknown-note">Recorded as “requires review” (not as No). A privacy official must resolve it in the Privacy Threshold Analysis.</p>}
           {v.processes_pii === true && <div className="mt-3 grid gap-3 md:grid-cols-2" data-testid="pta-followup">
             <label className="font-medium text-slate-700">What kinds of PII?<input className="input mt-1" placeholder="e.g. names, e-mail, SSN, health data" value={pta.pii_types ?? ""} onChange={(e) => set("pta", { ...pta, pii_types: e.target.value })} data-testid="pta-types" /></label>
             <label className="font-medium text-slate-700">Whose PII?<select className="input mt-1" value={pta.whose ?? ""} onChange={(e) => set("pta", { ...pta, whose: e.target.value })} data-testid="pta-whose">

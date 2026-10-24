@@ -12,6 +12,8 @@ import { showNextStep } from "@/components/common/NextStep";
 import { NextActionButton, STEP_STATUS, StepChips, useActiveSystemId, useRmfSteps } from "@/components/rmf/Stepper";
 import { Help, RolesEditor, rolesFromHolders } from "@/components/rmf/RolesEditor";
 import { CategorizeForm, catBody, catFromSystem } from "@/components/rmf/CategorizeForm";
+import { ParameterComparison } from "@/components/rmf/ParameterComparison";
+import { AuthStrategy } from "@/components/rmf/AuthStrategy";
 import { PageSizeSelect, Pager, usePageSize, usePaged } from "@/components/common/PageSize";
 import { downloadFile } from "@/lib/download";
 import { Gated } from "@/components/common/RoleGate";
@@ -271,6 +273,7 @@ export function SelectPage() {
         <div className="panel p-4 text-[12px]" data-testid="select-counts"><b>Control count:</b> <span data-testid="select-reconciliation">{data.counts.labels.reconciliation}</span>
           <Help text="Same numbers as the Workbench and dashboard (one shared calculation): baseline + added by overlays − removed by overlays − tailored out + tailored in = assigned." /></div>
           <button className="btn-secondary ml-2 px-2 py-0.5 text-[11px]" onClick={() => downloadFile(`/systems/${sid}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="select-export-parameters">Export parameter comparison (CSV)</button>
+        <ParameterComparison sid={sid} />
         {can("system.write") ? <><Baseline sid={sid} d={data} reload={reload} /><Overlays sid={sid} d={data} reload={reload} /><Tailoring sid={sid} d={data} reload={reload} /></>
           : <p className="text-[12px] text-slate-600">Changing the control selection needs the “system.write” permission (ISSO, ISSM or System Owner). You can view the selection in the <Link className="underline" to="/traceability">traceability matrix</Link>.</p>}
       </div>}
@@ -312,7 +315,7 @@ const DECISIONS = [["ATO", "Authorization to Operate for a fixed period."], ["AT
 
 export function AuthorizePage() {
   const sid = useActiveSystemId();
-  const { data } = useApi<Row>(sid ? `/systems/${sid}/authorize` : null);
+  const { data, reload } = useApi<Row>(sid ? `/systems/${sid}/authorize` : null);
   return (
     <StepFrame k="authorize" title="Step 6 · Authorize" purpose="Assemble the authorization package (SSP, SAR, POA&M) and send it to the Authorizing Official (AO), who records the decision and its expiration date.">
       {data && <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
@@ -323,7 +326,7 @@ export function AuthorizePage() {
         </Panel>
         <Panel title="AO decision" testId="auth-decision">
           <div className="text-[13px]"><div>Status: <b data-testid="auth-status">{data.authorization_status}</b></div>
-            <div>Type: {data.authorization_type ?? "—"}</div><div>Expires: <b>{data.authorization_expiration ?? "—"}</b></div></div>
+            <AuthStrategy sid={sid!} value={data.authorization_type} onSaved={reload} /><div>Expires: <b>{data.authorization_expiration ?? "—"}</b></div></div>
           <ul className="mt-3 text-[11px] text-slate-600">{DECISIONS.map(([k, h]) => <li key={k}><b>{k}</b> – {h}</li>)}</ul>
           <Link to={`/systems/${sid}/authorization`} className="btn-primary mt-3 inline-flex" data-testid="auth-open">Submit package / record AO decision</Link>
         </Panel>

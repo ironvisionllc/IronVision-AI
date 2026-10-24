@@ -16,7 +16,7 @@ from app.db import get_db
 from app.models import (ApprovalRequest, Assessment, Attestation, AuditEvent, AuthorizationDecision, CommonControlProvider, ControlAssignment,
                         DecisionRule, Evidence, NotificationPref, ObservedConfigValue, OdpValue, Policy, PolicyFinding, RoleAssignment, System, User)
 from app.security.deps import CurrentUser, enforce, get_current_user, require_object_permission, require_permission, self_scoped
-from app.services import audit, jobs as jobsvc
+from app.services import csv_safe, param_compare, audit, jobs as jobsvc
 from app.services import rmf
 from app.services import workflow as wf
 from app.services.evaluation import evaluate_system, take_snapshots
@@ -693,58 +693,60 @@ def policy_finding_action(pf_id: uuid.UUID, action: str, body: PFDecision, reque
     return to_dict(pf)
 
 
-@router.get("/policies/{policy_id}/parameters.csv")
-def export_params(policy_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> Response:
-    """One row per value the policy sets (per linked system, or one row with empty system columns when no system is linked)
-    plus one row per current control mapping. Always starts with the header row."""
-    d = policy_detail(policy_id, db, current)
-    p = d["policy"]
-    cols = ["row_type", "policy", "policy_version", "system_id", "control_id", "parameter", "policy_value", "odp_value", "observed_value",
-            "observed_age_days", "result", "policy_quote", "mapping_status", "mapping_confidence", "mapping_basis"]
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(cols)
-    vals = d["values"] or [{"system_id": "", "control_id": v["control_id"], "parameter": v["parameter"], "policy_value": v["value"], "quote": v.get("quote")}
-                           for v in (db.get(Policy, policy_id).analysis or {}).get("values", [])]
-    for v in vals:
-        w.writerow(["parameter", p["title"], p["version"], v.get("system_id", ""), v["control_id"].upper(), v["parameter"], v.get("policy_value"),
-                    v.get("odp_value"), v.get("observed_value"), v.get("observed_age_days"), v.get("result") or "no observation", v.get("quote"), "", "", ""])
-    for m in d["control_mappings"]:
-        w.writerow(["control_mapping", p["title"], p["version"], "", m["control_id"].upper(), "", "", "", "", "", "", "; ".join(m.get("snippets") or [])[:500],
-                    m["status"], m["confidence"], m.get("basis")])
-    return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="policy-{policy_id}-parameters.csv"'})
+EMPTY_HEADER = "X-Empty-Reason"
 
 
-@router.get("/systems/{system_id}/parameters.csv")
-def export_system_params(system_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> Response:
-    """System-wide parameter comparison: every policy value for this system next to the system ODP value and the latest observed value,
-    plus organization-defined parameter values set on the system (including values set by applied overlays)."""
+def _csv_or_empty(header: list[str], data: list[list], name: str, reason: str) -> Response:
+    """No matching rows → 204 with a reason (the UI shows an empty-state message instead of downloading an empty file)."""
+    if not data:
+        return Response(status_code=204, headers={EMPTY_HEADER: reason.encode("ascii", "replace").decode(), "Access-Control-Expose-Headers": EMPTY_HEADER})
+    return Response(csv_safe.to_csv(header, data), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+def _param_system(db: Session, system_id: uuid.UUID, current: CurrentUser) -> System:
     s = db.get(System, system_id)
     if s is None or s.org_id != current.user.org_id:
         raise HTTPException(404, "System not found")
-    cols = ["row_type", "source", "source_version", "control_id", "parameter", "policy_value", "odp_value", "observed_value", "observed_age_days",
-            "result", "quote_or_reference"]
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(cols)
-    pols = [p for p in db.scalars(select(Policy).where(Policy.org_id == s.org_id)) if str(system_id) in [str(x) for x in (p.system_ids or [])]]
-    for p in pols:
-        for v in policy_detail(p.id, db, current)["values"]:
-            if str(v.get("system_id")) == str(system_id):
-                w.writerow(["policy_parameter", p.title, p.version, v["control_id"].upper(), v["parameter"], v.get("policy_value"), v.get("odp_value"),
-                            v.get("observed_value"), v.get("observed_age_days"), v.get("result") or "no observation", v.get("quote")])
-    from app.models import PolicyRequirementCoverage
+    return s
 
-    for c in db.scalars(select(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id.in_([p.id for p in pols]),
-                                                                PolicyRequirementCoverage.parameter.is_not(None)).order_by(PolicyRequirementCoverage.control_id)):
-        odp = db.scalar(select(OdpValue.value).where(OdpValue.system_id == system_id, OdpValue.control_id == c.control_id, OdpValue.parameter.not_like("overlay:%")).limit(1))
-        w.writerow(["policy_requirement_parameter", next(p.title for p in pols if p.id == c.policy_id), c.policy_version, c.control_id.upper(),
-                    f"{c.parameter} [{c.label}]", c.parameter_value, odp, "", "", c.status, (c.snippets or [{}])[0].get("location")])
-    for o in db.scalars(select(OdpValue).where(OdpValue.system_id == system_id).order_by(OdpValue.control_id)):
-        w.writerow(["overlay_parameter" if o.parameter.startswith("overlay:") else "odp", o.source, "", o.control_id.upper(), o.parameter, "", o.value,
-                    "", "", "", o.source])
-    name = f"{s.acronym or 'system'}-parameter-comparison.csv"
-    return Response(buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+@router.get("/systems/{system_id}/parameter-comparison")
+def system_param_comparison(system_id: uuid.UUID, family: str | None = None, status: str | None = None, q: str | None = None, limit: int = 100, offset: int = 0,
+                            db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    """The on-screen parameter comparison; the CSV export uses the same rows and filters."""
+    rs = param_compare.rows(db, _param_system(db, system_id, current), family, status, q)
+    counts: dict = {}
+    for r in rs:
+        counts[r["status"]] = counts.get(r["status"], 0) + 1
+    return {"columns": [{"key": k, "label": lbl} for k, lbl in param_compare.COLUMNS], "omitted_columns": param_compare.OMITTED,
+            "statuses": param_compare.STATUS, "counts": counts, "total": len(rs), "items": rs[offset: offset + min(limit, 500)]}
+
+
+@router.get("/systems/{system_id}/parameters.csv")
+def export_system_params(system_id: uuid.UUID, family: str | None = None, status: str | None = None, q: str | None = None, db: Session = Depends(get_db),
+                         current: CurrentUser = Depends(require_permission("system.read"))) -> Response:
+    s = _param_system(db, system_id, current)
+    header, data = param_compare.table(param_compare.rows(db, s, family, status, q))
+    return _csv_or_empty(header, data, f"{s.acronym or 'system'}-parameter-comparison.csv",
+                         "No parameter rows match - this system has no assigned controls with parameters for the current filters.")
+
+
+@router.get("/policies/{policy_id}/parameters.csv")
+def export_params(policy_id: uuid.UUID, system_id: uuid.UUID | None = None, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> Response:
+    """The parameter comparison restricted to values this policy sets, for each linked system the user may see (or one system)."""
+    p = db.get(Policy, policy_id)
+    if p is None or p.org_id != current.user.org_id:
+        raise HTTPException(404, "Policy not found")
+    linked = {str(x) for x in (p.system_ids or [])}
+    systems = [s for s in visible_systems(db, current) if str(s.id) in linked and (system_id is None or s.id == system_id)]
+    if system_id and not systems:
+        raise HTTPException(404, "System not found")
+    rs = [{**r, "system": s.acronym or s.name} for s in systems for r in param_compare.rows(db, s, policy_id=p.id)]
+    if not systems:  # policy not linked to a system: its values alone, nothing to compare against
+        rs = [{**param_compare._row(v["control_id"], v["parameter"], "Named parameter (policy not linked to a system)", {**v, "by": f"{p.title} v{p.version}"},
+                                    None, None, p.title), "system": ""} for v in (p.analysis or {}).get("values", [])]
+    header, data = param_compare.table(rs, [("system", "System")])
+    return _csv_or_empty(header, data, f"policy-{policy_id}-parameters.csv", "This policy sets no parameter values that can be compared yet.")
 
 
 # ---------- workflow, search, notifications prefs ----------

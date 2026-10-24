@@ -66,6 +66,7 @@ export function RegisterSystemPage() {
     e.preventDefault();
     if (!cat.information_types.length) { setError("Pick at least one information type in Categorize – the app derives the impact level and baseline from them."); return; }
     if (calc?.errors.length) { setError(calc.errors.join("; ")); return; }
+    if (cat.processes_pii === null && cat.pta?.pii_status !== "unknown") { setError("Answer the PII question in Privacy (Yes, No or Unknown – requires review)."); return; }
     const c = catBody(cat);
     const body = Object.fromEntries(Object.entries({ ...f, ...c, ...(c.cia ? { confidentiality_impact: c.cia.c || undefined, integrity_impact: c.cia.i || undefined, availability_impact: c.cia.a || undefined } : {}),
       cia: undefined, mode: undefined, categorization_mode: cat.mode, key_roles: roles, baseline_key: chosen || "moderate", include_privacy: cat.processes_pii === true })
@@ -94,7 +95,7 @@ export function RegisterSystemPage() {
             <div className="md:col-span-3"><F label="Mission / business description"><textarea className="input" rows={2} value={f.description} onChange={set("description")} /></F></div>
             <div className="md:col-span-3"><F label="Authorization boundary (what is inside the system)"><textarea className="input" rows={2} value={f.boundary_description} onChange={set("boundary_description")} /></F></div>
           </div>
-          <div className="mt-4"><RolesEditor meta={ref} value={roles} onChange={setRoles} /></div>
+          <div className="mt-4"><RolesEditor meta={ref} value={roles} onChange={setRoles} registration /></div>
         </Panel>
         <div><h2 className="mb-2 font-heading text-[15px] font-semibold text-slate-900">2 · Categorize</h2><CategorizeForm v={cat} onChange={setCat} /></div>
         <Panel title="Baseline" eyebrow="Chosen automatically from the categorization">

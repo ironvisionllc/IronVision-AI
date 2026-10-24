@@ -1,3 +1,5 @@
+import csv
+import io
 """Official CNSSI 1253 overlays: parse accuracy against the PDFs (hand-verified samples with page numbers), totals, and the
 Select-step behaviour (apply adds/removes + parameter values, remove reverses exactly, variant exclusivity, counts reconcile)."""
 import json
@@ -158,8 +160,8 @@ def test_apply_classified_adds_sets_params_and_remove_reverses_exactly(client, w
     assert new["added_by_this"] and new["assigned"]
     csv_r = client.get(f"/api/v1/systems/{ws['sid']}/parameters.csv", headers=ws["h"])
     assert csv_r.status_code == 200 and "attachment; filename=" in csv_r.headers["content-disposition"]
-    lines = csv_r.text.splitlines()
-    assert lines[0].startswith("row_type,source") and any(ln.startswith("overlay_parameter") and ",AC-11," in ln for ln in lines)
+    rows = list(csv.reader(io.StringIO(csv_r.text.lstrip("\ufeff"))))
+    assert rows[0][0] == "Control ID" and any(r[0] == "AC-11" and r[6] and r[9].startswith("Overlay:") for r in rows[1:]), "overlay value in the Overlay value column"
     wb = client.get(f"/api/v1/systems/{ws['sid']}/workbench/controls/ac-11", headers=ws["h"]).json()
     assert any(n["key"] == "cnssi-classified" and "p. 12" in n["cite"] for n in wb["overlay_notes"])
     back = _ov(client, ws, "cnssi-classified", False).json()
