@@ -1,0 +1,32 @@
+{
+  "summary": "Iteration 15 - Verified public /demo-video assets + bug fixes. Backend: 11/11 new pytest in /app/backend/tests/test_demo_video.py pass (public GETs for all 6 files return 200 with correct content-types; unknown file -> 404; HTTP Range on mp4 -> 206 with Content-Range: bytes 0-1023/...; ffprobe confirms single h264 1920x1080 yuv420p 30fps stream, duration ~300s, zero audio streams; TR workbook f7fc7110-5c55-478e-98e6-19712935ad13 for system 53ce70f2 is 'generated' and rows include a poam-type source with label 'POA&M P-...' confirming BUG FIX 2). Full test_tr.py (27/27) also green. Frontend: /demo-video renders [demo-video-page], [demo-video-player] src ends with ironvision_ai_rmf_demo.mp4; all six download links present ([demo-dl-mp4/narration/teleprompter/captions/timeline/validation]) and hrefs point at /api/v1/public/demo/*; [demo-video-whitepaper-link] -> /whitepaper. /whitepaper exposes [whitepaper-demo-video-link] which navigates to /demo-video. BUG FIX 1 verified end-to-end: Explore demo -> /systems/53ce70f2.../controls/ac-2, click [ai-generate-btn], [ai-draft-label] appears within 60s with ~1064 chars in [wb-narrative-input]; after sleeping 12s (spanning the quiet background refresh) ai-draft-label is still visible and textarea text is unchanged - no reset.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "WorkbenchPage filter selects", "issues": ["Pre-existing React hydration warning: <span> rendered inside <option> (same warning flagged in iteration 14, unrelated to this task)."]},
+      {"screen": "All pages", "issues": ["CSP blocks cloudflareinsights beacon.min.js and a blob: replay-canvas worker. Non-functional (analytics/replay only); same as iter 14."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_demo_video.py",
+    "/app/backend/tests/test_tr.py",
+    "/app/test_reports/pytest/demo_video.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "public.py DEMO allowlist correctly 404s unknown names and sets per-file content types + inline/attachment disposition. FileResponse supports Range natively (verified 206 on mp4).",
+    "DemoVideoPage uses process.env.REACT_APP_BACKEND_URL for public URLs - no hardcoded hosts.",
+    "ImplementationPanel latestKey guard successfully prevents the quiet background refresh from resetting the just-generated AI draft (BUG FIX 1 confirmed by 12s dwell test).",
+    "TR service POA&M label fix: rows[*].sources now carry label='POA&M P-...' for poam-type sources on an existing workbook without regenerating - BUG FIX 2 verified live via API."
+  ],
+  "updated_files": ["/app/backend/tests/test_demo_video.py"],
+  "success_rate": {"backend": "100% (11/11 new + 27/27 test_tr.py)", "frontend": "100% of in-scope data-testid"},
+  "test_credentials": "Explore demo via /login [data-testid=demo-login-btn] - no credentials required. Backend demo token: POST /api/v1/auth/demo-login {} -> access_token.",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Public demo files served at GET /api/v1/public/demo/{name} with allowlist in /app/backend/app/api/v1/public.py; files live under /app/backend/app/static/demo/. Range requests supported. ffprobe is available at /usr/bin/ffprobe. The shared demo tenant workbook (f7fc7110-...) and system (53ce70f2-...) are stable - don't save/approve on them. Hydration warning for <span> inside <option> is pre-existing (iter 14).",
+  "rca of the issue": "N/A - task was a verification pass; both bug fixes behave as advertised."
+}
