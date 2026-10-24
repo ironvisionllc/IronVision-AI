@@ -36,6 +36,14 @@ class AIOutputValidationError(RuntimeError):
     pass
 
 
+class AIOutputTruncatedError(RuntimeError):
+    """The reply hit max_tokens (finish_reason "length"); callers should retry with a smaller request, not repair."""
+
+
+def ai_max_output_tokens() -> int:
+    return int(os.environ.get("AI_MAX_OUTPUT_TOKENS") or 8000)
+
+
 def model_for(prompt_id: str, default: str | None, admin_model: str | None = None) -> str | None:
     """Admin override (AI administration page) > AI_MODEL_<USE CASE> > AI_MODEL. Any slug is passed through verbatim."""
     if admin_model:
@@ -99,12 +107,13 @@ class AIService:
                 "models": env_models(), **self.provider.describe(),
                 "reason": None if ok else "provider selected but its API key or model is missing"}
 
-    async def run(self, prompt_id: str, version: str, variables: dict, actor_user_id: uuid.UUID | None = None) -> AIResult:
+    async def run(self, prompt_id: str, version: str, variables: dict, actor_user_id: uuid.UUID | None = None,
+                  max_tokens: int | None = None) -> AIResult:
         if not self.configured:
             raise RuntimeError("AI provider is not configured")
         prompt = get_prompt(prompt_id, version)
         model = model_for(prompt_id, self.provider.model, await run_in_threadpool(_org_model, actor_user_id))
-        req = AIRequest(system=prompt.system, user=prompt.render(**variables), max_tokens=prompt.max_tokens, model=model,
+        req = AIRequest(system=prompt.system, user=prompt.render(**variables), max_tokens=max_tokens or prompt.max_tokens, model=model,
                         json_schema=prompt.output_model.model_json_schema(), schema_name=prompt_id.replace(".", "_"))
         input_sha = hashlib.sha256((req.system + "\n" + req.user).encode()).hexdigest()
         started = time.perf_counter()
@@ -122,6 +131,8 @@ class AIService:
             raise
         log.update(response_text=resp.text, input_tokens=resp.input_tokens, output_tokens=resp.output_tokens,
                    model=resp.model or model)
+        if resp.finish_reason == "length":
+            await self._truncated(log, req, started)
         try:
             output = prompt.output_model.model_validate(_extract_json(resp.text))
         except (ValueError, ValidationError) as first:
@@ -132,7 +143,11 @@ class AIService:
                 resp2 = await self.provider.complete(repair)
                 log.update(response_text=resp2.text, input_tokens=_sum(resp.input_tokens, resp2.input_tokens),
                            output_tokens=_sum(resp.output_tokens, resp2.output_tokens))
+                if resp2.finish_reason == "length":
+                    await self._truncated(log, req, started)
                 output = prompt.output_model.model_validate(_extract_json(resp2.text))
+            except AIOutputTruncatedError:
+                raise
             except Exception as exc:
                 log.update(status="completed", validation_status="invalid", error=f"after one repair retry: {exc}"[:2000],
                            latency_ms=int((time.perf_counter() - started) * 1000))
@@ -144,6 +159,12 @@ class AIService:
         interaction_id = await run_in_threadpool(_log_interaction, log)
         return AIResult(output=output, provider=resp.provider, model=log["model"], latency_ms=latency,
                         interaction_id=interaction_id)
+
+    async def _truncated(self, log: dict, req: AIRequest, started: float) -> None:
+        log.update(status="truncated", validation_status="not_run", error=f"reply cut off at max_tokens={req.max_tokens} (finish_reason=length)",
+                   latency_ms=int((time.perf_counter() - started) * 1000))
+        await run_in_threadpool(_log_interaction, log)
+        raise AIOutputTruncatedError(log["error"])
 
 
 def _sum(a: int | None, b: int | None) -> int | None:

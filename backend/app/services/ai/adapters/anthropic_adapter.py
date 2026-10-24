@@ -29,4 +29,5 @@ class Provider(AIProvider):
         )
         text = "".join(block.text for block in msg.content if getattr(block, "type", "") == "text")
         return AIResponse(text=text, provider=self.name, model=msg.model,
-                          input_tokens=msg.usage.input_tokens, output_tokens=msg.usage.output_tokens)
+                          input_tokens=msg.usage.input_tokens, output_tokens=msg.usage.output_tokens,
+                          finish_reason="length" if msg.stop_reason == "max_tokens" else msg.stop_reason)

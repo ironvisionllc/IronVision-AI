@@ -3,6 +3,7 @@ assessment objectives) and decide MET / PARTIAL / MISSING from the policy text w
 Each result keeps the matched snippet(s) with page/section, a confidence, the reason, any organization-defined value found
 (e.g. review frequency) and – when not met – what text would satisfy it. Nothing here changes a control status."""
 import hashlib
+import logging
 import re
 import uuid
 from datetime import datetime, timezone
@@ -296,24 +297,53 @@ def ensure_current(db: Session, policies) -> int:
 
 
 AI_PROMPT = "policy.coverage_refine"
+AI_BATCH = 8
+log = logging.getLogger(__name__)
 
 
-def ai_refine(text: str, control_id: str, reqs: list, results: list, org_id) -> dict:
-    """One strict-JSON AI call per control; returns {requirement_id: {status, quote, rationale}}. Any failure → {} (deterministic stands)."""
+def _refine_batch(svc, items: list, control_id: str, text: str, stats: dict) -> dict:
+    """One strict-JSON call for a batch; a truncated reply (finish_reason=length) is retried as two halves. Other failures → {}."""
     import asyncio
+    import json
 
+    from app.services.ai.service import AIOutputTruncatedError, ai_max_output_tokens
+    stats["batches"] += 1
+    try:
+        res = asyncio.run(svc.run(AI_PROMPT, "1.0.0", {"control_id": control_id.upper(), "requirements": json.dumps(items),
+                                                         "policy": text[:24000]}, max_tokens=ai_max_output_tokens()))
+    except AIOutputTruncatedError:
+        stats["truncated"] += 1
+        if len(items) == 1:
+            stats["failed"] += 1
+            return {}
+        half = len(items) // 2
+        return {**_refine_batch(svc, items[:half], control_id, text, stats), **_refine_batch(svc, items[half:], control_id, text, stats)}
+    except Exception as exc:
+        stats["failed"] += 1
+        log.warning("coverage AI batch failed for %s (%d requirements): %s – deterministic result kept", control_id, len(items), str(exc)[:200])
+        return {}
+    stats["succeeded"] += 1
+    ids = {i["requirement_id"] for i in items}
+    return {i.requirement_id: i.model_dump() for i in res.output.items if i.requirement_id in ids}
+
+
+def ai_refine(text: str, control_id: str, reqs: list, results: list, org_id, stats: dict | None = None) -> dict:
+    """Batches of AI_BATCH objectives/CCIs per call, merged into {requirement_id: {status, quote, rationale}}. A failed batch keeps
+    its deterministic results without dropping the others; quotes are verified later by policy_profile.apply_ai."""
     from app.services.ai.service import get_ai_service
 
     svc = get_ai_service()
     if not svc.configured:
         return {}
+    stats = stats if stats is not None else {}
+    for k in ("batches", "succeeded", "failed", "truncated"):
+        stats.setdefault(k, 0)
     items = [{"requirement_id": q["id"], "text": q["text"][:500], "deterministic": r["status"]} for q, (_, r) in zip(reqs, results)]
-    try:
-        res = asyncio.run(svc.run(AI_PROMPT, "1.0.0", {"control_id": control_id.upper(), "requirements": __import__("json").dumps(items),
-                                                         "policy": text[:24000]}))
-    except Exception:
-        return {}
-    return {i.requirement_id: i.model_dump() for i in res.output.items}
+    merged: dict = {}
+    for i in range(0, len(items), AI_BATCH):
+        merged.update(_refine_batch(svc, items[i:i + AI_BATCH], control_id, text, stats))
+    log.info("coverage AI %s: %d requirements, %s", control_id, len(items), stats)
+    return merged
 
 
 def effective(c: PolicyRequirementCoverage) -> str:

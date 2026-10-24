@@ -19,6 +19,7 @@ class AIResponse(BaseModel):
     model: str | None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    finish_reason: str | None = None      # normalised: "length" = reply cut off at max_tokens
 
 
 class AIProvider(ABC):

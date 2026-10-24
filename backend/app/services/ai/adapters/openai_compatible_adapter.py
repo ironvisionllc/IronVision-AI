@@ -128,8 +128,10 @@ class Provider(AIProvider):
                 if isinstance(content, list):
                     content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
                 usage = data.get("usage") or {}
+                finish = data["choices"][0].get("finish_reason")
                 return AIResponse(text=content, provider=self.name, model=data.get("model") or model,
-                                  input_tokens=usage.get("prompt_tokens"), output_tokens=usage.get("completion_tokens"))
+                                  input_tokens=usage.get("prompt_tokens"), output_tokens=usage.get("completion_tokens"),
+                                  finish_reason="length" if finish in ("length", "max_tokens") else finish)
         raise AssertionError("unreachable")
 
 
