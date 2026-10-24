@@ -81,11 +81,14 @@ class MockAdapter(ConnectorAdapter):
             from app.models import Asset, AssetCorrelation
             from app.services.inventory import correlate as cr
             obs = cr.observed({"host": h["host"], "ips": [h["ip"]]})
-            if db.scalar(select(AssetCorrelation).where(AssetCorrelation.system_id == source.system_id, AssetCorrelation.key == cr.facts_key(obs))):
+            known = db.scalar(select(AssetCorrelation).where(AssetCorrelation.system_id == source.system_id, AssetCorrelation.key == cr.facts_key(obs)))
+            if known:
+                if known.observed_asset_id and (o := db.get(Asset, known.observed_asset_id)):
+                    o.provenance = {**(o.provenance or {}), "collector": source.name}
                 continue
             a = Asset(system_id=source.system_id, name=h["host"], hostname=cr.n_host(h["host"]), ip_address=h["ip"], ip_addresses=[h["ip"]], asset_type="unknown",
                       inventory_source=f"mock:{source.source_type}", is_unmatched=True, review_status="needs_review", source="mock_adapter",
-                      provenance={"adapter": "mock", "synthetic": True, "evidence_id": str(ev.id)})
+                      provenance={"adapter": "mock", "synthetic": True, "evidence_id": str(ev.id), "collector": source.name})
             db.add(a)
             db.flush()
             db.add(AssetCorrelation(system_id=source.system_id, key=cr.facts_key(obs), facts={"host": h["host"], "ips": [h["ip"]], "mocked": True}, candidates=[],

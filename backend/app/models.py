@@ -1167,6 +1167,7 @@ class TrRow(CoreMixin, Base):
     sources: Mapped[list | None] = mapped_column(JSONB)
     flags: Mapped[list | None] = mapped_column(JSONB)
     state: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'missing'"))  # auto | edited | approved | missing | conflict
+    prepared_by: Mapped[dict | None] = mapped_column(JSONB)   # last editor/preparer (real user + persona) – SoD for approval
     final: Mapped[dict | None] = mapped_column(JSONB)
     decided_by: Mapped[str | None] = mapped_column(String(255))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -1277,6 +1278,8 @@ class InventoryDiscrepancy(CoreMixin, Base):
     applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_detected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     accepted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)     # real person (persona operator) – SoD for approval
+    accepted_identity: Mapped[dict | None] = mapped_column(JSONB)            # real user + persona who accepted
+    sod: Mapped[dict | None] = mapped_column(JSONB)                          # SoD outcome at approval (e.g. "Sandbox: same person")
 
 
 class AssetCorrelation(CoreMixin, Base):

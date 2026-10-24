@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import (Asset, AssetCorrelation, AssetIdentifier, Finding, InventoryDiscrepancy, InventoryExport, InventoryImport, SoftwareItem, System)
 from app.security.deps import CurrentUser, get_current_user, require_object_permission, require_permission
-from app.services import audit, jobs
+from app.services import audit, jobs, sod
 from app.services.inventory import consistency as cs
 from app.services.inventory import correlate as cr
 from app.services.inventory import hwsw
@@ -37,7 +37,8 @@ def _asset(a: Asset, fcount: dict, linked: dict) -> dict:
     group = [a.id, *[x.id for x in linked.get(a.id, [])]]
     return {"id": str(a.id), "name": a.name, "hostname": a.hostname, "fqdn": a.fqdn, "ip_address": a.ip_address, "ip_addresses": a.ip_addresses or [],
             "mac_address": a.mac_address, "serial_number": a.serial_number, "os": a.os, "asset_type": a.asset_type, "inventory": a.inventory or {},
-            "inventory_source": a.inventory_source, "source_label": cs.src_label(a.inventory_source), "is_inventory": cs.is_inventory(a),
+            "inventory_source": a.inventory_source, "source_label": cs.src_label(a.inventory_source), "collector": (a.provenance or {}).get("collector"),
+            "is_inventory": cs.is_inventory(a),
             "correlated_asset_id": str(a.correlated_asset_id) if a.correlated_asset_id else None, "last_observed_at": _iso(a.last_observed_at),
             "findings": sum(fcount.get(i, 0) for i in group), "linked_scan_assets": [{"id": str(x.id), "name": x.name, "source_label": cs.src_label(x.inventory_source)}
                                                                                       for x in linked.get(a.id, [])]}
@@ -73,7 +74,8 @@ def overview(system_id: uuid.UUID, db: Session = Depends(get_db), current: Curre
     return {"imports": [{"id": str(i.id), "file_name": i.file_name, "version": i.version, "sha256": i.sha256, "status": i.status, "error": i.error, "counts": i.counts,
                          "uploaded_by": i.uploaded_by, "created_at": _iso(i.created_at), "has_vba": (i.detection or {}).get("has_vba")} for i in imps],
             "exports": [{"id": str(e.id), "file_name": e.file_name, "version": e.version, "sha256": e.sha256, "exported_by": e.exported_by, "counts": e.counts,
-                         "ok": (e.verification or {}).get("ok"), "changed": len((e.verification or {}).get("changed_cells", [])), "created_at": _iso(e.created_at)} for e in exps],
+                         "ok": (e.verification or {}).get("ok"), "changed": len((e.verification or {}).get("changed_cells", [])), "created_at": _iso(e.created_at),
+                         "sandbox_same_person_changes": (e.verification or {}).get("sandbox_same_person_changes", 0)} for e in exps],
             "hardware": [_asset(a, fcount, linked) for a in assets if cs.is_inventory(a)],
             "scan_observed": [_asset(a, fcount, linked) for a in assets if not cs.is_inventory(a)],
             "software": [{"id": str(x.id), "vendor": x.vendor, "name": x.name, "version": x.version, "sw_type": x.sw_type, "source_label": cs.src_label(x.source),
@@ -121,8 +123,10 @@ def check(system_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentU
     return {"ok": True, "job_id": str(job.id)}
 
 
-SOD_MSG = ("Separation of duties: a different person must approve this change – you accepted the resolution. "
-           "Switching to another persona does not count as a different person.")
+def _accepted(d: InventoryDiscrepancy) -> dict | None:
+    if d.accepted_identity:
+        return d.accepted_identity
+    return {"real_user_id": str(d.accepted_by_user_id), "persona_user_id": str(d.accepted_by_user_id)} if d.accepted_by_user_id else None
 
 
 def _real(current: CurrentUser):
@@ -130,11 +134,12 @@ def _real(current: CurrentUser):
     return current.operator.id if current.operator else current.user.id
 
 
-def _disc(d: InventoryDiscrepancy, me=None) -> dict:
+def _disc(d: InventoryDiscrepancy, current=None, sandbox: bool = False) -> dict:
     return {"id": str(d.id), "kind": d.kind, "kind_label": cs.KIND_LABEL.get(d.kind, d.kind), "status": d.status, "title": d.title, "records": d.records,
             "details": d.details or {}, "recommendation": d.recommendation, "proposed_change": d.proposed_change, "ai": d.ai, "decided_by": d.decided_by,
             "decided_at": _iso(d.decided_at), "reason": d.reason, "applied_by": d.applied_by, "applied_at": _iso(d.applied_at), "last_detected_at": _iso(d.last_detected_at),
-            "approve_locked": SOD_MSG if d.status == "pending_approval" and me is not None and d.accepted_by_user_id == me else None}
+            "approve_locked": sod.evaluate(_accepted(d), current, sandbox, "accepted the resolution for")[0] if d.status == "pending_approval" and current else None,
+            "accepted_identity": d.accepted_identity, "sod": d.sod}
 
 
 @router.get("/systems/{system_id}/inventory/discrepancies")
@@ -143,7 +148,8 @@ def discrepancies(system_id: uuid.UUID, status: str = "open,pending_approval", d
     q = select(InventoryDiscrepancy).where(InventoryDiscrepancy.system_id == s.id).order_by(InventoryDiscrepancy.kind, InventoryDiscrepancy.title)
     if status != "all":
         q = q.where(InventoryDiscrepancy.status.in_(status.split(",")))
-    return [_disc(d, _real(current)) for d in db.scalars(q)]
+    sb = sod.is_sandbox(db, s.org_id)
+    return [_disc(d, current, sb) for d in db.scalars(q)]
 
 
 class DiscAction(BaseModel):
@@ -177,7 +183,7 @@ def act(did: uuid.UUID, body: DiscAction, request: Request, db: Session = Depend
     elif body.action == "accept":
         if d.status != "open" or not d.proposed_change:
             raise HTTPException(409, "Only an open discrepancy with a proposed resolution can be accepted")
-        d.status, d.accepted_by_user_id = "pending_approval", _real(current)
+        d.status, d.accepted_by_user_id, d.accepted_identity = "pending_approval", _real(current), sod.identity(current)
     elif body.action == "reject":
         if d.status != "pending_approval":
             raise HTTPException(409, "Nothing is pending approval")
@@ -185,21 +191,24 @@ def act(did: uuid.UUID, body: DiscAction, request: Request, db: Session = Depend
     else:
         if d.status != "pending_approval":
             raise HTTPException(409, "Accept the resolution first – changes are applied only after approval")
-        if d.accepted_by_user_id == _real(current):
-            raise HTTPException(403, SOD_MSG)
+        why, sod_det = sod.evaluate(_accepted(d), current, sod.is_sandbox(db, s.org_id), "accepted the resolution for")
+        if why:
+            raise HTTPException(403, why)
+        d.sod = sod_det
         try:
             change = cs.apply(db, d, current.user.email)
         except ValueError as e:
             raise HTTPException(409, str(e)) from e
         d.status, d.applied_by, d.applied_at = "applied", current.user.email, cr.now()
         audit.record(db, action="inventory.change_applied", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="inventory_discrepancy",
-                     entity_id=str(d.id), before=change["before"], after={**(change["after"] or {}), "proposed_change": d.proposed_change, "accepted_by": d.decided_by}, **meta)
+                     entity_id=str(d.id), before=change["before"], after={**(change["after"] or {}), "proposed_change": d.proposed_change, "accepted_by": d.decided_by},
+                     details=sod_det, **meta)
     if body.action != "approve":
         d.decided_by, d.decided_at = current.user.email, cr.now()
     audit.record(db, action=f"inventory.discrepancy_{body.action}", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="inventory_discrepancy",
                  entity_id=str(d.id), before=before, after={"status": d.status, "reason": d.reason, "kind": d.kind, "proposed_change": d.proposed_change}, **meta)
     db.commit()
-    return _disc(d, _real(current))
+    return _disc(d, current, sod.is_sandbox(db, s.org_id))
 
 
 def _corr(db, c: AssetCorrelation) -> dict:

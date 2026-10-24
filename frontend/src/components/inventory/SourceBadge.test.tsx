@@ -13,3 +13,8 @@ test("a real file import is not labelled as mocked", () => {
   expect(screen.queryByTestId("mocked-badge")).toBeNull();
   expect(screen.getByTestId("source-badge").textContent).toBe("Scan/checklist file import");
 });
+
+test("the MOCKED badge names the collector", () => {
+  render(<SourceBadge label="MOCKED source" collector="On-prem collector (MOCK)" />);
+  expect(screen.getByTestId("mocked-badge").textContent).toBe("MOCKED source · On-prem collector (MOCK)");
+});

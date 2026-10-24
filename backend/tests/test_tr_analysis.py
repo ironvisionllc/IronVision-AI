@@ -163,7 +163,7 @@ def test_export_unchanged_unless_text_applied_then_attributed(client, ws, twb, m
     assert e1["sha256"] == e2["sha256"] and _tr_cell(client, ws, twb, e1) == _tr_cell(client, ws, twb, e2), "analysis alone changes no exported cell"
     a = _get(client, ws, twb, 7)
     text = a["output"]["explanation"] + " Reviewed by assessor."
-    r = client.post(f"/api/v1/tr/workbooks/{twb}/rows/{rid}/use-analysis", json={"analysis_id": a["id"], "text": text}, headers=sca)
+    r = client.post(f"/api/v1/tr/workbooks/{twb}/rows/{rid}/use-analysis", json={"analysis_id": a["id"], "text": text}, headers=ws["role"]("isso"))
     assert r.status_code == 200 and r.json()["state"] == "edited" and r.json()["final"]["ai_assisted"]["edited_by_user"] is True
     assert r.json()["final"]["compliance_status"] == "Compliant", "status untouched by applying text"
     e3 = client.post(f"/api/v1/tr/workbooks/{twb}/export", headers=ws["h"]).json()

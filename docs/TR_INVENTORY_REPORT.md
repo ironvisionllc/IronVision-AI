@@ -131,3 +131,16 @@ Screenshots are in `docs/screenshots/tr/` (1–8) and `docs/screenshots/inventor
 
 **Migration:** `0022_tester_confirmation_sod` (additive column `inventory_discrepancies.accepted_by_user_id` + data update; reversible).
 **No dependency, environment or deployment changes.**
+
+## Fix round after the independent test of bbf0648 – shared separation of duties
+- **One shared helper** `backend/app/services/sod.py` (`identity`, `evaluate`) is used by Inventory (accept → approve) and Test Results (edit/prepare → SCA approve).
+  - Real orgs: the approver must be a different REAL user; persona switching does not count → 403 with a plain message; the UI shows the action locked with the reason.
+  - Sandbox orgs (`Organization.is_sandbox`, server-side only, e.g. Explore Demo / self-signup): a different persona of the same real user is allowed; the audit event records the real user and both personas and is labelled **"Sandbox: same person"** (visible in the audit log details, on the row/discrepancy, and in TR + inventory export history). The same persona is always refused.
+  - Client input (body fields such as `is_sandbox`, headers such as `X-Sandbox`) is ignored; tested.
+  - The role rule is unchanged: only SCA sets or approves a Compliance Status.
+- **TR:** each row stores `prepared_by` (real user + persona) on edits of Compliance Status / Test Results and on the AI "Use this text" action. Auto-suggested rows with no edits can be approved directly by an SCA. Bulk approval checks each row and skips blocked rows with a per-row reason; a single blocked request returns 403. **Existing approved rows were not changed retroactively** (their audit events predate the rule and carry no SoD label).
+- **MOCKED badge** now names the collector in the API (`collector`) and the UI, e.g. "MOCKED source · On-prem collector (MOCK)" (asset table and discrepancy records).
+- **Tester WARN (row 23):** `approve` previously ignored `values`. Now `values: {"test_results": "..."}` on approve is saved as the row's Test Results text; any other `values` key on approve returns 422 (use `status`, `tested_by`, `date_tested`). `edit` saves `test_results` as before. The OpenAPI schema (`DecideIn.values`) documents this.
+- **Migration:** `0023_shared_sod` (additive: `tr_rows.prepared_by`, `inventory_discrepancies.accepted_identity`, `inventory_discrepancies.sod`).
+- **Tests:** new `backend/tests/test_sod.py` (7 tests: TR sandbox/real single+bulk, inventory sandbox/real, spoofing, approve saves test_results + OpenAPI, collector name); updated `test_inventory.py`, `test_tr_analysis.py`; frontend `SourceBadge.test.tsx`. Full backend suite **550 passed, 43 skipped**; `tsc` clean; frontend **9 passed**.
+- **Browser check (jordan.qa7731, sandbox):** ISSO edits row 7 → SCA approves (labelled "Sandbox: same person" on the row, in the audit log and export history); SCA edits row 8 → Approve locked with the reason; API returns 403; the inventory shows "MOCKED source · On-prem collector (MOCK)".

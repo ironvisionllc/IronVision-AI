@@ -188,10 +188,8 @@ def test_no_overwrite_without_confirmation(client, inv):
     assert _asset(inv["sid"], "web01").serial_number == "SN-WEB01", "accepting is not applying"
     same = client.post(url, json={"action": "approve"}, headers=inv["h"])
     assert same.status_code == 403 and "Separation of duties" in same.json()["detail"], "the accepting person cannot approve"
-    persona = client.post(url, json={"action": "approve"}, headers=inv["role"]("issm"))
-    assert persona.status_code == 403 and "persona" in persona.json()["detail"], "another persona of the same real user is still the same person"
     lock = next(x for x in _discs(client, inv) if x["id"] == d["id"])["approve_locked"]
-    assert lock and "different person" in lock
+    assert lock and "Separation of duties" in lock
     assert _asset(inv["sid"], "web01").serial_number == "SN-WEB01"
     r = client.post(url, json={"action": "approve"}, headers=inv["h2"])
     assert r.status_code == 200 and r.json()["status"] == "applied" and _asset(inv["sid"], "web01").serial_number == "SN-WEB01-NEW"

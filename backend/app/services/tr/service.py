@@ -279,7 +279,7 @@ def generate(db: Session, wb: TrWorkbook, populate: bool = False) -> dict:
 
 
 def approve(db: Session, wb: TrWorkbook, rows: list[TrRow], actor, justification: str, use_suggestion: bool = False, status: str | None = None,
-            testers: dict | None = None) -> dict:
+            testers: dict | None = None, test_results: str | None = None, sod_details: dict | None = None) -> dict:
     """SCA only (enforced by the API). Compliance Status = the recorded assessment determination or the SCA's own determination.
     Tested By / Date Tested are ALWAYS entered (or explicitly confirmed) by the SCA per row – never defaulted to the approver or today.
     `testers` = {row_id: {"tested_by": str, "date_tested": date}} – validated by the API."""
@@ -305,7 +305,9 @@ def approve(db: Session, wb: TrWorkbook, rows: list[TrRow], actor, justification
         src = (f"confirmed from {prop['determination_source']}" if prop.get("determination_source") and prop.get("tested_by") == by and prop.get("date_tested") == on
                else "entered by the SCA at approval")
         r.final = {"compliance_status": det, "tested_by": by, "date_tested": on, "tester_confirmed": True, "tester_source": src,
-                   "test_results": p.get("test_results"), "determined_by": how, "approved_by": actor.email, "approved_at": now().isoformat(),
+                   "test_results": test_results if test_results is not None else p.get("test_results"), "determined_by": how,
+                   "approved_by": actor.email, "approved_at": now().isoformat(),
+                   **({"sod_label": sod_details[str(r.id)]["label"]} if sod_details and (sod_details.get(str(r.id)) or {}).get("label") else {}),
                    **({"ai_assisted": p["ai_assisted"]} if p.get("ai_assisted") else {})}
         r.state, r.decided_by, r.decided_at, r.justification = "approved", actor.email, now(), justification
         done.append(r.row_number)
@@ -329,6 +331,10 @@ def edit(db: Session, wb: TrWorkbook, r: TrRow, values: dict, actor, justificati
     r.state, r.decided_by, r.decided_at, r.justification = "edited", actor.email, now(), justification
     refresh_counts(db, wb)
     return r
+
+
+def sandbox_rows(rows: list[TrRow]) -> int:
+    return sum(1 for r in rows if r.state == "approved" and (r.final or {}).get("sod_label"))
 
 
 def export(db: Session, wb: TrWorkbook, actor) -> TrExport:
@@ -363,6 +369,7 @@ def export(db: Session, wb: TrWorkbook, actor) -> TrExport:
     out = xlsx.write(orig, sheet, cells)
     rep = xlsx.verify(orig, out, sheet, set(cells))
     rep.update(permission_report(d, wb, rows, mode, cells))
+    rep["sandbox_same_person_rows"] = sandbox_rows(rows)
     rep["ok"] = rep["ok"] and not rep["outside_permitted"]
     if not rep["ok"]:
         raise ValueError(f"Export validation failed: {rep['issues'][:3] or rep['outside_permitted'][:3]}")

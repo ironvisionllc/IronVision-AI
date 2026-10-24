@@ -278,6 +278,8 @@ def export(db: Session, system: System, actor) -> InventoryExport:
                               [f"{s['sheet']}!{r}" for s in (hw, sw) for r in s["header_cells"].values()],
            "human_required": ["Open the file in Microsoft Excel (macros stay disabled) – no repair prompt", "Import it in eMASS (Hardware/Software → Import)",
                               "Spot-check three hardware and three software rows in eMASS"]}
+    rep["sandbox_same_person_changes"] = db.scalar(select(func.count()).select_from(InventoryDiscrepancy).where(
+        InventoryDiscrepancy.system_id == system.id, InventoryDiscrepancy.status == "applied", InventoryDiscrepancy.sod["sod"].astext == "Sandbox: same person"))
     if not rep["ok"]:
         raise ValueError(f"Export validation failed: {(v1['issues'] + v2['issues'] + rep['outside_permitted'])[:3]}")
     ver = (db.scalar(select(func.max(InventoryExport.version)).where(InventoryExport.system_id == system.id)) or 0) + 1

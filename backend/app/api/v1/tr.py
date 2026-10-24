@@ -4,7 +4,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
@@ -12,7 +12,7 @@ from app.api.v1.records import get_system
 from app.db import get_db
 from app.models import Cci, Control, TrAnalysis, TrExport, TrRow, TrWorkbook
 from app.security.deps import CurrentUser, get_current_user, require_object_permission, require_permission
-from app.services import audit, jobs
+from app.services import audit, jobs, sod
 from app.services.tr import service as trs
 
 router = APIRouter(tags=["test-results"])
@@ -43,11 +43,12 @@ def _out(wb: TrWorkbook) -> dict:
             "created_at": wb.created_at.isoformat(), "generated_at": wb.generated_at.isoformat() if wb.generated_at else None}
 
 
-def _row(r: TrRow) -> dict:
+def _row(r: TrRow, current: CurrentUser | None = None, sandbox: bool = False) -> dict:
     return {"id": str(r.id), "row": r.row_number, "added": r.added, "control_acronym": r.control_acronym, "ap_acronym": r.ap_acronym, "cci_id": r.cci_id,
             "control_id": r.control_id, "match_status": r.match_status, "match_reason": r.match_reason, "proposed": r.proposed or {}, "sources": r.sources or [],
             "flags": r.flags or [], "state": r.state, "final": r.final, "decided_by": r.decided_by, "justification": r.justification,
-            "decided_at": r.decided_at.isoformat() if r.decided_at else None, "last_exported_at": r.last_exported_at.isoformat() if r.last_exported_at else None}
+            "decided_at": r.decided_at.isoformat() if r.decided_at else None, "last_exported_at": r.last_exported_at.isoformat() if r.last_exported_at else None,
+            "prepared_by": r.prepared_by, "sod_lock": sod.evaluate(r.prepared_by, current, sandbox, "edited or prepared")[0] if current else None}
 
 
 @router.post("/systems/{system_id}/tr/workbooks", status_code=201)
@@ -78,7 +79,8 @@ def workbook(wid: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser
             "exports": [{"id": str(e.id), "version": e.version, "file_name": e.file_name, "sha256": e.sha256, "exported_by": e.exported_by, "counts": e.counts,
                          "created_at": e.created_at.isoformat(), "template_version": e.template_version, "validation_ok": (e.verification or {}).get("ok"),
                          "mode": (e.verification or {}).get("mode", "prepopulated"), "mode_label": (e.verification or {}).get("mode_label"),
-                         "changed_cells": len((e.verification or {}).get("changed_cells", []))}
+                         "changed_cells": len((e.verification or {}).get("changed_cells", [])),
+                         "sandbox_same_person_rows": (e.verification or {}).get("sandbox_same_person_rows", 0)}
                         for e in db.scalars(select(TrExport).where(TrExport.workbook_id == wb.id).order_by(TrExport.version.desc()))]}
 
 
@@ -97,7 +99,8 @@ def rows(wid: uuid.UUID, state: str | None = None, match: str | None = None, fam
         st = st.where(or_(TrRow.ap_acronym.ilike(f"%{q}%"), TrRow.cci_id.ilike(f"%{q}%"), TrRow.control_id.ilike(f"%{q}%")))
     items = list(db.scalars(st.order_by(TrRow.row_number)))
     size = min(max(size, 10), 500)
-    return {"total": len(items), "items": [_row(r) for r in items[(page - 1) * size: page * size]], "counts": wb.counts}
+    sandbox = sod.is_sandbox(db, wb.org_id)
+    return {"total": len(items), "items": [_row(r, current, sandbox) for r in items[(page - 1) * size: page * size]], "counts": wb.counts}
 
 
 class MappingIn(BaseModel):
@@ -177,15 +180,16 @@ class TesterIn(BaseModel):
 
 
 class DecideIn(BaseModel):
-    action: str                     # approve | edit
+    action: str = Field(description="`approve` (SCA only) or `edit`")
     row_ids: list[uuid.UUID]
     justification: str = ""
-    use_suggestion: bool = False
-    status: str | None = None
-    values: dict | None = None
-    tested_by: str = ""             # approve: one tester + date for the batch …
-    date_tested: date | None = None
-    per_row: dict[str, TesterIn] = {}   # … or per row (row_id → tester/date)
+    use_suggestion: bool = Field(False, description="approve: use the evidence suggestion as the SCA's Compliance Status")
+    status: str | None = Field(None, description="approve: the SCA's Compliance Status (must be in the template vocabulary)")
+    values: dict | None = Field(None, description="edit: {\"test_results\": str, \"compliance_status\": str (SCA only)}. "
+                                                   "approve: only {\"test_results\": str} – the SCA's final Test Results text, saved with the approval")
+    tested_by: str = Field("", description="approve: actual tester for the batch (required unless per_row)")
+    date_tested: date | None = Field(None, description="approve: actual test date for the batch, not in the future (required unless per_row)")
+    per_row: dict[str, TesterIn] = Field({}, description="approve: row_id → {tested_by, date_tested}")
 
 
 def _testers(body: DecideIn, limit: int) -> dict:
@@ -216,20 +220,40 @@ def decide(wid: uuid.UUID, body: DecideIn, request: Request, db: Session = Depen
     rs = list(db.scalars(select(TrRow).where(TrRow.workbook_id == wb.id, TrRow.id.in_(body.row_ids))))
     meta = audit.request_meta(request)
     if body.action == "approve":
+        extra = set(body.values or {}) - {"test_results"}
+        if extra:
+            raise HTTPException(422, f"On approve only values.test_results can be sent (got {', '.join(sorted(extra))}); set the Compliance Status with `status`")
+        text = (body.values or {}).get("test_results")
+        if text is not None and len(text) > ((wb.definition.get("limits") or {}).get("test_results") or 4000):
+            raise HTTPException(422, "Test Results exceed the template's character limit")
         before = {r.id: r.state for r in rs}
         testers = _testers(body, (wb.definition.get("limits") or {}).get("tested_by") or 150)
-        res = trs.approve(db, wb, rs, current.user, body.justification, body.use_suggestion, body.status, testers)
+        sandbox = sod.is_sandbox(db, wb.org_id)
+        ok, blocked, details = [], [], {}
         for r in rs:
+            why, det = sod.evaluate(r.prepared_by, current, sandbox, "edited or prepared")
+            if why:
+                blocked.append({"row": r.row_number, "reason": why})
+            else:
+                ok.append(r)
+                details[str(r.id)] = det
+        if blocked and not ok:
+            raise HTTPException(403, blocked[0]["reason"])
+        res = trs.approve(db, wb, ok, current.user, body.justification, body.use_suggestion, body.status, testers, text, details)
+        res["skipped"] = blocked + res["skipped"]
+        for r in ok:
             if r.row_number in res["approved"]:
                 audit.record(db, action="tr.row_approved", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="tr_row", entity_id=str(r.id),
                              before={"state": before[r.id]}, after={**r.final, "justification": body.justification, "workbook_id": str(wb.id),
                                                                     "approver": current.user.email, "approver_real_user": str(_real(current)),
-                                                                    "tester": r.final["tested_by"], "test_date": r.final["date_tested"]}, **meta)
+                                                                    "tester": r.final["tested_by"], "test_date": r.final["date_tested"]},
+                             details=details.get(str(r.id)), **meta)
     elif body.action == "edit":
         try:
             for r in rs:
                 b = dict(r.final or {})
                 trs.edit(db, wb, r, body.values or {}, current.user, body.justification)
+                r.prepared_by = sod.identity(current)
                 audit.record(db, action="tr.row_edited", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="tr_row", entity_id=str(r.id),
                              before=b, after={**r.final, "justification": body.justification}, **meta)
         except ValueError as e:
@@ -359,6 +383,7 @@ def use_analysis(wid: uuid.UUID, rid: uuid.UUID, body: UseAnalysisIn, request: R
                "ai_assisted": {"analysis_id": str(a.id), "mode": a.mode, "provider": a.provider, "model": a.model, "prompt_version": a.prompt_version,
                                "edited_by_user": text != (a.output.get("explanation") or "").strip(), "applied_by": current.user.email}}
     r.state, r.decided_by, r.decided_at = "edited", current.user.email, trs.now()
+    r.prepared_by = sod.identity(current)
     r.justification = body.justification or "Applied evidence-analysis text"
     trs.refresh_counts(db, wb)
     audit.record(db, action="tr.ai_text_applied", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="tr_row", entity_id=str(r.id),

@@ -42,13 +42,16 @@ def is_inventory(a: Asset) -> bool:
 
 def rec_asset(a: Asset) -> dict:
     return {"type": "asset", "id": str(a.id), "label": a.name, "source": a.inventory_source, "source_label": src_label(a.inventory_source),
+            "collector": (a.provenance or {}).get("collector"),
             "timestamp": _iso(a.last_observed_at or a.created_at), "identifiers": {k: v for k, v in (("hostname", a.hostname), ("ip", a.ip_address),
                                                                                                     ("fqdn", a.fqdn), ("mac", a.mac_address), ("serial", a.serial_number), ("os", a.os)) if v}}
 
 
 def rec_evidence(db: Session, ev: Evidence) -> dict:
-    mocked = ev.source == "mock_adapter" or (ev.source_id and (s := db.get(EvidenceSource, ev.source_id)) is not None and s.adapter == "mock")
+    s = db.get(EvidenceSource, ev.source_id) if ev.source_id else None
+    mocked = ev.source == "mock_adapter" or (s is not None and s.adapter == "mock")
     return {"type": "evidence", "id": str(ev.id), "label": ev.file_name, "source": ev.source, "source_label": "MOCKED source" if mocked else "Scan/checklist file import",
+            "collector": s.name if s else None,
             "timestamp": _iso(ev.collected_at)}
 
 
