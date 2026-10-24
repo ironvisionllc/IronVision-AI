@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { ApproveDialog } from "@/components/tr/ApproveDialog";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -42,14 +43,14 @@ function Mapping({ wb, reload }: { wb: Row; reload: () => void }) {
   return (<div className="rounded border border-slate-200 p-3" data-testid="tr-mapping">
     <div className="mb-1 text-sm font-medium">1 · Columns detected on sheet “{det.sheet}”, header row {det.header_row}</div>
     <div className="mb-2 text-[12px] text-slate-600">Results are written only to the “Enter Test Results Here” columns; read-only eMASS columns are never changed. Allowed Compliance Status values: <b>{(wb.definition?.vocabulary?.compliance_status || []).join(", ")}</b> <span className="text-slate-500">(from {wb.definition?.vocabulary?.source})</span>. Dates: {wb.definition?.date_format}.</div>
-    <table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>Col</th><th>Header</th><th>Section</th><th>Role</th></tr></thead><tbody>
+    <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>Col</th><th>Header</th><th>Section</th><th>Role</th></tr></thead><tbody>
       {(det.columns || []).map((c: Row) => <tr key={c.col} className="border-t border-slate-100" data-testid={`tr-col-${c.col}`}><td className="font-mono">{c.col}</td><td>{c.header}</td>
         <td className={c.group === "readonly" ? "text-slate-500" : c.group === "editable" ? "text-emerald-700" : ""}>{c.group === "readonly" ? "read-only (eMASS)" : c.group === "editable" ? "results (editable)" : "–"}</td>
         <td>{(c.role || "").startsWith("latest_") ? <span className="text-slate-500">previous result (read-only)</span> :
           <select className="input py-0 text-[12px]" value={Object.keys(roles).find((k) => roles[k] === c.col) || ""} data-testid={`tr-role-${c.col}`}
             onChange={(e) => { const n = { ...roles }; Object.keys(n).forEach((k) => n[k] === c.col && delete n[k]); if (e.target.value) n[e.target.value] = c.col; setRoles(n); }}>
             <option value="">– not used –</option>{Object.keys(ROLE_LABEL).map((k) => <option key={k} value={k}>{ROLE_LABEL[k]}</option>)}</select>}</td></tr>)}
-    </tbody></table>
+    </tbody></table></TableScroll>
     <div className="mt-2 flex flex-wrap items-center gap-2"><button className="btn-secondary" onClick={save} data-testid="tr-mapping-save">Apply column roles</button>
       <input className="input w-56" value={name} onChange={(e) => setName(e.target.value)} data-testid="tr-template-name" /><button className="btn-secondary" onClick={tpl} data-testid="tr-template-save">Save as reusable template</button>
       {wb.definition?.template && <span className="text-[11px] text-slate-600">Template “{wb.definition.template.name}” v{wb.definition.template.version} applied</span>}</div>
@@ -137,7 +138,7 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
       <button className="btn-primary" disabled={!sel.length} onClick={() => setApproving(items.filter((r) => sel.includes(r.id)))} data-testid="tr-bulk-approve">Approve {sel.length} selected…</button></div>}
     {approving && <ApproveDialog rows={approving} onClose={() => setApproving(null)}
       onSubmit={(extra) => { decide({ action: "approve", row_ids: approving.map((r) => r.id), justification: just, use_suggestion: useSug, ...extra }); setApproving(null); }} />}
-    <table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th></th><th>Row</th><th>AP / CCI</th><th>Status</th><th>Compliance Status</th><th>Tested by / date</th><th>Test Results &amp; sources</th><th></th></tr></thead><tbody>
+    <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th></th><th>Row</th><th>AP / CCI</th><th>Status</th><th>Compliance Status</th><th>Tested by / date</th><th>Test Results &amp; sources</th><th></th></tr></thead><tbody>
       {items.map((r) => { const v = { ...r.proposed, ...(r.final || {}) };
         return (<Fragment key={r.id}><tr className="border-t border-slate-100 align-top" data-testid={`tr-row-${r.row}`}>
           <td><input type="checkbox" disabled={!wb.can_approve} checked={sel.includes(r.id)} onChange={() => setSel(sel.includes(r.id) ? sel.filter((x) => x !== r.id) : [...sel, r.id])} data-testid={`tr-check-${r.row}`} /></td>
@@ -161,7 +162,7 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
             <button className="btn-secondary ml-1 px-1.5 py-0 text-[11px]" onClick={() => edit(r)} data-testid={`tr-edit-${r.row}`}>Edit</button>
             <button className="btn-secondary ml-1 px-1.5 py-0 text-[11px]" disabled={!r.control_id} onClick={() => setOpen(open === r.id ? null : r.id)} data-testid={`tr-open-analysis-${r.row}`}>Evidence analysis</button></td></tr>
           {open === r.id && <tr><td colSpan={8} className="pb-2"><Analysis wb={wb} r={r} onApplied={() => { rows.reload(); reload(); }} /></td></tr>}</Fragment>); })}
-    </tbody></table>
+    </tbody></table></TableScroll>
     {!items.length && <div className="p-3 text-[12px] text-slate-600" data-testid="tr-review-empty">No rows match these filters.</div>}
   </div>);
 }
@@ -177,11 +178,11 @@ function Exports({ wb, reload }: { wb: Row; reload: () => void }) {
   return (<div className="rounded border border-slate-200 p-3" data-testid="tr-exports">
     <div className="mb-2 flex items-center gap-2"><span className="text-sm font-medium">4 · Export</span><button className="btn-primary" onClick={run} data-testid="tr-export">Export approved rows to the workbook</button>
       <span className="text-[11px] text-slate-600">Only approved rows are written; everything else in the workbook stays byte-identical.</span></div>
-    <table className="w-full text-[12px]"><tbody>{(wb.exports || []).map((e: Row) => <tr key={e.id} className="border-t border-slate-100" data-testid={`tr-export-${e.version}`}>
+    <TableScroll><table className="w-full text-[12px]"><tbody>{(wb.exports || []).map((e: Row) => <tr key={e.id} className="border-t border-slate-100" data-testid={`tr-export-${e.version}`}>
       <td>v{e.version}</td><td>{new Date(e.created_at).toLocaleString()}</td><td>{e.exported_by}</td><td>{e.counts?.written_rows} rows · {e.changed_cells} cells</td>
       <td data-testid={`tr-export-mode-${e.version}`}>{e.mode === "blank" ? "Blank-template mode" : "Pre-populated mode"}{e.sandbox_same_person_rows ? ` · ${e.sandbox_same_person_rows} row(s) approved “Sandbox: same person”` : ""}</td>
       <td>{e.validation_ok ? <span className="text-emerald-700">validation passed</span> : <span className="text-rose-700">validation failed</span>}</td>
-      <td><button className="underline" onClick={() => dl(`/tr/exports/${e.id}/download`, e.file_name, "TR workbook")} data-testid={`tr-download-${e.version}`}>Workbook</button> · <button className="underline" onClick={() => dl(`/tr/exports/${e.id}/validation-report`, e.file_name.replace(".xlsx", "_validation_report.json"), "Validation report")} data-testid={`tr-report-${e.version}`}>Validation report</button></td></tr>)}</tbody></table>
+      <td><button className="underline" onClick={() => dl(`/tr/exports/${e.id}/download`, e.file_name, "TR workbook")} data-testid={`tr-download-${e.version}`}>Workbook</button> · <button className="underline" onClick={() => dl(`/tr/exports/${e.id}/validation-report`, e.file_name.replace(".xlsx", "_validation_report.json"), "Validation report")} data-testid={`tr-report-${e.version}`}>Validation report</button></td></tr>)}</tbody></table></TableScroll>
     <div className="mt-2 text-[11px] text-slate-600" data-testid="tr-human-required">HUMAN_REQUIRED before submitting: 1) open the file in Microsoft Excel (no repair prompt), 2) import it in eMASS (Assessment → Test Result Import), 3) spot-check three rows in eMASS.</div>
   </div>);
 }

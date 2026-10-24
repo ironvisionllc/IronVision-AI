@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useSystems } from "@/context/SystemContext";
@@ -316,7 +317,7 @@ function UnmappedRule({ g, systemId, canMap, ai, onSuggest, onDone }: { g: Row; 
           {ai ? <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => onSuggest(g.id)} data-testid={`suggest-${g.id}`}>AI: suggest</button>
             : <span className="text-[10px] text-slate-500" data-testid={`ai-off-${g.rule_key}`}>AI not configured – use manual mapping</span>}</span>}
       </div>
-      {open && <table className="mt-1 w-full text-[11px]"><thead><tr><th className="th">Host</th></tr></thead><tbody>{g.hosts.map((h: string, i: number) => <tr key={i}><td className="td font-mono">{h}</td></tr>)}</tbody></table>}
+      {open && <TableScroll><table className="mt-1 w-full text-[11px]"><thead><tr><th className="th">Host</th></tr></thead><tbody>{g.hosts.map((h: string, i: number) => <tr key={i}><td className="td font-mono">{h}</td></tr>)}</tbody></table></TableScroll>}
       {mode && <div className="mt-2 rounded border border-slate-200 p-2" data-testid={`rule-action-form-${g.rule_key}`}>
         {mode === "map" && <><input className="input" placeholder="Search catalog incl. enhancements (e.g. AC-2(3), audit)" value={q} onChange={(e) => setQ(e.target.value)} data-testid="control-picker-search" />
           <div className="mt-1 flex flex-wrap gap-1">{(hits?.items ?? hits ?? []).slice?.(0, 15).map((c: Row) => <button key={c.control_id} className={cn("rounded border px-1.5 text-[11px]", picked.includes(c.control_id) && "border-blue-700 bg-blue-50")} onClick={() => setPicked(picked.includes(c.control_id) ? picked.filter((x) => x !== c.control_id) : [...picked, c.control_id])} data-testid={`pick-${c.control_id}`}>{c.label} {c.title}</button>)}</div>

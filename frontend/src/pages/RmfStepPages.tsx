@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { Link } from "react-router-dom";
 import { useSearchParams as _usp } from "react-router-dom";
 import { api, errorMessage } from "@/lib/api";
@@ -144,13 +145,13 @@ function OverlayControls({ sid, k }: { sid: string; k: string }) {
         <select className="input w-auto py-0.5 text-[11px]" value={only} onChange={(e) => setOnly(e.target.value)} data-testid={`overlay-controls-filter-${k}`}>
           <option value="changes">Added / removed controls</option><option value="all">All controls in this overlay (incl. guidance-only)</option></select>
         <span className="ml-auto">{pg.select}</span></div>
-      <table className="w-full text-[11px]"><thead><tr className="text-left text-slate-500"><th>Control</th><th>What the overlay says</th><th>In this system</th></tr></thead><tbody>
+      <TableScroll><table className="w-full text-[11px]"><thead><tr className="text-left text-slate-500"><th>Control</th><th>What the overlay says</th><th>In this system</th></tr></thead><tbody>
         {pg.rows.map((c: Row) => <tr key={c.control_id} className="border-t border-slate-100 align-top" data-testid={`overlay-ctl-${k}-${c.control_id}`}>
           <td className="py-1 font-mono font-semibold">{c.control_id.toUpperCase().replace(/\.(\d+)$/, "($1)")}<div className="font-sans font-normal text-slate-500">{c.name}</div></td>
           <td className="py-1"><div className="font-medium">{c.label} · <span className="font-mono">{c.flags}</span></div>
             {c.fields.filter((f: Row) => !/Reference/.test(f.label)).slice(0, 3).map((f: Row, i: number) => <div key={i} className="text-slate-600"><b>{f.label}</b> (p. {f.page}): {f.text.length > 260 ? `${f.text.slice(0, 260)}…` : f.text}</div>)}</td>
           <td className="whitespace-nowrap py-1">{c.removed_by_overlay ? <span className="text-rose-700">removed by this overlay</span> : c.added_by_this ? <span className="text-emerald-700">added by this overlay</span> : c.assigned ? "assigned" : "—"}</td></tr>)}
-      </tbody></table>
+      </tbody></table></TableScroll>
       <div className="mt-1 flex justify-end">{pg.pager}</div>
     </div>);
 }
@@ -219,7 +220,7 @@ function Overlays({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
       {d.framework !== "cnssi1253" && <p className="mb-2 rounded bg-blue-50 p-2 text-[11px] text-blue-900" data-testid="overlay-fips-note">This system uses FIPS 199 (non-NSS): CNSSI 1253 overlays do not apply. Privacy controls come from the NIST SP 800-53B privacy baseline, selected through the PTA / PII determination.</p>}
       <PrivacyOverlayPrompt p={d.privacy_prompt} onApply={() => document.querySelector("[data-testid=overlay-group-privacy]")?.scrollIntoView({ block: "center" })} />
       {(d.overlay_groups || []).map((g: Row) => <OverlayGroup key={g.group} sid={sid} g={g} busy={busy || !can("system.write")} apply={apply} />)}
-      {legacy.length > 0 && <table className="mt-3 w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th className="py-1">Other overlays</th><th>Controls</th><th>Status</th><th /></tr></thead><tbody>
+      {legacy.length > 0 && <TableScroll><table className="mt-3 w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th className="py-1">Other overlays</th><th>Controls</th><th>Status</th><th /></tr></thead><tbody>
         {legacy.map((o: Row) => <tr key={o.key} className="border-t border-slate-100 align-top" data-testid={`overlay-${o.key}`}>
           <td className="py-2"><b className="font-medium">{o.title}</b> {!o.structure_only && <span className="text-slate-400">v{o.version}</span>}{o.synthetic && <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-800">SYNTHETIC</span>}
             {o.structure_only && <div className="mt-0.5 text-[11px] text-slate-500">{o.description}</div>}</td>
@@ -231,7 +232,7 @@ function Overlays({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
                 <input type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files?.[0] && importCsv(o, e.target.files[0])} data-testid={`overlay-${o.key}-import`} /></label></span>
               : <span className="text-[11px] text-slate-500">An administrator must import the official list</span>)
             : <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => apply(o.key, !o.applied, o.title)} data-testid={`overlay-${o.key}-toggle`}>{o.applied ? "Remove" : "Apply"}</button>}</td>
-        </tr>)}</tbody></table>}
+        </tr>)}</tbody></table></TableScroll>}
     </Panel>);
 }
 
@@ -277,9 +278,9 @@ function Tailoring({ sid, d, reload }: { sid: string; d: Row; reload: () => void
           <p className="mt-2 text-[11px] text-slate-500">Removing a control deletes its statement and evidence links for this system; the decision, who made it and the rationale are kept in the audit log.</p>
         </div>
       </div>
-      {d.tailoring.length > 0 && <table className="mt-4 w-full text-[12px]" data-testid="tailor-history"><thead><tr className="text-left text-slate-500"><th>Control</th><th>Decision</th><th>Rationale</th><th>When</th></tr></thead>
+      {d.tailoring.length > 0 && <TableScroll><table className="mt-4 w-full text-[12px]" data-testid="tailor-history"><thead><tr className="text-left text-slate-500"><th>Control</th><th>Decision</th><th>Rationale</th><th>When</th></tr></thead>
         <tbody>{d.tailoring.slice(0, 50).map((t: Row) => <tr key={t.id} className="border-t border-slate-100"><td className="py-1 font-mono">{fmtControl(t.control_id)}</td><td>{t.action === "remove" ? "Removed" : "Added"}</td>
-          <td>{t.justification}</td><td>{new Date(t.created_at).toLocaleDateString()}</td></tr>)}</tbody></table>}
+          <td>{t.justification}</td><td>{new Date(t.created_at).toLocaleDateString()}</td></tr>)}</tbody></table></TableScroll>}
     </Panel>);
 }
 
@@ -377,9 +378,9 @@ export function MonitorPage() {
         <Go to="/poams" title="POA&M" text="Open and overdue items." testId="mon-go-poam" />
       </div>
       <Panel title="ConMon schedule" className="mt-5" testId="mon-schedule">
-        {jobs ? <table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>Job</th><th>Schedule</th><th>Next run</th><th>Last run</th></tr></thead>
+        {jobs ? <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>Job</th><th>Schedule</th><th>Next run</th><th>Last run</th></tr></thead>
           <tbody>{jobs.map((j) => <tr key={j.id} className="border-t border-slate-100"><td className="py-1">{j.job_type}</td><td className="font-mono">{j.cron ?? j.schedule ?? j.interval_minutes ?? "—"}</td>
-            <td>{j.next_run_at ? new Date(j.next_run_at).toLocaleString() : "—"}</td><td>{j.last_run_at ? new Date(j.last_run_at).toLocaleString() : "never"}</td></tr>)}</tbody></table>
+            <td>{j.next_run_at ? new Date(j.next_run_at).toLocaleString() : "—"}</td><td>{j.last_run_at ? new Date(j.last_run_at).toLocaleString() : "never"}</td></tr>)}</tbody></table></TableScroll>
           : <p className="text-[12px] text-slate-600">Automated ConMon jobs (evidence expiry, attestation reminders, KEV refresh) run on a schedule managed by administrators.</p>}
       </Panel>
     </StepFrame>);

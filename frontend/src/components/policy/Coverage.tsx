@@ -1,4 +1,5 @@
 import { ReactElement, useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { Link } from "react-router-dom";
 import { api, errorMessage } from "@/lib/api";
 import { Row } from "@/lib/useApi";
@@ -66,11 +67,11 @@ export function CoverageChecklist({ policyId, data, systemId, canMap, canPoam, r
           <button className="flex w-full items-center gap-2 text-left text-[12px]" onClick={() => setOpen(open === c.control_id ? null : c.control_id)} data-testid={`coverage-toggle-${c.control_id}`}>
             <CovBadge s={c.summary.state === "gaps" ? "missing" : c.summary.state || "missing"} /><b className="font-mono">{fmt(c.control_id)}</b><span>{c.line}</span>
             <span className="ml-auto text-[11px] text-slate-500">{status[c.control_id] || ""} · {open === c.control_id ? "hide" : "show"} checklist</span></button>
-          {open === c.control_id && <table className="mt-2 w-full"><thead><tr className="text-left text-[10px] text-slate-500"><th>Status</th><th>ID</th><th>Requirement</th><th>Evidence in the policy</th><th /></tr></thead><tbody>
+          {open === c.control_id && <TableScroll><table className="mt-2 w-full"><thead><tr className="text-left text-[10px] text-slate-500"><th>Status</th><th>ID</th><th>Requirement</th><th>Evidence in the policy</th><th /></tr></thead><tbody>
             {c.requirements.map((r: Row) => <RequirementRow key={r.id} r={r} actions={r.effective !== "met" ? <div className="flex flex-col gap-1">
               {canPoam && <button className="btn-secondary px-1.5 py-0.5 text-[10px]" onClick={() => poam(r)} data-testid={`gap-poam-${r.requirement_id}`}>Add to POA&M</button>}
               {canMap && <button className="btn-secondary px-1.5 py-0.5 text-[10px]" onClick={() => elsewhere(r)} data-testid={`gap-elsewhere-${r.requirement_id}`}>Mark as covered elsewhere</button>}</div> : null} />)}
-          </tbody></table>}
+          </tbody></table></TableScroll>}
         </div>))}
     </div>);
 }
@@ -83,6 +84,6 @@ export function ControlPolicyCoverage({ items }: { items: Row[] }) {
     <div className="mt-2 rounded bg-slate-50 px-2 py-1 text-[11px]" data-testid="wb-policy-coverage">
       {items.map((p) => <div key={p.policy_id}><CovBadge s={p.summary.state === "gaps" ? "missing" : p.summary.state || "missing"} /> <Link className="text-blue-800 underline" to={`/policy-auditor/${p.policy_id}`}>{p.policy_title}</Link>: {p.line}</div>)}
       <button className="text-blue-800 underline" onClick={() => setOpen(!open)} data-testid="wb-policy-coverage-toggle" title={CCI_TIP}>{open ? "Hide" : "Show"} coverage per CCI</button>
-      {open && items.map((p) => <table key={p.policy_id} className="mt-1 w-full"><tbody>{p.requirements.map((r: Row) => <RequirementRow key={r.id} r={{ ...r, requirement_type: r.type }} />)}</tbody></table>)}
+      {open && items.map((p) => <TableScroll key={p.policy_id}><table className="mt-1 w-full"><tbody>{p.requirements.map((r: Row) => <RequirementRow key={r.id} r={{ ...r, requirement_type: r.type }} />)}</tbody></table></TableScroll>)}
     </div>);
 }

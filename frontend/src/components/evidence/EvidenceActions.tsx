@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { useAuth } from "@/context/AuthContext";
@@ -52,9 +53,9 @@ function EvidenceDialog({ ev, mode, onClose, onChanged }: { ev: Row; mode: Mode;
             .map(([k, v]) => <><dt key={`k${k}`} className="font-medium text-slate-600">{k}</dt><dd key={`v${k}`} className="break-all">{v ?? "—"}</dd></>)}
           <dt className="font-medium text-slate-600">Related controls</dt><dd>{data.related_controls.map((c: Row) => <div key={c.control_id}>{c.control_id.toUpperCase()}{c.needs_revalidation && <span className="ml-1 text-amber-800">– re-review: {c.reason}</span>}{c.removed && " (mapping closed)"}</div>)}</dd>
         </dl>}
-        {mode === "history" && (data.versions ? <table className="w-full text-[11px]" data-testid="ev-versions"><tbody>{data.versions.map((v: Row) => <tr key={v.version}>
+        {mode === "history" && (data.versions ? <TableScroll><table className="w-full text-[11px]" data-testid="ev-versions"><tbody>{data.versions.map((v: Row) => <tr key={v.version}>
           <td className="td">v{v.version}{v.active && " (active)"}</td><td className="td">{v.file_name}</td><td className="td font-mono">{v.sha256.slice(0, 16)}…</td><td className="td">{v.uploaded_by}</td>
-          <td className="td">{v.reason}</td><td className="td"><button className="text-blue-800 underline" onClick={() => downloadFile(`/evidence/${ev.id}/download?version=${v.version}`, v.file_name || "evidence", "Evidence version")}>Download</button></td></tr>)}</tbody></table>
+          <td className="td">{v.reason}</td><td className="td"><button className="text-blue-800 underline" onClick={() => downloadFile(`/evidence/${ev.id}/download?version=${v.version}`, v.file_name || "evidence", "Evidence version")}>Download</button></td></tr>)}</tbody></table></TableScroll>
           : <p data-testid="ev-history-restricted">Historical versions are visible to evidence submitters, assessors and auditors only.</p>)}
         {mode === "replace" && <>
           <p className="text-slate-600">The new file becomes the active version. The current file and its SHA-256 stay in the version history, and linked control mappings and Test Results rows are flagged “Evidence changed – re-review”.</p>

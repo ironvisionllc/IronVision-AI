@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/lib/api";
@@ -108,15 +109,15 @@ function Discrepancies({ sid, canWrite, reload }: { sid: string; canWrite: boole
 function Tables({ o }: { o: Row }) {
   return (<div className="grid gap-3 lg:grid-cols-2">
     <div className="rounded border border-slate-200 p-3" data-testid="inv-hardware"><div className="mb-1 text-sm font-medium">Hardware ({o.hardware.length}) · scan-only hosts ({o.scan_observed.length})</div>
-      <table className="w-full text-[11px]"><thead><tr className="text-left text-slate-500"><th>Machine</th><th>IP</th><th>Serial / MAC</th><th>OS</th><th>Source</th><th>Findings</th></tr></thead><tbody>
+      <TableScroll><table className="w-full text-[11px]"><thead><tr className="text-left text-slate-500"><th>Machine</th><th>IP</th><th>Serial / MAC</th><th>OS</th><th>Source</th><th>Findings</th></tr></thead><tbody>
         {[...o.hardware, ...o.scan_observed].map((a: Row) => <tr key={a.id} className={`border-t border-slate-100 ${a.is_inventory ? "" : "text-slate-500"}`} data-testid={`inv-asset-${a.name}`}>
           <td>{a.name}{!a.is_inventory && (a.correlated_asset_id ? " (linked)" : " (scan only)")}</td><td>{[a.ip_address, ...a.ip_addresses.filter((x: string) => x !== a.ip_address)].filter(Boolean).join(", ")}</td>
           <td>{a.serial_number || "–"}{a.mac_address ? ` / ${a.mac_address}` : ""}</td><td>{a.os || "–"}</td><td><SourceBadge label={a.source_label} collector={a.collector} /></td><td>{a.findings ? <Link className="underline" to={`/findings?asset=${a.id}`}>{a.findings}</Link> : 0}</td></tr>)}
-      </tbody></table></div>
+      </tbody></table></TableScroll></div>
     <div className="rounded border border-slate-200 p-3" data-testid="inv-software"><div className="mb-1 text-sm font-medium">Software ({o.software.length})</div>
-      <table className="w-full text-[11px]"><thead><tr className="text-left text-slate-500"><th>Vendor</th><th>Name</th><th>Version</th><th>Type</th><th>Source</th></tr></thead><tbody>
+      <TableScroll><table className="w-full text-[11px]"><thead><tr className="text-left text-slate-500"><th>Vendor</th><th>Name</th><th>Version</th><th>Type</th><th>Source</th></tr></thead><tbody>
         {o.software.map((s: Row) => <tr key={s.id} className="border-t border-slate-100"><td>{s.vendor}</td><td>{s.name}</td><td>{s.version}</td><td>{s.sw_type}</td><td><SourceBadge label={s.source_label} /></td></tr>)}
-      </tbody></table></div>
+      </tbody></table></TableScroll></div>
   </div>);
 }
 

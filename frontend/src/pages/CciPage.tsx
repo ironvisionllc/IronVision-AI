@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from "react-router-dom";
+import { TableScroll } from "@/components/common/TableScroll";
 import { Row, useApi } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { usePaged } from "@/components/common/PageSize";
@@ -36,7 +37,7 @@ export default function CciPage() {
         </div>
         <div className="mb-2 text-[12px] text-slate-600" data-testid="cci-count">{data ? `${data.total.toLocaleString()} CCIs · ${data.counts.mapped} mapped · ${data.counts.met} met · ${data.counts.partial} partial · ${data.counts.missing} missing` : "Loading…"}</div>
         {data && data.total === 0 && <p className="text-[12px] text-slate-600" data-testid="cci-empty">No CCIs match. Clear a filter, or upload a policy in the <Link className="underline" to="/policy-auditor">Policy Auditor</Link> to map CCIs.</p>}
-        <table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-slate-500"><th>CCI</th><th>Definition</th><th>Control</th><th>Implementation</th><th>Coverage</th><th>Policy · matched text</th></tr></thead><tbody>
+        <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-slate-500"><th>CCI</th><th>Definition</th><th>Control</th><th>Implementation</th><th>Coverage</th><th>Policy · matched text</th></tr></thead><tbody>
           {pg.rows.map((r) => <tr key={`${r.cci_id}-${r.control_id}`} className="border-t border-slate-100 align-top [content-visibility:auto]" data-testid={`cci-row-${r.cci_id}`}>
             <td className="py-1 font-mono">{r.cci_id}</td><td className="py-1 pr-2 text-[11px]">{r.definition}</td>
             <td className="py-1"><Link className="font-mono text-blue-800 underline" to={`/systems/${sid}/controls/${r.control_id}`}>{fmt(r.control_id)}</Link></td>
@@ -44,7 +45,7 @@ export default function CciPage() {
             <td className="py-1 text-[11px]">{r.policy_ids.map((p: string, i: number) => <Link key={p} className="text-blue-800 underline" to={`/policy-auditor/${p}`}>{r.policies[i] || "policy"}</Link>)}
               {r.matched_by && <div className="text-[10px] text-slate-500" data-testid={`cci-matched-by-${r.cci_id}`}>Matched by {r.matched_by}{r.confidence ? ` · ${r.confidence} confidence` : ""}</div>}
               {r.snippet && <div className="text-slate-600">“{r.snippet.text.slice(0, 160)}” <span className="text-[10px] text-slate-500">{r.snippet.location}</span></div>}</td></tr>)}
-        </tbody></table>
+        </tbody></table></TableScroll>
         <div className="mt-2 flex justify-end">{pg.pager}</div>
       </Panel>
     </div>);

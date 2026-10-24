@@ -14,12 +14,12 @@ export function Panel({ title, eyebrow, actions, children, className, testId }: 
   return (
     <section className={cn("panel animate-fade-up", className)} data-testid={testId}>
       {(title || actions) && (
-        <header className="flex items-center justify-between gap-4 border-b px-5 py-3.5" style={{ borderColor: "var(--iv-border)" }}>
-          <div>
+        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-5 py-3.5" style={{ borderColor: "var(--iv-border)" }}>
+          <div className="min-w-0">
             {eyebrow && <div className="eyebrow">{eyebrow}</div>}
             {title && <h2 className="font-heading text-[15px] font-semibold tracking-tight text-slate-900">{title}</h2>}
           </div>
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </header>
       )}
       <div className="p-5">{children}</div>

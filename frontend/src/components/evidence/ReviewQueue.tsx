@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { api, errorMessage } from "@/lib/api";
@@ -97,7 +98,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
           <input className="input mt-2" placeholder="Reason / justification – shared by all selected items (required to reject or edit)" value={just} onChange={(e) => setJust(e.target.value)} data-testid="queue-justification" />
           {err && <div className="mt-1 text-[12px] text-rose-700" role="alert" data-testid="queue-error">{err}</div>}
         </div>}
-        <table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-slate-500"><th /><th>Type</th><th>Control</th><th>What was found</th><th>Why it was suggested</th><th>Evidence</th><th /></tr></thead><tbody>
+        <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-slate-500"><th /><th>Type</th><th>Control</th><th>What was found</th><th>Why it was suggested</th><th>Evidence</th><th /></tr></thead><tbody>
           {rows.map((q) => <tr key={q.key} className="border-t border-slate-100 align-top [content-visibility:auto]" data-testid={`queue-item-${q.key}`}>
             <td className="py-1"><input type="checkbox" disabled={!canApprove(q)} checked={sel.includes(q.key)} onChange={() => toggle(q.key)} title={canApprove(q) ? "" : denyWhy} data-testid={`queue-check-${q.key}`} /></td>
             <td className="py-1 whitespace-nowrap">{KIND[q.kind]}{q.awaiting_sca && <div className="text-[10px] font-medium text-amber-800">awaiting SCA</div>}</td><td className="py-1 font-mono font-semibold">{fmt(q.control_id)}</td>
@@ -110,7 +111,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
             <td className="py-1 text-[11px]">{(q.evidence || []).map((e: Row) => <div key={e.id}><Link className="text-blue-800 underline" to={`/evidence-ledger?evidence=${e.id}`}>{e.file_name}</Link></div>)}</td>
             <td className="py-1"><button className="btn-primary px-2 py-0.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-50" disabled={busy || !canApprove(q)} title={canApprove(q) ? "" : denyWhy} onClick={() => decide("approve", [q.key])} data-testid={`queue-approve-${q.key}`}>Approve</button>
               {!canApprove(q) && <div className="mt-0.5 max-w-[140px] text-[10px] text-slate-600" data-testid={`queue-approve-denied-${q.key}`}>Needs {APPROVER}</div>}</td></tr>)}
-        </tbody></table>
+        </tbody></table></TableScroll>
         <div className="mt-2 flex justify-end"><Pager size={size} page={page} total={all.length} setPage={setPage} testId="queue-pager" /></div></>}
     </Panel></>);
 }

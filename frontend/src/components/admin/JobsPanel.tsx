@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { Play } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api, errorMessage } from "@/lib/api";
@@ -37,7 +38,7 @@ export function JobsPanel() {
         </button>
       )}>
       {error && <p className="mb-2 text-sm text-rose-700" role="alert">{error}</p>}
-      <table className="w-full border-collapse" data-testid="jobs-table">
+      <TableScroll><table className="w-full border-collapse" data-testid="jobs-table">
         <thead><tr><th className="th">Type</th><th className="th">Status</th><th className="th">Attempts</th><th className="th">Created</th><th className="th">Finished</th><th className="th">Result</th></tr></thead>
         <tbody>
           {jobs.map((j) => (
@@ -52,7 +53,7 @@ export function JobsPanel() {
           ))}
           {jobs.length === 0 && <tr><td colSpan={6} className="td text-center text-slate-500">No jobs yet.</td></tr>}
         </tbody>
-      </table>
+      </table></TableScroll>
     </Panel>
   );
 }

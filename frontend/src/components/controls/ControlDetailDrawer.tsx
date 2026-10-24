@@ -1,4 +1,5 @@
 import { fmtControl } from "@/lib/format";
+import { TableScroll } from "@/components/common/TableScroll";
 import { ReactNode, useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
@@ -68,11 +69,11 @@ function DetailBody({ d, onNavigate }: { d: ControlDetail; onNavigate: (id: stri
       </Section>
       <Section title="Parameters (ODPs)" count={d.parameters?.length ?? 0} testId="control-detail-parameters">
         {d.parameters?.length ? (
-          <table className="w-full border-collapse"><tbody>
+          <TableScroll><table className="w-full border-collapse"><tbody>
             {d.parameters.map((p) => (
               <tr key={p.id}><td className="td w-40 font-mono text-[11px] text-slate-500">{p.id}</td><td className="td">{p.rendered ?? p.label}</td></tr>
             ))}
-          </tbody></table>
+          </tbody></table></TableScroll>
         ) : <p className="text-sm text-slate-500">None.</p>}
       </Section>
       {d.guidance && (
@@ -96,7 +97,7 @@ function DetailBody({ d, onNavigate }: { d: ControlDetail; onNavigate: (id: stri
       </Section>
       <Section title="Mapped CCIs (DISA, Rev 5 references)" count={d.ccis.length} testId="control-detail-ccis">
         {d.ccis.length ? (
-          <table className="w-full border-collapse">
+          <TableScroll><table className="w-full border-collapse">
             <thead><tr><th className="th w-28">CCI</th><th className="th w-28">Reference</th><th className="th">Definition</th><th className="th w-32">Review</th></tr></thead>
             <tbody>
               {d.ccis.map((c) => (
@@ -108,7 +109,7 @@ function DetailBody({ d, onNavigate }: { d: ControlDetail; onNavigate: (id: stri
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></TableScroll>
         ) : <p className="text-sm text-slate-500">No CCIs reference this control in the pinned CCI list.</p>}
       </Section>
       {d.enhancements.length > 0 && (

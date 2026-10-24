@@ -40,7 +40,7 @@ export function ControlLink({ systemId, controlId }: { systemId: string; control
 
 export function Table({ head, children, testId }: { head: string[]; children: ReactNode; testId?: string }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="iv-table-scroll">
       <table className="w-full border-separate border-spacing-0" data-testid={testId}>
         <thead><tr>{head.map((h, i) => <th key={`${h}-${i}`} className="th">{h}</th>)}</tr></thead>
         <tbody>{children}</tbody>

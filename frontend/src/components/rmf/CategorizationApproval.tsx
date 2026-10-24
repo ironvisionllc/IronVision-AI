@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { Panel } from "@/components/common/Panel";
@@ -34,7 +35,7 @@ export function CategorizationApproval({ sid, version }: { sid: string; version:
           : <p className="mt-2 text-[11px] text-slate-600" data-testid="cat-approve-locked">Approval needs the Authorizing Official (authorization decision permission).</p>)}
       </div> : <p className="text-[12px] text-slate-600">No categorization saved yet.</p>}
       <details className="mt-3 text-[11px]"><summary className="cursor-pointer text-blue-800" data-testid="cat-history-toggle">Revision history ({data.history.length})</summary>
-        <table className="mt-1 w-full"><tbody>{data.history.map((r: Row) => <tr key={r.id}><td className="td">Rev {r.revision}</td><td className="td">{STATUS[r.status] ?? r.status}</td>
-          <td className="td">{impacts(r)}</td><td className="td">{r.submitted_by}</td><td className="td">{r.approved_by ? `Approved by ${r.approved_by} – ${r.approval_rationale}` : "—"}</td></tr>)}</tbody></table></details>
+        <TableScroll><table className="mt-1 w-full"><tbody>{data.history.map((r: Row) => <tr key={r.id}><td className="td">Rev {r.revision}</td><td className="td">{STATUS[r.status] ?? r.status}</td>
+          <td className="td">{impacts(r)}</td><td className="td">{r.submitted_by}</td><td className="td">{r.approved_by ? `Approved by ${r.approved_by} – ${r.approval_rationale}` : "—"}</td></tr>)}</tbody></table></TableScroll></details>
     </Panel>);
 }

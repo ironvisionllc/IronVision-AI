@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { api, errorMessage } from "@/lib/api";
 import { Row } from "@/lib/useApi";
 import { Modal } from "@/components/common/Modal";
@@ -63,7 +64,7 @@ export function PolicyMappingsPanel({ policyId, data, canMap, reload, setMsg }: 
       <p className="mb-2 text-[12px] text-slate-600">Controls this policy supports. <b>Confirm</b> the suggestions you agree with, <b>reject</b> the rest, or <b>map</b> more controls yourself. Confirmed mappings show on each control in the Control Workbench.</p>
       {canMap && <button className="btn-primary mb-2 px-3 py-1 text-[12px]" onClick={() => setOpen([])} data-testid="map-to-control-btn">Map to control</button>}
       {rows.length === 0 && <div className="text-[12px] text-slate-500" data-testid="policy-mappings-empty">No controls suggested yet. If the policy is still being analysed this fills in shortly – or use “Map to control”.</div>}
-      {rows.length > 0 && <table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-slate-500"><th>Control</th><th title="High = explicit control ID + requirement language · Medium = requirement language only (or ID without requirement language) · Low = inferred relevance · Requires manual review = no supporting text">Confidence <span className="cursor-help underline decoration-dotted">ⓘ</span></th><th>Why it was suggested</th><th>Matching text in the policy</th><th>Status</th><th /></tr></thead><tbody>
+      {rows.length > 0 && <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-slate-500"><th>Control</th><th title="High = explicit control ID + requirement language · Medium = requirement language only (or ID without requirement language) · Low = inferred relevance · Requires manual review = no supporting text">Confidence <span className="cursor-help underline decoration-dotted">ⓘ</span></th><th>Why it was suggested</th><th>Matching text in the policy</th><th>Status</th><th /></tr></thead><tbody>
         {rows.map((m) => <tr key={m.id} className="border-t border-slate-100 align-top" data-testid={`policy-mapping-${m.control_id}`}>
           <td className="py-1"><span className="font-mono font-semibold">{fmtId(m.control_id)}</span>{m.control_title && <div className="text-[11px] text-slate-700">{m.control_title}</div>}{(m.parts || []).length > 0 && <div className="text-[10px] text-slate-500">parts: {m.parts.join(", ")}</div>}</td>
           <td className="py-1"><span className="sr-only" data-testid={`mapping-confidence-${m.control_id}`}>{m.confidence}</span><ConfidenceBadge m={m} /></td>
@@ -75,7 +76,7 @@ export function PolicyMappingsPanel({ policyId, data, canMap, reload, setMsg }: 
           <td className="py-1"><button className="mb-1 text-[11px] text-blue-800 underline" onClick={() => setSbs(m.control_id)} data-testid={`mapping-sbs-${m.control_id}`}>Review side by side</button>{canMap && m.status !== "rejected" && <div className="flex gap-1">
             {m.status === "proposed" && <button className="btn-primary px-2 py-0.5 text-[11px]" onClick={() => confirm(m.control_id)} data-testid={`mapping-confirm-${m.control_id}`}>Confirm</button>}
             <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => { setReject(m); setErr(""); }} data-testid={`mapping-reject-${m.control_id}`}>Reject mapping</button></div>}</td></tr>)}
-      </tbody></table>}
+      </tbody></table></TableScroll>}
       <details className="mt-2 text-[11px]" data-testid="mapping-history"><summary className="cursor-pointer text-slate-600">Mapping history ({(data.mapping_history || []).length} entries – every decision is kept)</summary>
         {(data.mapping_history || []).map((h: Row) => <div key={h.id}>{new Date(h.created_at).toLocaleString()} · {fmtId(h.control_id)} · {STATUS[h.status] ?? h.status} · {basisText(h.source)}{h.decider_name ? ` · ${h.decider_name}` : ""}{h.valid_to ? " (replaced by a later decision)" : ""}</div>)}</details>
       {sbs && <SideBySideReview policyId={policyId} controlId={sbs} canDecide={canMap} onClose={() => setSbs(null)} onChanged={reload} />}
