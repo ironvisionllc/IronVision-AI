@@ -139,8 +139,12 @@ def store_evidence(db: Session, system_id, file_name: str, data: bytes, evidence
     ev = Evidence(id=uuid.uuid4(), system_id=system_id, source_id=src.id, name=name, evidence_type=evidence_type, file_name=file_name, storage_key=key,
                   sha256=sha, size_bytes=len(data), content_type=file_name.rsplit(".", 1)[-1], collected_at=now(), signature_status="unsigned",
                   integrity_status="hash_recorded", source=source_label, provenance={"received_by": actor_email, "sha256_at_receipt": sha})
+    ev.uploaded_by = actor_email
     db.add(ev)
     db.flush()
+    from app.services.evidence_versions import _snapshot
+
+    _snapshot(db, ev, actor_email, "Initial version")
     apply_freshness(db, ev)
     audit.record(db, action="evidence.stored", actor_email=actor_email, entity_type="evidence", entity_id=str(ev.id),
                  details={"sha256": sha, "type": evidence_type, "source": source_label})

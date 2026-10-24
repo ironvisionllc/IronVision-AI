@@ -1,4 +1,5 @@
 import { usePaged } from "@/components/common/PageSize";
+import { EvidenceActions } from "@/components/evidence/EvidenceActions";
 import { ContentUpdatesPanel } from "@/pages/Phase4Pages";
 import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -293,7 +294,7 @@ export function LedgerPage() {
               <td className="td font-mono text-[11px]">{fmtDate(e.collected_at)}</td>
               <td className="td font-mono text-[11px]">{e.sha256.slice(0, 12)}… <button aria-label="Copy hash" onClick={() => navigator.clipboard?.writeText(e.sha256)} data-testid={`copy-hash-${e.id}`}><Copy className="inline h-3 w-3" /></button></td>
               <td className="td font-mono text-[11px]">{e.freshness_window_days}d</td><td className="td"><S v={e.integrity_status} testId={`ledger-integrity-${e.id}`} /></td><td className="td"><S v={e.signature_status} testId={`ledger-signature-${e.id}`} /></td><td className="td"><S v={e.state} testId={`ledger-state-${e.id}`} /></td>
-              <td className="td"><Gated perm="demo.tools"><button className="btn-secondary px-2 py-0.5 text-[10px]" onClick={() => backdate(e.id)} data-testid={`demo-backdate-${e.id}`}>Demo: −45d</button></Gated></td>
+              <td className="td whitespace-nowrap"><EvidenceActions ev={e} systemId={sid!} onChanged={reload} /> <Gated perm="demo.tools"><button className="btn-secondary px-2 py-0.5 text-[10px]" onClick={() => backdate(e.id)} data-testid={`demo-backdate-${e.id}`}>Demo: −45d</button></Gated></td>
             </tr>
           ))}
         </Table>

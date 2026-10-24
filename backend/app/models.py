@@ -497,6 +497,14 @@ class Evidence(CoreMixin, ProvenanceMixin, Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
     is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     legal_hold: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'active'"))      # active | removed (logical)
+    removed_reason: Mapped[str | None] = mapped_column(Text)
+    removed_by: Mapped[str | None] = mapped_column(String(255))
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    uploaded_by: Mapped[str | None] = mapped_column(String(255))
+    replacement_reason: Mapped[str | None] = mapped_column(Text)
+    review_status: Mapped[str] = mapped_column(String(30), nullable=False, server_default=text("'unreviewed'"))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class EvidenceControl(CoreMixin, Base):
@@ -504,6 +512,9 @@ class EvidenceControl(CoreMixin, Base):
     __table_args__ = (UniqueConstraint("evidence_id", "assignment_id", name="uq_evidence_controls"),)
     evidence_id: Mapped[uuid.UUID] = _fk("evidence.id")
     assignment_id: Mapped[uuid.UUID] = _fk("control_assignments.id")
+    needs_revalidation: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    revalidation_reason: Mapped[str | None] = mapped_column(Text)
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class IntegrityCheck(CoreMixin, Base):
@@ -1368,3 +1379,18 @@ class AgencyOverlay(CoreMixin, Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False)
     effective_date: Mapped[date | None] = mapped_column(Date)
     created_by: Mapped[str | None] = mapped_column(String(255))
+
+
+class EvidenceVersion(CoreMixin, Base):
+    """Immutable file version of an evidence record (the object and its SHA-256 are never overwritten)."""
+    __tablename__ = "evidence_versions"
+    evidence_id: Mapped[uuid.UUID] = _fk("evidence.id")
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    file_name: Mapped[str | None] = mapped_column(String(500))
+    storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    content_type: Mapped[str | None] = mapped_column(String(100))
+    uploaded_by: Mapped[str | None] = mapped_column(String(255))
+    reason: Mapped[str | None] = mapped_column(Text)
+    scan_result: Mapped[str | None] = mapped_column(String(50))

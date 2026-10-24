@@ -242,11 +242,12 @@ def disposition_finding(finding_id: uuid.UUID, body: DispositionIn, request: Req
 
 
 @router.get("/systems/{system_id}/evidence")
-def ledger(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> list[dict]:
+def ledger(system_id: uuid.UUID, include_removed: bool = False, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> list[dict]:
     out = []
-    for ev, sname, stype in db.execute(select(Evidence, EvidenceSource.name, EvidenceSource.source_type)
-                                       .outerjoin(EvidenceSource, EvidenceSource.id == Evidence.source_id)
-                                       .where(Evidence.system_id == system_id).order_by(Evidence.collected_at.desc())).all():
+    q = select(Evidence, EvidenceSource.name, EvidenceSource.source_type).outerjoin(EvidenceSource, EvidenceSource.id == Evidence.source_id).where(Evidence.system_id == system_id)
+    if not include_removed:
+        q = q.where(Evidence.status == "active")
+    for ev, sname, stype in db.execute(q.order_by(Evidence.collected_at.desc())).all():
         d = to_dict(ev)
         d["source_name"], d["source_type"] = sname, stype
         d["controls"] = list(db.scalars(select(ControlAssignment.control_id).join(EvidenceControl, EvidenceControl.assignment_id == ControlAssignment.id)
@@ -355,3 +356,121 @@ def run_stig_detail(run_id: uuid.UUID, request: Request, db: Session = Depends(g
             "rules": sorted(rules, key=lambda r: (r["status"] != "Open", r["severity"] or "", r["vuln_id"] or "")),
             "totals": {"by_status": dict(Counter(r["status"] for r in rules)), "by_severity": dict(Counter(r["severity"] for r in rules))},
             "parse_check": {"source_rules": source_rules, "stored_rules": len(rules), "match": source_rules == len(rules) if source_rules is not None else None}}
+
+
+# ---------- evidence record actions: view / download / new version / history / remove ----------
+def _ev(db: Session, evidence_id: uuid.UUID, current: CurrentUser, perm: str) -> Evidence:
+    from app.models import System
+    from app.security.rbac import has_permission
+
+    ev = db.get(Evidence, evidence_id)
+    s = db.get(System, ev.system_id) if ev else None
+    if ev is None or s is None or s.org_id != current.user.org_id or not has_permission(current.assignments, "system.read", s.org_id, s.id):
+        raise HTTPException(404, "Evidence not found")
+    if not has_permission(current.assignments, perm, s.org_id, s.id):
+        raise HTTPException(403, f"Missing permission: {perm}")
+    return ev
+
+
+def _history_ok(current: CurrentUser, ev: Evidence, db: Session) -> bool:
+    from app.models import System
+    from app.security.rbac import has_permission
+
+    s = db.get(System, ev.system_id)
+    return any(has_permission(current.assignments, p, s.org_id, s.id) for p in ("evidence.submit", "audit.read", "assessment.perform"))
+
+
+@router.get("/evidence/{evidence_id}")
+def evidence_detail(evidence_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    from app.services import evidence_versions as evs
+
+    ev = _ev(db, evidence_id, current, "system.read")
+    out = evs.meta(db, ev, _history_ok(current, ev, db))
+    db.commit()
+    return out
+
+
+@router.get("/evidence/{evidence_id}/download")
+def evidence_download(evidence_id: uuid.UUID, request: Request, version: int | None = None, db: Session = Depends(get_db),
+                      current: CurrentUser = Depends(get_current_user)):
+    from fastapi.responses import Response
+    from app.models import EvidenceVersion
+    from app.services.storage import get_storage
+
+    ev = _ev(db, evidence_id, current, "system.read")
+    key, name = ev.storage_key, ev.file_name or "evidence"
+    if version and version != ev.version:
+        if not _history_ok(current, ev, db):
+            raise HTTPException(403, "Historical versions are visible to evidence submitters, assessors and auditors only")
+        v = db.scalar(select(EvidenceVersion).where(EvidenceVersion.evidence_id == ev.id, EvidenceVersion.version == version))
+        if v is None:
+            raise HTTPException(404, "Version not found")
+        key, name = v.storage_key, v.file_name or name
+    audit.record(db, action="evidence.downloaded", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="evidence", entity_id=str(ev.id),
+                 details={"version": version or ev.version}, **audit.request_meta(request))
+    db.commit()
+    return Response(get_storage().get(key), media_type="application/octet-stream", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@router.post("/evidence/{evidence_id}/versions", status_code=201)
+async def evidence_new_version(evidence_id: uuid.UUID, request: Request, reason: str = Form(..., min_length=5, max_length=2000), file: UploadFile = File(...),
+                               db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    """Replace / upload new version: a new immutable version becomes active; the old object and hash stay in the history."""
+    from app.services import evidence_versions as evs
+    from app.services.upload_security import UploadRejected, validate_upload
+
+    ev = _ev(db, evidence_id, current, "evidence.submit")
+    data = await file.read()
+    try:
+        scan = validate_upload(file.filename or "evidence", data, "evidence")
+    except UploadRejected as exc:
+        raise HTTPException(415 if "type" in str(exc) or "match" in str(exc) else 413 if "limit" in str(exc) else 422, str(exc))
+    before = {"version": ev.version, "sha256": ev.sha256, "file_name": ev.file_name}
+    try:
+        v, impact = evs.new_version(db, ev, file.filename or "evidence", data, reason, current.user.email, scan)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+    audit.record(db, action="evidence.version_added", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="evidence", entity_id=str(ev.id),
+                 before=before, after={"version": v.version, "sha256": v.sha256, "file_name": v.file_name}, details={"reason": reason, "flagged": impact, "scan": scan},
+                 **audit.request_meta(request))
+    db.commit()
+    return {**evs.meta(db, ev, True), "flagged_for_revalidation": impact}
+
+
+class RemoveIn(BaseModel):
+    reason: str = Field(min_length=5, max_length=2000)
+
+
+@router.post("/evidence/{evidence_id}/remove")
+def evidence_remove(evidence_id: uuid.UUID, body: RemoveIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    """Logical removal (record, versions and objects kept; mappings closed and flagged). Blocked while a legal hold is set."""
+    from app.services import evidence_versions as evs
+
+    ev = _ev(db, evidence_id, current, "evidence.submit")
+    try:
+        impact = evs.remove(db, ev, body.reason, current.user.email)
+    except PermissionError as exc:
+        raise HTTPException(423, str(exc))
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+    audit.record(db, action="evidence.removed", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="evidence", entity_id=str(ev.id),
+                 after={"status": "removed"}, details={"reason": body.reason, "flagged": impact}, **audit.request_meta(request))
+    db.commit()
+    return {**evs.meta(db, ev, True), "flagged_for_revalidation": impact}
+
+
+class HoldIn(BaseModel):
+    on: bool
+    reason: str = Field(min_length=5, max_length=2000)
+
+
+@router.post("/evidence/{evidence_id}/legal-hold")
+def evidence_legal_hold(evidence_id: uuid.UUID, body: HoldIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    from app.services import evidence_versions as evs
+
+    ev = _ev(db, evidence_id, current, "admin.content.load")
+    ev.legal_hold = body.on
+    audit.record(db, action="evidence.legal_hold_set" if body.on else "evidence.legal_hold_lifted", actor_user_id=current.user.id, actor_email=current.user.email,
+                 entity_type="evidence", entity_id=str(ev.id), details={"reason": body.reason}, **audit.request_meta(request))
+    db.commit()
+    return evs.meta(db, ev, True)
