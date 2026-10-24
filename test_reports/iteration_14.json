@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 14 \u2013 TR Evidence Analysis + HW/SW Inventory review for IronVision AI. Account: jordan.qa7731@example.com, active system 'QA Payroll System' (sid 96ab25c6\u2026). Backend pytest (/app/backend/tests/test_tr_analysis.py + test_inventory.py) = 17/17 pass. Live preview API verified: (a) POST /api/v1/tr/workbooks/{wid}/rows/{rid}/use-analysis with extra field compliance_status returns 422 with 'extra_forbidden' (model is extra='forbid'); (b) POST /api/v1/tr/workbooks/{wid}/decide action=approve as ISSO returns 403 'Only an assessor (SCA role) can approve\u2026'; (c) POST /api/v1/sandbox/act-as role=sca returns a new token tied to 'Dana Brooks (SCA persona)' with role sca; (d) GET /tr/workbooks/{wid}/rows/{rid}/analysis for row 22 returns an AI analysis (provider=emergent, model=claude-sonnet-5-5, prompt_version=tr.evidence_analysis@1.1.0, records with validated IDs and quotes); (e) GET /systems/{sid}/inventory returns imports[0]='imported' with 9 created, 6 HW / 3 SW, 2 linked scan assets, and an export 'ok=true,changed=135'; (f) GET /systems/{sid}/inventory/discrepancies returns 7 open rows across kinds conflict/likely_duplicate/no_scan/shared_ip; correlations list is empty (nat-gw already confirmed). Tenant isolation verified: a brand-new signup (tb-\u2026@example.com, Org B) GET /systems/{jordan sid}/inventory \u2192 404 {detail:'System not found'}; POST /inventory/discrepancies/{jordan did} \u2192 404 {detail:'Not found'}. Frontend verified at /test-results: row 22 shows [tr-open-analysis-22]; clicking opens panel [tr-analysis-22] with badge [tr-analysis-badge-22]='AI suggestion', verdict list (contradicts / does not establish / Stale / Missing / Unsupported conclusions), textarea [tr-analysis-text-22] prefilled with the proposed Test Results explanation, and [tr-use-text-22] button; row chip shows 'Edited \u00b7 AI suggestion applied' confirming badge logic. Header has [acting-as-select]. /inventory shows [inventory-page], [inv-import-1] 'imported', [inv-correlations] 'Nothing ambiguous', [inv-discrepancies] with 7 open rows (conflict, likely_duplicate, no_scan, shared_ip) each exposing Accept resolution / Ignore\u2026 / Explain (AI); AI explanation box visible on the likely_duplicate row (provider=emergent, confidence per asset); [inv-export-btn] present with the previous export reporting 'validation passed'. /mapping-review loads cleanly; [mapping-review-asset-links] banner count=0, consistent with no pending STIG\u2192asset correlations (nat-gw already confirmed) \u2013 expected per request.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Workbench + Test Results selects", "issues": ["Hydration warning: <span> rendered inside <option> in WorkbenchPage (filter selects) and TestResultsPage (workbook select). Non-blocking but flagged by React dev build (DOM nesting warning)."]},
+      {"screen": "All pages", "issues": ["CSP blocks cloudflareinsights beacon.min.js and a blob: worker (replay canvas). Non-functional \u2013 analytics/replay only."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_tr_analysis.py",
+    "/app/backend/tests/test_inventory.py",
+    "/app/backend/tests/test_tr.py"
+  ],
+  "action_items": [
+    "(Optional) Remove the dynamic <span> wrapper rendered inside <option> elements in WorkbenchPage filters and TestResultsPage workbook select to silence the React hydration warning."
+  ],
+  "critical_code_review_comments": [
+    "tr.use_analysis Pydantic body is extra='forbid' so an AI call can never set Compliance Status / Tested By / Date Tested \u2013 verified by live 422 for compliance_status. Correct boundary enforcement.",
+    "tr.decide gates approve on SCA role at the endpoint level (403 for ISSO with clear message) \u2013 separation of duties enforced server-side, not merely in UI.",
+    "tr evidence analysis records include server-validated IDs and quoted text with freshness ('current'/'superseded'), and label badge differentiates 'AI suggestion' from 'Deterministic analysis (no AI)' \u2013 matches the panel/badge contract.",
+    "Tenant isolation returns 404 (not 403) for cross-tenant GET /systems/{sid}/inventory and POST /inventory/discrepancies/{did}, which prevents enumeration \u2013 good.",
+    "Inventory export reports changed=135 and ok=true with validation report link; FE surfaces 'validation passed' + Workbook/Validation report links \u2013 good traceability.",
+    "Hydration warning (span-in-option) is a benign dev warning but should still be fixed to avoid CI noise."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (17/17 pytest + 7 live API checks)", "frontend": "100% of in-scope data-testid verified on /test-results, /inventory, /mapping-review"},
+  "test_credentials": "jordan.qa7731@example.com / Rmf#Flow-2026Zq (preview). Tenant-B signup created ad-hoc tb-<ts>@example.com / TenantB-2026!xZ.",
+  "seed_data_creation": "Only an ad-hoc tenant-B signup for the isolation check; no data loaded into Jordan's sandbox.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Workbook list endpoint is /api/v1/systems/{sid}/tr/workbooks (NOT /tr/workbooks?system_id). Rows endpoint returns {total,items,counts} with row index under field name 'row' (not 'row_index'); row 22 id for Jordan's workbook as of this run was 6db470fd-af39-47ff-a39c-be337811009d (will change on reseed). decide requires row_ids + justification (\u22655 chars when action=edit or >1 row). act-as token is returned by POST /api/v1/sandbox/act-as {role}. Signup returns {ok,org_id,job_id} with no token \u2013 must POST /auth/login afterwards. Hydration warning (span inside option) is pre-existing in WorkbenchPage/TestResultsPage selects.",
+  "rca of the issue": "N/A \u2013 no bugs found. All happy-path and negative-path contracts for TR analysis, decide SOD, inventory discrepancies and tenant isolation behave exactly as specified."
+}
