@@ -1,4 +1,4 @@
-from blocks import H1, H2, H3, IMG, NOTE, OL, P, PB, SCREEN, TABLE, UL
+from blocks import H1, H2, IMG, NOTE, P, PB, SCREEN, TABLE, UL
 
 S = "/app/docs/screenshots/"
 

@@ -16,7 +16,7 @@ from pypdf import PdfReader
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from blocks import NOTE_LABEL, PB, H1, H2, P, TABLE  # noqa: E402
+from blocks import NOTE_LABEL, PB, H1, P, TABLE  # noqa: E402
 from content_a import PART_A  # noqa: E402
 from content_b import PART_B  # noqa: E402
 
@@ -213,7 +213,6 @@ def toc_pages(pdf: Path, blocks) -> dict:
 # ---------- DOCX ----------
 def build_docx(blocks, img_map, out: Path) -> None:
     from docx import Document
-    from docx.enum.section import WD_ORIENT  # noqa: F401
     from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
