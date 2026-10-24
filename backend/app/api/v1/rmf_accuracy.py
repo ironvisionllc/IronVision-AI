@@ -227,7 +227,7 @@ class MapDecisionIn(BaseModel):
 
 @router.post("/policies/{policy_id}/mappings/{control_id}/decision")
 def mapping_decision(policy_id: uuid.UUID, control_id: str, body: MapDecisionIn, request: Request, db: Session = Depends(get_db),
-                     current: CurrentUser = Depends(get_current_user)) -> dict:
+                     current: CurrentUser = Depends(require_permission("finding.map"))) -> dict:
     """Accept / Reject / Edit mapping / Request reanalysis / Flag for manual review / Override coverage – each with a comment, audited."""
     from app.models import PolicyControlMap
     from app.services import mapping_sbs, policy_mapping as pm

@@ -414,7 +414,7 @@ def evidence_download(evidence_id: uuid.UUID, request: Request, version: int | N
 
 @router.post("/evidence/{evidence_id}/versions", status_code=201)
 async def evidence_new_version(evidence_id: uuid.UUID, request: Request, reason: str = Form(..., min_length=5, max_length=2000), file: UploadFile = File(...),
-                               db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+                               db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("evidence.submit"))) -> dict:
     """Replace / upload new version: a new immutable version becomes active; the old object and hash stay in the history."""
     from app.services import evidence_versions as evs
     from app.services.upload_security import UploadRejected, validate_upload
@@ -442,7 +442,8 @@ class RemoveIn(BaseModel):
 
 
 @router.post("/evidence/{evidence_id}/remove")
-def evidence_remove(evidence_id: uuid.UUID, body: RemoveIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def evidence_remove(evidence_id: uuid.UUID, body: RemoveIn, request: Request, db: Session = Depends(get_db),
+                    current: CurrentUser = Depends(require_permission("evidence.submit"))) -> dict:
     """Logical removal (record, versions and objects kept; mappings closed and flagged). Blocked while a legal hold is set."""
     from app.services import evidence_versions as evs
 
@@ -465,7 +466,8 @@ class HoldIn(BaseModel):
 
 
 @router.post("/evidence/{evidence_id}/legal-hold")
-def evidence_legal_hold(evidence_id: uuid.UUID, body: HoldIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def evidence_legal_hold(evidence_id: uuid.UUID, body: HoldIn, request: Request, db: Session = Depends(get_db),
+                        current: CurrentUser = Depends(require_permission("admin.content.load"))) -> dict:
     from app.services import evidence_versions as evs
 
     ev = _ev(db, evidence_id, current, "admin.content.load")

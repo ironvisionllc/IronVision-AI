@@ -84,7 +84,7 @@ def test_tr_sandbox_same_persona_refused_single_and_bulk(client, ws, tw):  # noq
     assert lock and "Separation of duties" in lock
     _edit(client, tw["wid"], rows[9]["id"], isso, "ISSO wrote this")
     b = _approve(client, tw["wid"], [rows[8]["id"], rows[9]["id"], rows[10]["id"]], sca)
-    assert b.status_code == 200 and b.json()["approved"] == [9, 10], b.text
+    assert b.status_code == 200 and sorted(b.json()["approved"]) == [9, 10], b.text
     assert b.json()["skipped"][0]["row"] == 8 and "Separation of duties" in b.json()["skipped"][0]["reason"]
     e = client.post(f"/api/v1/tr/workbooks/{tw['wid']}/export", headers=ws["h"]).json()
     assert e["verification"]["sandbox_same_person_rows"] == 2

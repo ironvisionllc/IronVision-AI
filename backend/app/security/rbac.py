@@ -8,6 +8,7 @@ ROLES: dict[str, str] = {
     "ao": "Authorizing Official",
     "devsecops": "DevSecOps Engineer",
     "leadership_viewer": "Leadership Viewer",
+    "privacy_official": "Privacy Official",
     "platform_admin": "Platform Administrator",
 }
 
