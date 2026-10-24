@@ -38,7 +38,7 @@ export function HealthPanel() {
                 {c && <StatusPill tone={c.ok ? "success" : "critical"} dot testId={`health-${key}-status`}>{c.ok ? "OK" : "FAIL"}</StatusPill>}
               </div>
               <dl className="mt-2 space-y-0.5">
-                {c && Object.entries(c.detail).map(([k, v]) => (
+                {c && Object.entries(c.detail).filter(([, v]) => typeof v !== "object" || v === null).map(([k, v]) => [k, String(v ?? "—")] as const).map(([k, v]) => (
                   <div key={k} className="flex justify-between gap-2 text-[11px]">
                     <dt className="text-slate-500">{k}</dt>
                     <dd className="truncate font-mono text-slate-700" title={String(v)}>{String(v)}</dd>

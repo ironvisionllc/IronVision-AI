@@ -18,6 +18,9 @@ class Provider(AIProvider):
     def is_configured(self) -> bool:
         return bool(self.api_key and self.model)
 
+    def describe(self) -> dict:
+        return {"base_url": "Emergent universal key (preview only)", "api_key_configured": bool(self.api_key), "vendor": self.vendor}
+
     async def complete(self, request: AIRequest) -> AIResponse:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
 

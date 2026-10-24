@@ -25,7 +25,7 @@ export default function AdminPage() {
         <HealthPanel />
         <div className="grid gap-5 xl:grid-cols-2">
           <RbacDemoPanel />
-          {can("admin.ai.test") ? <AiSmokePanel /> : <Restricted title="AI provider smoke test" permission="admin.ai.test" />}
+          <AiSmokePanel />
         </div>
         {can("admin.health.read") ? <JobsPanel /> : <Restricted title="Worker jobs" permission="admin.health.read" />}
         {can("audit.read") ? <AuditPanel /> : <Restricted title="Audit events" permission="audit.read" />}

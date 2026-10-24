@@ -2,6 +2,7 @@
 """Validates a deployment env file (or the current environment) before `docker compose up`.
 Usage: python3 scripts/check_env.py deploy/digitalocean/.env.production [--local] [--fix]   (exit 1 on errors)
   --local  skip deployment-only requirements (APP_DOMAIN)
+  --backend  validate a runtime backend/.env (e.g. the preview pod): DATABASE_URL/AUTH_PROVIDER instead of compose keys
   --fix    rewrite the file safely first: quote values with spaces/shell characters, drop `export `, CRLF → LF,
            strip trailing spaces, comment out duplicate keys. A timestamped backup (mode 600) is written next to it.
 Syntax problems (unquoted spaces/metacharacters, unbalanced quotes, export, CRLF, trailing spaces, duplicates, invalid
@@ -53,7 +54,11 @@ if "--fix" in sys.argv:
 text = Path(args[0]).read_text() if args else None
 env = parse_env_text(text) if text is not None else dict(os.environ)
 profile = env.get("APP_ENV", "development")
-errors, warns = validate(env, deployed="--local" not in sys.argv)
+errors, warns = validate(env, deployed="--local" not in sys.argv and "--backend" not in sys.argv)
+if "--backend" in sys.argv:  # runtime backend/.env (preview pod): compose-only keys are replaced by DATABASE_URL / AUTH_PROVIDER
+    compose_only = ("POSTGRES_DB ", "POSTGRES_USER ", "POSTGRES_PASSWORD ", "FRONTEND_URL ", "AUTH_PROVIDERS ")
+    errors = [e for e in errors if not e.startswith(compose_only)]
+    errors += [f"{k} is required in a backend runtime env" for k in ("DATABASE_URL", "STORAGE_DRIVER", "AUTH_PROVIDER") if not env.get(k)]
 lint = lint_env_text(text) if text is not None else []
 syntax = [f"line {i['line']}: {i['message']}" + (f"  → fix: {redact(i['suggestion'])}" if i["suggestion"] else "") for i in lint]
 if syntax:

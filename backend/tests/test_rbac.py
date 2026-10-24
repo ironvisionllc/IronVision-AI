@@ -36,6 +36,17 @@ def test_ai_health_admin_only(client, token):
     assert client.post("/api/v1/ai/health", headers=auth(token("ao@aegisrmf.demo"))).status_code == 403
 
 
+def test_ai_status_visible_to_every_role_without_secrets(client, token):
+    for email, can_test in (("ao@aegisrmf.demo", False), ("isso@aegisrmf.demo", False), ("platform.admin@aegisrmf.demo", True)):
+        s = client.get("/api/v1/ai/status", headers=auth(token(email))).json()
+        assert {"provider", "model", "configured", "mode_label", "last_success_at", "calls_24h"} <= s.keys()
+        assert s["can_test"] is can_test and s["mode_label"]
+        assert not any("key" in k and k != "api_key_configured" for k in s)
+        if not s["configured"]:
+            assert s["mode_label"] == "Deterministic analysis (no AI)"
+
+
+
 def test_audit_chain_valid_and_append_only(client, token):
     r = client.get("/api/v1/audit-events/verify", headers=auth(token("issm@aegisrmf.demo")))
     assert r.json()["valid"] is True and r.json()["checked"] > 0

@@ -93,7 +93,7 @@ class AIService:
         s = get_settings()
         if self.provider is None:
             reason = self.error or ("AI_PROVIDER is empty/none – AI disabled; template drafting is used" if s.ai_provider in ("", "none") else "provider not built")
-            return {"provider": s.ai_provider or "none", "model": None, "configured": False, "reason": reason, "app_env": s.environment}
+            return {"provider": s.ai_provider or "none", "model": s.ai_model, "configured": False, "reason": reason, "app_env": s.environment}
         ok = self.provider.is_configured()
         return {"provider": self.provider.name, "model": self.provider.model, "configured": ok, "app_env": s.environment,
                 "models": env_models(), **self.provider.describe(),
