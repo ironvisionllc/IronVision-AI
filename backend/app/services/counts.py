@@ -26,12 +26,18 @@ def catalog_counts(db: Session) -> dict:
 
 
 def system_counts(db: Session, system: System) -> dict:
+    from app.services import cnssi1253
     from app.services.systems import baseline_control_ids
 
+    tri = cnssi1253.applied(system)
     keys = [system.baseline_key] + (["privacy"] if system.include_privacy else [])
     baseline = set()
-    for k in keys:
-        baseline |= set(baseline_control_ids(db, k))
+    if tri:
+        sel = cnssi1253.selection(tri)
+        baseline = set(sel["ids"])
+    else:
+        for k in keys:
+            baseline |= set(baseline_control_ids(db, k))
     rows = db.execute(select(ControlAssignment.origin, ControlAssignment.evidence_freshness_status).where(ControlAssignment.system_id == system.id)).all()
     by = Counter(o for o, _ in rows)
     assigned = len(rows)
@@ -45,11 +51,22 @@ def system_counts(db: Session, system: System) -> dict:
     current = sum(1 for _, f in rows if f in FRESH_OK)
     bl = " + ".join(BASELINE_NAME.get(k, k) for k in keys)
     oa, ti = by.get("overlay", 0), by.get("tailored_in", 0)
+    bl_label = f"{len(baseline):,} in the {bl} baseline (base + enhancements)"
+    head = f"{len(baseline):,} baseline"
+    cn = None
+    if tri:
+        b = sel["by"]
+        cn = {"trigraph": tri, "c": len(b["c"]), "i": len(b["i"]), "a": len(b["a"]), "security_union": sel["security_union"],
+              "privacy_baseline": len(b["privacy"]), "union": len(baseline)}
+        bl_label = (f"CNSSI 1253 baseline for {tri}: {len(baseline):,} (C: {cn['c']:,}, I: {cn['i']:,}, A: {cn['a']:,}, union {cn['security_union']:,}"
+                    f" + NSS privacy control baseline {cn['privacy_baseline']:,} → {len(baseline):,})")
+        head = bl_label
     return {"baseline_key": system.baseline_key, "baseline": len(baseline), "removed": removed, "overlay_added": oa, "overlay_removed": ov_removed,
             "tailored_out": tailored_out, "tailored_in": ti, "assigned": assigned, "with_evidence": with_ev, "with_current_evidence": current,
-            "labels": {"baseline": f"{len(baseline):,} in the {bl} baseline (base + enhancements)",
+            "cnssi": cn,
+            "labels": {"baseline": bl_label,
                        "assigned": f"{assigned:,} assigned after tailoring",
-                       "reconciliation": f"{len(baseline):,} baseline + {oa:,} added by overlays − {ov_removed:,} removed by overlays"
+                       "reconciliation": f"{head} + {oa:,} added by overlays − {ov_removed:,} removed by overlays"
                                          f" − {tailored_out:,} tailored out + {ti:,} tailored in = {assigned:,} assigned",
                        "with_evidence": f"{with_ev:,} of {assigned:,} assigned controls have any evidence",
                        "with_current_evidence": f"{current:,} of {assigned:,} assigned controls have current evidence"}}

@@ -190,6 +190,7 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
         <div className="flex flex-wrap items-center gap-2"><span className="font-mono text-lg font-semibold text-blue-800" data-testid="wb-control-id">{c.label}</span>{c.baselines.map((b: string) => <BaselinePill key={b} baseline={b} />)}
           <span className="text-[12px] text-slate-500">origin {a.origin} ({a.origin_detail}) · responsibility <b>{a.responsibility}</b>{a.provider_name ? ` via ${a.provider_name}` : ""}</span></div>
         <h2 className="mt-1 text-lg font-semibold">{c.title}</h2>
+        {a.selection_basis && <div className="mt-1 text-[12px] text-slate-600" data-testid="wb-selection-basis">{a.selection_basis}</div>}
         <div className="mt-3 flex flex-wrap gap-2" data-testid="wb-statuses">
           <S v={a.implementation_status} label="Implementation" testId="wb-status-implementation" /><S v={a.assessment_status} label="Assessment" testId="wb-status-assessment" />
           <S v={a.monitoring_status} label="Monitoring" testId="wb-status-monitoring" /><S v={a.evidence_freshness_status} label="Evidence freshness" testId="wb-status-freshness" />

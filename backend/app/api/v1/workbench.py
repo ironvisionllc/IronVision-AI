@@ -222,7 +222,7 @@ def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(
         "overlay_notes": control_notes(db, sysobj, a.control_id),
         "status_last_changed": _status_last_changed(db, a),
         "policy_mappings": _policy_mappings(db, a),
-        "assignment": {**to_dict(a), "provider_name": prov.name if prov else None,
+        "assignment": {**to_dict(a), "provider_name": prov.name if prov else None, "selection_basis": _selection_basis(sysobj, a),
                        "reason_details": [{**r, "description": weights.get(r["code"])} for r in (a.reasons or [])]},
         "catalog": catalog,
         "cci_provenance": {"source": "DISA CCI List", "version": cci_cv.version if cci_cv else None, "sha256": cci_cv.sha256 if cci_cv else None},
@@ -507,6 +507,14 @@ def save_status(system_id: uuid.UUID, control_id: str, body: StatusIn, request: 
     evaluate_system(db, system_id)
     db.commit()
     return {"implementation_status": a.implementation_status, "status_last_changed": _status_last_changed(db, a)}
+
+
+def _selection_basis(s, a: ControlAssignment) -> str | None:
+    from app.services import cnssi1253
+
+    tri = cnssi1253.applied(s)
+    return cnssi1253.basis(a.control_id, tri) if tri else None
+
 
 
 def _status_last_changed(db: Session, a: ControlAssignment) -> dict | None:

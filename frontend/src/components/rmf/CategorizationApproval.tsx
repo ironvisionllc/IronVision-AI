@@ -24,7 +24,7 @@ export function CategorizationApproval({ sid, version }: { sid: string; version:
       {(data.review_flags ?? []).map((f: Row, i: number) => <p key={i} className="mb-2 rounded bg-amber-50 p-2 text-[11px] text-amber-900" data-testid={`cat-review-flag-${i}`}>{f.message} ({f.value})</p>)}
       {cur ? <div className="text-[12px]" data-testid="cat-current">
         <div>Revision {cur.revision}: <b data-testid="cat-current-status">{STATUS[cur.status] ?? cur.status}</b> · {cur.framework === "cnssi1253" ? "CNSSI 1253" : "FIPS 199"} · {impacts(cur)}</div>
-        {cur.detail?.baseline_selection && <p className="mt-1 rounded bg-amber-50 p-2 text-[11px] text-amber-900" data-testid="cat-sme-note">{cur.detail.baseline_selection}</p>}
+        {cur.detail?.baseline_selection && <p className={`mt-1 rounded p-2 text-[11px] ${cur.detail.baseline_selection.startsWith("SME") ? "bg-amber-50 text-amber-900" : "bg-slate-50 text-slate-700"}`} data-testid="cat-sme-note">{cur.detail.baseline_selection}</p>}
         {data.approved && cur.status !== "approved" && <div className="mt-1 text-[11px] text-slate-600">In force until re-approved: revision {data.approved.revision}, approved by {data.approved.approved_by} on {String(data.approved.approved_at).slice(0, 10)}.</div>}
         {["draft", "pending_reapproval", "legacy_unreviewed"].includes(cur.status) && (data.can_approve
           ? <div className="mt-2 grid gap-1.5"><SimulatedSignatureNote />

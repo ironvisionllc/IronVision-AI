@@ -145,6 +145,7 @@ class System(CoreMixin, ProvenanceMixin, Base):
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     archived_by: Mapped[str | None] = mapped_column(String(255))
     archive_reason: Mapped[str | None] = mapped_column(Text)
+    cnssi_baseline: Mapped[dict | None] = mapped_column(JSONB)
 
 
 class Asset(CoreMixin, ProvenanceMixin, Base):

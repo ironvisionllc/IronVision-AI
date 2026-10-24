@@ -188,6 +188,7 @@ def select_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
     groups = [g for g in groups if g["available"] or any(v.get("applied") for v in g.get("variants", [])) or g["group"] in ("privacy", "classified")]
 
     return {"baseline_key": s.baseline_key, "framework": s.categorization_mode, "review_flags": review_flags(s),
+            "cnssi": _cnssi_view(db, s),
             "classified_information": (s.applicability_flags or {}).get("classified_information"), "recommended_baseline": (s.categorization or "").lower() or None, "include_privacy": s.include_privacy,
             "processes_pii": s.processes_pii, "overlay_keys": s.overlay_keys or [], "counts": system_counts(db, s),
             "overlay_groups": groups,
@@ -209,6 +210,38 @@ def select_overlay_controls(system_id: uuid.UUID, overlay_key: str, db: Session 
 class BaselineIn(BaseModel):
     baseline_key: str = Field(pattern="^(low|moderate|high)$")
     include_privacy: bool = False
+
+
+def _cnssi_view(db: Session, s) -> dict | None:
+    from app.services import cnssi1253
+
+    if s.categorization_mode != "cnssi1253":
+        return None
+    src = cnssi1253.data()["source"]
+    tri = cnssi1253.system_trigraph(s)
+    gaps = [r["control_id"] for r in cnssi1253.rows() if r.get("not_in_catalog")]
+    unc = cnssi1253.uncovered_catalog_ids(db)
+    return {"trigraph": tri, "applied": cnssi1253.applied(s), "proposal": cnssi1253.proposal(db, s),
+            "source": f"{src['title']}, {src['date']} ({src['copy']}), SHA-256 {src['sha256'][:12]}…",
+            "rule": cnssi1253.data()["selection_rule"],
+            "sme_review": [f"SME review required: {len(unc)} Rev 5 catalog controls are not in the CNSSI 1253 (2022) tables, so they are not selected – "
+                           + ", ".join(unc)] if unc else [],
+            "not_in_catalog": gaps}
+
+
+class CnssiAcceptIn(BaseModel):
+    to: str = Field(pattern="^[LMH]-[LMH]-[LMH]$")
+
+
+@router.post("/systems/{system_id}/select/cnssi-baseline")
+def accept_cnssi_baseline(system_id: uuid.UUID, body: CnssiAcceptIn, db: Session = Depends(get_db),
+                          current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+    from app.services import cnssi1253
+
+    s = get_system(db, system_id)
+    out = _err(cnssi1253.accept, db, s, current.user, body.to)
+    db.commit()
+    return {**out, "counts": system_counts(db, s)}
 
 
 @router.post("/systems/{system_id}/select/baseline")

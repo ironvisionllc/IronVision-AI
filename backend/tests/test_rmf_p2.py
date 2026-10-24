@@ -31,7 +31,7 @@ def test_fips_high_water_mark_and_cnssi_kept_separate(client, org):
     assert fips["overall"] == "High" and fips["baseline"] == "high"
     cn = client.post("/api/v1/reference/categorize", json={"mode": "cnssi1253", "information_types": [{"id": "D.16.3"}], "cia": {"c": "Moderate", "i": "High", "a": "Low"}}, headers=org["h"]).json()
     assert cn["overall"] is None and (cn["c"], cn["i"], cn["a"]) == ("Moderate", "High", "Low")
-    assert "SME review required" in cn["baseline_selection"] and any("M-H-L" in s for s in cn["steps"])
+    assert "CNSSI 1253 Appendix D" in cn["baseline_selection"] and "SME review required" not in cn["baseline_selection"] and any("M-H-L" in s for s in cn["steps"])
     ref = client.get("/api/v1/reference/frameworks", headers=org["h"]).json()
     assert "3552" in ref["nss_help"] and "800-59" in ref["nss_help"] and ref["nss_answers"] == ["yes", "no", "unsure"]
 

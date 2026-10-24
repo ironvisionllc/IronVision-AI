@@ -32,8 +32,15 @@ def register_system(db: Session, data: dict, tailoring: list[dict], provider_ids
     system.categorization = high_water_mark(system.confidentiality_impact, system.integrity_impact, system.availability_impact)
     db.add(system)
     db.flush()
-    origin: dict[str, tuple[str, str]] = {cid: ("baseline", system.baseline_key) for cid in baseline_control_ids(db, system.baseline_key)}
-    if system.include_privacy:
+    from app.services import cnssi1253
+
+    tri = cnssi1253.system_trigraph(system)
+    if tri:  # NSS: CNSSI 1253 Appendix D baseline for the trigraph (Task S-1); the NIST privacy baseline is not used
+        origin: dict[str, tuple[str, str]] = {cid: ("baseline", f"CNSSI 1253 {tri}") for cid in sorted(cnssi1253.selection(tri)["ids"])}
+        system.cnssi_baseline = {"applied": tri, "source_sha256": cnssi1253.data()["source"]["sha256"], "previous": None}
+    else:
+        origin = {cid: ("baseline", system.baseline_key) for cid in baseline_control_ids(db, system.baseline_key)}
+    if system.include_privacy and not tri:
         for cid in baseline_control_ids(db, "privacy"):
             origin.setdefault(cid, ("baseline", "privacy"))
     for key in system.overlay_keys or []:

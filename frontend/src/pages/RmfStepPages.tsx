@@ -16,6 +16,7 @@ import { ParameterComparison } from "@/components/rmf/ParameterComparison";
 import { AuthStrategy } from "@/components/rmf/AuthStrategy";
 import { CategorizationApproval } from "@/components/rmf/CategorizationApproval";
 import { PtaPanel } from "@/components/rmf/PtaPanel";
+import { CnssiBaseline } from "@/components/rmf/CnssiBaseline";
 import { PageSizeSelect, Pager, usePageSize, usePaged } from "@/components/common/PageSize";
 import { downloadFile } from "@/lib/download";
 import { Gated } from "@/components/common/RoleGate";
@@ -286,7 +287,7 @@ export function SelectPage() {
           <Help text="Same numbers as the Workbench and dashboard (one shared calculation): baseline + added by overlays − removed by overlays − tailored out + tailored in = assigned." /></div>
           <button className="btn-secondary ml-2 px-2 py-0.5 text-[11px]" onClick={() => downloadFile(`/systems/${sid}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="select-export-parameters">Export parameter comparison (CSV)</button>
         <ParameterComparison sid={sid} />
-        {can("system.write") ? <><Baseline sid={sid} d={data} reload={reload} /><Overlays sid={sid} d={data} reload={reload} /><Tailoring sid={sid} d={data} reload={reload} /></>
+        {can("system.write") ? <>{data.cnssi ? <CnssiBaseline sid={sid} d={data} reload={reload} /> : <Baseline sid={sid} d={data} reload={reload} />}<Overlays sid={sid} d={data} reload={reload} /><Tailoring sid={sid} d={data} reload={reload} /></>
           : <p className="text-[12px] text-slate-600">Changing the control selection needs the “system.write” permission (ISSO, ISSM or System Owner). You can view the selection in the <Link className="underline" to="/traceability">traceability matrix</Link>.</p>}
       </div>}
     </StepFrame>);

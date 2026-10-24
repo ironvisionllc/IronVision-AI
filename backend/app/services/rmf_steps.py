@@ -158,8 +158,16 @@ def categorize(mode: str, info_types: list[dict], cia: dict | None = None) -> di
         overall = None  # CNSSI 1253 keeps three separate values – no single high-water category
         tri = "-".join((hw[k] or "—")[0] for k in "cia")
         steps.append(f"CNSSI 1253: security category stays per objective ({tri}); no single high-water value is computed.")
-        selection = ("SME review required – the CNSSI 1253 per-objective baseline selection tables are not in this application's reference data. "
-                     f"Controls are provisionally assigned from the SP 800-53B {top or '—'} baseline until an SME validates the selection.")
+        if all(hw[k] for k in "cia"):
+            from app.services import cnssi1253
+
+            sel = cnssi1253.selection("-".join(hw[k][0].upper() for k in "cia"))
+            b = sel["by"]
+            selection = (f"CNSSI 1253 Appendix D (Tables D-1 to D-20) baseline for {sel['trigraph']}: C={hw['c']} → {len(b['c'])}, I={hw['i']} → {len(b['i'])}, "
+                         f"A={hw['a']} → {len(b['a'])} controls; union {sel['security_union']} + NSS privacy control baseline {len(b['privacy'])} "
+                         f"= {len(sel['ids'])} (Task S-1, §3.2.1, p. 10).")
+        else:
+            selection = "Set all three impact values to select the CNSSI 1253 Appendix D baseline (Task S-1, §3.2.1, p. 10)."
         steps.append(selection)
     else:
         overall = top
@@ -371,6 +379,8 @@ def _finish(db, s, actor, action, detail):
 
 
 def apply_baseline(db: Session, s: System, key: str, include_privacy: bool, actor: User) -> dict:
+    if s.categorization_mode == "cnssi1253" and (s.cnssi_baseline or {}).get("applied"):
+        raise ValueError("This NSS system uses the CNSSI 1253 Appendix D baseline for its C-I-A trigraph – review the CNSSI 1253 baseline proposal instead of applying an SP 800-53B baseline")
     before = (s.baseline_key, s.include_privacy)
     s.baseline_key, s.include_privacy = key, include_privacy
     want = list(baseline_control_ids(db, key)) + (list(baseline_control_ids(db, "privacy")) if include_privacy else [])
