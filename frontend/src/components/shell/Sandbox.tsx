@@ -10,10 +10,10 @@ import { showNextStep } from "@/components/common/NextStep";
 
 const ROLE_COLOR: Record<string, string> = {
   isso: "bg-blue-700", issm: "bg-violet-700", sca: "bg-teal-700", ao: "bg-rose-700", system_owner: "bg-amber-700",
-  devsecops: "bg-emerald-700", leadership_viewer: "bg-slate-700", platform_admin: "bg-zinc-800",
+  devsecops: "bg-emerald-700", leadership_viewer: "bg-slate-700", privacy_official: "bg-teal-700", platform_admin: "bg-zinc-800",
 };
 const ROLE_SHORT: Record<string, string> = {
-  isso: "ISSO", issm: "ISSM", sca: "SCA", ao: "AO", system_owner: "System Owner", devsecops: "DevSecOps", leadership_viewer: "Leadership", platform_admin: "Admin",
+  isso: "ISSO", issm: "ISSM", sca: "SCA", ao: "AO", system_owner: "System Owner", devsecops: "DevSecOps", leadership_viewer: "Leadership", privacy_official: "Privacy", platform_admin: "Admin",
 };
 
 export function ActingAs() {

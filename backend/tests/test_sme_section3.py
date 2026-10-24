@@ -77,6 +77,10 @@ def test_select_baseline_overlay_tailoring_counts_reconcile(client, ws):
     low = client.get(f"/api/v1/systems/{sid}/select", headers=h).json()["counts"]["assigned"]
     r = client.post(f"/api/v1/systems/{sid}/select/baseline", headers=h, json={"baseline_key": "moderate", "include_privacy": True}).json()
     assert r["added"] > 0 and r["counts"]["assigned"] > low
+    fips = {g["group"]: g for g in client.get(f"/api/v1/systems/{sid}/select", headers=h).json()["overlay_groups"]}
+    assert not fips["privacy"]["available"] and "intelligence" not in fips, "FIPS 199 systems: CNSSI overlays not applicable"
+    assert client.put(f"/api/v1/systems/{sid}/categorization", headers=h, json={"mode": "cnssi1253", "information_types": [{"id": "D.16.3"}],
+                                                                              "nss_determination": "yes", "classified_information": "yes"}).status_code == 200
     v = client.get(f"/api/v1/systems/{sid}/select", headers=h).json()
     assert {"cnssi-classified", "cnssi-space", "cnssi-privacy-moderate"} <= {x["key"] for g in v["overlay_groups"] for x in g["variants"]}
     intel = next(g for g in v["overlay_groups"] if g["group"] == "intelligence")

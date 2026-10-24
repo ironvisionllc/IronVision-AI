@@ -222,6 +222,8 @@ def act_as(body: ActAs, request: Request, db: Session = Depends(get_db), current
     if org.sandbox_status != "ready":
         raise HTTPException(409, "Sandbox is still being prepared")
     real = _real(current)
+    if body.role in sbx.ROLES and sbx.persona(db, org.id, body.role) is None:  # personas added in later releases (e.g. Privacy Official)
+        sbx.ensure_personas(db, org, real)
     p = sbx.persona(db, org.id, body.role)
     if p is None or p.operator_id != real.id:
         raise HTTPException(422, f"Unknown persona role {body.role}")

@@ -79,5 +79,6 @@ export const ROLE_LABELS: Record<string, string> = {
   ao: "AO",
   devsecops: "DevSecOps",
   leadership_viewer: "Leadership",
+  privacy_official: "Privacy Official",
   platform_admin: "Platform Admin",
 };

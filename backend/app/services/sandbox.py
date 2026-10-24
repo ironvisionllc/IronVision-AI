@@ -16,7 +16,7 @@ log = logging.getLogger("aegis.sandbox")
 PERSONAS = [
     ("isso", "Alex Rivera", "ISSO persona"), ("issm", "Morgan Lee", "ISSM persona"), ("sca", "Dana Brooks", "SCA persona"),
     ("ao", "Col. Taylor", "AO persona"), ("system_owner", "Jordan Patel", "System Owner persona"), ("devsecops", "Riley Chen", "DevSecOps persona"),
-    ("leadership_viewer", "Casey Morgan", "Leadership persona"), ("platform_admin", "Avery Brooks", "Admin persona"),
+    ("leadership_viewer", "Casey Morgan", "Leadership persona"), ("privacy_official", "Sam Ortiz", "Privacy Official persona"), ("platform_admin", "Avery Brooks", "Admin persona"),
 ]
 ROLES = [p[0] for p in PERSONAS]
 SANDBOX_SOURCE = "sandbox"

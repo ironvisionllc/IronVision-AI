@@ -134,6 +134,16 @@ def create_system(body: SystemCreate, request: Request, db: Session = Depends(ge
     except ValueError as exc:
         db.rollback()
         raise HTTPException(422, str(exc))
+    if s.information_types:
+        from app.services import rmf_accuracy as ra
+        from app.services.rmf_steps import categorize
+
+        try:
+            ra.record(db, s, categorize(s.categorization_mode or "fips199", [{k: t.get(k) for k in ("id", "c", "i", "a", "rationale")} for t in s.information_types],
+                                        {"c": s.confidentiality_impact, "i": s.integrity_impact, "a": s.availability_impact}), s.categorization_mode or "fips199",
+                      s.nss_determination, None, current.user.email)
+        except (ValueError, KeyError):
+            pass  # registration without a computable categorization: the first save in Categorize creates revision 1
     db.commit()
     return _system_out(db, s)
 

@@ -3,13 +3,14 @@ import { api } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { Panel } from "@/components/common/Panel";
 import { Help } from "@/components/rmf/RolesEditor";
+import { FrameworkStep, ilOptions } from "@/components/rmf/FrameworkStep";
 
 const LV = ["Low", "Moderate", "High"];
 export const EMPTY_CAT: Row = { mode: "fips199", information_types: [], cia: { c: "", i: "", a: "" }, mission_criticality: "", system_type: "",
   acquisition_category: "", operating_environment: "", environment_detail: {}, processes_pii: null, pta: {} };
 
 export function catFromSystem(s: Row): Row {
-  return { ...EMPTY_CAT, mode: s.categorization_mode || "fips199",
+  return { ...EMPTY_CAT, mode: s.categorization_mode || "fips199", nss_determination: s.nss_determination ?? null, classified_information: s.applicability_flags?.classified_information ?? null,
     information_types: (s.information_types ?? []).map((t: Row) => ({ id: t.id, c: t.c, i: t.i, a: t.a, rationale: t.rationale ?? "" })),
     cia: { c: s.confidentiality_impact ?? "", i: s.integrity_impact ?? "", a: s.availability_impact ?? "" },
     ...Object.fromEntries(["mission_criticality", "system_type", "acquisition_category", "operating_environment"].map((k) => [k, s[k] ?? ""])),
@@ -112,12 +113,8 @@ export function CategorizeForm({ v, onChange }: { v: Row; onChange: (v: Row) => 
   const pta = v.pta ?? {};
   return (
     <div className="grid gap-5" data-testid="categorize-form">
-      <Panel title="Information types and impact (FIPS 199)" eyebrow="NIST SP 800-60 Vol. 2 Rev. 1">
-        <div className="mb-3 flex flex-wrap gap-4 text-[12px]" role="radiogroup" aria-label="Categorization method">
-          {[["fips199", "FIPS 199 (high-water mark)", "Federal civilian method: each objective takes the highest level of any information type; the overall level picks the 800-53B baseline."],
-            ["cnssi1253", "CNSSI 1253 (DoD / National Security Systems)", "C, I and A are chosen separately (e.g. Moderate-Moderate-Low). Use it for DoD and national security systems."]].map(([k, l, h]) => (
-            <label key={k} className="flex items-center gap-1.5"><input type="radio" checked={v.mode === k} onChange={() => set("mode", k)} data-testid={`cat-mode-${k}`} />{l} <Help text={h} /></label>))}
-        </div>
+      <Panel title="Framework, information types and impact" eyebrow="Steps 1–4 · framework → types (NIST SP 800-60 Vol. 2 Rev. 1) → C/I/A → calculation">
+        <FrameworkStep v={v} onChange={onChange} />
         <InfoTypePicker v={v} onChange={onChange} catalog={cat?.types ?? []} />
         {v.mode === "cnssi1253" && <div className="mt-3 grid grid-cols-3 gap-3 text-[12px]" data-testid="cnssi-cia">
           {(["c", "i", "a"] as const).map((k) => <label key={k} className="font-medium text-slate-700">{{ c: "Confidentiality", i: "Integrity", a: "Availability" }[k]} (chosen separately)
@@ -148,9 +145,11 @@ export function CategorizeForm({ v, onChange }: { v: Row; onChange: (v: Row) => 
             <label className="font-medium text-slate-700">Cloud service provider<input className="input mt-1" value={det.csp ?? ""} onChange={(e) => set("environment_detail", { ...det, csp: e.target.value })} data-testid="cat-csp" /></label>
             <label className="font-medium text-slate-700">FedRAMP authorization<select className="input mt-1" value={det.fedramp ?? ""} onChange={(e) => set("environment_detail", { ...det, fedramp: e.target.value })} data-testid="cat-fedramp">
               <option value="">—</option>{["None", "LI-SaaS", "Low", "Moderate", "High"].map((x) => <option key={x}>{x}</option>)}</select></label>
-            <label className="font-medium text-slate-700">DoD Impact Level <Help text="DoD Cloud Computing SRG impact level of the cloud offering (IL2–IL6)." />
+            <label className="font-medium text-slate-700">DoD Impact Level <Help text="DoD Cloud Computing SRG impact level of the cloud service offering. IL6 = classified up to SECRET." />
               <select className="input mt-1" value={det.impact_level ?? ""} onChange={(e) => set("environment_detail", { ...det, impact_level: e.target.value })} data-testid="cat-il">
-                <option value="">—</option>{["IL2", "IL4", "IL5", "IL6", "Not DoD"].map((x) => <option key={x}>{x}</option>)}</select></label></>}
+                <option value="">—</option>{ilOptions(true, v.mode, v.classified_information ?? null).map((o) => <option key={o.value} value={o.value} disabled={!o.available} title={o.reason}>{o.value}{o.available ? "" : " (unavailable)"}</option>)}</select>
+              {!ilOptions(true, v.mode, v.classified_information ?? null).find((o) => o.value === "IL6")?.available && <span className="mt-1 block text-[10px] font-normal text-slate-500" data-testid="cat-il6-reason">IL6 unavailable: needs CNSSI 1253 (NSS) and a Yes to “processes classified information”.</span>}</label></>}
+          {!env?.cloud && v.operating_environment && <p className="text-[11px] text-slate-500 md:col-span-3" data-testid="cat-il-none">No DoD impact level here – SRG impact levels apply to cloud service offerings.</p>}
           {v.operating_environment === "other" && <label className="font-medium text-slate-700 md:col-span-3">Describe the environment<input className="input mt-1" value={det.other ?? ""}
             onChange={(e) => set("environment_detail", { ...det, other: e.target.value })} data-testid="cat-env-other" /></label>}
         </div>

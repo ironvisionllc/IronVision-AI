@@ -144,14 +144,21 @@ def categorize(mode: str, info_types: list[dict], cia: dict | None = None) -> di
         how = "chosen separately (CNSSI 1253)" if mode == "cnssi1253" and cia and cia.get(k) else f"high-water mark of {len(rows)} information type(s)"
         steps.append(f"{word}: {hw[k] or '—'} – {how}{(' – from ' + '; '.join(src)) if src and 'high-water' in how else ''}")
     vals = [v for v in hw.values() if v]
-    overall = max(vals, key=_lvl) if vals else None
-    baseline = overall.lower() if overall else None
-    steps.append(f"Overall categorization = highest of C/I/A = {overall or '—'} → 800-53B {overall or '—'} baseline (FIPS 200)")
+    top = max(vals, key=_lvl) if vals else None
+    baseline = top.lower() if top else None
+    selection = None
     if mode == "cnssi1253":
-        steps.append("CNSSI 1253 mode: C/I/A stay separate (e.g. M-M-L). The per-objective control selection in CNSSI 1253 Appendix D is not loaded; "
-                     "the highest objective is used as the 800-53B baseline – verify against CNSSI 1253.")
+        overall = None  # CNSSI 1253 keeps three separate values – no single high-water category
+        tri = "-".join((hw[k] or "—")[0] for k in "cia")
+        steps.append(f"CNSSI 1253: security category stays per objective ({tri}); no single high-water value is computed.")
+        selection = ("SME review required – the CNSSI 1253 per-objective baseline selection tables are not in this application's reference data. "
+                     f"Controls are provisionally assigned from the SP 800-53B {top or '—'} baseline until an SME validates the selection.")
+        steps.append(selection)
+    else:
+        overall = top
+        steps.append(f"Overall categorization = highest of C/I/A = {overall or '—'} → 800-53B {overall or '—'} baseline (FIPS 200)")
     label = f"{{(confidentiality, {hw['c'] or '—'}), (integrity, {hw['i'] or '—'}), (availability, {hw['a'] or '—'})}}"
-    return {"mode": mode, "rows": rows, "c": hw["c"], "i": hw["i"], "a": hw["a"], "overall": overall, "baseline": baseline,
+    return {"mode": mode, "rows": rows, "c": hw["c"], "i": hw["i"], "a": hw["a"], "overall": overall, "baseline": baseline, "baseline_selection": selection,
             "security_category": label, "steps": steps, "errors": errors}
 
 
@@ -370,6 +377,12 @@ def set_overlay(db: Session, s: System, key: str, on: bool, actor: User) -> dict
     ov = db.scalar(select(Overlay).where(Overlay.overlay_key == key, Overlay.is_active.is_(True)).order_by(Overlay.created_at.desc()))
     if ov is None:
         raise ValueError("Unknown overlay")
+    if on and key.startswith("cnssi-"):
+        from app.services.rmf_accuracy import overlay_availability
+
+        ok, why = overlay_availability(s, key.split("-")[1])
+        if not ok:
+            raise ValueError(why)
     if on:
         if ov.structure_only:
             raise ValueError(f"{ov.title} is structure only – load the official control list (CSV import) before applying it")

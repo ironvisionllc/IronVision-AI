@@ -33,6 +33,21 @@ GROUPS = {
     "cds": {"title": "Cross Domain Solution (CDS) Overlays", "kind": "variant", "restricted": True,
             "variants": [("access", "Access CDS"), ("transfer", "Transfer / Multilevel CDS")]},
 }
+_CNSS = "Committee on National Security Systems (CNSS)"
+OVERLAY_META = {  # record metadata shown with each overlay; version/effective date come from the loaded document
+    "privacy": {"issuing_authority": _CNSS, "source_document": "CNSSI 1253F Attachment 6 – Privacy Overlays (31 Oct 2024)", "framework": "CNSSI 1253",
+                "applicability": "NSS that process PII (Att. 6 §4.1 two-question approach; ACCT defined in Table 1, p. 11). Non-NSS systems use the "
+                                 "SP 800-53B privacy baseline instead.", "status": "Authoritative – public"},
+    "classified": {"issuing_authority": _CNSS, "source_document": "CNSSI 1253 Appendix E Attachment 5 – Classified System Overlay", "framework": "CNSSI 1253",
+                   "applicability": "NSS that by intent and design store, process or transmit classified information (§3, p. 3); explicit answer required.",
+                   "status": "Authoritative – public"},
+    "space": {"issuing_authority": _CNSS, "source_document": "CNSSI 1253F Attachment 2 – Space Platform Overlay (Aug 2025)", "framework": "CNSSI 1253",
+              "applicability": "Space platform / link segment of a space NSS.", "status": "Authoritative – public"},
+    "intelligence": {"issuing_authority": _CNSS, "source_document": "CNSSI 1253 Intelligence Overlays (UNCLASSIFIED//FOUO)", "framework": "CNSSI 1253",
+                     "applicability": "Intelligence community systems.", "status": "Unavailable – pending validation (restricted document)"},
+    "cds": {"issuing_authority": _CNSS, "source_document": "CNSSI 1253 Cross Domain Solution Overlays (UNCLASSIFIED//FOUO)", "framework": "CNSSI 1253",
+            "applicability": "Cross domain solutions.", "status": "Unavailable – pending validation (restricted document)"},
+}
 RESTRICTED_NOTE = ("The official document is marked UNCLASSIFIED//FOUO, so its control list is not shipped with this application. "
                    "A platform administrator can import the derived data file (Select → Overlays → Import official data).")
 

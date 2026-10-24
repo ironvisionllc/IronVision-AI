@@ -120,6 +120,10 @@ def ws(client, signup_on):  # noqa: F811
     assert r.status_code == 201, r.text
     sid = r.json()["id"]
     assert client.post(f"/api/v1/systems/{sid}/select/baseline", headers=h, json={"baseline_key": "moderate", "include_privacy": True}).status_code == 200
+    # CNSSI overlays apply only to NSS on the CNSSI 1253 framework; the Classified overlay needs an explicit Yes
+    c = client.put(f"/api/v1/systems/{sid}/categorization", headers=h, json={"mode": "cnssi1253", "information_types": [{"id": "D.16.3"}],
+                                                                           "nss_determination": "yes", "classified_information": "yes"})
+    assert c.status_code == 200, c.text
     return {"h": h, "sid": sid}
 
 

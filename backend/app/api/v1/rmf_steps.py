@@ -85,6 +85,9 @@ def prepare_save(system_id: uuid.UUID, body: RolesIn, db: Session = Depends(get_
 
 
 class CategorizationIn(CategorizeIn):
+    nss_determination: str | None = Field(None, pattern="^(yes|no|unsure)$", description="Is this a National Security System? (44 U.S.C. §3552; SP 800-59)")
+    classified_information: str | None = Field(None, pattern="^(yes|no|unknown)$", description="Does the system, by intent and design, process classified information?")
+    rationale: str | None = Field(None, max_length=4000)
     mission_criticality: str | None = Field(None, max_length=50)
     system_type: str | None = Field(None, max_length=80)
     acquisition_category: str | None = Field(None, max_length=40)
@@ -104,8 +107,17 @@ def apply_categorization(s, body: CategorizationIn) -> dict:
     s.categorization_mode = body.mode
     s.information_types = [{k: r[k] for k in ("id", "name", "c", "i", "a", "rationale", "adjusted")} for r in calc["rows"]]
     s.confidentiality_impact, s.integrity_impact, s.availability_impact = calc["c"], calc["i"], calc["a"]
-    s.categorization = calc["overall"].lower() if calc["overall"] else None
-    s.categorization_detail = {"steps": calc["steps"], "security_category": calc["security_category"], "baseline": calc["baseline"]}
+    from app.services.rmf_accuracy import validate_environment
+
+    validate_environment(body.operating_environment or s.operating_environment, body.environment_detail if body.environment_detail is not None else s.environment_detail,
+                         body.mode, body.classified_information or (s.applicability_flags or {}).get("classified_information"))
+    s.categorization = (calc["overall"] or calc["baseline"] or "").lower() or None
+    s.categorization_detail = {"steps": calc["steps"], "security_category": calc["security_category"], "baseline": calc["baseline"],
+                               "baseline_selection": calc.get("baseline_selection")}
+    if body.nss_determination:
+        s.nss_determination = body.nss_determination
+    if body.classified_information:
+        s.applicability_flags = {**(s.applicability_flags or {}), "classified_information": body.classified_information}
     for f in ("mission_criticality", "system_type", "acquisition_category", "authorization_type", "operating_environment", "environment_detail",
               "processes_pii", "pta"):
         v = getattr(body, f)
@@ -119,7 +131,7 @@ def categorization_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: 
     s = get_system(db, system_id)
     keep = ("categorization_mode", "information_types", "confidentiality_impact", "integrity_impact", "availability_impact", "categorization",
             "categorization_detail", "mission_criticality", "system_type", "acquisition_category", "authorization_type", "operating_environment",
-            "environment_detail", "processes_pii", "pta", "baseline_key", "include_privacy")
+            "environment_detail", "processes_pii", "pta", "baseline_key", "include_privacy", "nss_determination", "applicability_flags")
     return {k: getattr(s, k) for k in keep}
 
 
@@ -128,7 +140,17 @@ def categorization_save(system_id: uuid.UUID, body: CategorizationIn, db: Sessio
                         current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
     s = get_system(db, system_id)
     before = {"categorization": s.categorization, "c": s.confidentiality_impact, "i": s.integrity_impact, "a": s.availability_impact}
+    from app.services import rmf_accuracy as ra
+
+    approved = ra.latest(db, s.id, "approved")
+    keep = {f: getattr(s, f) for f in ("categorization_mode", "information_types", "confidentiality_impact", "integrity_impact", "availability_impact",
+                                       "categorization", "categorization_detail")}
     calc = _err(apply_categorization, s, body)
+    rec = ra.record(db, s, calc, body.mode, body.nss_determination or s.nss_determination, body.rationale, current.user.email)
+    calc = {**calc, "revision": rec.revision, "record_status": rec.status}
+    if approved and rec.status == "pending_reapproval":  # an approved categorization is not overwritten until re-approved
+        for f, v in keep.items():
+            setattr(s, f, v)
     audit.record(db, action="system.categorized", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
                  entity_id=str(s.id), before=before, after={"mode": body.mode, "c": calc["c"], "i": calc["i"], "a": calc["a"],
                                                             "information_types": [r["id"] for r in calc["rows"]], "processes_pii": s.processes_pii})
@@ -156,11 +178,19 @@ def select_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
         if o.structure_only and o.overlay_key.split("-")[1] in ("privacy", "classified", "space"):
             continue
         ovs[o.overlay_key] = o
-    from app.services.overlays import groups_view
+    from app.services.overlays import OVERLAY_META, groups_view
+    from app.services.rmf_accuracy import overlay_availability, review_flags
 
-    return {"baseline_key": s.baseline_key, "recommended_baseline": (s.categorization or "").lower() or None, "include_privacy": s.include_privacy,
+    groups = groups_view(db, s)
+    for g in groups:
+        g["available"], g["unavailable_reason"] = overlay_availability(s, g["group"])
+        g["meta"] = OVERLAY_META.get(g["group"])
+    groups = [g for g in groups if g["available"] or any(v.get("applied") for v in g.get("variants", [])) or g["group"] in ("privacy", "classified")]
+
+    return {"baseline_key": s.baseline_key, "framework": s.categorization_mode, "review_flags": review_flags(s),
+            "classified_information": (s.applicability_flags or {}).get("classified_information"), "recommended_baseline": (s.categorization or "").lower() or None, "include_privacy": s.include_privacy,
             "processes_pii": s.processes_pii, "overlay_keys": s.overlay_keys or [], "counts": system_counts(db, s),
-            "overlay_groups": groups_view(db, s),
+            "overlay_groups": groups,
             "overlays": [{"key": o.overlay_key, "title": o.title, "version": o.version, "structure_only": o.structure_only, "description": o.description,
                           "add": len(o.controls_add), "remove": len(o.controls_remove), "synthetic": o.is_synthetic,
                           "applied": o.overlay_key in (s.overlay_keys or [])} for o in ovs.values()],

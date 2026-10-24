@@ -124,6 +124,8 @@ class System(CoreMixin, ProvenanceMixin, Base):
     boundary_description: Mapped[str | None] = mapped_column(Text)
     lifecycle_phase: Mapped[str] = mapped_column(String(30), nullable=False, server_default=text("'Design'"))
     authorization_status: Mapped[str] = mapped_column(String(50), nullable=False, server_default=text("'Not authorized'"))
+    nss_determination: Mapped[str | None] = mapped_column(String(10))
+    applicability_flags: Mapped[dict | None] = mapped_column(JSONB)
     authorization_type: Mapped[str | None] = mapped_column(String(50))
     authorization_date: Mapped[date | None] = mapped_column(Date)
     authorization_expiration: Mapped[date | None] = mapped_column(Date)
@@ -1300,3 +1302,69 @@ class AssetCorrelation(CoreMixin, Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     justification: Mapped[str | None] = mapped_column(Text)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class CategorizationRecord(CoreMixin, Base):
+    """One revision of a system's security categorization (framework, types, per-objective impacts, rationale, approval)."""
+    __tablename__ = "categorization_records"
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    framework: Mapped[str] = mapped_column(String(20), nullable=False)
+    nss_determination: Mapped[str | None] = mapped_column(String(10))
+    information_types: Mapped[list | None] = mapped_column(JSONB)
+    impacts: Mapped[dict | None] = mapped_column(JSONB)
+    overall: Mapped[str | None] = mapped_column(String(20))
+    baseline: Mapped[str | None] = mapped_column(String(20))
+    detail: Mapped[dict | None] = mapped_column(JSONB)
+    rationale: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    inputs_hash: Mapped[str | None] = mapped_column(String(64))
+    submitted_by: Mapped[str | None] = mapped_column(String(255))
+    approved_by: Mapped[str | None] = mapped_column(String(255))
+    approved_by_real: Mapped[str | None] = mapped_column(String(255))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approval_rationale: Mapped[str | None] = mapped_column(Text)
+
+
+class PtaQuestionSet(CoreMixin, Base):
+    __tablename__ = "pta_question_sets"
+    org_id: Mapped[uuid.UUID | None] = _fk("organizations.id", True)
+    key: Mapped[str] = mapped_column(String(100), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    label: Mapped[str | None] = mapped_column(String(255))
+    questions: Mapped[list] = mapped_column(JSONB, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    created_by: Mapped[str | None] = mapped_column(String(255))
+
+
+class PtaResponse(CoreMixin, Base):
+    __tablename__ = "pta_responses"
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    question_set_id: Mapped[uuid.UUID | None] = _fk("pta_question_sets.id", True, "SET NULL")
+    question_set_key: Mapped[str | None] = mapped_column(String(100))
+    question_set_version: Mapped[int | None] = mapped_column(Integer)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    answers: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    flags: Mapped[list | None] = mapped_column(JSONB)
+    recommendation: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    submitted_by: Mapped[str | None] = mapped_column(String(255))
+    reviewer: Mapped[str | None] = mapped_column(String(255))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_rationale: Mapped[str | None] = mapped_column(Text)
+    determination: Mapped[str | None] = mapped_column(String(40))
+
+
+class AgencyOverlay(CoreMixin, Base):
+    __tablename__ = "agency_overlays"
+    org_id: Mapped[uuid.UUID] = _fk("organizations.id")
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    issuing_authority: Mapped[str] = mapped_column(String(255), nullable=False)
+    source_document: Mapped[str] = mapped_column(String(500), nullable=False)
+    framework: Mapped[str] = mapped_column(String(20), nullable=False)
+    version: Mapped[str] = mapped_column(String(50), nullable=False)
+    applicability: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    effective_date: Mapped[date | None] = mapped_column(Date)
+    created_by: Mapped[str | None] = mapped_column(String(255))

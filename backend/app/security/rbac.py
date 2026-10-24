@@ -39,6 +39,7 @@ PERMISSIONS: dict[str, str] = {
     "emass.queue": "Queue outbound eMASS changes and run compare/import",
     "emass.admin": "Configure the eMASS connector and failure simulation",
     "risk.admin": "Edit operational prioritization weights and job schedules",
+    "privacy.review": "Review and approve Privacy Threshold Analyses and privacy determinations",
 }
 
 _BASE = {"catalog.read", "system.read"}
@@ -55,6 +56,7 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
     "ao": _BASE | {"authorization.decide", "risk.accept", "portfolio.read", "audit.read", "comment.write"},
     "devsecops": _BASE | {"evidence.submit", "ingest.upload", "source.manage"},
     "leadership_viewer": _BASE | {"portfolio.read"},
+    "privacy_official": _BASE | {"privacy.review", "audit.read", "comment.write"},
     "platform_admin": {"catalog.read", "system.read", "audit.read", "admin.health.read", "admin.users.manage",
                        "admin.content.load", "admin.ai.test", "system.roles.manage", "evidence.verify", "demo.tools",
                        "content.apply", "emass.admin", "risk.admin"},

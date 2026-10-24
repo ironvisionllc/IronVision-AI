@@ -14,6 +14,8 @@ import { Help, RolesEditor, rolesFromHolders } from "@/components/rmf/RolesEdito
 import { CategorizeForm, catBody, catFromSystem } from "@/components/rmf/CategorizeForm";
 import { ParameterComparison } from "@/components/rmf/ParameterComparison";
 import { AuthStrategy } from "@/components/rmf/AuthStrategy";
+import { CategorizationApproval } from "@/components/rmf/CategorizationApproval";
+import { PtaPanel } from "@/components/rmf/PtaPanel";
 import { PageSizeSelect, Pager, usePageSize, usePaged } from "@/components/common/PageSize";
 import { downloadFile } from "@/lib/download";
 import { Gated } from "@/components/common/RoleGate";
@@ -79,11 +81,14 @@ export function CategorizePage() {
   const { data, reload } = useApi<Row>(sid ? `/systems/${sid}/categorization` : null);
   const [v, setV] = useState<Row | null>(null);
   const [m, setM] = useState<{ ok?: string; err?: string }>({});
+  const [ver, setVer] = useState(0);
   useEffect(() => { if (data) setV(catFromSystem(data)); }, [data]);
   const save = async () => {
     try { const r = await api.put<Row>(`/systems/${sid}/categorization`, catBody(v!)); reload();
       const acts: string[] = r.data.select_actions;
-      const msg = `Categorization saved: ${r.data.calculation.overall} (${r.data.calculation.c}/${r.data.calculation.i}/${r.data.calculation.a}).${acts.length ? ` In Select: ${acts.join("; ")}.` : ""}`;
+      const c = r.data.calculation;
+      const msg = `Categorization saved as revision ${c.revision} (${c.record_status === "pending_reapproval" ? "pending re-approval – the approved categorization stays in force" : c.record_status}): ${c.overall ?? `${c.c}-${c.i}-${c.a}, kept separate`}.${acts.length ? ` In Select: ${acts.join("; ")}.` : ""}`;
+      setVer((x) => x + 1);
       setM({ ok: msg }); showNextStep({ message: msg, label: "review the baseline, overlays and tailoring in Select", to: "/rmf/select" });
     } catch (e) { setM({ err: errorMessage(e) }); }
   };
@@ -91,7 +96,10 @@ export function CategorizePage() {
     <StepFrame k="categorize" title="Step 2 · Categorize" purpose="Choose the kinds of information the system handles. The app applies NIST's provisional impact levels, takes the high-water mark (FIPS 199) and picks the matching 800-53B baseline.">
       <Msg m={m} />
       {v && <CategorizeForm v={v} onChange={setV} />}
-      <Gated perm="system.write"><button className="btn-primary mt-5" onClick={save} data-testid="categorize-save">Save categorization</button></Gated>
+      {v && <label className="mt-4 block text-[12px] font-medium text-slate-700">Categorization rationale<textarea className="input mt-1" rows={2} value={v.rationale ?? ""}
+        onChange={(e) => setV({ ...v, rationale: e.target.value })} placeholder="Why these types and impacts (recorded with the revision)" data-testid="cat-rationale" /></label>}
+      <Gated perm="system.write"><button className="btn-primary mt-3" onClick={save} data-testid="categorize-save">Save categorization</button></Gated>
+      {sid && <div className="mt-5 grid gap-5"><CategorizationApproval sid={sid} version={ver} /><PtaPanel sid={sid} /></div>}
     </StepFrame>);
 }
 
@@ -155,9 +163,11 @@ function OverlayGroup({ sid, g, busy, apply }: { sid: string; g: Row; busy: bool
           {cur ? <span className="ml-2 rounded bg-emerald-100 px-1.5 text-[11px] text-emerald-800" data-testid={`overlay-group-${g.group}-applied`}>Applied: {cur.label}</span> : null}
           {g.question && <div className="mt-1 text-[12px] text-slate-800">{g.question}</div>}
           {g.help && <div className="mt-0.5 text-[11px] text-slate-500">{g.help}</div>}
-          {g.note && <div className="mt-1 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900" data-testid={`overlay-group-${g.group}-restricted`}>{g.note}</div>}</div>
+          {g.note && <div className="mt-1 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900" data-testid={`overlay-group-${g.group}-restricted`}>{g.note}</div>}
+          {g.meta && <div className="mt-1 text-[10px] text-slate-500" data-testid={`overlay-group-${g.group}-meta`}>{g.meta.issuing_authority} · {g.meta.source_document} · {g.meta.framework} · {g.meta.status}{g.document?.date ? ` · effective ${g.document.date}` : ""} · Applies to: {g.meta.applicability}</div>}
+          {g.available === false && <div className="mt-1 rounded bg-slate-100 px-2 py-1 text-[11px] text-slate-700" data-testid={`overlay-group-${g.group}-unavailable`}>{g.unavailable_reason}</div>}</div>
         <div className="flex flex-wrap gap-1">{g.variants.map((v: Row) => (
-          <button key={v.key} disabled={busy} className={v.applied ? "btn-secondary px-2 py-0.5 text-[11px]" : "btn-primary px-2 py-0.5 text-[11px]"} onClick={() => apply(v.key, !v.applied, `${g.title}${g.kind === "variant" ? ` – ${v.label}` : ""}`)}
+          <button key={v.key} disabled={busy || (g.available === false && !v.applied)} className={v.applied ? "btn-secondary px-2 py-0.5 text-[11px]" : "btn-primary px-2 py-0.5 text-[11px]"} onClick={() => apply(v.key, !v.applied, `${g.title}${g.kind === "variant" ? ` – ${v.label}` : ""}`)}
             title={`+${v.add} added / −${v.remove} removed vs. the baseline · ${v.parameters} parameter value(s) · ${v.guidance_only} guidance-only${v.optional ? ` · ${v.optional} optional` : ""}`} data-testid={`overlay-${v.key}-toggle`}>
             {v.applied ? `Remove ${g.kind === "variant" ? v.label : "overlay"}` : g.kind === "variant" ? `${cur ? "Switch to" : "Apply"} ${v.label}` : "Yes – apply"} <span className="opacity-70">(+{v.add}/−{v.remove})</span></button>))}</div>
       </div>
@@ -198,6 +208,8 @@ function Overlays({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
         <input type="file" accept=".json" className="hidden" onChange={(e) => e.target.files?.[0] && importRef(e.target.files[0])} data-testid="overlay-import-reference" /></label> : undefined}>
       <Msg m={m} />
       <p className="text-[11px] text-slate-500">Control lists are parsed from the official CNSS documents (file, date and SHA-256 shown on hover). Removing an overlay reverses exactly its own changes.</p>
+      {(d.review_flags || []).map((f: Row, i: number) => <p key={i} className="mb-2 rounded bg-amber-50 p-2 text-[11px] text-amber-900" data-testid={`overlay-review-flag-${i}`}>{f.message} ({f.value})</p>)}
+      {d.framework !== "cnssi1253" && <p className="mb-2 rounded bg-blue-50 p-2 text-[11px] text-blue-900" data-testid="overlay-fips-note">This system uses FIPS 199 (non-NSS): CNSSI 1253 overlays do not apply. Privacy controls come from the NIST SP 800-53B privacy baseline, selected through the PTA / PII determination.</p>}
       {(d.overlay_groups || []).map((g: Row) => <OverlayGroup key={g.group} sid={sid} g={g} busy={busy || !can("system.write")} apply={apply} />)}
       {legacy.length > 0 && <table className="mt-3 w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th className="py-1">Other overlays</th><th>Controls</th><th>Status</th><th /></tr></thead><tbody>
         {legacy.map((o: Row) => <tr key={o.key} className="border-t border-slate-100 align-top" data-testid={`overlay-${o.key}`}>
