@@ -37,7 +37,7 @@ if [ "$LOCAL" != 1 ]; then
   done
   export COMPOSE_FILE="${COMPOSE_FILE:?COMPOSE_FILE missing in $DATA_ROOT/compose.env – run ./deploy.sh once}:deploy/compose/recovery.yml"
   DC=(docker compose --env-file "$ENV_FILE")
-  RUNPY=("${DC[@]}" --profile recovery run --rm -T -e RECOVERY_DIR=/recovery -e RECOVER_PREDEPLOY_DIR=/predeploy)
+  RUNPY=("${DC[@]}" --profile seaweedfs --profile recovery run --rm -T -e RECOVERY_DIR=/recovery -e RECOVER_PREDEPLOY_DIR=/predeploy)
 else
   RUNPY=()
 fi

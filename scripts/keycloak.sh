@@ -18,7 +18,7 @@ get() { python3 scripts/envget.py "$F" "$1"; }
 DATA_ROOT="$(get DATA_ROOT)"
 [ -n "$(get AUTH_DOMAIN)" ] || die "AUTH_DOMAIN is not set in $F – run ./deploy.sh --set-auth-domain auth.<your-domain> first"
 [ -f "$DATA_ROOT/compose.env" ] || die "$DATA_ROOT/compose.env missing – run ./deploy.sh once first"
-DC=(docker compose --env-file "$F")
+DC=(docker compose --profile seaweedfs --env-file "$F")
 CF="$(python3 scripts/envget.py "$DATA_ROOT/compose.env" COMPOSE_FILE)"
 IFS=: read -r -a CFS <<<"$CF"
 for f in "${CFS[@]}"; do DC+=(-f "$f"); done
