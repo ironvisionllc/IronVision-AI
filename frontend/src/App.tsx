@@ -8,6 +8,7 @@ import { NAV_ITEMS } from "@/lib/nav";
 import LoginPage from "@/pages/LoginPage";
 import ControlsPage from "@/pages/ControlsPage";
 import AdminPage from "@/pages/AdminPage";
+import WhitepaperPage from "@/pages/WhitepaperPage";
 import DocsCenterPage from "@/pages/DocsCenterPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import LeadershipPage from "@/pages/LeadershipPage";
@@ -112,6 +113,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/whitepaper" element={<WhitepaperPage />} />
           <Route path="/*" element={<Protected><Shell /></Protected>} />
         </Routes>
       </AuthProvider>

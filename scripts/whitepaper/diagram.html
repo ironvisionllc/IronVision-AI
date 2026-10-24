@@ -1,0 +1,91 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+body{margin:0;font-family:Inter,Arial,sans-serif;background:#fff}
+svg text{font-family:Inter,Arial,sans-serif}
+</style></head><body>
+<svg id="d" xmlns="http://www.w3.org/2000/svg" width="1400" height="860" viewBox="0 0 1400 860">
+<defs>
+<marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#15697F"/></marker>
+<linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#2597B2"/><stop offset="1" stop-color="#1B839F"/></linearGradient>
+</defs>
+<rect x="0" y="0" width="1400" height="860" fill="#F7FBFC"/>
+<text x="40" y="52" font-size="28" font-weight="800" fill="#0A3540">IronVision AI – reference architecture</text>
+<text x="40" y="82" font-size="15" fill="#4B6470">Docker Compose (DigitalOcean reference) · every arrow is HTTPS or an internal network call · no component is reachable without the edge proxy</text>
+
+<g>
+<rect x="40" y="120" width="220" height="90" rx="14" fill="#fff" stroke="#9CC9D5" stroke-width="2"/>
+<text x="150" y="158" font-size="18" font-weight="700" text-anchor="middle" fill="#0F4F5F">Browser</text>
+<text x="150" y="184" font-size="13" text-anchor="middle" fill="#4B6470">ISSO · SCA · AO · Admin …</text>
+
+<rect x="330" y="120" width="260" height="90" rx="14" fill="url(#g)"/>
+<text x="460" y="158" font-size="18" font-weight="700" text-anchor="middle" fill="#fff">Edge proxy (TLS)</text>
+<text x="460" y="184" font-size="13" text-anchor="middle" fill="#E8F6F9">Caddy / nginx · Let's Encrypt</text>
+
+<rect x="660" y="120" width="300" height="90" rx="14" fill="#fff" stroke="#9CC9D5" stroke-width="2"/>
+<text x="810" y="158" font-size="18" font-weight="700" text-anchor="middle" fill="#0F4F5F">Frontend</text>
+<text x="810" y="184" font-size="13" text-anchor="middle" fill="#4B6470">React + TypeScript SPA (static bundle)</text>
+
+<rect x="1030" y="120" width="330" height="90" rx="14" fill="#fff" stroke="#C9B8E8" stroke-width="2"/>
+<text x="1195" y="158" font-size="18" font-weight="700" text-anchor="middle" fill="#3D2C6B">Identity provider (optional)</text>
+<text x="1195" y="184" font-size="13" text-anchor="middle" fill="#5B4A86">Keycloak / OIDC (Code + PKCE)</text>
+
+<rect x="330" y="290" width="630" height="190" rx="16" fill="#fff" stroke="#2597B2" stroke-width="3"/>
+<text x="645" y="326" font-size="20" font-weight="800" text-anchor="middle" fill="#0A3540">Backend API – FastAPI /api/v1</text>
+<text x="350" y="360" font-size="14" fill="#15697F">• RBAC + separation of duties on every mutating route</text>
+<text x="350" y="386" font-size="14" fill="#15697F">• Domain services: RMF steps, CNSSI 1253, evidence, POA&amp;M, reviews,</text>
+<text x="364" y="408" font-size="14" fill="#15697F">policy auditor, TR / HW-SW workbooks, OSCAL, eMASS engine</text>
+<text x="350" y="434" font-size="14" fill="#15697F">• AIService: versioned prompts, schema + quote validation, logging</text>
+<text x="350" y="460" font-size="14" fill="#15697F">• Hash-chained audit trail (append-only)</text>
+
+<rect x="1030" y="290" width="330" height="190" rx="16" fill="#fff" stroke="#E0B060" stroke-width="2"/>
+<text x="1195" y="326" font-size="18" font-weight="700" text-anchor="middle" fill="#6B4A10">AI provider (pluggable)</text>
+<text x="1050" y="360" font-size="14" fill="#6B4A10">• OpenRouter (recommended)</text>
+<text x="1050" y="386" font-size="14" fill="#6B4A10">• Anthropic (direct)</text>
+<text x="1050" y="412" font-size="14" fill="#6B4A10">• OpenAI-compatible / self-hosted</text>
+<text x="1050" y="438" font-size="14" fill="#6B4A10">• Emergent (preview only)</text>
+<text x="1050" y="464" font-size="14" fill="#6B4A10">• none → deterministic analysis</text>
+
+<rect x="40" y="290" width="220" height="190" rx="16" fill="#fff" stroke="#9CC9D5" stroke-width="2"/>
+<text x="150" y="326" font-size="18" font-weight="700" text-anchor="middle" fill="#0F4F5F">Worker</text>
+<text x="56" y="360" font-size="13" fill="#4B6470">• jobs table queue</text>
+<text x="56" y="384" font-size="13" fill="#4B6470">(FOR UPDATE SKIP LOCKED)</text>
+<text x="56" y="408" font-size="13" fill="#4B6470">• ingest, policy analysis,</text>
+<text x="56" y="430" font-size="13" fill="#4B6470">TR / inventory, schedules</text>
+<text x="56" y="454" font-size="13" fill="#4B6470">• heartbeat</text>
+
+<rect x="330" y="580" width="300" height="150" rx="16" fill="#fff" stroke="#2597B2" stroke-width="2"/>
+<text x="480" y="618" font-size="18" font-weight="700" text-anchor="middle" fill="#0F4F5F">PostgreSQL 16</text>
+<text x="350" y="650" font-size="13" fill="#4B6470">• org_id on every record</text>
+<text x="350" y="674" font-size="13" fill="#4B6470">• Alembic migrations (0001–0028)</text>
+<text x="350" y="698" font-size="13" fill="#4B6470">• audit_events append-only trigger</text>
+
+<rect x="660" y="580" width="300" height="150" rx="16" fill="#fff" stroke="#2597B2" stroke-width="2"/>
+<text x="810" y="618" font-size="18" font-weight="700" text-anchor="middle" fill="#0F4F5F">Object storage</text>
+<text x="680" y="650" font-size="13" fill="#4B6470">• SHA-256 content-addressed evidence</text>
+<text x="680" y="674" font-size="13" fill="#4B6470">• local FS | S3 API: SeaweedFS,</text>
+<text x="680" y="698" font-size="13" fill="#4B6470">AWS S3, DO Spaces, Garage …</text>
+
+<rect x="1030" y="580" width="330" height="150" rx="16" fill="#fff" stroke="#9CC9D5" stroke-width="2" stroke-dasharray="6 5"/>
+<text x="1195" y="618" font-size="18" font-weight="700" text-anchor="middle" fill="#0F4F5F">Optional services</text>
+<text x="1050" y="650" font-size="13" fill="#4B6470">• ClamAV (upload scanning)</text>
+<text x="1050" y="674" font-size="13" fill="#4B6470">• Vault (secret store)</text>
+<text x="1050" y="698" font-size="13" fill="#4B6470">• Prometheus / Grafana, eMASS API</text>
+</g>
+
+<g stroke="#15697F" stroke-width="2.5" fill="none" marker-end="url(#a)">
+<path d="M260,165 L326,165"/>
+<path d="M590,165 L656,165"/>
+<path d="M460,210 L460,286"/>
+<path d="M960,165 L1026,165"/>
+<path d="M960,385 L1026,385"/>
+<path d="M330,385 L264,385"/>
+<path d="M480,480 L480,576"/>
+<path d="M810,480 L810,576"/>
+<path d="M150,480 C150,640 250,655 326,655"/>
+<path d="M150,480 C150,780 700,800 810,734"/>
+<path d="M960,655 L1026,655"/>
+<path d="M1195,210 L1195,240 L900,240 L900,286"/>
+</g>
+<text x="40" y="810" font-size="13" fill="#4B6470">Tenant isolation: every query is filtered by the caller's organization and system role assignments. Secrets come only from env files (parsed as data, never sourced) or Vault.</text>
+</svg>
+</body></html>
