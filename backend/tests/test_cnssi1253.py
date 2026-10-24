@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import select
 
 from app.db import SessionLocal
-from app.models import ControlAssignment, Implementation, System
+from app.models import AuditEvent, ControlAssignment, Implementation, System
 from app.services import cnssi1253 as cn
 from tests.conftest import auth
 from tests.test_sandbox import _signup, signup_on  # noqa: F401
@@ -169,6 +169,48 @@ def test_existing_nss_system_gets_a_proposal_not_a_silent_change(client, org):
     sel = client.get(f"/api/v1/systems/{sid}/select", headers=org["h"]).json()
     p = sel["cnssi"]["proposal"]
     assert sel["cnssi"]["applied"] is None and sel["counts"]["assigned"] == n0 == 370 and p["from"] == "NIST SP 800-53B high" and p["to"] == "M-H-L"
-    assert p["add"] and p["remove"] and "review" in p["message"]
+    assert p["add"] and p["remove"] and "review" in p["message"] and p["kind"] == "tables_loaded" and p["blocked_reason"] is None, "same C/I/A, no re-approval"
     r = client.post(f"/api/v1/systems/{sid}/select/cnssi-baseline", json={"to": "M-H-L"}, headers=org["h"]).json()
     assert r["counts"]["baseline"] == 559 == r["counts"]["assigned"] and r["added"] == len(p["add"]) and r["removed"] == len(p["remove"])
+    with SessionLocal() as db:
+        ev = db.scalar(select(AuditEvent).where(AuditEvent.entity_id == sid, AuditEvent.action == "system.cnssi_baseline_applied"))
+        assert ev.after["kind"] == "tables_loaded"
+
+
+def _records(client, sid, h):
+    return client.get(f"/api/v1/systems/{sid}/categorization/records", headers=h).json()
+
+
+def test_first_categorization_sets_baseline_pending_approval(client, org):
+    sid = _mk(client, org)
+    isso, ao = org["role"]("isso"), org["role"]("ao")
+    c = client.get(f"/api/v1/systems/{sid}/select", headers=isso).json()["cnssi"]
+    assert c["applied"] == "M-H-L" and c["proposal"] is None and c["categorization_status"] == "Pending categorization approval"
+    cur = _records(client, sid, isso)["current"]
+    assert client.post(f"/api/v1/systems/{sid}/categorization/records/{cur['id']}/approve", json={"rationale": "First categorization approved"},
+                       headers=ao).status_code == 200
+    c = client.get(f"/api/v1/systems/{sid}/select", headers=isso).json()["cnssi"]
+    assert c["categorization_status"] == f"Approved (revision {cur['revision']})" and c["proposal"] is None
+
+
+def test_categorization_change_proposal_needs_approval_draft_422_then_approved_200(client, org):
+    sid = _mk(client, org)
+    isso, ao = org["role"]("isso"), org["role"]("ao")
+    assert _cat(client, sid, isso, "High", "High", "High").json()["calculation"]["record_status"] == "draft", "no approved revision yet"
+    p = client.get(f"/api/v1/systems/{sid}/select", headers=isso).json()["cnssi"]["proposal"]
+    assert p["kind"] == "categorization_change" and p["to"] == "H-H-H" and p["blocked_reason"].startswith("Approve the categorization revision first")
+    assert p["approval_link"] == "/rmf/categorize"
+    r = client.post(f"/api/v1/systems/{sid}/select/cnssi-baseline", json={"to": "H-H-H"}, headers=isso)
+    assert r.status_code == 422 and r.json()["detail"].startswith("Approve the categorization revision first")
+    assert client.get(f"/api/v1/systems/{sid}/select", headers=isso).json()["cnssi"]["applied"] == "M-H-L", "nothing applied"
+    cur = _records(client, sid, isso)["current"]
+    assert cur["status"] == "draft"
+    client.post(f"/api/v1/systems/{sid}/categorization/records/{cur['id']}/approve", json={"rationale": "H-H-H approved by the AO"}, headers=ao)
+    p = client.get(f"/api/v1/systems/{sid}/select", headers=isso).json()["cnssi"]["proposal"]
+    assert p["blocked_reason"] is None and p["approved_revision"] == cur["revision"]
+    r = client.post(f"/api/v1/systems/{sid}/select/cnssi-baseline", json={"to": "H-H-H"}, headers=isso)
+    assert r.status_code == 200 and r.json()["applied"] == "H-H-H" and r.json()["counts"]["baseline"] == 607
+    with SessionLocal() as db:
+        ev = {e.action: e.after for e in db.scalars(select(AuditEvent).where(AuditEvent.entity_id == sid))}
+        assert ev["system.cnssi_baseline_accept_blocked"]["kind"] == "categorization_change"
+        assert ev["system.cnssi_baseline_applied"]["kind"] == "categorization_change" and ev["system.cnssi_baseline_applied"]["categorization_revision"] == cur["revision"]

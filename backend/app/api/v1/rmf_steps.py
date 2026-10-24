@@ -221,7 +221,11 @@ def _cnssi_view(db: Session, s) -> dict | None:
     tri = cnssi1253.system_trigraph(s)
     gaps = [r["control_id"] for r in cnssi1253.rows() if r.get("not_in_catalog")]
     unc = cnssi1253.uncovered_catalog_ids(db)
-    return {"trigraph": tri, "applied": cnssi1253.applied(s), "proposal": cnssi1253.proposal(db, s),
+    st = cnssi1253.approval_state(db, s)
+    applied = cnssi1253.applied(s)
+    return {"trigraph": tri, "applied": applied, "proposal": cnssi1253.proposal(db, s), "approval": st,
+            "categorization_status": (f"Approved (revision {st['approved_revision']})" if applied and st["approved_trigraph"] == applied
+                                      else "Pending categorization approval"),
             "source": f"{src['title']}, {src['date']} ({src['copy']}), SHA-256 {src['sha256'][:12]}…",
             "rule": cnssi1253.data()["selection_rule"],
             "sme_review": [f"SME review required: {len(unc)} Rev 5 catalog controls are not in the CNSSI 1253 (2022) tables, so they are not selected – "
@@ -239,6 +243,12 @@ def accept_cnssi_baseline(system_id: uuid.UUID, body: CnssiAcceptIn, db: Session
     from app.services import cnssi1253
 
     s = get_system(db, system_id)
+    p = cnssi1253.proposal(db, s)
+    if p and p["to"] == body.to and p["blocked_reason"]:  # audited refusal: categorization change not yet approved
+        audit.record(db, action="system.cnssi_baseline_accept_blocked", actor_user_id=current.user.id, actor_email=current.user.email,
+                     entity_type="system", entity_id=str(s.id), after={"to": p["to"], "kind": p["kind"], "reason": p["blocked_reason"]})
+        db.commit()
+        raise HTTPException(422, p["blocked_reason"])
     out = _err(cnssi1253.accept, db, s, current.user, body.to)
     db.commit()
     return {**out, "counts": system_counts(db, s)}

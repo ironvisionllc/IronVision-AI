@@ -94,18 +94,39 @@ def _with_work(db: Session, s: System, ids: set) -> set:
     return out
 
 
+def approval_state(db: Session, s: System) -> dict:
+    """Approved categorization trigraph (the one in force) vs a newer draft / pending re-approval revision."""
+    from app.services.rmf_accuracy import latest
+
+    ap, cur = latest(db, s.id, "approved"), latest(db, s.id)
+    imp = (ap.impacts or {}) if ap else {}
+    tri = trigraph(imp.get("c"), imp.get("i"), imp.get("a")) if ap and ap.framework == "cnssi1253" else None
+    pend = cur if cur and cur.status != "approved" else None
+    return {"approved_trigraph": tri, "approved_revision": ap.revision if ap else None,
+            "pending_revision": pend.revision if pend else None, "pending_status": pend.status if pend else None}
+
+
 def proposal(db: Session, s: System) -> dict | None:
-    """Pending change between the applied baseline and the CNSSI 1253 baseline for the system's approved trigraph (never applied silently)."""
+    """Pending change between the applied baseline and the CNSSI 1253 baseline for the system's trigraph (never applied silently).
+    kind 'tables_loaded' = an NSS system registered before the tables (same C/I/A); 'categorization_change' = the trigraph changed and
+    can only be accepted once that categorization revision is approved."""
     tri = system_trigraph(s)
     if not tri or applied(s) == tri:
         return None
+    kind = "tables_loaded" if applied(s) is None else "categorization_change"
+    st = approval_state(db, s)
+    blocked = None
+    if kind == "categorization_change" and st["approved_trigraph"] != tri:
+        rev = f" (revision {st['pending_revision']} is {st['pending_status'].replace('_', ' ')})" if st["pending_revision"] else ""
+        blocked = f"Approve the categorization revision first{rev} – the AO approves it in 2 · Categorize"
     want = selection(tri)["ids"]
     asg = {a.control_id: a for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == s.id))}
     removed = set(db.scalars(select(TailoringDecision.control_id).where(TailoringDecision.system_id == s.id, TailoringDecision.action == "remove")))
     add = sorted(c for c in want if c not in asg and c not in removed)
     drop = sorted(c for c, a in asg.items() if a.origin == "baseline" and c not in want)
     keep = sorted(_with_work(db, s, set(drop)))
-    return {"from": applied(s) or f"NIST SP 800-53B {s.baseline_key or '—'}", "to": tri, "add": add, "remove": [c for c in drop if c not in keep],
+    return {"from": applied(s) or f"NIST SP 800-53B {s.baseline_key or '—'}", "to": tri, "kind": kind, "blocked_reason": blocked,
+            "approval_link": "/rmf/categorize", "approved_revision": st["approved_revision"], "add": add, "remove": [c for c in drop if c not in keep],
             "keep_with_work": keep, "tailored_out_kept_out": sorted(want & removed),
             "message": f"CNSSI 1253 baseline loaded – {len(add)} controls added / {len(drop) - len(keep)} removed"
                        f"{f' / {len(keep)} kept (have work)' if keep else ''} – review"}
@@ -117,6 +138,8 @@ def accept(db: Session, s: System, actor, expected_to: str) -> dict:
     p = proposal(db, s)
     if p is None or p["to"] != expected_to:
         raise ValueError("The CNSSI 1253 baseline proposal changed or no longer applies – reload and review it again")
+    if p["blocked_reason"]:
+        raise ValueError(p["blocked_reason"])
     added = _add(db, s, p["add"], "baseline", f"CNSSI 1253 {p['to']}", actor)
     gone = _remove(db, s, p["remove"])
     for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == s.id, ControlAssignment.control_id.in_(p["keep_with_work"]))):
@@ -127,6 +150,7 @@ def accept(db: Session, s: System, actor, expected_to: str) -> dict:
         a.origin_detail = f"CNSSI 1253 {p['to']}"
     s.cnssi_baseline = {"applied": p["to"], "applied_at": datetime.now(timezone.utc).isoformat(), "applied_by": actor.email,
                         "source_sha256": data()["source"]["sha256"], "previous": p["from"]}
-    _finish(db, s, actor, "system.cnssi_baseline_applied", {"from": p["from"], "to": p["to"], "added": added, "removed": gone,
+    _finish(db, s, actor, "system.cnssi_baseline_applied", {"from": p["from"], "to": p["to"], "kind": p["kind"], "categorization_revision": p["approved_revision"],
+                                                           "added": added, "removed": gone,
                                                            "kept_with_work": p["keep_with_work"]})
     return {"added": len(added), "removed": len(gone), "kept_with_work": len(p["keep_with_work"]), "applied": p["to"]}
