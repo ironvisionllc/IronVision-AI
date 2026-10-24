@@ -280,12 +280,12 @@ REQUIRED_SECTIONS = [("ac-17", "remote access", "Remote access section"), ("ac-1
 
 def extract_text(file_name: str, data: bytes) -> str:
     ext = file_name.lower().rsplit(".", 1)[-1]
-    if ext == "pdf":
+    if ext == "pdf":  # one form feed per page break, so excerpts can cite the page
         from pypdf import PdfReader
-        return "\n".join(p.extract_text() or "" for p in PdfReader(io.BytesIO(data)).pages)
+        return "\n\f".join(p.extract_text() or "" for p in PdfReader(io.BytesIO(data)).pages)
     if ext == "docx":
         import docx
-        return "\n".join(p.text for p in docx.Document(io.BytesIO(data)).paragraphs)
+        return "\n".join(_docx_para(p) for p in docx.Document(io.BytesIO(data)).paragraphs)
     if ext == "txt":
         return data.decode("utf-8", errors="replace")
     raise HTTPException(422, "Supported policy formats: PDF, DOCX, TXT")
@@ -312,18 +312,46 @@ def sentence_at(text: str, start: int, end: int) -> tuple[int, int]:
     return s, e
 
 
-def locate(text: str, start: int) -> str:
-    """Page / section reference for an offset: nearest preceding heading line (numbered or Title Case) and form-feed page count."""
-    page = text.count("\f", 0, start) + 1
-    head = None
+TEXT_VERSION = "text-2"  # pdf per-page form feeds + docx page-break markers; older policies are re-extracted from the stored file
+
+
+def _docx_para(p) -> str:
+    """Paragraph text with a form feed where Word marks a page break (explicit break, page-break-before or rendered break)."""
+    x = p._p.xml
+    before = "w:pageBreakBefore" in x or "w:lastRenderedPageBreak" in x
+    after = 'w:type="page"' in x
+    return ("\f" if before else "") + p.text + ("\n\f" if after else "")
+
+
+def refresh_text(db: Session, p: Policy) -> bool:
+    """Re-extract an older policy from its stored original with page breaks; re-run the analysis when the text changed."""
+    a = p.analysis or {}
+    if a.get("text_version") == TEXT_VERSION or not p.storage_key or (p.file_name or "").lower().rsplit(".", 1)[-1] not in ("pdf", "docx"):
+        return False
+    text = extract_text(p.file_name, get_storage().get(p.storage_key))
+    changed = text != (p.text_content or "")
+    p.text_content = text
+    p.analysis = {**a, "text_version": TEXT_VERSION}
+    if changed and p.analysis_status == "analyzed":
+        analyze_policy(db, p)
+    return changed
+
+
+def section_at(text: str, start: int) -> str | None:
+    """Nearest preceding heading line (numbered, 'Section n', control ID or Title Case), including the offset's own line."""
     eol = text.find("\n", start)
     for line in reversed(text[:eol if eol >= 0 else len(text)].splitlines()[-40:]):  # include the snippet's own line (A4: a "2. Scope." sentence is § 2)
         t = line.strip()
         if re.match(r"^(\d+(\.\d+)*\.?\s+\S|section\s+\d+|[A-Z]{2}-\d+(?:\s*\(\d+\))?\s+[A-Z]|[A-Z][A-Za-z &/-]{3,60}$)", t, re.IGNORECASE):
             m = re.match(r"^((?:section\s+)?\d+(?:\.\d+)*\.?\s+[^.:;]{1,60}|[A-Z]{2}-\d+(?:\s*\(\d+\))?\s+[^.:;]{1,60})(?:[.:;]|$)", t, re.IGNORECASE)
-            head = (m.group(1) if m else t)[:80]
-            break
-    return f"p. {page}" + (f", § {head}" if head else "")
+            return (m.group(1) if m else t)[:80]
+    return None
+
+
+def locate(text: str, start: int) -> str:
+    """Page / section reference for an offset: nearest preceding heading line and form-feed page count."""
+    head = section_at(text, start)
+    return f"p. {text.count(chr(12), 0, start) + 1}" + (f", § {head}" if head else "")
 
 
 def verbatim_quote(text: str, quote: str | None) -> dict:
@@ -412,7 +440,7 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
             add(finding_type="ai_suggested_needs_validation", control_id=cid, description=s.get("description", "")[:2000], quote=(qtxt or "")[:1000],
                 origin="ai", ai_interaction_id=ai_interaction_id)
     policy.analysis_status = "analyzed"
-    policy.analysis = {**ex, "control_mappings": [{k: m[k] for k in ("control_id", "confidence", "sources", "basis", "snippets", "parts")} for m in mappings],
+    policy.analysis = {**ex, "text_version": (policy.analysis or {}).get("text_version"), "control_mappings": [{k: m[k] for k in ("control_id", "confidence", "sources", "basis", "snippets", "parts")} for m in mappings],
                        "ai_used": ai_output is not None, "ai_dropped_unknown_controls": [s.get("control_id") for s in (ai_output or {}).get("findings", [])
                                                                                                  if (s.get("control_id") or "").lower().replace("(", ".").replace(")", "") not in known]}
     from app.services import policy_coverage as pc

@@ -277,8 +277,16 @@ def _merge_values(values: list, rows: list) -> list:
 
 def ensure_current(db: Session, policies) -> int:
     """Re-run coverage for policies analysed by an older analyzer (the worker does not hot-reload). Idempotent."""
+    from app.services.rmf import refresh_text
+
     n = 0
     for p in policies:
+        try:
+            if refresh_text(db, p):
+                n += 1
+                continue
+        except Exception as exc:  # a missing stored original must not stop the other policies
+            p.analysis = {**(p.analysis or {}), "text_refresh_error": f"{type(exc).__name__}: {exc}"[:300]}
         if p.analysis_status == "analyzed" and (p.analysis or {}).get("coverage_version") != ANALYZER_VERSION:
             analyze(db, p)
             n += 1

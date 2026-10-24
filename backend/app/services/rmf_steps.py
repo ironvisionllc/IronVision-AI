@@ -31,6 +31,13 @@ KEY_ROLES = [
 REQUIRED_ROLES = [k for k, _, _, req in KEY_ROLES if req]
 # Not offered in the system registration role picker (they stay in the authorization model: CCP in Inheritance, AODR in Authorize).
 NOT_AT_REGISTRATION = {"aodr": "AODR", "ccp": "Common Control Provider (CCP)", "user_rep": "User Representative"}
+ROLE_ALIASES = {"common_control_provider": "ccp", "user_representative": "user_rep", "userrep": "user_rep",
+                "ao_designated_representative": "aodr", "ao_designated_rep": "aodr", "authorizing_official_designated_representative": "aodr"}
+ROLE_KEYS = [k for k, _, _, _ in KEY_ROLES]
+
+
+def unknown_role_keys(roles: dict | None) -> list[str]:
+    return sorted(k for k in (roles or {}) if k not in ROLE_KEYS and k not in ROLE_ALIASES)
 ROLE_USER_FIELD = {"system_owner": "system_owner_id", "isso": "isso_id", "issm": "issm_id", "ao": "ao_id"}
 
 EMASS = "eMASS-aligned; verify against your eMASS instance"
@@ -182,6 +189,9 @@ def role_holders(db: Session, s: System) -> dict:
 
 def save_roles(db: Session, s: System, roles: dict, actor: User) -> dict:
     before = s.key_roles
+    bad = [k for k in roles if k not in ROLE_KEYS]
+    if bad:
+        raise ValueError(f"Unknown role key(s): {', '.join(sorted(bad))}. Allowed: {', '.join(ROLE_KEYS)}")
     clean = {}
     for key, _, _, _ in KEY_ROLES:
         v = roles.get(key) or {}

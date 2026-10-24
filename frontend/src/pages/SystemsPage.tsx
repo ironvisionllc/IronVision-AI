@@ -1,7 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
 import { useSystems } from "@/context/SystemContext";
 import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
@@ -13,12 +12,13 @@ import { CategorizeForm, EMPTY_CAT, catBody, useCategorization } from "@/compone
 import { Gated } from "@/components/common/RoleGate";
 
 export function SystemsPage() {
-  const { can } = useAuth();
-  const { data } = useApi<Row[]>("/systems");
+  const [showArchived, setShowArchived] = useState(false);
+  const { data } = useApi<Row[]>(showArchived ? "/systems?include_archived=true" : "/systems");
   return (
     <div data-testid="systems-page">
       <PageHeader title="Systems" subtitle="Registered systems in your scope (synthetic tenant)">
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[12px] text-slate-600"><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} data-testid="show-archived-toggle" />Show archived</label>
           <Link className="btn-secondary" to="/emass" data-testid="import-emass-btn">eMASS sync / import</Link>
           <Gated perm="system.register"><Link to="/systems/new" className="btn-primary" data-testid="register-system-btn"><Plus className="h-4 w-4" />Register system</Link></Gated>
         </div>
@@ -26,8 +26,9 @@ export function SystemsPage() {
       <Panel testId="systems-table-panel">
         <Table head={["System", "eMASS ID", "Baseline", "Categorization", "Phase", "Authorization", "Assigned controls", "Open findings"]} testId="systems-table">
           {data?.map((s) => (
-            <tr key={s.id} data-testid={`system-row-${s.acronym}`}>
-              <td className="td"><Link to={`/systems/${s.id}`} className="font-medium text-blue-800 hover:underline">{s.name}</Link> <span className="text-slate-400">{s.acronym}</span></td>
+            <tr key={s.id} data-testid={`system-row-${s.acronym}`} className={s.archived_at ? "opacity-60" : ""}>
+              <td className="td"><Link to={`/systems/${s.id}`} className="font-medium text-blue-800 hover:underline">{s.name}</Link> <span className="text-slate-400">{s.acronym}</span>
+                {s.archived_at && <span className="ml-1.5 rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-700" data-testid={`system-archived-${s.id}`}>Archived</span>}</td>
               <td className="td font-mono text-[12px]">{s.emass_id ?? "—"}</td><td className="td uppercase">{s.baseline_key}{s.overlay_keys?.length ? ` + ${s.overlay_keys.join(", ")}` : ""}</td>
               <td className="td">{s.categorization}</td><td className="td">{s.lifecycle_phase}</td><td className="td">{s.authorization_status}</td>
               <td className="td font-mono">{s.metrics.assigned_controls}</td><td className="td font-mono">{s.metrics.open_findings}</td>

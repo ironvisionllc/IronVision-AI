@@ -62,3 +62,10 @@ docker compose -f deploy/digitalocean/docker-compose.do.yml --env-file deploy/di
 curl -fsS https://demo.ironvisionai.com/api/health
 ```
 If the deploy fails, `deploy.sh` prints `#### DEPLOYMENT FAILED at step "<step>"`. Migrations are additive; rollback is `git checkout <previous commit>` + `./deploy.sh` (the 0024–0026 downgrades exist and were verified on a database copy, but are not needed for an app rollback because the old code ignores the new tables/columns).
+
+## Fix 1 after independent test of b6564d2
+- IL rules enforced server-side on POST and PATCH /systems: no IL on non-cloud environments; IL6 only with CNSSI 1253 and classified = yes (422 with the plain reason). PATCH validates only when the environment or IL changes, so legacy values are kept with the review flag.
+- key_roles: unknown keys → 422 listing them and the keys allowed at registration; long-form aliases of AODR/CCP/User Representative get the same 422 as aodr/ccp/user_rep. PUT /prepare also rejects unknown keys.
+- Excerpts use the coverage section finder (`rmf.section_at`); page comes from form feeds only (otherwise "not available"). PDF text is now extracted per page and DOCX page-break markers become form feeds (`TEXT_VERSION = text-2`); older policies are re-extracted from the stored original by the worker's analyzer-version check.
+- Archive system (migration 0027, additive): `POST /systems/{id}/archive` and `/restore` (system.register, reason required, audited). Archived systems are hidden from `/systems` unless `include_archived=true`. The four ZZ test systems in jordan.qa7731 were archived.
+- Tests: `backend/tests/test_rmf_fix1.py` (7 tests), including CSV "=1+1" → "'=1+1" via the API, the no-supporting-text path, and High + MISSING ≠ Fully Addressed.

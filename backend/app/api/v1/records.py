@@ -22,9 +22,11 @@ def to_dict(obj, exclude: tuple = ()) -> dict:
     return {c.key: getattr(obj, c.key) for c in inspect(obj).mapper.column_attrs if c.key not in exclude}
 
 
-def visible_systems(db: Session, current: CurrentUser) -> list[System]:
-    rows = db.scalars(select(System).where(System.org_id == current.user.org_id).order_by(System.name))
-    return [s for s in rows if has_permission(current.assignments, "system.read", current.user.org_id, s.id)]
+def visible_systems(db: Session, current: CurrentUser, include_archived: bool = False) -> list[System]:
+    q = select(System).where(System.org_id == current.user.org_id).order_by(System.name)
+    if not include_archived:
+        q = q.where(System.archived_at.is_(None))
+    return [s for s in db.scalars(q) if has_permission(current.assignments, "system.read", current.user.org_id, s.id)]
 
 
 def get_system(db: Session, system_id: uuid.UUID) -> System:
@@ -85,6 +87,34 @@ class SystemCreate(SystemBase):
     overlay_keys: list[str] = []
     tailoring: list[Tailor] = []
     provider_ids: list[uuid.UUID] | None = None
+    nss_determination: str | None = Field(None, pattern="^(yes|no|unsure)$")
+    classified_information: str | None = Field(None, pattern="^(yes|no|unknown)$")
+
+
+def _registration_role_errors(roles: dict | None) -> list[str]:
+    from app.services.rmf_steps import NOT_AT_REGISTRATION, ROLE_ALIASES, ROLE_KEYS, unknown_role_keys
+
+    roles = roles or {}
+    out = []
+    removed = sorted({NOT_AT_REGISTRATION[ROLE_ALIASES.get(k, k)] for k, v in roles.items()
+                      if ROLE_ALIASES.get(k, k) in NOT_AT_REGISTRATION and (v or k in ROLE_ALIASES)})
+    if removed:
+        out.append(f"{', '.join(removed)} cannot be assigned at system registration – assign them later in the workflow that uses them "
+                   "(CCP under Inheritance providers, AODR under Authorize).")
+    unknown = unknown_role_keys(roles)
+    if unknown:
+        out.append(f"Unknown role key(s): {', '.join(unknown)}. Allowed at registration: "
+                   f"{', '.join(k for k in ROLE_KEYS if k not in NOT_AT_REGISTRATION)}.")
+    return out
+
+
+def _check_impact_level(env, detail, framework, classified) -> None:
+    from app.services.rmf_accuracy import validate_environment
+
+    try:
+        validate_environment(env, detail, framework, classified)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
 
 
 def _system_out(db, s: System) -> dict:
@@ -97,22 +127,22 @@ def _system_out(db, s: System) -> dict:
 
 
 @router.get("/systems")
-def list_systems(db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> list[dict]:
-    return [_system_out(db, s) for s in visible_systems(db, current)]
+def list_systems(include_archived: bool = False, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> list[dict]:
+    return [_system_out(db, s) for s in visible_systems(db, current, include_archived)]
 
 
 @router.post("/systems", status_code=201)
 def create_system(body: SystemCreate, request: Request, db: Session = Depends(get_db),
                   current: CurrentUser = Depends(require_permission("system.register"))) -> dict:
-    from app.services.rmf_steps import NOT_AT_REGISTRATION
-
-    bad = [NOT_AT_REGISTRATION[k] for k, v in (body.key_roles or {}).items() if k in NOT_AT_REGISTRATION and v]
-    if bad:
-        raise HTTPException(422, f"{', '.join(bad)} cannot be assigned at system registration – assign them later in the workflow that uses them "
-                                 "(CCP under Inheritance providers, AODR under Authorize).")
+    errs = _registration_role_errors(body.key_roles)
+    if errs:
+        raise HTTPException(422, " ".join(errs))
     if body.authorization_type:
         raise HTTPException(422, "Authorization type sought is set in 6 · Authorize (authorization strategy), not at registration.")
-    data = body.model_dump(exclude={"tailoring", "provider_ids", "key_roles"}, exclude_none=True)
+    _check_impact_level(body.operating_environment, body.environment_detail, body.categorization_mode or "fips199", body.classified_information)
+    data = body.model_dump(exclude={"tailoring", "provider_ids", "key_roles", "classified_information"}, exclude_none=True)
+    if body.classified_information:
+        data["applicability_flags"] = {"classified_information": body.classified_information}
     data.setdefault("lifecycle_phase", "Design")
     if body.information_types:
         from app.services.rmf_steps import categorize
@@ -161,12 +191,52 @@ def update_system(system_id: uuid.UUID, body: SystemBase, request: Request, db: 
                   current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
     s = get_system(db, system_id)
     changes = body.model_dump(exclude_unset=True)
+    old_env, old_il = s.operating_environment, (s.environment_detail or {}).get("impact_level")
+    new_env = changes.get("operating_environment", old_env)
+    new_det = changes["environment_detail"] if "environment_detail" in changes else s.environment_detail
+    if (new_env, (new_det or {}).get("impact_level")) != (old_env, old_il):  # unchanged legacy values stay, flagged for review
+        _check_impact_level(new_env, new_det, changes.get("categorization_mode", s.categorization_mode),
+                            (s.applicability_flags or {}).get("classified_information"))
     before = {k: getattr(s, k) for k in changes}
     for k, v in changes.items():
         setattr(s, k, v)
     s.categorization = high_water_mark(s.confidentiality_impact, s.integrity_impact, s.availability_impact)
     audit.record(db, action="system.updated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
                  entity_id=str(s.id), before=before, after=changes, **audit.request_meta(request))
+    db.commit()
+    return _system_out(db, s)
+
+
+class ArchiveIn(BaseModel):
+    reason: str = Field(min_length=5, max_length=2000)
+
+
+@router.post("/systems/{system_id}/archive")
+def archive_system(system_id: uuid.UUID, body: ArchiveIn, request: Request, db: Session = Depends(get_db),
+                   current: CurrentUser = Depends(require_permission("system.register"))) -> dict:
+    """Logical archive: nothing is deleted; the system leaves active lists and can be restored."""
+    s = get_system(db, system_id)
+    if s.archived_at:
+        raise HTTPException(409, "System is already archived")
+    from datetime import datetime, timezone
+
+    s.archived_at, s.archived_by, s.archive_reason = datetime.now(timezone.utc), current.user.email, body.reason.strip()
+    audit.record(db, action="system.archived", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
+                 entity_id=str(s.id), after={"reason": s.archive_reason, "name": s.name}, **audit.request_meta(request))
+    db.commit()
+    return _system_out(db, s)
+
+
+@router.post("/systems/{system_id}/restore")
+def restore_system(system_id: uuid.UUID, body: ArchiveIn, request: Request, db: Session = Depends(get_db),
+                   current: CurrentUser = Depends(require_permission("system.register"))) -> dict:
+    s = get_system(db, system_id)
+    if not s.archived_at:
+        raise HTTPException(409, "System is not archived")
+    before = {"archived_at": s.archived_at.isoformat(), "archived_by": s.archived_by, "reason": s.archive_reason}
+    s.archived_at = s.archived_by = s.archive_reason = None
+    audit.record(db, action="system.restored", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
+                 entity_id=str(s.id), before=before, after={"reason": body.reason.strip()}, **audit.request_meta(request))
     db.commit()
     return _system_out(db, s)
 

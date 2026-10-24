@@ -488,7 +488,7 @@ async def upload_policy(request: Request, file: UploadFile = File(...), title: s
     p = Policy(org_id=current.user.org_id, policy_key=key, title=title, version=(prev.version + 1) if prev else 1, owner=owner or None,
                system_ids=sids, file_name=file.filename, storage_key=evs[0].storage_key if evs else lib_key, sha256=evs[0].sha256 if evs else sha,
                evidence_ids=[str(e.id) for e in evs],
-               text_content=text, analysis_status="queued", review_due=date.fromisoformat(review_due) if review_due else None,
+               text_content=text, analysis={"text_version": rmf.TEXT_VERSION}, analysis_status="queued", review_due=date.fromisoformat(review_due) if review_due else None,
                supersedes_id=prev.id if prev else None, approval_date=date.today())
     if prev:
         prev.status = "superseded"

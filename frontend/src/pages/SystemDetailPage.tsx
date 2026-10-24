@@ -8,6 +8,7 @@ import { PageHeader, Panel } from "@/components/common/Panel";
 import { S, Table } from "@/components/common/Bits";
 import { ROLE_LABELS } from "@/lib/nav";
 import { Gated } from "@/components/common/RoleGate";
+import { ArchiveSystem } from "@/components/rmf/ArchiveSystem";
 
 const ASSET_FIELDS = ["name", "hostname", "ip_address", "cloud_resource_id", "os", "asset_type", "criticality", "network_zone", "environment", "inventory_source"];
 
@@ -42,9 +43,12 @@ export default function SystemDetailPage() {
   return (
     <div data-testid="system-detail-page">
       <PageHeader title={s.name} subtitle={s.description}>
+        <ArchiveSystem s={s} onDone={reload} />
         <Link className="btn-secondary" to={`/systems/${id}/authorization`} data-testid="open-authorization-btn">Authorization package</Link>
         <Link className="btn-primary" to={`/systems/${id}/controls`} data-testid="open-workbench-btn">Open control workbench ({s.metrics.assigned_controls})</Link>
       </PageHeader>
+      {s.archived_at && <div className="mb-3 rounded border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900" data-testid="system-archived-banner">
+        Archived {s.archived_at.slice(0, 10)} by {s.archived_by}: {s.archive_reason}. Hidden from active lists – restore to use it again.</div>}
       {msg && <div className="mb-3 rounded border border-rose-300 bg-rose-50 p-2 text-sm text-rose-800" role="alert">{msg}</div>}
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel title="Overview" testId="system-overview">

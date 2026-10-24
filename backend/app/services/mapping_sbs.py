@@ -16,7 +16,6 @@ LEGEND = {"High": "Explicit control ID together with requirement language (shall
           "Requires manual review": NO_TEXT}
 OUTCOME = {"met": "Fully Addressed", "partial": "Partially Addressed", "missing": "Not Addressed"}
 REQ_WORDS = re.compile(r"\b(shall|must|will|required|requires|is responsible|are responsible|ensure[sd]?)\b", re.I)
-HEADING = re.compile(r"^\s*((\d+(\.\d+)*)\s+[A-Z][^\n]{2,80}|[A-Z][A-Z \-&/]{4,80})\s*$")
 
 
 def now():
@@ -24,16 +23,14 @@ def now():
 
 
 def locate(text: str, snippet: str) -> dict:
-    """Exact-substring check (server-side) plus page and section: page from form-feed page breaks, section from the nearest heading."""
+    """Exact-substring check (server-side) plus page and section: page from form-feed page breaks, section from the same finder as coverage snippets."""
+    from app.services.rmf import section_at
+
     i = text.find(snippet) if snippet else -1
     if i < 0:
         return {"exact": False}
     page = text.count("\f", 0, i) + 1 if "\f" in text else None
-    sec = None
-    for line in reversed(text[:i].splitlines()[-200:]):
-        if HEADING.match(line):
-            sec = line.strip()[:120]
-            break
+    sec = section_at(text, i)
     ctx_s, ctx_e = max(0, i - 160), min(len(text), i + len(snippet) + 160)
     return {"exact": True, "start": i, "end": i + len(snippet), "page": page, "section": sec,
             "context_before": text[ctx_s:i], "context_after": text[i + len(snippet):ctx_e]}

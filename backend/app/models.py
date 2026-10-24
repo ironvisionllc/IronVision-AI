@@ -142,6 +142,9 @@ class System(CoreMixin, ProvenanceMixin, Base):
     pta: Mapped[dict | None] = mapped_column(JSONB)
     processes_pii: Mapped[bool | None] = mapped_column(Boolean)
     categorization_detail: Mapped[dict | None] = mapped_column(JSONB)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    archived_by: Mapped[str | None] = mapped_column(String(255))
+    archive_reason: Mapped[str | None] = mapped_column(Text)
 
 
 class Asset(CoreMixin, ProvenanceMixin, Base):

@@ -21,6 +21,10 @@ export function catBody(v: Row): Row {
   const b: Row = { ...v, information_types: v.information_types, cia: v.mode === "cnssi1253" ? v.cia : null };
   delete b.authorization_type;  // set in 6 · Authorize (authorization strategy)
   for (const k of ["mission_criticality", "system_type", "acquisition_category", "operating_environment"]) if (!b[k]) delete b[k];
+  if (b.environment_detail?.impact_level && !["cloud_iaas", "cloud_paas", "cloud_saas", "hybrid"].includes(b.operating_environment)) {
+    b.environment_detail = { ...b.environment_detail };  // SRG impact levels apply to cloud only (enforced server-side)
+    delete b.environment_detail.impact_level;
+  }
   return b;
 }
 
