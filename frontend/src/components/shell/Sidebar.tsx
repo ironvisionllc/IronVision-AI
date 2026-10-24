@@ -8,6 +8,8 @@ import type { Row } from "@/lib/useApi";
 import { Lock } from "lucide-react";
 import { deniedText, showDenied } from "@/components/common/RoleGate";
 
+const APP_VERSION = process.env.REACT_APP_VERSION || "";
+
 export function Sidebar() {
   const active = activeNavId(useLocation().pathname);
   const { can } = useAuth();
@@ -44,11 +46,7 @@ export function Sidebar() {
             </div>);
         })}
       </nav>
-      <div className="iv-sb-muted border-t px-5 py-3 text-[10px] leading-relaxed" style={{ borderColor: "var(--iv-sb-border)" }} data-testid="sidebar-footer">
-        Phase 5 · Production Hardening
-        <br />
-        Synthetic tenant only
-      </div>
+      {APP_VERSION && <div className="iv-sb-muted border-t px-5 py-1.5 text-[10px]" style={{ borderColor: "var(--iv-sb-border)" }} data-testid="sidebar-footer">v{APP_VERSION}</div>}
     </aside>
   );
 }

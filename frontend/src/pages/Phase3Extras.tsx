@@ -1,4 +1,5 @@
 import { PageSizeSelect, usePageSize } from "@/components/common/PageSize";
+import { SimulatedSignatureNote } from "@/components/shell/Sandbox";
 import { OscalPanel } from "@/pages/Phase4Pages";
 import { AiModelSettings } from "@/components/admin/AiModelSettings";
 import { IdentityMappings } from "@/components/admin/IdentityMappings";
@@ -67,6 +68,7 @@ export function AuthorizationPage() {
                 <input className="input" type="date" value={f.expiration} onChange={(e) => setF({ ...f, expiration: e.target.value })} data-testid="authz-expiration" />
                 <textarea className="input" placeholder="Conditions" value={f.conditions} onChange={(e) => setF({ ...f, conditions: e.target.value })} data-testid="authz-conditions" />
                 <textarea className="input" placeholder="Rationale (required)" value={f.rationale} onChange={(e) => setF({ ...f, rationale: e.target.value })} data-testid="authz-rationale" />
+                <SimulatedSignatureNote />
                 <button className="btn-primary" onClick={decide} data-testid="authz-record-btn">Record decision (simulated signature – not CAC/PIV)</button></div>}
         </Panel>
         <Panel title="Decision history" testId="authz-history">{data.decisions.map((d: Row) => <div key={d.id} className="border-b border-slate-100 py-1 text-[12px]"><b>{d.decision}</b> by {d.decider_name} · {fmtDate(d.created_at)} · expires {d.expiration ?? "—"}<div className="text-slate-600">{d.rationale}</div>{d.conditions && <div>Conditions: {d.conditions}</div>}</div>)}</Panel>

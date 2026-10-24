@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Modal } from "@/components/common/Modal";
+import { SimulatedSignatureNote } from "@/components/shell/Sandbox";
 import { api } from "@/lib/api";
 import { Row } from "@/lib/useApi";
 
@@ -23,6 +24,7 @@ export function ApproveDialog({ rows, onSubmit, onClose }: { rows: Row[]; onSubm
     : { tested_by: by.trim(), date_tested: on });
   return (<Modal title={`Approve ${rows.length} row(s) – actual tester and test date`} onClose={onClose} testId="tr-approve-dialog">
     <div className="space-y-2 text-[13px]">
+      <SimulatedSignatureNote />
       <p className="text-slate-600">eMASS “Tested By” and “Date Tested” must be the person who performed the test and when – not the approver and not today’s date by default.</p>
       {pre && <div className="rounded bg-sky-50 p-2 text-[12px] text-sky-900" data-testid="tr-approve-prefill">Prefilled from the recorded assessment ({one!.proposed.determination_source}): {pre.tested_by}, {pre.date_tested}. Confirm or change.</div>}
       {allRecorded && <div className="flex gap-3 text-[12px]"><label><input type="radio" checked={mode === "batch"} onChange={() => setMode("batch")} /> One tester and date for all</label>

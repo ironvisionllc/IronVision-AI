@@ -1,4 +1,5 @@
 import { FindingMappingHistory, ScoreBreakdown } from "@/pages/Phase4Pages";
+import { SimulatedSignatureNote } from "@/components/shell/Sandbox";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -85,6 +86,7 @@ export function ReviewDetailPage() {
           {r.status !== "pending" ? <div className="text-[13px] text-slate-600">This request is {r.status.replace(/_/g, " ")}.</div>
             : !data.can_decide ? <div className="text-[13px] text-slate-600" data-testid="review-cannot-decide">{data.is_requester ? "You requested this; you cannot decide it." : `Only ${r.assigned_role.toUpperCase()} (per decision rule) can act on this step.`}</div>
               : <>
+                <SimulatedSignatureNote />
                 <textarea className="input" rows={3} placeholder="Rationale (required, min 10 chars)" value={rationale} onChange={(e) => setRationale(e.target.value)} data-testid="review-rationale" />
                 <div className="mt-2 flex flex-wrap gap-2">
                   {step.action === "decide" && <button className="btn-primary" onClick={() => act("approve")} data-testid="review-approve-btn">{data.signature_label}</button>}

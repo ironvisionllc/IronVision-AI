@@ -1,10 +1,11 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { ArrowRight, ChevronDown, ChevronRight, X } from "lucide-react";
 import { MUTATED_EVENT } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { cn } from "@/lib/format";
 import { useSystems } from "@/context/SystemContext";
+import { useAuth } from "@/context/AuthContext";
 
 export const STEP_STATUS: Record<string, { label: string; dot: string; chip: string }> = {
   complete: { label: "Complete", dot: "bg-emerald-500", chip: "border-emerald-300 bg-emerald-50 text-emerald-900" },
@@ -36,7 +37,7 @@ const tip = (s: Row) => `${STEP_STATUS[s.status]?.label}: ${s.summary}\n\nHow th
 
 export function StepChips({ steps, compact }: { steps: Row[]; compact?: boolean }) {
   return (
-    <ol className={cn("flex flex-wrap items-center gap-1.5", !compact && "mb-5")} data-testid="rmf-stepper" aria-label="RMF steps">
+    <ol className={cn("flex items-center gap-1.5", compact ? "min-w-0 flex-nowrap whitespace-nowrap" : "mb-5 flex-wrap")} data-testid="rmf-stepper" aria-label="RMF steps">
       {steps.map((s, i) => (
         <li key={s.key} className="flex items-center gap-1.5">
           {i > 0 && <span className="text-slate-300" aria-hidden>›</span>}
@@ -55,24 +56,38 @@ export function NextActionButton({ data, className }: { data: Row; className?: s
     title={`Next RMF step: ${n.step}`}>Next action: {n.label}<ArrowRight className="h-3.5 w-3.5" /></Link>;
 }
 
-/** Replaces the old 3-step "Get started" bar: always shows where the selected system is in the 7 RMF steps and the next task. */
+// Start and dashboard pages only; the Getting started page says the same thing in its body, and RMF step pages have their own stepper.
+const BAR_PATHS = ["/controls", "/systems", "/portfolio"];
+const prefKey = (uid: string) => `iv-next-bar:${uid}`;
+
+function useBarPref(uid: string | undefined, action: string) {
+  const read = (): Row => { try { return uid ? JSON.parse(localStorage.getItem(prefKey(uid)) || "{}") : {}; } catch { return {}; } };
+  const [pref, setPref] = useState<Row>(read);
+  useEffect(() => { setPref(read()); }, [uid]);  // eslint-disable-line react-hooks/exhaustive-deps
+  const save = (p: Row) => { setPref(p); if (uid) localStorage.setItem(prefKey(uid), JSON.stringify(p)); };
+  return { dismissed: pref.dismissed === action, collapsed: !!pref.collapsed,
+    dismiss: () => save({ ...pref, dismissed: action }), toggle: () => save({ ...pref, collapsed: !pref.collapsed }) };
+}
+
+/** Getting started / next action bar: Start + dashboard pages only, collapsible to one line, dismissible per user until the next action changes. */
 export function RmfBar() {
   const { systems, loaded } = useSystems();
+  const { user } = useAuth();
+  const { pathname } = useLocation();
   const sid = useActiveSystemId();
   const { data } = useRmfSteps(sid);
-  if (!loaded) return null;
-  if (!systems.length) return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-blue-100 bg-blue-50/60 px-6 py-2 text-[12px]" data-testid="rmf-bar">
-      <b>Getting started:</b>
-      <span className="text-slate-600">ATO work follows 7 RMF steps – {RMF_STEP_NAMES.join(" → ")}. Start by registering the system you are authorizing.</span>
-      <Link to="/systems/new" className="btn-primary px-2.5 py-1 text-[12px]" data-testid="rmf-next-action">Next action: Register your first system</Link>
-      <Link to="/rmf-workflow" className="text-blue-800 underline" data-testid="rmf-bar-guide">How the 7 steps work</Link>
-    </div>);
-  if (!data) return null;
+  const next = !systems.length ? { label: "Register your first system", link: "/systems/new" } : data?.next_action;
+  const p = useBarPref(user ? user.id : undefined, next ? `${sid ?? "none"}:${next.label}` : "");
+  if (!loaded || !next || !BAR_PATHS.includes(pathname) || p.dismissed) return null;
+  const go = <Link to={next.link} className="font-semibold text-blue-800 underline-offset-2 hover:underline" data-testid="rmf-next-action">Next: {next.label} →</Link>;
   return (
-    <div className="flex flex-wrap items-center gap-3 border-b border-blue-100 bg-blue-50/60 px-6 py-1.5 text-[12px]" data-testid="rmf-bar">
-      <span className="font-semibold text-slate-800" title="The RMF steps below are for this system – change it in the sidebar">{data.system.acronym || data.system.name}</span>
-      <StepChips steps={data.steps} compact />
-      <NextActionButton data={data} className="ml-auto px-2.5 py-1 text-[12px]" />
+    <div className="flex min-h-[32px] flex-nowrap items-center gap-3 overflow-x-auto border-b border-blue-100 bg-blue-50/60 px-3 py-1 text-[12px] sm:px-6" data-testid="rmf-bar">
+      <button type="button" onClick={p.toggle} aria-expanded={!p.collapsed} aria-label={p.collapsed ? "Show RMF steps" : "Collapse to one line"} className="shrink-0 text-slate-600" data-testid="rmf-bar-toggle">
+        {p.collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}</button>
+      {!p.collapsed && (!systems.length
+        ? <span className="whitespace-nowrap text-slate-600">ATO work follows 7 RMF steps – {RMF_STEP_NAMES.join(" → ")}. <Link to="/rmf-workflow" className="text-blue-800 underline" data-testid="rmf-bar-guide">How the 7 steps work</Link></span>
+        : data && <><span className="shrink-0 font-semibold text-slate-800" title="The RMF steps are for this system – change it in the sidebar">{data.system.acronym || data.system.name}</span><StepChips steps={data.steps} compact /></>)}
+      <span className={cn("shrink-0 whitespace-nowrap", !p.collapsed && "ml-auto")}>{go}</span>
+      <button type="button" onClick={p.dismiss} aria-label="Dismiss until the next action changes" title="Dismiss until the next action changes" className="ml-auto shrink-0 text-slate-500 hover:text-slate-800" data-testid="rmf-bar-dismiss"><X className="h-3.5 w-3.5" /></button>
     </div>);
 }
