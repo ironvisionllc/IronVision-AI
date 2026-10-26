@@ -91,12 +91,12 @@ export function WorkbenchFilters({ params, set, sid }: { params: URLSearchParams
   return (
     <div className="grid grid-cols-2 gap-2 border-b border-slate-200 p-3" data-testid="workbench-filters">
       <select className="input" value={params.get("family") ?? ""} onChange={(e) => set("family", e.target.value)} data-testid="filter-family" aria-label="Family">
-        <option value="">All families</option>{(fam || []).map((f) => <option key={f.family_id} value={f.family_id}>{f.family_id.toUpperCase()} – {f.family_title}</option>)}</select>
+        <option value="">All families</option>{(fam || []).map((f) => <option key={f.family_id} value={f.family_id}>{`${f.family_id.toUpperCase()} – ${f.family_title}`}</option>)}</select>
       {WB_FILTERS.map(([k, l, vals]) => <select key={k} className="input" value={params.get(k) ?? ""} onChange={(e) => set(k, e.target.value)} data-testid={`filter-${k}`} aria-label={l}>
-        <option value="">{l}: all</option>{vals.map((v) => <option key={v} value={v}>{l}: {v.replace(/_/g, " ")}</option>)}</select>)}
+        <option value="">{`${l}: all`}</option>{vals.map((v) => <option key={v} value={v}>{`${l}: ${v.replace(/_/g, " ")}`}</option>)}</select>)}
       {sid && <>
         <select className="input" value={params.get("policy_mapping") ?? ""} onChange={(e) => set("policy_mapping", e.target.value)} data-testid="filter-policy_mapping" aria-label="Policy mapping">
-          <option value="">Policy mapping: all</option>{PM.map(([v, l]) => <option key={v} value={v}>{l} ({fc?.policy_mapping?.[v] ?? "…"})</option>)}</select>
+          <option value="">Policy mapping: all</option>{PM.map(([v, l]) => <option key={v} value={v}>{`${l} (${fc?.policy_mapping?.[v] ?? "…"})`}</option>)}</select>
         <select className="input" value={params.get("policy_coverage") ?? ""} onChange={(e) => set("policy_coverage", e.target.value)} data-testid="filter-policy_coverage" aria-label="Policy coverage">
           <option value="">Policy coverage: all</option>{PC.map(([v, l]) => <option key={v} value={v}>{l} ({fc?.policy_coverage?.[v] ?? "…"})</option>)}</select>
         <details className="col-span-2 rounded border border-slate-200 px-2 py-1 text-[12px]" data-testid="filter-policy">
