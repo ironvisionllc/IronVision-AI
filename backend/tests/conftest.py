@@ -108,3 +108,7 @@ def demo_org_id(db):
 
     from app.models import User
     return db.scalar(select(User.org_id).where(User.email == "isso@aegisrmf.demo"))
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "guard: regression guard tests (e.g. TR export may only write permitted columns) – part of the normal suite")

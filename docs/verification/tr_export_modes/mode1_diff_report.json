@@ -1,0 +1,202 @@
+{
+  "mode": "prepopulated",
+  "mode_label": "Pre-populated mode (eMASS rows; only M\u2013P written)",
+  "mode_explanation": "Populated-template mode: the template already contained control rows; rows were matched by their existing identifiers (AP Acronym + CCI, Control Acronym when the AP Acronym is empty) and ONLY the result columns were written. No rows were inserted and no identifier was changed.",
+  "modified_columns_from_report": [
+    {
+      "column": "M",
+      "header": "Compliance Status",
+      "cells": 2,
+      "rows": "7\u20138"
+    },
+    {
+      "column": "N",
+      "header": "Date Tested",
+      "cells": 2,
+      "rows": "7\u20138"
+    },
+    {
+      "column": "O",
+      "header": "Tested By",
+      "cells": 2,
+      "rows": "7\u20138"
+    },
+    {
+      "column": "P",
+      "header": "Test Results",
+      "cells": 2,
+      "rows": "7\u20138"
+    }
+  ],
+  "modified_columns_from_diff": {
+    "M": {
+      "cells": 2,
+      "first_row": 7,
+      "last_row": 8,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    },
+    "N": {
+      "cells": 2,
+      "first_row": 7,
+      "last_row": 8,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    },
+    "O": {
+      "cells": 2,
+      "first_row": 7,
+      "last_row": 8,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    },
+    "P": {
+      "cells": 2,
+      "first_row": 7,
+      "last_row": 8,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    }
+  },
+  "row_counts": {
+    "template_rows": 7,
+    "rows_written": 2,
+    "rows_not_populated": 5,
+    "unmatched_rows": 1,
+    "needs_mapping_review": 0,
+    "rows_for_controls_not_in_system": 1
+  },
+  "unmatched_controls": [
+    "ZZ-1"
+  ],
+  "controls_not_in_system": [
+    "AC-10"
+  ],
+  "rows_not_populated": [
+    {
+      "row": 9,
+      "control_acronym": "AC-11(1)",
+      "ap_acronym": "AC-11(1).3",
+      "cci": "CCI-000060",
+      "reason": "Older approval without a confirmed tester/date \u2013 the SCA must re-confirm it"
+    },
+    {
+      "row": 10,
+      "control_acronym": "AC-12",
+      "ap_acronym": "AC-12.4",
+      "cci": "CCI-002360",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 11,
+      "control_acronym": "AC-14",
+      "ap_acronym": "AC-14.5",
+      "cci": "CCI-000061",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 12,
+      "control_acronym": "AC-10",
+      "ap_acronym": "AC-10.1",
+      "cci": "CCI-000054",
+      "reason": "AC-10 is not in this system's control set"
+    },
+    {
+      "row": 13,
+      "control_acronym": "ZZ-1",
+      "ap_acronym": "ZZ-1.1",
+      "cci": "CCI-999999",
+      "reason": "Unmatched \u2013 CCI-999999 is not in the loaded DISA CCI list"
+    }
+  ],
+  "rows_not_populated_total": 5,
+  "structure_changes": [],
+  "zip_parts_changed": [
+    "xl/worksheets/sheet1.xml"
+  ],
+  "other_sheets_changed": [],
+  "sheet_order_changed": false,
+  "defined_names_changed": false,
+  "changed_cells_sample": [
+    {
+      "cell": "M7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Non-Compliant"
+    },
+    {
+      "cell": "N7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "2026-09-01T00:00:00"
+    },
+    {
+      "cell": "O7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Lee, Sam"
+    },
+    {
+      "cell": "P7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "SYNTHETIC guard test result: examined the configuration."
+    },
+    {
+      "cell": "M8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Non-Compliant"
+    },
+    {
+      "cell": "N8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "2026-09-02T00:00:00"
+    },
+    {
+      "cell": "O8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Lee, Sam"
+    },
+    {
+      "cell": "P8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "SYNTHETIC guard test result: examined the configuration."
+    }
+  ]
+}

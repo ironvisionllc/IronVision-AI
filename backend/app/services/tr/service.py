@@ -369,6 +369,8 @@ def export(db: Session, wb: TrWorkbook, actor) -> TrExport:
     out = xlsx.write(orig, sheet, cells)
     rep = xlsx.verify(orig, out, sheet, set(cells))
     rep.update(permission_report(d, wb, rows, mode, cells))
+    assigned = set(db.scalars(select(ControlAssignment.control_id).where(ControlAssignment.system_id == wb.system_id)))
+    rep.update(rows_report(wb, rows, cells, assigned, mode))
     rep["sandbox_same_person_rows"] = sandbox_rows(rows)
     rep["ok"] = rep["ok"] and not rep["outside_permitted"]
     if not rep["ok"]:
@@ -389,6 +391,51 @@ def export(db: Session, wb: TrWorkbook, actor) -> TrExport:
             r.last_exported_at = now()
     db.flush()
     return exp
+
+
+def rows_report(wb: TrWorkbook, rows: list[TrRow], cells: dict, assigned: set, mode: str) -> dict:
+    """What was written where, and why every other template row was left blank (computed from the actual cell map)."""
+    d = wb.definition
+    res_cols = {d["roles"][k] for k in xlsx.RESULT_ROLES if k in d["roles"]}
+    headers = {c["col"]: c["header"] for c in (wb.detection or {}).get("columns", [])}
+    cols: dict = {}
+    for ref in cells:
+        col, row = re.match(r"[A-Z]+", ref).group(0), int(re.search(r"\d+", ref).group(0))
+        cols.setdefault(col, []).append(row)
+    written = {int(re.search(r"\d+", ref).group(0)) for ref in cells if re.match(r"[A-Z]+", ref).group(0) in res_cols}
+    skipped = []
+    for r in rows:
+        if r.row_number in written:
+            continue
+        f = r.final or {}
+        if r.match_status == "unmatched":
+            why = f"Unmatched – {r.match_reason}"
+        elif r.match_status == "ambiguous":
+            why = f"Mapping needs review – {r.match_reason}"
+        elif r.control_id not in assigned:
+            why = f"{(r.control_id or '').upper()} is not in this system's control set"
+        elif r.state == "approved" and not f.get("tester_confirmed"):
+            why = "Older approval without a confirmed tester/date – the SCA must re-confirm it"
+        elif r.state != "approved":
+            why = "No SCA-approved result"
+        else:
+            why = "Approved but the tester or test date is missing"
+        skipped.append({"row": r.row_number, "control_acronym": r.control_acronym, "ap_acronym": r.ap_acronym, "cci": r.cci_id, "reason": why})
+    matched = {r.control_id for r in rows if r.match_status == "matched" and r.control_id}
+    explain = ("Blank-template mode: the uploaded template had no control rows, so rows were generated from the system's control set and the identifier "
+               "columns (Control Acronym, AP Acronym, CCI, CCI Definition) were written on those generated rows only, together with the result columns "
+               "for SCA-approved rows." if mode == "blank" else
+               "Populated-template mode: the template already contained control rows; rows were matched by their existing identifiers "
+               "(AP Acronym + CCI, Control Acronym when the AP Acronym is empty) and ONLY the result columns were written. No rows were inserted and no identifier was changed.")
+    return {"mode_explanation": explain,
+            "modified_columns": [{"column": c, "header": headers.get(c), "cells": len(v), "rows": f"{min(v)}–{max(v)}"} for c, v in sorted(cols.items(), key=lambda x: (len(x[0]), x[0]))],
+            "row_counts": {"template_rows": len(rows), "rows_written": len(written), "rows_not_populated": len(skipped),
+                           "unmatched_rows": sum(1 for r in rows if r.match_status == "unmatched"), "needs_mapping_review": sum(1 for r in rows if r.match_status == "ambiguous"),
+                           "rows_for_controls_not_in_system": sum(1 for r in rows if r.match_status == "matched" and r.control_id not in assigned)},
+            "rows_not_populated": skipped[:3000],
+            "unmatched_controls": sorted({(r.control_acronym or r.ap_acronym or "?") for r in rows if r.match_status == "unmatched"}),
+            "controls_not_in_system": sorted({r.control_id.upper() for r in rows if r.match_status == "matched" and r.control_id and r.control_id not in assigned}),
+            "system_controls_without_template_row": sorted(c.upper() for c in assigned - matched) if mode != "blank" else []}
 
 
 def export_mode(rows: list[TrRow]) -> str:

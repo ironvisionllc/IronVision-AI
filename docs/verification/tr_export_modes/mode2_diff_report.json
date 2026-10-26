@@ -1,0 +1,931 @@
+{
+  "mode": "blank",
+  "mode_label": "Blank-template mode (rows added from the system)",
+  "mode_explanation": "Blank-template mode: the uploaded template had no control rows, so rows were generated from the system's control set and the identifier columns (Control Acronym, AP Acronym, CCI, CCI Definition) were written on those generated rows only, together with the result columns for SCA-approved rows.",
+  "modified_columns_from_report": [
+    {
+      "column": "A",
+      "header": "Control Acronym",
+      "cells": 1698,
+      "rows": "7\u20131704"
+    },
+    {
+      "column": "F",
+      "header": "AP Acronym",
+      "cells": 1698,
+      "rows": "7\u20131704"
+    },
+    {
+      "column": "G",
+      "header": "CCI",
+      "cells": 1698,
+      "rows": "7\u20131704"
+    },
+    {
+      "column": "H",
+      "header": "CCI Definition",
+      "cells": 1698,
+      "rows": "7\u20131704"
+    },
+    {
+      "column": "M",
+      "header": "Compliance Status",
+      "cells": 4,
+      "rows": "7\u201310"
+    },
+    {
+      "column": "N",
+      "header": "Date Tested",
+      "cells": 4,
+      "rows": "7\u201310"
+    },
+    {
+      "column": "O",
+      "header": "Tested By",
+      "cells": 4,
+      "rows": "7\u201310"
+    },
+    {
+      "column": "P",
+      "header": "Test Results",
+      "cells": 4,
+      "rows": "7\u201310"
+    }
+  ],
+  "modified_columns_from_diff": {
+    "A": {
+      "cells": 1698,
+      "first_row": 7,
+      "last_row": 1704,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    },
+    "F": {
+      "cells": 1698,
+      "first_row": 7,
+      "last_row": 1704,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    },
+    "G": {
+      "cells": 1698,
+      "first_row": 7,
+      "last_row": 1704,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    },
+    "H": {
+      "cells": 1698,
+      "first_row": 7,
+      "last_row": 1704,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    },
+    "M": {
+      "cells": 4,
+      "first_row": 7,
+      "last_row": 10,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    },
+    "N": {
+      "cells": 4,
+      "first_row": 7,
+      "last_row": 10,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    },
+    "O": {
+      "cells": 4,
+      "first_row": 7,
+      "last_row": 10,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    },
+    "P": {
+      "cells": 4,
+      "first_row": 7,
+      "last_row": 10,
+      "kinds": [
+        "type",
+        "value"
+      ]
+    }
+  },
+  "row_counts": {
+    "template_rows": 1698,
+    "rows_written": 4,
+    "rows_not_populated": 1694,
+    "unmatched_rows": 0,
+    "needs_mapping_review": 0,
+    "rows_for_controls_not_in_system": 0
+  },
+  "unmatched_controls": [],
+  "controls_not_in_system": [],
+  "rows_not_populated": [
+    {
+      "row": 11,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.5",
+      "cci": "CCI-001545",
+      "reason": "Older approval without a confirmed tester/date \u2013 the SCA must re-confirm it"
+    },
+    {
+      "row": 12,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.6",
+      "cci": "CCI-001546",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 13,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.7",
+      "cci": "CCI-002107",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 14,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.8",
+      "cci": "CCI-002108",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 15,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.9",
+      "cci": "CCI-003601",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 16,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.10",
+      "cci": "CCI-003602",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 17,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.11",
+      "cci": "CCI-003603",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 18,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.12",
+      "cci": "CCI-003604",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 19,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.13",
+      "cci": "CCI-003605",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 20,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.14",
+      "cci": "CCI-003606",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 21,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.15",
+      "cci": "CCI-003607",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 22,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.16",
+      "cci": "CCI-003608",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 23,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.17",
+      "cci": "CCI-003609",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 24,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.18",
+      "cci": "CCI-003610",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 25,
+      "control_acronym": "AC-1",
+      "ap_acronym": "AC-1.19",
+      "cci": "CCI-003611",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 26,
+      "control_acronym": "AC-11",
+      "ap_acronym": "AC-11.1",
+      "cci": "CCI-000056",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 27,
+      "control_acronym": "AC-11",
+      "ap_acronym": "AC-11.2",
+      "cci": "CCI-000057",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 28,
+      "control_acronym": "AC-11",
+      "ap_acronym": "AC-11.3",
+      "cci": "CCI-000059",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 29,
+      "control_acronym": "AC-11(1)",
+      "ap_acronym": "AC-11(1).1",
+      "cci": "CCI-000060",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 30,
+      "control_acronym": "AC-12",
+      "ap_acronym": "AC-12.1",
+      "cci": "CCI-002360",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 31,
+      "control_acronym": "AC-12",
+      "ap_acronym": "AC-12.2",
+      "cci": "CCI-002361",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 32,
+      "control_acronym": "AC-14",
+      "ap_acronym": "AC-14.1",
+      "cci": "CCI-000061",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 33,
+      "control_acronym": "AC-14",
+      "ap_acronym": "AC-14.2",
+      "cci": "CCI-000232",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 34,
+      "control_acronym": "AC-14",
+      "ap_acronym": "AC-14.3",
+      "cci": "CCI-003695",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 35,
+      "control_acronym": "AC-17",
+      "ap_acronym": "AC-17.1",
+      "cci": "CCI-000065",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 36,
+      "control_acronym": "AC-17",
+      "ap_acronym": "AC-17.2",
+      "cci": "CCI-002310",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 37,
+      "control_acronym": "AC-17",
+      "ap_acronym": "AC-17.3",
+      "cci": "CCI-002311",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 38,
+      "control_acronym": "AC-17",
+      "ap_acronym": "AC-17.4",
+      "cci": "CCI-002312",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 39,
+      "control_acronym": "AC-17(1)",
+      "ap_acronym": "AC-17(1).1",
+      "cci": "CCI-000067",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 40,
+      "control_acronym": "AC-17(1)",
+      "ap_acronym": "AC-17(1).2",
+      "cci": "CCI-002314",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 41,
+      "control_acronym": "AC-17(2)",
+      "ap_acronym": "AC-17(2).1",
+      "cci": "CCI-000068",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 42,
+      "control_acronym": "AC-17(2)",
+      "ap_acronym": "AC-17(2).2",
+      "cci": "CCI-001453",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 43,
+      "control_acronym": "AC-17(3)",
+      "ap_acronym": "AC-17(3).1",
+      "cci": "CCI-000069",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 44,
+      "control_acronym": "AC-17(4)",
+      "ap_acronym": "AC-17(4).1",
+      "cci": "CCI-000070",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 45,
+      "control_acronym": "AC-17(4)",
+      "ap_acronym": "AC-17(4).2",
+      "cci": "CCI-002316",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 46,
+      "control_acronym": "AC-17(4)",
+      "ap_acronym": "AC-17(4).3",
+      "cci": "CCI-002317",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 47,
+      "control_acronym": "AC-17(4)",
+      "ap_acronym": "AC-17(4).4",
+      "cci": "CCI-002318",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 48,
+      "control_acronym": "AC-17(4)",
+      "ap_acronym": "AC-17(4).5",
+      "cci": "CCI-002319",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 49,
+      "control_acronym": "AC-17(4)",
+      "ap_acronym": "AC-17(4).6",
+      "cci": "CCI-002320",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 50,
+      "control_acronym": "AC-18",
+      "ap_acronym": "AC-18.1",
+      "cci": "CCI-001439",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 51,
+      "control_acronym": "AC-18",
+      "ap_acronym": "AC-18.2",
+      "cci": "CCI-001441",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 52,
+      "control_acronym": "AC-18",
+      "ap_acronym": "AC-18.3",
+      "cci": "CCI-002323",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 53,
+      "control_acronym": "AC-18(1)",
+      "ap_acronym": "AC-18(1).1",
+      "cci": "CCI-001443",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 54,
+      "control_acronym": "AC-18(1)",
+      "ap_acronym": "AC-18(1).2",
+      "cci": "CCI-001444",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 55,
+      "control_acronym": "AC-18(3)",
+      "ap_acronym": "AC-18(3).1",
+      "cci": "CCI-001449",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 56,
+      "control_acronym": "AC-19",
+      "ap_acronym": "AC-19.1",
+      "cci": "CCI-000083",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 57,
+      "control_acronym": "AC-19",
+      "ap_acronym": "AC-19.2",
+      "cci": "CCI-000084",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 58,
+      "control_acronym": "AC-19",
+      "ap_acronym": "AC-19.3",
+      "cci": "CCI-002325",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 59,
+      "control_acronym": "AC-19",
+      "ap_acronym": "AC-19.4",
+      "cci": "CCI-002326",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 60,
+      "control_acronym": "AC-19(5)",
+      "ap_acronym": "AC-19(5).1",
+      "cci": "CCI-002329",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 61,
+      "control_acronym": "AC-19(5)",
+      "ap_acronym": "AC-19(5).2",
+      "cci": "CCI-002330",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 62,
+      "control_acronym": "AC-19(5)",
+      "ap_acronym": "AC-19(5).3",
+      "cci": "CCI-002331",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 63,
+      "control_acronym": "AC-2",
+      "ap_acronym": "AC-2.1",
+      "cci": "CCI-000010",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 64,
+      "control_acronym": "AC-2",
+      "ap_acronym": "AC-2.2",
+      "cci": "CCI-000011",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 65,
+      "control_acronym": "AC-2",
+      "ap_acronym": "AC-2.3",
+      "cci": "CCI-000012",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 66,
+      "control_acronym": "AC-2",
+      "ap_acronym": "AC-2.4",
+      "cci": "CCI-001547",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 67,
+      "control_acronym": "AC-2",
+      "ap_acronym": "AC-2.5",
+      "cci": "CCI-002112",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 68,
+      "control_acronym": "AC-2",
+      "ap_acronym": "AC-2.6",
+      "cci": "CCI-002115",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 69,
+      "control_acronym": "AC-2",
+      "ap_acronym": "AC-2.7",
+      "cci": "CCI-002116",
+      "reason": "No SCA-approved result"
+    },
+    {
+      "row": 70,
+      "control_acronym": "AC-2",
+      "ap_acronym": "AC-2.8",
+      "cci": "CCI-002117",
+      "reason": "No SCA-approved result"
+    }
+  ],
+  "rows_not_populated_total": 1694,
+  "structure_changes": [],
+  "zip_parts_changed": [
+    "xl/worksheets/sheet1.xml"
+  ],
+  "other_sheets_changed": [],
+  "sheet_order_changed": false,
+  "defined_names_changed": false,
+  "changed_cells_sample": [
+    {
+      "cell": "A7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1"
+    },
+    {
+      "cell": "F7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1.1"
+    },
+    {
+      "cell": "G7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "000002"
+    },
+    {
+      "cell": "H7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Disseminate the organization-level; mission/business process-level; and/or system-level access control policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance to organization-defined personnel or roles."
+    },
+    {
+      "cell": "M7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Compliant"
+    },
+    {
+      "cell": "N7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "2026-08-01T00:00:00"
+    },
+    {
+      "cell": "O7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Tester 0"
+    },
+    {
+      "cell": "P7",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "SYNTHETIC guard test result: examined the configuration."
+    },
+    {
+      "cell": "A8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1"
+    },
+    {
+      "cell": "F8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1.2"
+    },
+    {
+      "cell": "G8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "000003"
+    },
+    {
+      "cell": "H8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Review and update the current access control policy on an organization-defined frequency."
+    },
+    {
+      "cell": "M8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Compliant"
+    },
+    {
+      "cell": "N8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "2026-08-02T00:00:00"
+    },
+    {
+      "cell": "O8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Tester 1"
+    },
+    {
+      "cell": "P8",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "SYNTHETIC guard test result: examined the configuration."
+    },
+    {
+      "cell": "A9",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1"
+    },
+    {
+      "cell": "F9",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1.3"
+    },
+    {
+      "cell": "G9",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "000005"
+    },
+    {
+      "cell": "H9",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Disseminate procedures to facilitate the implementation of the organization-level; mission/business process-level; and/or system-level access control policy and associated access controls to the organization-defined personnel or roles."
+    },
+    {
+      "cell": "M9",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Compliant"
+    },
+    {
+      "cell": "N9",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "2026-08-03T00:00:00"
+    },
+    {
+      "cell": "O9",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Tester 2"
+    },
+    {
+      "cell": "P9",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "SYNTHETIC guard test result: examined the configuration."
+    },
+    {
+      "cell": "A10",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1"
+    },
+    {
+      "cell": "F10",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1.4"
+    },
+    {
+      "cell": "G10",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "000006"
+    },
+    {
+      "cell": "H10",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Review and update the current access control procedures on an organization-defined frequency."
+    },
+    {
+      "cell": "M10",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Compliant"
+    },
+    {
+      "cell": "N10",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "2026-08-04T00:00:00"
+    },
+    {
+      "cell": "O10",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Tester 3"
+    },
+    {
+      "cell": "P10",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "SYNTHETIC guard test result: examined the configuration."
+    },
+    {
+      "cell": "A11",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1"
+    },
+    {
+      "cell": "F11",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1.5"
+    },
+    {
+      "cell": "G11",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "001545"
+    },
+    {
+      "cell": "H11",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Defines a frequency for reviewing and updating the access control policy."
+    },
+    {
+      "cell": "A12",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1"
+    },
+    {
+      "cell": "F12",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "AC-1.6"
+    },
+    {
+      "cell": "G12",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "001546"
+    },
+    {
+      "cell": "H12",
+      "changed": [
+        "value",
+        "type"
+      ],
+      "before": null,
+      "after": "Defines a frequency for reviewing and updating the access control procedures."
+    }
+  ]
+}
