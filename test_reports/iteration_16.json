@@ -1,0 +1,34 @@
+{
+  "summary": "Iteration 16 - Verified eMASS-style Implementation Plan + Risk Assessment feature end-to-end. Backend: pytest tests/test_emass_fields.py 10/10 PASS (migration 0029 up/down/up, OSCAL SSP validation, openapi lists new routes, conditional required fields 422, status sync). New live-API test file test_emass_api_live.py 9/9 PASS against preview URL covering: demo-login, GET emass values on ra-5, PUT ac-3 plan with status-only -> 422 enumerating all 9 required field names ('Security Control Designation, Estimated Completion Date, Responsible Entities, SLCM Criticality, SLCM Frequency, SLCM Method, SLCM Reporting, SLCM Tracking, SLCM Comments'), invalid slcm_frequency 'Biweekly' -> 422, responsible_entities 2001 chars -> 422, slcm_comments 4001 chars -> 422, inherited ia-2.1 PUT risk -> 422 (locked), /systems/{sid}/emass/controls-payload returns mock=true with 'MOCKED' label and eMASS API names (implementationStatus/acronym), SCA persona (via /sandbox/act-as) PUT plan -> 403. Frontend (Playwright on preview URL): /login -> demo-login lands as ISSO; /systems/f47571aa.../controls/ra-5 renders [emass-panels], [emass-plan-panel], [emass-risk-panel], [emass-implementation_status]. Switching status to Planned reveals all 9 conditional fields (control_designation, estimated_completion_date, responsible_entities, slcm_frequency, slcm_method, slcm_criticality, slcm_reporting, slcm_tracking, slcm_comments). Not Applicable shows only [emass-na_justification] and hides SLCM. Manually Inherited shows [emass-common_control_provider] + SLCM. On ac-3 with Implemented+empty fields, 10 [emass-missing-*] badges appear and clicking [emass-plan-save] renders [emass-plan-error] naming every required field. [emass-suggest-btn] shows [emass-sug-banner] 'AI SUGGESTIONS - not saved' with 17 suggestions, 19 per-field sug elements and [emass-accept-all] (AI took ~5s). /ia-2.1 shows [emass-inherited-note] + [emass-risk-locked]; risk Severity select is disabled. /systems/{sid}/controls workbench has [filter-emass_status], [filter-emass_missing], [wb-export-emass-plan], [wb-export-emass-validation]; toggling 'All controls' reveals [wb-select-all] + [wb-bulk-emass-btn]; selecting [wb-select-ac-3] enables bulk button which opens [emass-bulk-modal] containing [emass-bulk-confirm].",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "WorkbenchFilters", "issues": ["Pre-existing hydration warning: <span> rendered inside <option> (unchanged from iter 14/15, unrelated to this task)."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_emass_fields.py",
+    "/app/backend/tests/test_emass_api_live.py",
+    "/app/test_reports/pytest/emass_fields.xml",
+    "/app/test_reports/pytest/emass_api_live.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Conditional required-field validation returns a single 422 detail string that enumerates all missing field display names - good UX and the frontend echoes it in emass-plan-error.",
+    "GET emass endpoint returns flat shape (implementation_status/values/missing_required/required/inherited_locked/inheritance/options/risk_suggestion/can_edit) rather than nested {plan, risk}; initial test_emass_api_live.py was adjusted to match actual shape (not a bug).",
+    "Inherited controls correctly hard-block risk edits at API (422) and disable UI Severity select + show emass-risk-locked.",
+    "Mocked eMASS payload is correctly labelled: {mock:true, label contains 'MOCKED'} and body uses eMASS API names (implementationStatus, acronym).",
+    "RBAC: SCA persona receives 403 on PUT plan - confirmed via act-as token.",
+    "Suggest-values feature is non-persistent as advertised (banner says 'not saved'); 19 per-field suggestions rendered with accept-all available."
+  ],
+  "updated_files": ["/app/backend/tests/test_emass_api_live.py (new)"],
+  "success_rate": {"backend": "100% (10/10 pytest + 9/9 live API)", "frontend": "100% of in-scope data-testid elements (panels, conditional fields, missing badges, plan-error, suggest banner+accept-all, inherited-note+risk-locked, filters, exports, bulk modal+confirm)"},
+  "test_credentials": "Demo one-click: POST /api/v1/auth/demo-login {} - no password from browser. Persona switch: POST /api/v1/sandbox/act-as {role}.",
+  "seed_data_creation": "None - used ac-3 (non-seeded) for mutation tests; no save executed on seeded demo controls (ra-5, ia-2.1 read tested only).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "eMASS feature is fully wired. LTP sid=f47571aa-d9ff-4aed-9623-837751b8f48a. Seeded eMASS controls (do not mutate): ac-2, ac-2.3, ac-17, at-2, au-9, cm-6, ra-5, sc-13, sc-28, si-2 (complete); cp-4, au-2 (partial). Use ac-3, cm-2 or similar for mutation tests. Workbench 'wb-select-*' + 'wb-bulk-emass-btn' only appear after toggling the 'All controls' checkbox (list mode); default queue view does not render selection checkboxes. GET /api/v1/systems/{sid}/workbench/controls/{cid}/emass returns flat shape, not nested plan/risk. Backend conditional 422 emits detail as a single sentence listing field display names (not JSON list).",
+  "rca of the issue": "N/A - verification pass, no regressions found."
+}
