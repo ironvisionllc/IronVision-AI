@@ -471,3 +471,12 @@ System Owner, ISSO, ISSM, SCA, AO, DevSecOps, Leadership Viewer, Platform Admin.
 - Tested in iteration_15: backend 11/11 + test_tr 27/27, frontend flows pass.
 - Backlog: optional voice-over or captions version; pre-existing `<span>` inside `<option>` warning in Workbench filters.
 
+
+## eMASS Implementation Plan + Risk Assessment (Oct 2026)
+- Control Workbench panels with eMASS field names and values. Enums, limits and conditional-required rules were verified against the MITRE emass_client OpenAPI. The server returns 422; the UI shows or hides fields.
+- One status: eMASS Implementation Status is derived from control_assignments.implementation_status. A manually_inherited flag splits Inherited from Manually Inherited. Inherited controls are read-only and their Risk Assessment is locked.
+- "Other…" choice for free-text fields; 2,000 / 4,000 character limits; ISSO and System Owner edit, other roles read-only; before/after audit.
+- "Suggest values": AI (control.emass_fields_suggest) grounded in system data, batched when the reply is truncated, with a deterministic rule fallback. Suggestions are never auto-saved; accepted values are audited as AI- or rule-assisted.
+- Bulk set (with confirmation), filters by eMASS status and missing required fields, eMASS-formatted xlsx (compatibility pending human verification), validation report, OSCAL SSP props/remarks, MOCKED eMASS payload.
+- Migration 0029 (reversible). Synthetic values seeded for a subset of LTP controls. tests/test_emass_fields.py has 10 tests. Testing agent iteration_16 passed 100%.
+- Backlog: check the xlsx column order against a real eMASS Control Information export (SME).
