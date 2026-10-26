@@ -144,6 +144,8 @@ Adopting a value sets the system ODP with source "CNSSI 1253 (2022) Table D-x p.
 | implementationNarrative | max 2,000 characters |
 | estimatedCompletionDate | Unix time (integer) in the API; a date picker in the UI; an ISO date in OSCAL and the xlsx |
 
+**Implementation Narrative — one shared rule:** `implementationNarrative` is in eMASS `ControlsRequiredFields`, so it is required on every controls PUT. It counts as missing for every status except Inherited, where the narrative comes from the providing system. `emass_fields.missing_all()` applies this rule, and the panel's missing list, the Workbench "missing required eMASS fields" filter and the xlsx Validation sheet / validation report all use it. The narrative is edited in the implementation statement, so saving the Implementation Plan does not block on it.
+
 **Conditional-required rules** (from the "Business Rules" table in the spec):
 - **Planned or Implemented:** all six SLCM fields. The user specification also requires Security Control Designation, Estimated Completion Date and Responsible Entities here. eMASS lists those three as body-required on every PUT.
 - **Not Applicable:** naJustification.

@@ -67,16 +67,22 @@ def controls(system_id: uuid.UUID, queue: bool = False, q: str | None = None, im
     if q:
         stmt = stmt.where(A.control_id.ilike(f"%{q}%") | Control.title.ilike(f"%{q}%"))
     pols = {x for x in (policy or "").split(",") if x} or None
-    if emass_status or emass_missing in ("yes", "no"):
+    if emass_status or emass_missing:
         from app.models import EmassControlFields
         from app.services import emass_fields as ef
 
+        if emass_status and emass_status not in ef.STATUSES:
+            raise HTTPException(422, f"emass_status must be one of: {', '.join(ef.STATUSES)}")
+        want = {"yes": True, "true": True, "1": True, "no": False, "false": False, "0": False}.get((emass_missing or "").lower()) if emass_missing else None
+        if emass_missing and want is None:
+            raise HTTPException(422, "emass_missing must be yes/no (true/false and 1/0 are also accepted)")
         fm = {f.assignment_id: f for f in db.scalars(select(EmassControlFields).where(EmassControlFields.system_id == system_id))}
+        narr = ef.narratives(db, system_id)
         keep = []
         for a in db.scalars(select(A).where(A.system_id == system_id)):
             st = ef.emass_status(a, fm.get(a.id))
-            miss = bool(ef.missing_required(st, ef.values(fm.get(a.id))))
-            if (not emass_status or st == emass_status) and (emass_missing not in ("yes", "no") or miss == (emass_missing == "yes")):
+            miss = bool(ef.missing_all(st, ef.values(fm.get(a.id)), narr.get(a.id)))
+            if (not emass_status or st == emass_status) and (want is None or miss == want):
                 keep.append(a.control_id)
         stmt = stmt.where(A.control_id.in_(keep))
     if policy_mapping or pols or policy_coverage:

@@ -149,7 +149,7 @@ def test_bulk_confirm_filters_and_exports(client, ctx):
     lst = client.get(f"/api/v1/systems/{ctx['sid']}/workbench/controls", params={"emass_status": "Implemented"}, headers=ctx["h"]).json()
     assert lst == [] or all(x["implementation_status"] == "implemented" for x in lst)
     miss = {x["control_id"] for x in client.get(f"/api/v1/systems/{ctx['sid']}/workbench/controls", params={"emass_missing": "yes"}, headers=ctx["h"]).json()}
-    assert "ac-8" in miss and "ac-3" not in miss
+    assert "ac-8" in miss and "ac-4" not in miss
     from openpyxl import load_workbook
     x = client.get(f"/api/v1/systems/{ctx['sid']}/emass/implementation-plan.xlsx", headers=ctx["h"])
     assert x.status_code == 200
@@ -219,3 +219,71 @@ def test_migration_0029_up_down_up():
         with admin.connect() as c:
             c.execute(text(f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'))
         admin.dispose()
+
+
+def test_narrative_rule_shared_by_panel_filter_and_report(client, ctx):
+    # ac-3 has complete Planned fields but no implementation statement -> missing narrative everywhere
+    v = client.get(f"{ctx['base']}/ac-3/emass", headers=ctx["h"]).json()
+    assert v["missing_required"] == ["implementation_narrative"]
+    for flag in ("yes", "true", "1"):
+        ids = {x["control_id"] for x in client.get(f"/api/v1/systems/{ctx['sid']}/workbench/controls", params={"emass_missing": flag}, headers=ctx["h"]).json()}
+        assert "ac-3" in ids and "ac-4" not in ids  # ac-4 is Inherited: narrative comes from the provider
+    rep = client.get(f"/api/v1/systems/{ctx['sid']}/emass/implementation-plan/validation", headers=ctx["h"]).json()
+    assert next(i for i in rep["items"] if i["control"] == "AC-3")["missing"] == ["Implementation Narrative"]
+    assert client.put(f"{ctx['base']}/ac-3/implementation", json={"narrative": "SYNTHETIC statement for AC-3.", "implementation_status": "planned"}, headers=ctx["h"]).status_code in (200, 201)
+    assert client.get(f"{ctx['base']}/ac-3/emass", headers=ctx["h"]).json()["missing_required"] == []
+    for flag in ("no", "false", "0"):
+        ids = {x["control_id"] for x in client.get(f"/api/v1/systems/{ctx['sid']}/workbench/controls", params={"emass_missing": flag}, headers=ctx["h"]).json()}
+        assert "ac-3" in ids
+    rep = client.get(f"/api/v1/systems/{ctx['sid']}/emass/implementation-plan/validation", headers=ctx["h"]).json()
+    assert all(i["control"] != "AC-3" for i in rep["items"])
+
+
+def test_filter_rejects_bad_values(client, ctx):
+    url = f"/api/v1/systems/{ctx['sid']}/workbench/controls"
+    assert client.get(url, params={"emass_missing": "maybe"}, headers=ctx["h"]).status_code == 422
+    assert client.get(url, params={"emass_status": "Done"}, headers=ctx["h"]).status_code == 422
+
+
+def test_ai_suggest_accept_save_is_persisted_and_audited(client, ctx, monkeypatch):
+    from app.models import AIInteraction
+    from app.services.ai import service as svc
+    from app.services.ai.prompts import EmassFieldsSuggestOutput
+
+    class Fake:
+        configured = True
+
+        async def run(self, prompt_id, version, variables, actor_user_id=None, max_tokens=None):
+            with SessionLocal() as db:
+                i = AIInteraction(provider="fake", model="m", prompt_id=prompt_id, prompt_version=version, input_sha256="0" * 64,
+                                  validation_status="valid", status="succeeded", actor_user_id=actor_user_id)
+                db.add(i)
+                db.commit()
+                iid = i.id
+            out = EmassFieldsSuggestOutput.model_validate({"suggestions": [
+                {"field": "slcm_method", "value": "Semi-Automated", "reason": "ACAS + manual review"},
+                {"field": "slcm_frequency", "value": "Weekly", "reason": "weekly scans"},
+                {"field": "severity", "value": "Moderate", "reason": "CAT II"}]})
+            return svc.AIResult(output=out, provider="fake", model="m", latency_ms=1, interaction_id=iid)
+    monkeypatch.setattr(svc, "get_ai_service", lambda: Fake())
+    d = client.post(f"{ctx['base']}/ac-12/emass/suggest", json={"implementation_status": "Planned"}, headers=ctx["h"]).json()
+    assert d["source"] == "ai" and d["interaction_id"]
+    acc = {s["field"]: s["value"] for s in d["suggestions"]}
+    assist = {"source": "ai", "interaction_id": d["interaction_id"]}
+    plan = {**FULL, "slcm_method": acc["slcm_method"], "slcm_frequency": acc["slcm_frequency"]}
+    r = _plan(client, ctx, "ac-12", {"implementation_status": "Planned", **plan, "assist": {**assist, "fields": ["slcm_method", "slcm_frequency"]}})
+    assert r.status_code == 200, r.text
+    r = client.put(f"{ctx['base']}/ac-12/emass/risk", json={"severity": acc["severity"], "assist": {**assist, "fields": ["severity"]}}, headers=ctx["h"])
+    assert r.status_code == 200
+    v = client.get(f"{ctx['base']}/ac-12/emass", headers=ctx["h"]).json()
+    assert v["values"]["slcm_method"] == "Semi-Automated" and v["values"]["slcm_frequency"] == "Weekly" and v["values"]["severity"] == "Moderate"
+    assert {k: v["assisted"][k]["source"] for k in ("slcm_method", "slcm_frequency", "severity")} == {"slcm_method": "ai", "slcm_frequency": "ai", "severity": "ai"}
+    assert v["assisted"]["slcm_method"]["interaction_id"] == d["interaction_id"]
+    with SessionLocal() as db:
+        aid = str(db.scalar(select(ControlAssignment.id).where(ControlAssignment.system_id == uuid.UUID(ctx["sid"]), ControlAssignment.control_id == "ac-12")))
+        ev = db.scalar(select(AuditEvent).where(AuditEvent.entity_id == aid, AuditEvent.action == "emass.plan_updated"))
+        assert ev.details["ai_assisted"] is True and ev.details["suggestion_source"] == "ai" and ev.details["interaction_id"] == d["interaction_id"]
+        assert set(ev.details["suggested_fields_accepted"]) == {"slcm_method", "slcm_frequency"} and ev.after["slcm_method"] == "Semi-Automated"
+        rv = db.scalar(select(AuditEvent).where(AuditEvent.entity_id == aid, AuditEvent.action == "emass.risk_updated"))
+        assert rv.details["ai_assisted"] is True and rv.after == {"severity": "Moderate"}
+        assert db.scalar(select(AuditEvent.id).where(AuditEvent.entity_id == aid, AuditEvent.action == "ai.emass_fields_suggest"))

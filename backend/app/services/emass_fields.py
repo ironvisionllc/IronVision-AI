@@ -108,6 +108,19 @@ def missing_required(status: str, vals: dict) -> list[str]:
     return [k for k in REQUIRED[status] if vals.get(k) in (None, "")]
 
 
+def missing_all(status: str, vals: dict, narrative: str | None) -> list[str]:
+    """Single rule used by the panel, the Workbench filter and the xlsx/validation report. implementationNarrative is in
+    eMASS ControlsRequiredFields (required on every controls PUT); Inherited controls take it from the providing system."""
+    narr = [] if status == "Inherited" or (narrative or "").strip() else ["implementation_narrative"]
+    return missing_required(status, vals) + narr
+
+
+def narratives(db: Session, system_id) -> dict:
+    from app.models import Implementation
+    return dict(db.execute(select(Implementation.assignment_id, Implementation.narrative).join(ControlAssignment, ControlAssignment.id == Implementation.assignment_id)
+                           .where(ControlAssignment.system_id == system_id, Implementation.is_current.is_(True))).all())
+
+
 def check_values(vals: dict) -> None:
     """422 on enum / char-limit violations (eMASS business rules)."""
     errs = []
@@ -143,7 +156,7 @@ def view(db: Session, a: ControlAssignment, can_edit: bool) -> dict:
     vals = values(f)
     narr = _narrative(db, a)
     return {"implementation_status": st, "internal_status": a.implementation_status, "values": vals,
-            "missing_required": missing_required(st, vals), "required": REQUIRED[st],
+            "missing_required": missing_all(st, vals, narr), "required": REQUIRED[st],
             "inherited_locked": st == "Inherited", "inheritance": provider_info(db, a),
             "narrative_length": len(narr), "narrative_over_limit": len(narr) > NARRATIVE_LIMIT,
             "assisted": (f.assisted if f else None) or {}, "updated_at": f.updated_at.isoformat() if f else None,
@@ -406,10 +419,9 @@ def clean_suggestions(items: list[dict], status: str) -> tuple[list[dict], list[
 
 # ---------- exports ----------
 def rows(db: Session, s: System) -> list[dict]:
-    from app.models import Control, Implementation
+    from app.models import Control
     fmap = {f.assignment_id: f for f in db.scalars(select(EmassControlFields).where(EmassControlFields.system_id == s.id))}
-    narr = dict(db.execute(select(Implementation.assignment_id, Implementation.narrative).join(ControlAssignment, ControlAssignment.id == Implementation.assignment_id)
-                           .where(ControlAssignment.system_id == s.id, Implementation.is_current.is_(True))).all())
+    narr = narratives(db, s.id)
     out = []
     for a, title, label in db.execute(select(ControlAssignment, Control.title, Control.label).join(Control, Control.id == ControlAssignment.control_uuid)
                                       .where(ControlAssignment.system_id == s.id).order_by(Control.sort_id)).all():
@@ -417,7 +429,7 @@ def rows(db: Session, s: System) -> list[dict]:
         st = emass_status(a, f)
         vals = values(f)
         n = narr.get(a.id) or ""
-        miss = missing_required(st, vals) + (["implementation_narrative"] if not n.strip() and st != "Inherited" else [])
+        miss = missing_all(st, vals, n)
         out.append({"control_id": a.control_id, "acronym": label, "title": title, "implementation_status": st, **vals,
                     "implementation_narrative": n, "missing": miss, "narrative_over_limit": len(n) > NARRATIVE_LIMIT})
     return out
