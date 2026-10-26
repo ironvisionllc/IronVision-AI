@@ -1,8 +1,8 @@
 {
  "openapi": "3.1.0",
  "info": {
-  "title": "AegisRMF API",
-  "description": "AegisRMF by IronVision \u2013 Intelligent Risk. Continuous Assurance. (Phase 0 foundation, SYNTHETIC DATA ONLY)",
+  "title": "IronVision AI API",
+  "description": "IronVision AI \u2013 Intelligent Risk. Continuous Assurance. (Phase 0 foundation, SYNTHETIC DATA ONLY)",
   "version": "0.1.0"
  },
  "paths": {
@@ -41,6 +41,28 @@
        "application/json": {
         "schema": {
          "$ref": "#/components/schemas/AuthProviderInfo"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/demo-login": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Demo Login",
+    "description": "One-click entry to the shared, synthetic demo workspace. No password travels from the browser; gated by ALLOW_DEMO_LOGIN.",
+    "operationId": "demo_login_api_v1_auth_demo_login_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TokenResponse"
         }
        }
       }
@@ -137,6 +159,54 @@
     ],
     "summary": "Oidc Login",
     "operationId": "oidc_login_api_v1_auth_oidc_login_get",
+    "parameters": [
+     {
+      "name": "login_hint",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Login Hint"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/oidc/register": {
+   "get": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Oidc Register",
+    "description": "Keycloak registration page with the same PKCE/state/nonce flow (DEMO deployment, KEYCLOAK_ALLOW_REGISTRATION).",
+    "operationId": "oidc_register_api_v1_auth_oidc_register_get",
     "responses": {
      "200": {
       "description": "Successful Response",
@@ -160,19 +230,49 @@
      {
       "name": "code",
       "in": "query",
-      "required": true,
+      "required": false,
       "schema": {
-       "type": "string",
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
        "title": "Code"
       }
      },
      {
       "name": "state",
       "in": "query",
-      "required": true,
+      "required": false,
       "schema": {
-       "type": "string",
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
        "title": "State"
+      }
+     },
+     {
+      "name": "error",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Error"
       }
      }
     ],
@@ -182,6 +282,47 @@
       "content": {
        "application/json": {
         "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/oidc/exchange": {
+   "post": {
+    "tags": [
+     "auth"
+    ],
+    "summary": "Oidc Exchange",
+    "operationId": "oidc_exchange_api_v1_auth_oidc_exchange_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OidcExchangeIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TokenResponse"
+        }
        }
       }
      },
@@ -248,8 +389,17 @@
     "summary": "Logout",
     "operationId": "logout_api_v1_auth_logout_post",
     "responses": {
-     "204": {
-      "description": "Successful Response"
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Logout Api V1 Auth Logout Post"
+        }
+       }
+      }
      }
     }
    }
@@ -339,7 +489,7 @@
       "required": false,
       "schema": {
        "type": "integer",
-       "maximum": 500,
+       "maximum": 2000,
        "minimum": 1,
        "default": 100,
        "title": "Limit"
@@ -518,6 +668,29 @@
     }
    }
   },
+  "/api/v1/content/counts": {
+   "get": {
+    "tags": [
+     "reference-content"
+    ],
+    "summary": "Counts",
+    "operationId": "counts_api_v1_content_counts_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Counts Api V1 Content Counts Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/systems": {
    "get": {
     "tags": [
@@ -525,18 +698,40 @@
     ],
     "summary": "List Systems",
     "operationId": "list_systems_api_v1_systems_get",
+    "parameters": [
+     {
+      "name": "include_archived",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Include Archived"
+      }
+     }
+    ],
     "responses": {
      "200": {
       "description": "Successful Response",
       "content": {
        "application/json": {
         "schema": {
-         "items": {
-          "additionalProperties": true,
-          "type": "object"
-         },
          "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": true
+         },
          "title": "Response List Systems Api V1 Systems Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
         }
        }
       }
@@ -550,14 +745,14 @@
     "summary": "Create System",
     "operationId": "create_system_api_v1_systems_post",
     "requestBody": {
+     "required": true,
      "content": {
       "application/json": {
        "schema": {
         "$ref": "#/components/schemas/SystemCreate"
        }
       }
-     },
-     "required": true
+     }
     },
     "responses": {
      "201": {
@@ -565,8 +760,8 @@
       "content": {
        "application/json": {
         "schema": {
-         "additionalProperties": true,
          "type": "object",
+         "additionalProperties": true,
          "title": "Response Create System Api V1 Systems Post"
         }
        }
@@ -666,6 +861,117 @@
          "type": "object",
          "additionalProperties": true,
          "title": "Response Update System Api V1 Systems  System Id  Patch"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/archive": {
+   "post": {
+    "tags": [
+     "systems"
+    ],
+    "summary": "Archive System",
+    "description": "Logical archive: nothing is deleted; the system leaves active lists and can be restored.",
+    "operationId": "archive_system_api_v1_systems__system_id__archive_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ArchiveIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Archive System Api V1 Systems  System Id  Archive Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/restore": {
+   "post": {
+    "tags": [
+     "systems"
+    ],
+    "summary": "Restore System",
+    "operationId": "restore_system_api_v1_systems__system_id__restore_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ArchiveIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Restore System Api V1 Systems  System Id  Restore Post"
         }
        }
       }
@@ -1056,6 +1362,62 @@
          "additionalProperties": true,
          "type": "object",
          "title": "Response Registration Reference Api V1 Reference Registration Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/authorization-strategy": {
+   "put": {
+    "tags": [
+     "systems"
+    ],
+    "summary": "Set Authorization Strategy",
+    "description": "6 \u00b7 Authorize \u2013 authorization strategy/planning: the authorization type sought. Audited; existing values are preserved.",
+    "operationId": "set_authorization_strategy_api_v1_systems__system_id__authorization_strategy_put",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AuthStrategyIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Set Authorization Strategy Api V1 Systems  System Id  Authorization Strategy Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
         }
        }
       }
@@ -1587,7 +1949,7 @@
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/MapIn"
+        "$ref": "#/components/schemas/app__api__v1__evidence__MapIn"
        }
       }
      }
@@ -1689,6 +2051,16 @@
        "type": "string",
        "format": "uuid",
        "title": "System Id"
+      }
+     },
+     {
+      "name": "include_removed",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Include Removed"
       }
      }
     ],
@@ -1938,6 +2310,321 @@
     }
    }
   },
+  "/api/v1/ingest-runs/{run_id}/stig": {
+   "get": {
+    "tags": [
+     "evidence"
+    ],
+    "summary": "Run Stig Detail",
+    "description": "Every rule of a STIG checklist / XCCDF import with status, details and comments, totals, and a check against the source file.",
+    "operationId": "run_stig_detail_api_v1_ingest_runs__run_id__stig_get",
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Run Stig Detail Api V1 Ingest Runs  Run Id  Stig Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/evidence/{evidence_id}": {
+   "get": {
+    "tags": [
+     "evidence"
+    ],
+    "summary": "Evidence Detail",
+    "operationId": "evidence_detail_api_v1_evidence__evidence_id__get",
+    "parameters": [
+     {
+      "name": "evidence_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Evidence Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Evidence Detail Api V1 Evidence  Evidence Id  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/evidence/{evidence_id}/download": {
+   "get": {
+    "tags": [
+     "evidence"
+    ],
+    "summary": "Evidence Download",
+    "operationId": "evidence_download_api_v1_evidence__evidence_id__download_get",
+    "parameters": [
+     {
+      "name": "evidence_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Evidence Id"
+      }
+     },
+     {
+      "name": "version",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Version"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/evidence/{evidence_id}/versions": {
+   "post": {
+    "tags": [
+     "evidence"
+    ],
+    "summary": "Evidence New Version",
+    "description": "Replace / upload new version: a new immutable version becomes active; the old object and hash stay in the history.",
+    "operationId": "evidence_new_version_api_v1_evidence__evidence_id__versions_post",
+    "parameters": [
+     {
+      "name": "evidence_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Evidence Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_evidence_new_version_api_v1_evidence__evidence_id__versions_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Evidence New Version Api V1 Evidence  Evidence Id  Versions Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/evidence/{evidence_id}/remove": {
+   "post": {
+    "tags": [
+     "evidence"
+    ],
+    "summary": "Evidence Remove",
+    "description": "Logical removal (record, versions and objects kept; mappings closed and flagged). Blocked while a legal hold is set.",
+    "operationId": "evidence_remove_api_v1_evidence__evidence_id__remove_post",
+    "parameters": [
+     {
+      "name": "evidence_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Evidence Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RemoveIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Evidence Remove Api V1 Evidence  Evidence Id  Remove Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/evidence/{evidence_id}/legal-hold": {
+   "post": {
+    "tags": [
+     "evidence"
+    ],
+    "summary": "Evidence Legal Hold",
+    "operationId": "evidence_legal_hold_api_v1_evidence__evidence_id__legal_hold_post",
+    "parameters": [
+     {
+      "name": "evidence_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Evidence Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HoldIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Evidence Legal Hold Api V1 Evidence  Evidence Id  Legal Hold Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/systems/{system_id}/workbench/summary": {
    "get": {
     "tags": [
@@ -2060,12 +2747,204 @@
       }
      },
      {
+      "name": "assessment_status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Assessment Status"
+      }
+     },
+     {
+      "name": "monitoring_status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Monitoring Status"
+      }
+     },
+     {
+      "name": "family",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Family"
+      }
+     },
+     {
+      "name": "origin",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Origin"
+      }
+     },
+     {
+      "name": "has_evidence",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Has Evidence"
+      }
+     },
+     {
+      "name": "evidence",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Evidence"
+      }
+     },
+     {
+      "name": "policy_mapping",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Policy Mapping"
+      }
+     },
+     {
+      "name": "policy",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Policy"
+      }
+     },
+     {
+      "name": "policy_coverage",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Policy Coverage"
+      }
+     },
+     {
+      "name": "fmt",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Fmt"
+      }
+     },
+     {
+      "name": "emass_status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Emass Status"
+      }
+     },
+     {
+      "name": "emass_missing",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Emass Missing"
+      }
+     },
+     {
       "name": "limit",
       "in": "query",
       "required": false,
       "schema": {
        "type": "integer",
-       "default": 400,
+       "default": 2000,
        "title": "Limit"
       }
      }
@@ -2075,13 +2954,260 @@
       "description": "Successful Response",
       "content": {
        "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
         "schema": {
-         "type": "array",
-         "items": {
-          "type": "object",
-          "additionalProperties": true
-         },
-         "title": "Response Controls Api V1 Systems  System Id  Workbench Controls Get"
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/workbench/policy-facets": {
+   "get": {
+    "tags": [
+     "workbench"
+    ],
+    "summary": "Policy Facets",
+    "operationId": "policy_facets_api_v1_systems__system_id__workbench_policy_facets_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Policy Facets Api V1 Systems  System Id  Workbench Policy Facets Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/ccis": {
+   "get": {
+    "tags": [
+     "workbench"
+    ],
+    "summary": "System Ccis",
+    "description": "DISA CCIs of the system's assigned controls with policy coverage (best status across applicable policies).",
+    "operationId": "system_ccis_api_v1_systems__system_id__ccis_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "mapped",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Mapped"
+      }
+     },
+     {
+      "name": "coverage",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Coverage"
+      }
+     },
+     {
+      "name": "policy",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Policy"
+      }
+     },
+     {
+      "name": "control",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Control"
+      }
+     },
+     {
+      "name": "family",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Family"
+      }
+     },
+     {
+      "name": "q",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Q"
+      }
+     },
+     {
+      "name": "fmt",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Fmt"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/workbench/queue": {
+   "get": {
+    "tags": [
+     "workbench"
+    ],
+    "summary": "Work Queue",
+    "operationId": "work_queue_api_v1_systems__system_id__workbench_queue_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "mine",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Mine"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Work Queue Api V1 Systems  System Id  Workbench Queue Get"
         }
        }
       }
@@ -2159,6 +3285,7 @@
      "workbench"
     ],
     "summary": "Ai Draft",
+    "description": "mode=auto \u2192 AI when configured, otherwise the template engine; mode=template forces the template engine.",
     "operationId": "ai_draft_api_v1_systems__system_id__workbench_controls__control_id__ai_draft_post",
     "parameters": [
      {
@@ -2178,6 +3305,16 @@
       "schema": {
        "type": "string",
        "title": "Control Id"
+      }
+     },
+     {
+      "name": "mode",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "auto",
+       "title": "Mode"
       }
      }
     ],
@@ -2336,6 +3473,70 @@
     }
    }
   },
+  "/api/v1/systems/{system_id}/workbench/controls/{control_id}/status": {
+   "put": {
+    "tags": [
+     "workbench"
+    ],
+    "summary": "Save Status",
+    "operationId": "save_status_api_v1_systems__system_id__workbench_controls__control_id__status_put",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "control_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Control Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/StatusIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Save Status Api V1 Systems  System Id  Workbench Controls  Control Id  Status Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/systems/{system_id}/workbench/controls/{control_id}/comments": {
    "post": {
     "tags": [
@@ -2472,6 +3673,467 @@
     }
    }
   },
+  "/api/v1/systems/{system_id}/workbench/controls/{control_id}/emass": {
+   "get": {
+    "tags": [
+     "emass-fields"
+    ],
+    "summary": "Get Fields",
+    "operationId": "get_fields_api_v1_systems__system_id__workbench_controls__control_id__emass_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "control_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Control Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Get Fields Api V1 Systems  System Id  Workbench Controls  Control Id  Emass Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/workbench/controls/{control_id}/emass/plan": {
+   "put": {
+    "tags": [
+     "emass-fields"
+    ],
+    "summary": "Put Plan",
+    "operationId": "put_plan_api_v1_systems__system_id__workbench_controls__control_id__emass_plan_put",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "control_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Control Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PlanIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Put Plan Api V1 Systems  System Id  Workbench Controls  Control Id  Emass Plan Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/workbench/controls/{control_id}/emass/risk": {
+   "put": {
+    "tags": [
+     "emass-fields"
+    ],
+    "summary": "Put Risk",
+    "operationId": "put_risk_api_v1_systems__system_id__workbench_controls__control_id__emass_risk_put",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "control_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Control Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/app__api__v1__emass_fields__RiskIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Put Risk Api V1 Systems  System Id  Workbench Controls  Control Id  Emass Risk Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/workbench/controls/{control_id}/emass/suggest": {
+   "post": {
+    "tags": [
+     "emass-fields"
+    ],
+    "summary": "Suggest",
+    "description": "Suggestions only \u2013 nothing is saved. AI when configured and enabled, deterministic rules otherwise (or on AI failure).",
+    "operationId": "suggest_api_v1_systems__system_id__workbench_controls__control_id__emass_suggest_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "control_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Control Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SuggestIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Suggest Api V1 Systems  System Id  Workbench Controls  Control Id  Emass Suggest Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/workbench/emass/bulk": {
+   "post": {
+    "tags": [
+     "emass-fields"
+    ],
+    "summary": "Bulk Set",
+    "operationId": "bulk_set_api_v1_systems__system_id__workbench_emass_bulk_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BulkIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Bulk Set Api V1 Systems  System Id  Workbench Emass Bulk Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/emass/implementation-plan.xlsx": {
+   "get": {
+    "tags": [
+     "emass-fields"
+    ],
+    "summary": "Plan Xlsx",
+    "operationId": "plan_xlsx_api_v1_systems__system_id__emass_implementation_plan_xlsx_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/emass/implementation-plan/validation": {
+   "get": {
+    "tags": [
+     "emass-fields"
+    ],
+    "summary": "Plan Validation",
+    "operationId": "plan_validation_api_v1_systems__system_id__emass_implementation_plan_validation_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "fmt",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Fmt"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/emass/controls-payload": {
+   "get": {
+    "tags": [
+     "emass-fields"
+    ],
+    "summary": "Controls Payload",
+    "operationId": "controls_payload_api_v1_systems__system_id__emass_controls_payload_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "control_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Control Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Controls Payload Api V1 Systems  System Id  Emass Controls Payload Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/poams": {
    "get": {
     "tags": [
@@ -2551,7 +4213,7 @@
       "required": false,
       "schema": {
        "type": "string",
-       "default": "human_id",
+       "default": "risk",
        "title": "Sort"
       }
      },
@@ -3034,7 +4696,7 @@
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/RiskIn"
+        "$ref": "#/components/schemas/app__api__v1__poams__RiskIn"
        }
       }
      }
@@ -3088,7 +4750,7 @@
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/RiskIn"
+        "$ref": "#/components/schemas/app__api__v1__poams__RiskIn"
        }
       }
      }
@@ -3591,6 +5253,246 @@
          "type": "object",
          "additionalProperties": true,
          "title": "Response Set Inheritance Api V1 Systems  System Id  Inheritance Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/providers/{provider_id}/responsibility-matrix": {
+   "post": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "Import Crm",
+    "description": "Import a customer responsibility matrix (CRM) CSV for a provider package; fills missing system assignment text.",
+    "operationId": "import_crm_api_v1_providers__provider_id__responsibility_matrix_post",
+    "parameters": [
+     {
+      "name": "provider_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Provider Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_import_crm_api_v1_providers__provider_id__responsibility_matrix_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Import Crm Api V1 Providers  Provider Id  Responsibility Matrix Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/crm/sample.csv": {
+   "get": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "Crm Sample",
+    "operationId": "crm_sample_api_v1_crm_sample_csv_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/providers/{provider_id}/crm/preview": {
+   "post": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "Crm Preview",
+    "operationId": "crm_preview_api_v1_providers__provider_id__crm_preview_post",
+    "parameters": [
+     {
+      "name": "provider_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Provider Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_crm_preview_api_v1_providers__provider_id__crm_preview_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Crm Preview Api V1 Providers  Provider Id  Crm Preview Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/providers/{provider_id}/crm/apply": {
+   "post": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "Crm Apply",
+    "operationId": "crm_apply_api_v1_providers__provider_id__crm_apply_post",
+    "parameters": [
+     {
+      "name": "provider_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Provider Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_crm_apply_api_v1_providers__provider_id__crm_apply_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Crm Apply Api V1 Providers  Provider Id  Crm Apply Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/inheritance/bulk": {
+   "post": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "Bulk Inheritance",
+    "operationId": "bulk_inheritance_api_v1_systems__system_id__inheritance_bulk_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BulkInheritIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Bulk Inheritance Api V1 Systems  System Id  Inheritance Bulk Post"
         }
        }
       }
@@ -4436,6 +6338,246 @@
     }
    }
   },
+  "/api/v1/policies/{policy_id}/coverage/{cov_id}/covered-elsewhere": {
+   "post": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "Coverage Covered Elsewhere",
+    "operationId": "coverage_covered_elsewhere_api_v1_policies__policy_id__coverage__cov_id__covered_elsewhere_post",
+    "parameters": [
+     {
+      "name": "policy_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Policy Id"
+      }
+     },
+     {
+      "name": "cov_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Cov Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CoveredElsewhere"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Coverage Covered Elsewhere Api V1 Policies  Policy Id  Coverage  Cov Id  Covered Elsewhere Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/policies/{policy_id}/coverage/{cov_id}/poam": {
+   "post": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "Coverage To Poam",
+    "operationId": "coverage_to_poam_api_v1_policies__policy_id__coverage__cov_id__poam_post",
+    "parameters": [
+     {
+      "name": "policy_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Policy Id"
+      }
+     },
+     {
+      "name": "cov_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Cov Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CoveragePoam"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Coverage To Poam Api V1 Policies  Policy Id  Coverage  Cov Id  Poam Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/policies/{policy_id}/control-mappings": {
+   "post": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "Map Policy Controls",
+    "operationId": "map_policy_controls_api_v1_policies__policy_id__control_mappings_post",
+    "parameters": [
+     {
+      "name": "policy_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Policy Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/app__api__v1__phase3__MapIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Map Policy Controls Api V1 Policies  Policy Id  Control Mappings Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/policies/{policy_id}/control-mappings/reject": {
+   "post": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "Reject Policy Control",
+    "operationId": "reject_policy_control_api_v1_policies__policy_id__control_mappings_reject_post",
+    "parameters": [
+     {
+      "name": "policy_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Policy Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RejectIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Reject Policy Control Api V1 Policies  Policy Id  Control Mappings Reject Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/policy-findings/{pf_id}/{action}": {
    "post": {
     "tags": [
@@ -4500,12 +6642,216 @@
     }
    }
   },
+  "/api/v1/systems/{system_id}/parameter-comparison": {
+   "get": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "System Param Comparison",
+    "description": "The on-screen parameter comparison; the CSV export uses the same rows and filters.",
+    "operationId": "system_param_comparison_api_v1_systems__system_id__parameter_comparison_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "family",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Family"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "q",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Q"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 100,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "offset",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 0,
+       "title": "Offset"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response System Param Comparison Api V1 Systems  System Id  Parameter Comparison Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/parameters.csv": {
+   "get": {
+    "tags": [
+     "phase3"
+    ],
+    "summary": "Export System Params",
+    "operationId": "export_system_params_api_v1_systems__system_id__parameters_csv_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "family",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Family"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "q",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Q"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/policies/{policy_id}/parameters.csv": {
    "get": {
     "tags": [
      "phase3"
     ],
     "summary": "Export Params",
+    "description": "The parameter comparison restricted to values this policy sets, for each linked system the user may see (or one system).",
     "operationId": "export_params_api_v1_policies__policy_id__parameters_csv_get",
     "parameters": [
      {
@@ -4516,6 +6862,23 @@
        "type": "string",
        "format": "uuid",
        "title": "Policy Id"
+      }
+     },
+     {
+      "name": "system_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "System Id"
       }
      }
     ],
@@ -4857,6 +7220,16 @@
         }
        ],
        "title": "Fmt"
+      }
+     },
+     {
+      "name": "include_system",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Include System"
       }
      }
     ],
@@ -5480,6 +7853,94 @@
          "type": "object",
          "additionalProperties": true,
          "title": "Response Mapping Review Api V1 Mapping Review Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/mapping-review/rule-action": {
+   "post": {
+    "tags": [
+     "phase4"
+    ],
+    "summary": "Mapping Rule Action",
+    "description": "Map manually (multiple controls, human_approved with provenance), mark out of scope / N/A, or accept as informational \u2013\napplied to every selected finding of the rule (all hosts by default).",
+    "operationId": "mapping_rule_action_api_v1_mapping_review_rule_action_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RuleAction"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Mapping Rule Action Api V1 Mapping Review Rule Action Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/mapping-review/decide": {
+   "post": {
+    "tags": [
+     "phase4"
+    ],
+    "summary": "Mapping Review Decide",
+    "description": "Approve / reject / edit one or many queue items with ONE shared justification (required for reject and edit).",
+    "operationId": "mapping_review_decide_api_v1_mapping_review_decide_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/QueueDecision"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Mapping Review Decide Api V1 Mapping Review Decide Post"
         }
        }
       }
@@ -6292,7 +8753,7 @@
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/ResolveIn"
+        "$ref": "#/components/schemas/app__api__v1__phase4__ResolveIn"
        }
       }
      }
@@ -6614,6 +9075,30 @@
     }
    }
   },
+  "/api/v1/ai/status": {
+   "get": {
+    "tags": [
+     "ai"
+    ],
+    "summary": "Ai Status",
+    "description": "Non-secret AI status for every signed-in role: provider, model, configured, last successful call, fallback mode.",
+    "operationId": "ai_status_api_v1_ai_status_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Ai Status Api V1 Ai Status Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/ai/health": {
    "post": {
     "tags": [
@@ -6831,6 +9316,3704 @@
     }
    }
   },
+  "/api/v1/admin/identity-mappings": {
+   "get": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Identity Mappings",
+    "description": "Read-only: OIDC identity mappings for the caller's organization (created only by the operator CLI).",
+    "operationId": "identity_mappings_api_v1_admin_identity_mappings_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "additionalProperties": true,
+          "type": "object"
+         },
+         "type": "array",
+         "title": "Response Identity Mappings Api V1 Admin Identity Mappings Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/docs-center": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "List Docs",
+    "operationId": "list_docs_api_v1_docs_center_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response List Docs Api V1 Docs Center Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/docs-center/archive.zip": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Download All",
+    "operationId": "download_all_api_v1_docs_center_archive_zip_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/docs-center/{slug}": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Get Doc",
+    "operationId": "get_doc_api_v1_docs_center__slug__get",
+    "parameters": [
+     {
+      "name": "slug",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Slug"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Get Doc Api V1 Docs Center  Slug  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/docs-center/{slug}/download": {
+   "get": {
+    "tags": [
+     "docs"
+    ],
+    "summary": "Download Doc",
+    "operationId": "download_doc_api_v1_docs_center__slug__download_get",
+    "parameters": [
+     {
+      "name": "slug",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Slug"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/signup/start": {
+   "get": {
+    "tags": [
+     "sandbox"
+    ],
+    "summary": "Signup Start",
+    "operationId": "signup_start_api_v1_auth_signup_start_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Signup Start Api V1 Auth Signup Start Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/signup": {
+   "post": {
+    "tags": [
+     "sandbox"
+    ],
+    "summary": "Signup",
+    "operationId": "signup_api_v1_auth_signup_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SignupIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Signup Api V1 Auth Signup Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/sandbox/status": {
+   "get": {
+    "tags": [
+     "sandbox"
+    ],
+    "summary": "Sandbox Status",
+    "operationId": "sandbox_status_api_v1_sandbox_status_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Sandbox Status Api V1 Sandbox Status Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/sandbox/act-as": {
+   "post": {
+    "tags": [
+     "sandbox"
+    ],
+    "summary": "Act As",
+    "operationId": "act_as_api_v1_sandbox_act_as_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ActAs"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/sandbox/demo-data": {
+   "post": {
+    "tags": [
+     "sandbox"
+    ],
+    "summary": "Load Demo Data",
+    "operationId": "load_demo_data_api_v1_sandbox_demo_data_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Load Demo Data Api V1 Sandbox Demo Data Post"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/sandbox/reset": {
+   "post": {
+    "tags": [
+     "sandbox"
+    ],
+    "summary": "Reset Sandbox",
+    "operationId": "reset_sandbox_api_v1_sandbox_reset_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Reset Sandbox Api V1 Sandbox Reset Post"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/sandbox/samples.zip": {
+   "get": {
+    "tags": [
+     "sandbox"
+    ],
+    "summary": "Sample Files",
+    "description": "Download the synthetic sample STIG/ACAS/SCAP/SARIF/policy files (files only \u2013 nothing is loaded into the workspace).",
+    "operationId": "sample_files_api_v1_sandbox_samples_zip_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/sandbox/onboarding": {
+   "post": {
+    "tags": [
+     "sandbox"
+    ],
+    "summary": "Onboarding Step",
+    "operationId": "onboarding_step_api_v1_sandbox_onboarding_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/StepIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Onboarding Step Api V1 Sandbox Onboarding Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/reference/frameworks": {
+   "get": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "Frameworks",
+    "operationId": "frameworks_api_v1_reference_frameworks_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Frameworks Api V1 Reference Frameworks Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/categorization/records": {
+   "get": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "Categorization Records",
+    "operationId": "categorization_records_api_v1_systems__system_id__categorization_records_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Categorization Records Api V1 Systems  System Id  Categorization Records Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/categorization/records/{record_id}/approve": {
+   "post": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "Approve Categorization",
+    "operationId": "approve_categorization_api_v1_systems__system_id__categorization_records__record_id__approve_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "record_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Record Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ApproveIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Approve Categorization Api V1 Systems  System Id  Categorization Records  Record Id  Approve Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/pta": {
+   "get": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "Get Pta",
+    "operationId": "get_pta_api_v1_systems__system_id__pta_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Get Pta Api V1 Systems  System Id  Pta Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "Submit Pta",
+    "operationId": "submit_pta_api_v1_systems__system_id__pta_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PtaIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Submit Pta Api V1 Systems  System Id  Pta Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/pta/{response_id}/review": {
+   "post": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "Review Pta",
+    "operationId": "review_pta_api_v1_systems__system_id__pta__response_id__review_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "response_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Response Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PtaReviewIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Review Pta Api V1 Systems  System Id  Pta  Response Id  Review Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/pta/question-sets": {
+   "get": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "List Sets",
+    "operationId": "list_sets_api_v1_pta_question_sets_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "additionalProperties": true,
+          "type": "object"
+         },
+         "type": "array",
+         "title": "Response List Sets Api V1 Pta Question Sets Get"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "Create Set",
+    "description": "Agency-specific question set: a new version deactivates the previous one (old responses keep their version).",
+    "operationId": "create_set_api_v1_pta_question_sets_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/QuestionSetIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Create Set Api V1 Pta Question Sets Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/agency-overlays": {
+   "get": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "List Agency Overlays",
+    "operationId": "list_agency_overlays_api_v1_agency_overlays_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "additionalProperties": true,
+          "type": "object"
+         },
+         "type": "array",
+         "title": "Response List Agency Overlays Api V1 Agency Overlays Get"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "Create Agency Overlay",
+    "operationId": "create_agency_overlay_api_v1_agency_overlays_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AgencyOverlayIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Create Agency Overlay Api V1 Agency Overlays Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/policies/{policy_id}/mappings/{control_id}/review": {
+   "get": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "Mapping Review Sbs",
+    "operationId": "mapping_review_sbs_api_v1_policies__policy_id__mappings__control_id__review_get",
+    "parameters": [
+     {
+      "name": "policy_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Policy Id"
+      }
+     },
+     {
+      "name": "control_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Control Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Mapping Review Sbs Api V1 Policies  Policy Id  Mappings  Control Id  Review Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/policies/{policy_id}/mappings/{control_id}/decision": {
+   "post": {
+    "tags": [
+     "rmf-accuracy"
+    ],
+    "summary": "Mapping Decision",
+    "description": "Accept / Reject / Edit mapping / Request reanalysis / Flag for manual review / Override coverage \u2013 each with a comment, audited.",
+    "operationId": "mapping_decision_api_v1_policies__policy_id__mappings__control_id__decision_post",
+    "parameters": [
+     {
+      "name": "policy_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Policy Id"
+      }
+     },
+     {
+      "name": "control_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Control Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MapDecisionIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Mapping Decision Api V1 Policies  Policy Id  Mappings  Control Id  Decision Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/reference/rmf": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Rmf Reference",
+    "operationId": "rmf_reference_api_v1_reference_rmf_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Rmf Reference Api V1 Reference Rmf Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/reference/role-matrix": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Role Matrix",
+    "operationId": "role_matrix_api_v1_reference_role_matrix_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Role Matrix Api V1 Reference Role Matrix Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/reference/info-types": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Info Types",
+    "operationId": "info_types_api_v1_reference_info_types_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Info Types Api V1 Reference Info Types Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/reference/categorize": {
+   "post": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Categorize Preview",
+    "operationId": "categorize_preview_api_v1_reference_categorize_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CategorizeIn"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Categorize Preview Api V1 Reference Categorize Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/rmf-steps": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Rmf Steps",
+    "operationId": "rmf_steps_api_v1_systems__system_id__rmf_steps_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Rmf Steps Api V1 Systems  System Id  Rmf Steps Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/prepare": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Prepare View",
+    "operationId": "prepare_view_api_v1_systems__system_id__prepare_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Prepare View Api V1 Systems  System Id  Prepare Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Prepare Save",
+    "operationId": "prepare_save_api_v1_systems__system_id__prepare_put",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RolesIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Prepare Save Api V1 Systems  System Id  Prepare Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/categorization": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Categorization View",
+    "operationId": "categorization_view_api_v1_systems__system_id__categorization_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Categorization View Api V1 Systems  System Id  Categorization Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Categorization Save",
+    "operationId": "categorization_save_api_v1_systems__system_id__categorization_put",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CategorizationIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Categorization Save Api V1 Systems  System Id  Categorization Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/select": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Select View",
+    "operationId": "select_view_api_v1_systems__system_id__select_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Select View Api V1 Systems  System Id  Select Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/select/overlays/{overlay_key}": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Select Overlay Controls",
+    "operationId": "select_overlay_controls_api_v1_systems__system_id__select_overlays__overlay_key__get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "overlay_key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Overlay Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Select Overlay Controls Api V1 Systems  System Id  Select Overlays  Overlay Key  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/parameters/cnssi-adopt": {
+   "post": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Adopt Cnssi Values",
+    "operationId": "adopt_cnssi_values_api_v1_systems__system_id__parameters_cnssi_adopt_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AdoptIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/parameters/cnssi-adopt/{event_id}/undo": {
+   "post": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Undo Cnssi Values",
+    "operationId": "undo_cnssi_values_api_v1_systems__system_id__parameters_cnssi_adopt__event_id__undo_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "event_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Event Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Undo Cnssi Values Api V1 Systems  System Id  Parameters Cnssi Adopt  Event Id  Undo Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/select/cnssi-baseline": {
+   "post": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Accept Cnssi Baseline",
+    "operationId": "accept_cnssi_baseline_api_v1_systems__system_id__select_cnssi_baseline_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CnssiAcceptIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Accept Cnssi Baseline Api V1 Systems  System Id  Select Cnssi Baseline Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/select/baseline": {
+   "post": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Select Baseline",
+    "operationId": "select_baseline_api_v1_systems__system_id__select_baseline_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BaselineIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Select Baseline Api V1 Systems  System Id  Select Baseline Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/select/overlay": {
+   "post": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Select Overlay",
+    "operationId": "select_overlay_api_v1_systems__system_id__select_overlay_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OverlayIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Select Overlay Api V1 Systems  System Id  Select Overlay Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/select/tailor": {
+   "post": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Select Tailor",
+    "operationId": "select_tailor_api_v1_systems__system_id__select_tailor_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TailorIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Select Tailor Api V1 Systems  System Id  Select Tailor Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/overlays/{overlay_key}/import": {
+   "post": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Overlay Import",
+    "operationId": "overlay_import_api_v1_overlays__overlay_key__import_post",
+    "parameters": [
+     {
+      "name": "overlay_key",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Overlay Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_overlay_import_api_v1_overlays__overlay_key__import_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Overlay Import Api V1 Overlays  Overlay Key  Import Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/overlays/import-reference": {
+   "post": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Overlay Import Reference",
+    "operationId": "overlay_import_reference_api_v1_overlays_import_reference_post",
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_overlay_import_reference_api_v1_overlays_import_reference_post"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": true,
+         "type": "object",
+         "title": "Response Overlay Import Reference Api V1 Overlays Import Reference Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/authorize": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Authorize View",
+    "operationId": "authorize_view_api_v1_systems__system_id__authorize_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Authorize View Api V1 Systems  System Id  Authorize Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/traceability": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Traceability",
+    "description": "Policy \u2192 control \u2192 CCI \u2192 statement \u2192 evidence \u2192 findings \u2192 POA&M per assigned control; optional mapped-only / per-policy filter.",
+    "operationId": "traceability_api_v1_systems__system_id__traceability_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "mapped_only",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Mapped Only"
+      }
+     },
+     {
+      "name": "policy",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Policy"
+      }
+     },
+     {
+      "name": "fmt",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Fmt"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/processing": {
+   "get": {
+    "tags": [
+     "processing"
+    ],
+    "summary": "Processing",
+    "operationId": "processing_api_v1_systems__system_id__processing_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Processing Api V1 Systems  System Id  Processing Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/ingest-runs/{run_id}/retry": {
+   "post": {
+    "tags": [
+     "processing"
+    ],
+    "summary": "Retry Run",
+    "operationId": "retry_run_api_v1_ingest_runs__run_id__retry_post",
+    "parameters": [
+     {
+      "name": "run_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Run Id"
+      }
+     }
+    ],
+    "responses": {
+     "202": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Retry Run Api V1 Ingest Runs  Run Id  Retry Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/policies/{policy_id}/reanalyze": {
+   "post": {
+    "tags": [
+     "processing"
+    ],
+    "summary": "Reanalyze Policy",
+    "operationId": "reanalyze_policy_api_v1_policies__policy_id__reanalyze_post",
+    "parameters": [
+     {
+      "name": "policy_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Policy Id"
+      }
+     }
+    ],
+    "responses": {
+     "202": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Reanalyze Policy Api V1 Policies  Policy Id  Reanalyze Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/tr/workbooks": {
+   "post": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Upload",
+    "operationId": "upload_api_v1_systems__system_id__tr_workbooks_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_upload_api_v1_systems__system_id__tr_workbooks_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Upload Api V1 Systems  System Id  Tr Workbooks Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "List Workbooks",
+    "operationId": "list_workbooks_api_v1_systems__system_id__tr_workbooks_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "additionalProperties": true
+         },
+         "title": "Response List Workbooks Api V1 Systems  System Id  Tr Workbooks Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}": {
+   "get": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Workbook",
+    "operationId": "workbook_api_v1_tr_workbooks__wid__get",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Workbook Api V1 Tr Workbooks  Wid  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}/rows": {
+   "get": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Rows",
+    "operationId": "rows_api_v1_tr_workbooks__wid__rows_get",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     },
+     {
+      "name": "state",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "State"
+      }
+     },
+     {
+      "name": "match",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Match"
+      }
+     },
+     {
+      "name": "family",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Family"
+      }
+     },
+     {
+      "name": "q",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Q"
+      }
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 50,
+       "title": "Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Rows Api V1 Tr Workbooks  Wid  Rows Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}/mapping": {
+   "put": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Set Mapping",
+    "operationId": "set_mapping_api_v1_tr_workbooks__wid__mapping_put",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MappingIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Set Mapping Api V1 Tr Workbooks  Wid  Mapping Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}/rows/{rid}/resolve": {
+   "post": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Resolve",
+    "operationId": "resolve_api_v1_tr_workbooks__wid__rows__rid__resolve_post",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     },
+     {
+      "name": "rid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Rid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/app__api__v1__tr__ResolveIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Resolve Api V1 Tr Workbooks  Wid  Rows  Rid  Resolve Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}/template": {
+   "post": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Save Template",
+    "operationId": "save_template_api_v1_tr_workbooks__wid__template_post",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TemplateIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Save Template Api V1 Tr Workbooks  Wid  Template Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}/generate": {
+   "post": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Generate",
+    "operationId": "generate_api_v1_tr_workbooks__wid__generate_post",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/GenerateIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "202": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Generate Api V1 Tr Workbooks  Wid  Generate Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}/decide": {
+   "post": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Decide",
+    "operationId": "decide_api_v1_tr_workbooks__wid__decide_post",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DecideIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Decide Api V1 Tr Workbooks  Wid  Decide Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}/export": {
+   "post": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Export",
+    "operationId": "export_api_v1_tr_workbooks__wid__export_post",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Export Api V1 Tr Workbooks  Wid  Export Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/exports/{eid}/download": {
+   "get": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Download",
+    "operationId": "download_api_v1_tr_exports__eid__download_get",
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/exports/{eid}/validation-report": {
+   "get": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Validation Report",
+    "operationId": "validation_report_api_v1_tr_exports__eid__validation_report_get",
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/lookup": {
+   "get": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Lookup",
+    "operationId": "lookup_api_v1_tr_lookup_get",
+    "parameters": [
+     {
+      "name": "q",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Q"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Lookup Api V1 Tr Lookup Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}/analyze": {
+   "post": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Analyze",
+    "description": "Evidence analysis as a worker job: one row (on demand) or in bulk. Read-only for the row; nothing is written to Test Results.",
+    "operationId": "analyze_api_v1_tr_workbooks__wid__analyze_post",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AnalyzeIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "202": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Analyze Api V1 Tr Workbooks  Wid  Analyze Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}/rows/{rid}/analysis": {
+   "get": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Get Analysis",
+    "operationId": "get_analysis_api_v1_tr_workbooks__wid__rows__rid__analysis_get",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     },
+     {
+      "name": "rid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Rid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Get Analysis Api V1 Tr Workbooks  Wid  Rows  Rid  Analysis Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/tr/workbooks/{wid}/rows/{rid}/use-analysis": {
+   "post": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Use Analysis",
+    "description": "Assessor clicks \u201cUse this text\u201d: only Test Results changes, attributed as AI-assisted. An approved row needs SCA re-approval.",
+    "operationId": "use_analysis_api_v1_tr_workbooks__wid__rows__rid__use_analysis_post",
+    "parameters": [
+     {
+      "name": "wid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Wid"
+      }
+     },
+     {
+      "name": "rid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Rid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UseAnalysisIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Use Analysis Api V1 Tr Workbooks  Wid  Rows  Rid  Use Analysis Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/inventory/imports": {
+   "post": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Upload",
+    "operationId": "upload_api_v1_systems__system_id__inventory_imports_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_upload_api_v1_systems__system_id__inventory_imports_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Upload Api V1 Systems  System Id  Inventory Imports Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/inventory": {
+   "get": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Overview",
+    "operationId": "overview_api_v1_systems__system_id__inventory_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Overview Api V1 Systems  System Id  Inventory Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/inventory/assets/{asset_id}": {
+   "get": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Asset Detail",
+    "operationId": "asset_detail_api_v1_systems__system_id__inventory_assets__asset_id__get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "asset_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Asset Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Asset Detail Api V1 Systems  System Id  Inventory Assets  Asset Id  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/inventory/check": {
+   "post": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Check",
+    "operationId": "check_api_v1_systems__system_id__inventory_check_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "202": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Check Api V1 Systems  System Id  Inventory Check Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/inventory/discrepancies": {
+   "get": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Discrepancies",
+    "operationId": "discrepancies_api_v1_systems__system_id__inventory_discrepancies_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "open,pending_approval",
+       "title": "Status"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {},
+         "title": "Response Discrepancies Api V1 Systems  System Id  Inventory Discrepancies Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/inventory/discrepancies/{did}": {
+   "post": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Act",
+    "operationId": "act_api_v1_inventory_discrepancies__did__post",
+    "parameters": [
+     {
+      "name": "did",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Did"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/DiscAction"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Act Api V1 Inventory Discrepancies  Did  Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/inventory/correlations": {
+   "get": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Correlations",
+    "operationId": "correlations_api_v1_systems__system_id__inventory_correlations_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "needs_review",
+       "title": "Status"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {},
+         "title": "Response Correlations Api V1 Systems  System Id  Inventory Correlations Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/inventory/correlations/{cid}": {
+   "post": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Decide Correlation",
+    "operationId": "decide_correlation_api_v1_inventory_correlations__cid__post",
+    "parameters": [
+     {
+      "name": "cid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Cid"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CorrDecision"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Decide Correlation Api V1 Inventory Correlations  Cid  Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/inventory/export": {
+   "post": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Export",
+    "operationId": "export_api_v1_systems__system_id__inventory_export_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Export Api V1 Systems  System Id  Inventory Export Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/inventory/exports/{eid}/download": {
+   "get": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Download",
+    "operationId": "download_api_v1_inventory_exports__eid__download_get",
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/inventory/exports/{eid}/validation-report": {
+   "get": {
+    "tags": [
+     "inventory"
+    ],
+    "summary": "Report",
+    "operationId": "report_api_v1_inventory_exports__eid__validation_report_get",
+    "parameters": [
+     {
+      "name": "eid",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Eid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Report Api V1 Inventory Exports  Eid  Validation Report Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/public/whitepaper.{ext}": {
+   "get": {
+    "tags": [
+     "public"
+    ],
+    "summary": "Whitepaper",
+    "description": "Public (no auth) download of the product whitepaper. PDF inline (opens in iOS Safari's viewer), DOCX as attachment.",
+    "operationId": "whitepaper_api_v1_public_whitepaper__ext__get",
+    "parameters": [
+     {
+      "name": "ext",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Ext"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "head": {
+    "tags": [
+     "public"
+    ],
+    "summary": "Whitepaper",
+    "description": "Public (no auth) download of the product whitepaper. PDF inline (opens in iOS Safari's viewer), DOCX as attachment.",
+    "operationId": "whitepaper_api_v1_public_whitepaper__ext__get",
+    "parameters": [
+     {
+      "name": "ext",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Ext"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/public/demo/{name}": {
+   "get": {
+    "tags": [
+     "public"
+    ],
+    "summary": "Demo File",
+    "description": "Public (no auth) product demo video and its narration/caption/timeline/validation files. Range requests supported (MP4 seeking).",
+    "operationId": "demo_file_api_v1_public_demo__name__get",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "head": {
+    "tags": [
+     "public"
+    ],
+    "summary": "Demo File",
+    "description": "Public (no auth) product demo video and its narration/caption/timeline/validation files. Range requests supported (MP4 seeking).",
+    "operationId": "demo_file_api_v1_public_demo__name__get",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Name"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/ready": {
    "get": {
     "tags": [
@@ -6937,7 +13120,19 @@
        "type": "boolean"
       },
       "type": "object",
-      "title": "Use Cases"
+      "title": "Use Cases",
+      "default": {}
+     },
+     "model": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Model"
      },
      "logging_policy": {
       "anyOf": [
@@ -6963,9 +13158,6 @@
      }
     },
     "type": "object",
-    "required": [
-     "use_cases"
-    ],
     "title": "AISettingsIn"
    },
    "AckIn": {
@@ -6987,6 +13179,199 @@
      "rationale"
     ],
     "title": "AckIn"
+   },
+   "ActAs": {
+    "properties": {
+     "role": {
+      "type": "string",
+      "title": "Role"
+     }
+    },
+    "type": "object",
+    "required": [
+     "role"
+    ],
+    "title": "ActAs"
+   },
+   "AdoptIn": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/AdoptItem"
+      },
+      "type": "array",
+      "title": "Items",
+      "default": []
+     },
+     "control_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 50
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Control Id"
+     },
+     "family": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^[a-z]{2}$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Family"
+     },
+     "confirm_conflicts": {
+      "type": "boolean",
+      "title": "Confirm Conflicts",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "AdoptIn"
+   },
+   "AdoptItem": {
+    "properties": {
+     "control_id": {
+      "type": "string",
+      "maxLength": 50,
+      "title": "Control Id"
+     },
+     "parameter_id": {
+      "type": "string",
+      "maxLength": 100,
+      "title": "Parameter Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "control_id",
+     "parameter_id"
+    ],
+    "title": "AdoptItem"
+   },
+   "AgencyOverlayIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 255,
+      "minLength": 3,
+      "title": "Name"
+     },
+     "issuing_authority": {
+      "type": "string",
+      "maxLength": 255,
+      "minLength": 2,
+      "title": "Issuing Authority"
+     },
+     "source_document": {
+      "type": "string",
+      "maxLength": 500,
+      "minLength": 3,
+      "title": "Source Document"
+     },
+     "framework": {
+      "type": "string",
+      "pattern": "^(fips199|cnssi1253)$",
+      "title": "Framework"
+     },
+     "version": {
+      "type": "string",
+      "maxLength": 50,
+      "minLength": 1,
+      "title": "Version"
+     },
+     "applicability": {
+      "type": "string",
+      "maxLength": 4000,
+      "minLength": 10,
+      "title": "Applicability"
+     },
+     "status": {
+      "type": "string",
+      "pattern": "^(approved|pending_validation|retired)$",
+      "title": "Status",
+      "default": "approved"
+     },
+     "effective_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Effective Date"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "issuing_authority",
+     "source_document",
+     "framework",
+     "version",
+     "applicability"
+    ],
+    "title": "AgencyOverlayIn"
+   },
+   "AnalyzeIn": {
+    "properties": {
+     "row_ids": {
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "type": "array",
+      "title": "Row Ids",
+      "default": []
+     },
+     "all_matched": {
+      "type": "boolean",
+      "title": "All Matched",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "AnalyzeIn"
+   },
+   "ApproveIn": {
+    "properties": {
+     "rationale": {
+      "type": "string",
+      "maxLength": 4000,
+      "minLength": 10,
+      "title": "Rationale"
+     }
+    },
+    "type": "object",
+    "required": [
+     "rationale"
+    ],
+    "title": "ApproveIn"
+   },
+   "ArchiveIn": {
+    "properties": {
+     "reason": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 5,
+      "title": "Reason"
+     }
+    },
+    "type": "object",
+    "required": [
+     "reason"
+    ],
+    "title": "ArchiveIn"
    },
    "AssessmentIn": {
     "properties": {
@@ -7190,6 +13575,47 @@
      "name"
     ],
     "title": "AssetIn"
+   },
+   "Assist": {
+    "properties": {
+     "source": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "ai",
+         "rules"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Source"
+     },
+     "fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Fields",
+      "default": []
+     },
+     "interaction_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Interaction Id"
+     }
+    },
+    "type": "object",
+    "title": "Assist"
    },
    "AuditEventOut": {
     "properties": {
@@ -7419,6 +13845,21 @@
       "title": "Dev Password Enabled",
       "default": true
      },
+     "signup_enabled": {
+      "type": "boolean",
+      "title": "Signup Enabled",
+      "default": false
+     },
+     "demo_login_enabled": {
+      "type": "boolean",
+      "title": "Demo Login Enabled",
+      "default": false
+     },
+     "registration_enabled": {
+      "type": "boolean",
+      "title": "Registration Enabled",
+      "default": false
+     },
      "oidc_enabled": {
       "type": "boolean",
       "title": "Oidc Enabled",
@@ -7433,6 +13874,34 @@
      "dev_accounts"
     ],
     "title": "AuthProviderInfo"
+   },
+   "AuthStrategyIn": {
+    "properties": {
+     "authorization_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 50
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Authorization Type",
+      "description": "Authorization type sought (ATO, IATT, ATO with conditions \u2026); null clears it."
+     },
+     "justification": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 5,
+      "title": "Justification"
+     }
+    },
+    "type": "object",
+    "required": [
+     "justification"
+    ],
+    "title": "AuthStrategyIn"
    },
    "BackdateIn": {
     "properties": {
@@ -7464,6 +13933,25 @@
     ],
     "title": "BannerIn"
    },
+   "BaselineIn": {
+    "properties": {
+     "baseline_key": {
+      "type": "string",
+      "pattern": "^(low|moderate|high)$",
+      "title": "Baseline Key"
+     },
+     "include_privacy": {
+      "type": "boolean",
+      "title": "Include Privacy",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "baseline_key"
+    ],
+    "title": "BaselineIn"
+   },
    "Body_attestation_evidence_api_v1_attestations__att_id__evidence_post": {
     "properties": {
      "file": {
@@ -7477,6 +13965,166 @@
      "file"
     ],
     "title": "Body_attestation_evidence_api_v1_attestations__att_id__evidence_post"
+   },
+   "Body_crm_apply_api_v1_providers__provider_id__crm_apply_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     },
+     "mapping": {
+      "type": "string",
+      "title": "Mapping",
+      "default": ""
+     },
+     "system_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "System Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_crm_apply_api_v1_providers__provider_id__crm_apply_post"
+   },
+   "Body_crm_preview_api_v1_providers__provider_id__crm_preview_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     },
+     "mapping": {
+      "type": "string",
+      "title": "Mapping",
+      "default": ""
+     },
+     "system_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "System Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_crm_preview_api_v1_providers__provider_id__crm_preview_post"
+   },
+   "Body_evidence_new_version_api_v1_evidence__evidence_id__versions_post": {
+    "properties": {
+     "reason": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 5,
+      "title": "Reason"
+     },
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "reason",
+     "file"
+    ],
+    "title": "Body_evidence_new_version_api_v1_evidence__evidence_id__versions_post"
+   },
+   "Body_import_crm_api_v1_providers__provider_id__responsibility_matrix_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_import_crm_api_v1_providers__provider_id__responsibility_matrix_post"
+   },
+   "Body_overlay_import_api_v1_overlays__overlay_key__import_post": {
+    "properties": {
+     "version": {
+      "type": "string",
+      "maxLength": 20,
+      "minLength": 1,
+      "title": "Version"
+     },
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "version",
+     "file"
+    ],
+    "title": "Body_overlay_import_api_v1_overlays__overlay_key__import_post"
+   },
+   "Body_overlay_import_reference_api_v1_overlays_import_reference_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_overlay_import_reference_api_v1_overlays_import_reference_post"
+   },
+   "Body_upload_api_v1_systems__system_id__inventory_imports_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_upload_api_v1_systems__system_id__inventory_imports_post"
+   },
+   "Body_upload_api_v1_systems__system_id__tr_workbooks_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_upload_api_v1_systems__system_id__tr_workbooks_post"
    },
    "Body_upload_api_v1_systems__system_id__uploads_post": {
     "properties": {
@@ -7542,6 +14190,294 @@
      "title"
     ],
     "title": "Body_upload_policy_api_v1_policies_post"
+   },
+   "BulkIn": {
+    "properties": {
+     "control_ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 2000,
+      "minItems": 1,
+      "title": "Control Ids"
+     },
+     "fields": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Fields"
+     },
+     "confirm": {
+      "type": "boolean",
+      "title": "Confirm",
+      "default": false
+     }
+    },
+    "type": "object",
+    "required": [
+     "control_ids",
+     "fields"
+    ],
+    "title": "BulkIn"
+   },
+   "BulkInheritIn": {
+    "properties": {
+     "control_ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 1500,
+      "minItems": 1,
+      "title": "Control Ids"
+     },
+     "responsibility": {
+      "type": "string",
+      "pattern": "^(inherited|shared|system)$",
+      "title": "Responsibility"
+     },
+     "provider_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Provider Id"
+     },
+     "provider_responsibility_text": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 5000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Provider Responsibility Text"
+     },
+     "system_responsibility_text": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 5000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "System Responsibility Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "control_ids",
+     "responsibility"
+    ],
+    "title": "BulkInheritIn"
+   },
+   "CategorizationIn": {
+    "properties": {
+     "mode": {
+      "type": "string",
+      "pattern": "^(fips199|cnssi1253)$",
+      "title": "Mode",
+      "default": "fips199"
+     },
+     "information_types": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Information Types",
+      "default": []
+     },
+     "cia": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cia"
+     },
+     "nss_determination": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(yes|no|unsure)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nss Determination",
+      "description": "Is this a National Security System? (44 U.S.C. \u00a73552; SP 800-59)"
+     },
+     "classified_information": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(yes|no|unknown)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Classified Information",
+      "description": "Does the system, by intent and design, process classified information?"
+     },
+     "rationale": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 4000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rationale"
+     },
+     "mission_criticality": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 50
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mission Criticality"
+     },
+     "system_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 80
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "System Type"
+     },
+     "acquisition_category": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Acquisition Category"
+     },
+     "authorization_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 50
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Authorization Type"
+     },
+     "operating_environment": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 100
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Operating Environment"
+     },
+     "environment_detail": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Environment Detail"
+     },
+     "processes_pii": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Processes Pii"
+     },
+     "pta": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pta"
+     }
+    },
+    "type": "object",
+    "title": "CategorizationIn"
+   },
+   "CategorizeIn": {
+    "properties": {
+     "mode": {
+      "type": "string",
+      "pattern": "^(fips199|cnssi1253)$",
+      "title": "Mode",
+      "default": "fips199"
+     },
+     "information_types": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Information Types",
+      "default": []
+     },
+     "cia": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cia"
+     }
+    },
+    "type": "object",
+    "title": "CategorizeIn"
    },
    "CciMapOut": {
     "properties": {
@@ -7636,6 +14572,20 @@
      "evidence_ids"
     ],
     "title": "ClosureIn"
+   },
+   "CnssiAcceptIn": {
+    "properties": {
+     "to": {
+      "type": "string",
+      "pattern": "^[LMH]-[LMH]-[LMH]$",
+      "title": "To"
+     }
+    },
+    "type": "object",
+    "required": [
+     "to"
+    ],
+    "title": "CnssiAcceptIn"
    },
    "CommentIn": {
     "properties": {
@@ -8146,6 +15096,166 @@
     ],
     "title": "ControlSummary"
    },
+   "CorrDecision": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "pattern": "^(confirm|reject|explain)$",
+      "title": "Action"
+     },
+     "asset_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Asset Id"
+     },
+     "justification": {
+      "type": "string",
+      "maxLength": 2000,
+      "title": "Justification",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "action"
+    ],
+    "title": "CorrDecision"
+   },
+   "CoveragePoam": {
+    "properties": {
+     "system_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "System Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "system_id"
+    ],
+    "title": "CoveragePoam"
+   },
+   "CoveredElsewhere": {
+    "properties": {
+     "reason": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 10,
+      "title": "Reason"
+     },
+     "evidence_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Evidence Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "reason"
+    ],
+    "title": "CoveredElsewhere"
+   },
+   "DecideIn": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "title": "Action",
+      "description": "`approve` (SCA only) or `edit`"
+     },
+     "row_ids": {
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "type": "array",
+      "title": "Row Ids"
+     },
+     "justification": {
+      "type": "string",
+      "title": "Justification",
+      "default": ""
+     },
+     "use_suggestion": {
+      "type": "boolean",
+      "title": "Use Suggestion",
+      "description": "approve: use the evidence suggestion as the SCA's Compliance Status",
+      "default": false
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status",
+      "description": "approve: the SCA's Compliance Status (must be in the template vocabulary)"
+     },
+     "values": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Values",
+      "description": "edit: {\"test_results\": str, \"compliance_status\": str (SCA only)}. approve: only {\"test_results\": str} \u2013 the SCA's final Test Results text, saved with the approval"
+     },
+     "tested_by": {
+      "type": "string",
+      "title": "Tested By",
+      "description": "approve: actual tester for the batch (required unless per_row)",
+      "default": ""
+     },
+     "date_tested": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Tested",
+      "description": "approve: actual test date for the batch, not in the future (required unless per_row)"
+     },
+     "per_row": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/TesterIn"
+      },
+      "type": "object",
+      "title": "Per Row",
+      "description": "approve: row_id \u2192 {tested_by, date_tested}",
+      "default": {}
+     }
+    },
+    "type": "object",
+    "required": [
+     "action",
+     "row_ids"
+    ],
+    "title": "DecideIn"
+   },
    "DecisionIn": {
     "properties": {
      "action": {
@@ -8245,11 +15355,31 @@
     ],
     "title": "DevAccount"
    },
+   "DiscAction": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "pattern": "^(accept|approve|reject|ignore|explain)$",
+      "title": "Action"
+     },
+     "reason": {
+      "type": "string",
+      "maxLength": 2000,
+      "title": "Reason",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "action"
+    ],
+    "title": "DiscAction"
+   },
    "DispositionIn": {
     "properties": {
      "disposition": {
       "type": "string",
-      "pattern": "^(not_applicable|false_positive|risk_accepted_pending|no_control_mapping)$",
+      "pattern": "^(not_applicable|out_of_scope|informational|false_positive|no_control_mapping)$",
       "title": "Disposition"
      },
      "justification": {
@@ -8407,6 +15537,17 @@
     ],
     "title": "FamilyOut"
    },
+   "GenerateIn": {
+    "properties": {
+     "populate": {
+      "type": "boolean",
+      "title": "Populate",
+      "default": false
+     }
+    },
+    "type": "object",
+    "title": "GenerateIn"
+   },
    "HTTPValidationError": {
     "properties": {
      "detail": {
@@ -8464,6 +15605,26 @@
      "components"
     ],
     "title": "HealthOut"
+   },
+   "HoldIn": {
+    "properties": {
+     "on": {
+      "type": "boolean",
+      "title": "On"
+     },
+     "reason": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 5,
+      "title": "Reason"
+     }
+    },
+    "type": "object",
+    "required": [
+     "on",
+     "reason"
+    ],
+    "title": "HoldIn"
    },
    "InheritIn": {
     "properties": {
@@ -8707,26 +15868,48 @@
     ],
     "title": "LoginRequest"
    },
-   "MapIn": {
+   "MapDecisionIn": {
     "properties": {
-     "control_id": {
+     "action": {
       "type": "string",
-      "maxLength": 50,
-      "title": "Control Id"
+      "pattern": "^(accept|reject|edit|reanalyze|flag|override_coverage)$",
+      "title": "Action"
      },
-     "justification": {
+     "comment": {
       "type": "string",
-      "maxLength": 2000,
-      "minLength": 10,
-      "title": "Justification"
+      "maxLength": 4000,
+      "title": "Comment",
+      "default": ""
+     },
+     "edit_control_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Edit Control Id"
+     },
+     "coverage_outcome": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(Fully Addressed|Partially Addressed|Not Addressed|Requires Manual Review)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Coverage Outcome"
      }
     },
     "type": "object",
     "required": [
-     "control_id",
-     "justification"
+     "action"
     ],
-    "title": "MapIn"
+    "title": "MapDecisionIn"
    },
    "MapReview": {
     "properties": {
@@ -8748,6 +15931,22 @@
      "justification"
     ],
     "title": "MapReview"
+   },
+   "MappingIn": {
+    "properties": {
+     "roles": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object",
+      "title": "Roles"
+     }
+    },
+    "type": "object",
+    "required": [
+     "roles"
+    ],
+    "title": "MappingIn"
    },
    "MilestoneIn": {
     "properties": {
@@ -8928,6 +16127,38 @@
     ],
     "title": "ObjectiveOut"
    },
+   "OidcExchangeIn": {
+    "properties": {
+     "code": {
+      "type": "string",
+      "title": "Code"
+     }
+    },
+    "type": "object",
+    "required": [
+     "code"
+    ],
+    "title": "OidcExchangeIn"
+   },
+   "OverlayIn": {
+    "properties": {
+     "overlay_key": {
+      "type": "string",
+      "maxLength": 100,
+      "title": "Overlay Key"
+     },
+     "apply": {
+      "type": "boolean",
+      "title": "Apply"
+     }
+    },
+    "type": "object",
+    "required": [
+     "overlay_key",
+     "apply"
+    ],
+    "title": "OverlayIn"
+   },
    "PFDecision": {
     "properties": {
      "justification": {
@@ -8965,6 +16196,188 @@
      "justification"
     ],
     "title": "PackageIn"
+   },
+   "PlanIn": {
+    "properties": {
+     "implementation_status": {
+      "type": "string",
+      "enum": [
+       "Planned",
+       "Implemented",
+       "Inherited",
+       "Not Applicable",
+       "Manually Inherited"
+      ],
+      "title": "Implementation Status"
+     },
+     "control_designation": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "Common",
+         "System-Specific",
+         "Hybrid"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Control Designation"
+     },
+     "estimated_completion_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Estimated Completion Date"
+     },
+     "responsible_entities": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Responsible Entities"
+     },
+     "slcm_criticality": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slcm Criticality"
+     },
+     "slcm_frequency": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "Constantly",
+         "Daily",
+         "Weekly",
+         "Monthly",
+         "Quarterly",
+         "Semi-Annually",
+         "Annually",
+         "Every Two Years",
+         "Every Three Years",
+         "Undetermined"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slcm Frequency"
+     },
+     "slcm_method": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "Automated",
+         "Semi-Automated",
+         "Manual",
+         "Undetermined"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slcm Method"
+     },
+     "slcm_reporting": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slcm Reporting"
+     },
+     "slcm_tracking": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slcm Tracking"
+     },
+     "slcm_comments": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 4000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slcm Comments"
+     },
+     "na_justification": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Na Justification"
+     },
+     "common_control_provider": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "DoD",
+         "Component",
+         "Enclave"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Common Control Provider"
+     },
+     "assist": {
+      "$ref": "#/components/schemas/Assist",
+      "default": {
+       "fields": []
+      }
+     }
+    },
+    "type": "object",
+    "required": [
+     "implementation_status"
+    ],
+    "title": "PlanIn"
    },
    "PoamCreate": {
     "properties": {
@@ -9372,6 +16785,18 @@
        }
       ],
       "title": "Package Expiration"
+     },
+     "authorization_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 60
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Authorization Type"
      }
     },
     "type": "object",
@@ -9379,6 +16804,124 @@
      "name"
     ],
     "title": "ProviderIn"
+   },
+   "PtaIn": {
+    "properties": {
+     "answers": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Answers",
+      "description": "question id \u2192 {answer: yes|no|not_sure, explanation}"
+     }
+    },
+    "type": "object",
+    "required": [
+     "answers"
+    ],
+    "title": "PtaIn"
+   },
+   "PtaReviewIn": {
+    "properties": {
+     "decision": {
+      "type": "string",
+      "pattern": "^(approve|return)$",
+      "title": "Decision"
+     },
+     "rationale": {
+      "type": "string",
+      "maxLength": 4000,
+      "minLength": 10,
+      "title": "Rationale"
+     },
+     "determination": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(pii|no_pii)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Determination"
+     }
+    },
+    "type": "object",
+    "required": [
+     "decision",
+     "rationale"
+    ],
+    "title": "PtaReviewIn"
+   },
+   "QuestionSetIn": {
+    "properties": {
+     "title": {
+      "type": "string",
+      "maxLength": 255,
+      "minLength": 3,
+      "title": "Title"
+     },
+     "questions": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Questions"
+     }
+    },
+    "type": "object",
+    "required": [
+     "title",
+     "questions"
+    ],
+    "title": "QuestionSetIn"
+   },
+   "QueueDecision": {
+    "properties": {
+     "system_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "System Id"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/QueueItem"
+      },
+      "type": "array",
+      "maxItems": 500,
+      "minItems": 1,
+      "title": "Items"
+     },
+     "action": {
+      "type": "string",
+      "pattern": "^(approve|reject|edit)$",
+      "title": "Action"
+     },
+     "justification": {
+      "type": "string",
+      "maxLength": 2000,
+      "title": "Justification",
+      "default": ""
+     },
+     "edit_control_ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Edit Control Ids",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "system_id",
+     "items",
+     "action"
+    ],
+    "title": "QueueDecision"
    },
    "QueueIn": {
     "properties": {
@@ -9399,6 +16942,45 @@
     ],
     "title": "QueueIn"
    },
+   "QueueItem": {
+    "properties": {
+     "kind": {
+      "type": "string",
+      "pattern": "^(status|policy_status|policy_map|finding_map)$",
+      "title": "Kind"
+     },
+     "ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "minItems": 1,
+      "title": "Ids"
+     },
+     "control_id": {
+      "type": "string",
+      "title": "Control Id"
+     },
+     "evidence_fp": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Evidence Fp"
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind",
+     "ids",
+     "control_id"
+    ],
+    "title": "QueueItem"
+   },
    "RefreshIn": {
     "properties": {
      "refresh_token": {
@@ -9412,26 +16994,40 @@
     ],
     "title": "RefreshIn"
    },
-   "ResolveIn": {
+   "RejectIn": {
     "properties": {
-     "choice": {
+     "control_id": {
       "type": "string",
-      "pattern": "^(keep_local|accept_remote)$",
-      "title": "Choice"
+      "title": "Control Id"
      },
-     "rationale": {
+     "justification": {
       "type": "string",
-      "maxLength": 2000,
+      "maxLength": 5000,
       "minLength": 10,
-      "title": "Rationale"
+      "title": "Justification"
      }
     },
     "type": "object",
     "required": [
-     "choice",
-     "rationale"
+     "control_id",
+     "justification"
     ],
-    "title": "ResolveIn"
+    "title": "RejectIn"
+   },
+   "RemoveIn": {
+    "properties": {
+     "reason": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 5,
+      "title": "Reason"
+     }
+    },
+    "type": "object",
+    "required": [
+     "reason"
+    ],
+    "title": "RemoveIn"
    },
    "ReviewReqIn": {
     "properties": {
@@ -9447,51 +17043,6 @@
      "justification"
     ],
     "title": "ReviewReqIn"
-   },
-   "RiskIn": {
-    "properties": {
-     "justification": {
-      "type": "string",
-      "maxLength": 5000,
-      "minLength": 10,
-      "title": "Justification"
-     },
-     "kind": {
-      "type": "string",
-      "pattern": "^(waiver_extension|deadline_extension)$",
-      "title": "Kind",
-      "default": "waiver_extension"
-     },
-     "expiration": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Expiration"
-     },
-     "new_due_date": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "New Due Date"
-     }
-    },
-    "type": "object",
-    "required": [
-     "justification"
-    ],
-    "title": "RiskIn"
    },
    "RoleIn": {
     "properties": {
@@ -9537,6 +17088,65 @@
     ],
     "title": "RoleOut"
    },
+   "RolesIn": {
+    "properties": {
+     "roles": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Roles"
+     }
+    },
+    "type": "object",
+    "required": [
+     "roles"
+    ],
+    "title": "RolesIn"
+   },
+   "RuleAction": {
+    "properties": {
+     "system_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "System Id"
+     },
+     "finding_ids": {
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "type": "array",
+      "minItems": 1,
+      "title": "Finding Ids"
+     },
+     "action": {
+      "type": "string",
+      "pattern": "^(map|out_of_scope|informational)$",
+      "title": "Action"
+     },
+     "control_ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Control Ids",
+      "default": []
+     },
+     "justification": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 10,
+      "title": "Justification"
+     }
+    },
+    "type": "object",
+    "required": [
+     "system_id",
+     "finding_ids",
+     "action",
+     "justification"
+    ],
+    "title": "RuleAction"
+   },
    "RuleIn": {
     "properties": {
      "steps": {
@@ -9581,6 +17191,69 @@
      "enabled"
     ],
     "title": "ScheduleIn"
+   },
+   "SignupIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 2,
+      "title": "Name"
+     },
+     "email": {
+      "type": "string",
+      "maxLength": 320,
+      "minLength": 5,
+      "title": "Email"
+     },
+     "password": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Password"
+     },
+     "organization": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Organization"
+     },
+     "iv_hp_fax_only": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Iv Hp Fax Only"
+     },
+     "form_token": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Form Token"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "email",
+     "password"
+    ],
+    "title": "SignupIn"
    },
    "SourceIn": {
     "properties": {
@@ -9659,6 +17332,67 @@
     },
     "type": "object",
     "title": "SourceIn"
+   },
+   "StatusIn": {
+    "properties": {
+     "implementation_status": {
+      "type": "string",
+      "pattern": "^(planned|partially_implemented|implemented|not_applicable|inherited|not_implemented)$",
+      "title": "Implementation Status"
+     }
+    },
+    "type": "object",
+    "required": [
+     "implementation_status"
+    ],
+    "title": "StatusIn"
+   },
+   "StepIn": {
+    "properties": {
+     "step": {
+      "type": "string",
+      "pattern": "^(dismissed)$",
+      "title": "Step"
+     }
+    },
+    "type": "object",
+    "required": [
+     "step"
+    ],
+    "title": "StepIn"
+   },
+   "SuggestIn": {
+    "properties": {
+     "implementation_status": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "Planned",
+         "Implemented",
+         "Inherited",
+         "Not Applicable",
+         "Manually Inherited"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Implementation Status"
+     },
+     "mode": {
+      "type": "string",
+      "enum": [
+       "auto",
+       "rules"
+      ],
+      "title": "Mode",
+      "default": "auto"
+     }
+    },
+    "type": "object",
+    "title": "SuggestIn"
    },
    "SystemBase": {
     "properties": {
@@ -9787,13 +17521,23 @@
       "anyOf": [
        {
         "type": "string",
-        "maxLength": 100
+        "enum": [
+         "on_prem_gov",
+         "contractor",
+         "cloud_iaas",
+         "cloud_paas",
+         "cloud_saas",
+         "hybrid",
+         "tactical",
+         "other"
+        ]
        },
        {
         "type": "null"
        }
       ],
-      "title": "Operating Environment"
+      "title": "Operating Environment",
+      "description": "Hosting environment; SRG impact levels apply only to cloud_iaas, cloud_paas, cloud_saas and hybrid."
      },
      "deployment_type": {
       "anyOf": [
@@ -9929,6 +17673,101 @@
        }
       ],
       "title": "Mission Criticality"
+     },
+     "system_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 80
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "System Type"
+     },
+     "acquisition_category": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Acquisition Category"
+     },
+     "authorization_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 50
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Authorization Type"
+     },
+     "categorization_mode": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(fips199|cnssi1253)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Categorization Mode"
+     },
+     "environment_detail": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Environment Detail"
+     },
+     "processes_pii": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Processes Pii"
+     },
+     "pta": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pta"
+     },
+     "key_roles": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key Roles"
      }
     },
     "type": "object",
@@ -10054,13 +17893,23 @@
       "anyOf": [
        {
         "type": "string",
-        "maxLength": 100
+        "enum": [
+         "on_prem_gov",
+         "contractor",
+         "cloud_iaas",
+         "cloud_paas",
+         "cloud_saas",
+         "hybrid",
+         "tactical",
+         "other"
+        ]
        },
        {
         "type": "null"
        }
       ],
-      "title": "Operating Environment"
+      "title": "Operating Environment",
+      "description": "Hosting environment; SRG impact levels apply only to cloud_iaas, cloud_paas, cloud_saas and hybrid."
      },
      "deployment_type": {
       "anyOf": [
@@ -10197,6 +18046,101 @@
       ],
       "title": "Mission Criticality"
      },
+     "system_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 80
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "System Type"
+     },
+     "acquisition_category": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Acquisition Category"
+     },
+     "authorization_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 50
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Authorization Type"
+     },
+     "categorization_mode": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(fips199|cnssi1253)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Categorization Mode"
+     },
+     "environment_detail": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Environment Detail"
+     },
+     "processes_pii": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Processes Pii"
+     },
+     "pta": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Pta"
+     },
+     "key_roles": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key Roles"
+     },
      "baseline_key": {
       "type": "string",
       "pattern": "^(low|moderate|high)$",
@@ -10237,6 +18181,30 @@
        }
       ],
       "title": "Provider Ids"
+     },
+     "nss_determination": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(yes|no|unsure)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Nss Determination"
+     },
+     "classified_information": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(yes|no|unknown)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Classified Information"
      }
     },
     "type": "object",
@@ -10272,6 +18240,72 @@
      "justification"
     ],
     "title": "Tailor"
+   },
+   "TailorIn": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "pattern": "^(add|remove)$",
+      "title": "Action"
+     },
+     "control_ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 1500,
+      "minItems": 1,
+      "title": "Control Ids"
+     },
+     "justification": {
+      "type": "string",
+      "maxLength": 4000,
+      "title": "Justification",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "action",
+     "control_ids"
+    ],
+    "title": "TailorIn"
+   },
+   "TemplateIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "title": "Name"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "title": "TemplateIn"
+   },
+   "TesterIn": {
+    "properties": {
+     "tested_by": {
+      "type": "string",
+      "title": "Tested By",
+      "default": ""
+     },
+     "date_tested": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Tested"
+     }
+    },
+    "type": "object",
+    "title": "TesterIn"
    },
    "TokenResponse": {
     "properties": {
@@ -10321,6 +18355,31 @@
      "user"
     ],
     "title": "TokenResponse"
+   },
+   "UseAnalysisIn": {
+    "properties": {
+     "analysis_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Analysis Id"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "justification": {
+      "type": "string",
+      "title": "Justification",
+      "default": ""
+     }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+     "analysis_id",
+     "text"
+    ],
+    "title": "UseAnalysisIn"
    },
    "UserOut": {
     "properties": {
@@ -10378,6 +18437,22 @@
      "auth_is_simulated": {
       "type": "boolean",
       "title": "Auth Is Simulated"
+     },
+     "persona_role": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Persona Role"
+     },
+     "is_sandbox": {
+      "type": "boolean",
+      "title": "Is Sandbox",
+      "default": false
      }
     },
     "type": "object",
@@ -10450,6 +18525,291 @@
      "weights"
     ],
     "title": "WeightsIn"
+   },
+   "app__api__v1__emass_fields__RiskIn": {
+    "properties": {
+     "severity": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "Very Low",
+         "Low",
+         "Moderate",
+         "High",
+         "Very High"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Severity"
+     },
+     "relevance_of_threat": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "Very Low",
+         "Low",
+         "Moderate",
+         "High",
+         "Very High"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Relevance Of Threat"
+     },
+     "likelihood": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "Very Low",
+         "Low",
+         "Moderate",
+         "High",
+         "Very High"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Likelihood"
+     },
+     "impact": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "Very Low",
+         "Low",
+         "Moderate",
+         "High",
+         "Very High"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impact"
+     },
+     "residual_risk_level": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "Very Low",
+         "Low",
+         "Moderate",
+         "High",
+         "Very High"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Residual Risk Level"
+     },
+     "impact_description": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Impact Description"
+     },
+     "vulnerability_summary": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Vulnerability Summary"
+     },
+     "recommendations": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Recommendations"
+     },
+     "mitigations": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 2000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mitigations"
+     },
+     "assist": {
+      "$ref": "#/components/schemas/Assist",
+      "default": {
+       "fields": []
+      }
+     }
+    },
+    "type": "object",
+    "title": "RiskIn"
+   },
+   "app__api__v1__evidence__MapIn": {
+    "properties": {
+     "control_id": {
+      "type": "string",
+      "maxLength": 50,
+      "title": "Control Id"
+     },
+     "justification": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 10,
+      "title": "Justification"
+     }
+    },
+    "type": "object",
+    "required": [
+     "control_id",
+     "justification"
+    ],
+    "title": "MapIn"
+   },
+   "app__api__v1__phase3__MapIn": {
+    "properties": {
+     "control_ids": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Control Ids"
+     },
+     "justification": {
+      "type": "string",
+      "maxLength": 5000,
+      "title": "Justification",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "control_ids"
+    ],
+    "title": "MapIn"
+   },
+   "app__api__v1__phase4__ResolveIn": {
+    "properties": {
+     "choice": {
+      "type": "string",
+      "pattern": "^(keep_local|accept_remote)$",
+      "title": "Choice"
+     },
+     "rationale": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 10,
+      "title": "Rationale"
+     }
+    },
+    "type": "object",
+    "required": [
+     "choice",
+     "rationale"
+    ],
+    "title": "ResolveIn"
+   },
+   "app__api__v1__poams__RiskIn": {
+    "properties": {
+     "justification": {
+      "type": "string",
+      "maxLength": 5000,
+      "minLength": 10,
+      "title": "Justification"
+     },
+     "kind": {
+      "type": "string",
+      "pattern": "^(waiver_extension|deadline_extension)$",
+      "title": "Kind",
+      "default": "waiver_extension"
+     },
+     "expiration": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expiration"
+     },
+     "new_due_date": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "New Due Date"
+     }
+    },
+    "type": "object",
+    "required": [
+     "justification"
+    ],
+    "title": "RiskIn"
+   },
+   "app__api__v1__tr__ResolveIn": {
+    "properties": {
+     "control_id": {
+      "type": "string",
+      "title": "Control Id"
+     },
+     "cci_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Cci Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "control_id"
+    ],
+    "title": "ResolveIn"
    }
   }
  }

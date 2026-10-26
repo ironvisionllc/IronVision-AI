@@ -27,7 +27,7 @@ ADAPTERS = {
 
 
 # prompt_id -> per-use-case model variable (falls back to AI_MODEL); prompts whose id contains "summary" use AI_MODEL_SUMMARY
-USE_CASE_MODEL_ENV = {"control.implementation_statement": "AI_MODEL_DRAFTING", "policy.audit": "AI_MODEL_POLICY",
+USE_CASE_MODEL_ENV = {"control.implementation_statement": "AI_MODEL_DRAFTING", "control.emass_fields_suggest": "AI_MODEL_DRAFTING", "policy.audit": "AI_MODEL_POLICY",
                       "mapping.suggest": "AI_MODEL_MAPPING"}
 MODEL_SLUG = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]{0,199}$")
 

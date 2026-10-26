@@ -45,6 +45,7 @@ def controls(system_id: uuid.UUID, queue: bool = False, q: str | None = None, im
              responsibility: str | None = None, assessment_status: str | None = None, monitoring_status: str | None = None,
              family: str | None = None, origin: str | None = None, has_evidence: str | None = None, evidence: str | None = None,
              policy_mapping: str | None = None, policy: str | None = None, policy_coverage: str | None = None, fmt: str | None = None,
+             emass_status: str | None = None, emass_missing: str | None = None,
              limit: int = 2000, db: Session = Depends(get_db),
              _: CurrentUser = Depends(require_permission("system.read"))):
     from app.models import Control
@@ -66,6 +67,18 @@ def controls(system_id: uuid.UUID, queue: bool = False, q: str | None = None, im
     if q:
         stmt = stmt.where(A.control_id.ilike(f"%{q}%") | Control.title.ilike(f"%{q}%"))
     pols = {x for x in (policy or "").split(",") if x} or None
+    if emass_status or emass_missing in ("yes", "no"):
+        from app.models import EmassControlFields
+        from app.services import emass_fields as ef
+
+        fm = {f.assignment_id: f for f in db.scalars(select(EmassControlFields).where(EmassControlFields.system_id == system_id))}
+        keep = []
+        for a in db.scalars(select(A).where(A.system_id == system_id)):
+            st = ef.emass_status(a, fm.get(a.id))
+            miss = bool(ef.missing_required(st, ef.values(fm.get(a.id))))
+            if (not emass_status or st == emass_status) and (emass_missing not in ("yes", "no") or miss == (emass_missing == "yes")):
+                keep.append(a.control_id)
+        stmt = stmt.where(A.control_id.in_(keep))
     if policy_mapping or pols or policy_coverage:
         from app.services import policy_coverage as pc
 

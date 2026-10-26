@@ -566,10 +566,10 @@ def emass_queue(system_id: uuid.UUID, body: QueueIn, request: Request, db: Sessi
         a = db.scalar(select(ControlAssignment).where(ControlAssignment.system_id == s.id, ControlAssignment.control_id == body.entity_id.lower()))
         if a is None:
             raise HTTPException(404, "Control not assigned")
-        from app.models import Implementation
-        impl = db.scalar(select(Implementation).where(Implementation.assignment_id == a.id, Implementation.is_current.is_(True)))
-        label, after = f"{fmt_control(a.control_id)} implementation", {"control_id": a.control_id, "implementation_status": a.implementation_status,
-                                                                 "narrative": (impl.narrative if impl else "")[:4000], "responsibility": a.responsibility}
+        from app.services import emass_fields as ef
+        r = next(x for x in ef.rows(db, s) if x["control_id"] == a.control_id)
+        # MOCKED eMASS connector: payload uses eMASS API field names (PUT /api/systems/{systemId}/controls)
+        label, after = f"{fmt_control(a.control_id)} implementation plan", {"control_id": a.control_id, **ef.api_payload(r)}
     if db.scalar(select(EmassChange.id).where(EmassChange.system_id == s.id, EmassChange.entity_id == body.entity_id,
                                               EmassChange.status.in_(("proposed", "pending_approval", "approved", "pending_retry", "conflict")))):
         raise HTTPException(409, "An open outbound change already exists for this record")

@@ -18,6 +18,8 @@ import { Gated } from "@/components/common/RoleGate";
 import { PageSizeSelect, Pager, usePageSize } from "@/components/common/PageSize";
 import { downloadFile } from "@/lib/download";
 import { ControlPolicyCoverage } from "@/components/policy/Coverage";
+import { EmassPanels } from "@/components/workbench/emass/EmassPanels";
+import { BulkEmass } from "@/components/workbench/emass/BulkEmass";
 
 const REASON: Record<string, string> = { failed_technical_checks: "Failed checks", kev: "KEV", cat1_open: "CAT I", expired_evidence: "Expired evidence",
   missing_implementation_statement: "No narrative", missing_assessment_evidence: "No assessment evidence", unmapped_findings: "Unmapped findings",
@@ -75,6 +77,8 @@ const WB_FILTERS: [string, string, string[]][] = [
   ["monitoring_status", "Monitoring", ["passing", "failing", "no_data", "inherited"]],
   ["has_evidence", "Has evidence", ["yes", "no"]],
   ["evidence", "Evidence freshness", ["current"]],
+  ["emass_status", "eMASS status", ["Planned", "Implemented", "Inherited", "Not Applicable", "Manually Inherited"]],
+  ["emass_missing", "Missing required eMASS fields", ["yes", "no"]],
 ];
 const FILTER_KEYS = ["family", ...WB_FILTERS.map(([k]) => k), "policy_mapping", "policy", "policy_coverage"];
 const PM: [string, string][] = [["mapped", "Mapped to a policy"], ["not_mapped", "Not mapped"], ["proposed", "Proposed (awaiting review)"]];
@@ -112,6 +116,9 @@ export default function WorkbenchPage() {
   const [all, setAll] = useState(false);
   const [size, setSize] = usePageSize("workbench");
   const [page, setPage] = useState(0);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [bulk, setBulk] = useState(false);
+  const { can } = useAuth();
   useEffect(() => { if (id) select(id); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   const filters = Object.fromEntries(FILTER_KEYS.filter((k) => params.get(k)).map((k) => [k, params.get(k) as string]));
   const filtered = Object.keys(filters).length > 0;
@@ -126,6 +133,8 @@ export default function WorkbenchPage() {
       <PageHeader title="Control Workbench" subtitle="Work through your system's controls for the ATO: set each control's status, write how it is implemented, attach evidence, and see what is still open. Pick a control from the list on the left to start.">
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/workbench/controls?${new URLSearchParams({ ...filters, fmt: "csv" })}`, "controls.csv", "Control list")} data-testid="wb-export-controls" title="CSV of the controls matching the active filters">Export controls (CSV)</button>
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="wb-export-parameters" title="System-wide CSV: every policy value next to the system's defined value (ODP), overlay values and the latest observed value">Export parameter comparison</button>
+        <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/emass/implementation-plan.xlsx`, "eMASS-formatted-implementation-plan.xlsx", "eMASS-formatted Implementation Plan")} data-testid="wb-export-emass-plan" title="eMASS-formatted, compatibility pending human verification">eMASS plan (xlsx)</button>
+        <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/emass/implementation-plan/validation?fmt=csv`, "emass-validation.csv", "eMASS validation report")} data-testid="wb-export-emass-validation" title="Rows missing required eMASS fields">eMASS validation</button>
         <Link to="/catalog" className="btn-secondary" data-testid="open-catalog-btn" title="Browse every NIST SP 800-53 Rev 5 control and baseline">Reference catalog</Link>
       </PageHeader>
       {sum && (
@@ -154,9 +163,16 @@ export default function WorkbenchPage() {
             {filtered && <button className="ml-auto text-[11px] text-blue-800 underline" onClick={() => setParams(new URLSearchParams(), { replace: true })} data-testid="filter-clear">Clear filters</button>}
           </div>
           {(sum?.unmapped_findings ?? 0) > 0 && <Link to="/mapping-review" className="block border-b border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid="queue-unmapped-item">System: {sum?.unmapped_findings} unmapped open findings need mapping or disposition →</Link>}
+          {showList && can("implementation.write") && list && list.length > 0 && <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-1.5 text-[11px]" data-testid="wb-bulk-bar">
+            <label className="flex items-center gap-1"><input type="checkbox" checked={sel.size > 0 && sel.size === list.length} onChange={(e) => setSel(e.target.checked ? new Set(list.map((a) => a.control_id)) : new Set())} data-testid="wb-select-all" />Select all {list.length}</label>
+            <span data-testid="wb-selected-count">{sel.size} selected</span>
+            <button className="btn-secondary ml-auto !py-0.5 text-[11px]" disabled={!sel.size} onClick={() => setBulk(true)} data-testid="wb-bulk-emass-btn">Bulk set eMASS fields</button></div>}
+          {bulk && <BulkEmass systemId={id} ids={[...sel]} onClose={() => setBulk(false)} onDone={() => { setSel(new Set()); refresh(); }} />}
           {showList ? <ul className="max-h-[640px] overflow-y-auto" data-testid="filtered-control-list">
             {(size ? list?.slice(page * size, (page + 1) * size) : list)?.map((a) => (
-              <li key={a.id} className="[content-visibility:auto] [contain-intrinsic-size:auto_52px]">
+              <li key={a.id} className="flex [content-visibility:auto] [contain-intrinsic-size:auto_52px]">
+                {can("implementation.write") && <input type="checkbox" className="ml-2 mt-3" checked={sel.has(a.control_id)} aria-label={`select ${a.label}`} data-testid={`wb-select-${a.control_id}`}
+                  onChange={(e) => setSel((p) => { const n = new Set(p); if (e.target.checked) n.add(a.control_id); else n.delete(a.control_id); return n; })} />}
                 <button onClick={() => nav(`/systems/${id}/controls/${a.control_id}?${params.toString()}`)} data-testid={`queue-item-${a.control_id}`}
                   className={cn("w-full border-b border-slate-100 px-3 py-2 text-left transition-colors hover:bg-blue-50", controlId === a.control_id && "bg-blue-50")}>
                   <div className="flex items-center justify-between"><span className="font-mono text-[12px] font-semibold text-blue-800">{a.label}</span>
@@ -230,6 +246,7 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
       <MappedPoliciesPanel d={d} />
       {d.cnssi_parameters && <CnssiParams sid={systemId} cid={controlId} p={d.cnssi_parameters} reload={reload} />}
       <ImplementationPanel systemId={systemId} controlId={controlId} d={d} reload={() => { reload(); onChange(); }} />
+      <EmassPanels systemId={systemId} controlId={controlId} onSaved={() => { reload(); onChange(); }} />
       <Panel title="POA&Ms for this control" testId="wb-poams">{d.poams.length === 0 ? <div className="text-[12px] text-slate-500">None</div> : d.poams.map((p: Row) => <div key={p.id} className="text-[12px]"><PoamLink id={p.id} humanId={p.human_id} /> {p.weakness} <S v={p.status} /> due {p.due_date ?? "—"}</div>)}</Panel>
       <Panel title="SCA assessment" testId="wb-assessment-panel"><AssessmentPanel systemId={systemId} controlId={controlId} objectives={c.objectives} onDone={() => { reload(); onChange(); }} /></Panel>
       <Panel title="Catalog: statement, parameters, objectives, CCIs" testId="wb-catalog">

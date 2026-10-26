@@ -124,12 +124,20 @@ def build_ssp(db: Session, s: System) -> dict:
     narr = {aid: n for aid, n in db.execute(select(Implementation.assignment_id, Implementation.narrative).join(
         ControlAssignment, ControlAssignment.id == Implementation.assignment_id).where(ControlAssignment.system_id == s.id, Implementation.is_current.is_(True)))}
     reqs = []
+    from app.models import EmassControlFields
+    from app.services import emass_fields as ef
+
+    fmap = {f.assignment_id: f for f in db.scalars(select(EmassControlFields).where(EmassControlFields.system_id == s.id))}
     for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == s.id).order_by(ControlAssignment.control_id)):
-        reqs.append({"uuid": str(a.id), "control-id": a.control_id,
-                     "props": [{"name": "implementation-status", "value": "implemented" if a.implementation_status == "implemented" else "planned"},
-                               {"name": "control-origination", "ns": "https://aegisrmf.demo/ns/oscal", "value": a.responsibility}],
-                     "by-components": [{"component-uuid": comp, "uuid": _u("byc", a.id),
-                                        "description": (narr.get(a.id) or "").strip() or "No statement recorded."}]})
+        eprops, eremarks = ef.oscal_props(fmap.get(a.id), a)
+        req = {"uuid": str(a.id), "control-id": a.control_id,
+               "props": [{"name": "implementation-status", "value": "implemented" if a.implementation_status == "implemented" else "planned"},
+                         {"name": "control-origination", "ns": "https://aegisrmf.demo/ns/oscal", "value": a.responsibility}, *eprops],
+               "by-components": [{"component-uuid": comp, "uuid": _u("byc", a.id),
+                                  "description": (narr.get(a.id) or "").strip() or "No statement recorded."}]}
+        if eremarks:
+            req["remarks"] = eremarks
+        reqs.append(req)
     comps = [{"uuid": comp, "type": "this-system", "title": s.name, "description": s.description or s.name, "status": {"state": "operational"}}]
     for x in db.scalars(select(Asset).where(Asset.system_id == s.id).limit(200)):
         comps.append({"uuid": str(x.id), "type": "hardware" if (x.asset_type or "") in ("server", "host", "") else "software", "title": x.name,

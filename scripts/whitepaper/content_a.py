@@ -197,8 +197,19 @@ PART_A = [
            "mapped policies, CCIs, findings and assessment.", "ISSO, System Owner, SCA (assessment section)",
            "Save implementation status; write or AI-draft a statement (grounded in evidence, policies and POA&Ms); submit it for review; "
            "attach evidence; view policy mappings and coverage.",
-           "Versioned implementation statements, review requests.",
+           "Versioned implementation statements, review requests, eMASS Implementation Plan and Risk Assessment fields.",
            "AI drafts are labelled, carry validated citations and need human approval. Only the SCA sets the assessment status."),
+    SCREEN("eMASS Implementation Plan and Risk Assessment (Control Workbench panels)",
+           "eMASS field names and values (Implementation Status, Security Control Designation, Estimated Completion Date, Responsible Entities, "
+           "SLCM Criticality/Frequency/Method/Reporting/Tracking/Comments, N/A Justification, Common Control Provider; Severity, Relevance of Threat, "
+           "Likelihood, Impact, Residual Risk Level and risk text). Required fields follow the eMASS API business rules for each status.",
+           "ISSO, System Owner (edit); other roles read-only",
+           "Pick values from dropdowns (with Other… for free-text fields); Suggest values (AI or deterministic rules) and accept per field or all; "
+           "bulk-set plan fields on selected controls; filter by eMASS status or missing required fields.",
+           "eMASS-formatted Implementation Plan xlsx (compatibility pending human verification), validation report, OSCAL SSP props/remarks, "
+           "MOCKED eMASS sync payload with eMASS API field names.",
+           "One implementation status (eMASS status is derived from it). Inherited controls are read-only and their Risk Assessment cannot be edited. "
+           "Suggestions are never saved automatically; accepted values are audited as AI- or rule-assisted. AI never sets compliance or test results."),
     IMG(S + "controls-workbench-cm6-light.png", "Control Workbench (CM-6)", 92),
     SCREEN("Inheritance (/inheritance)",
            "Common and hybrid control inheritance from providers (data centres, cloud platforms, enclaves).", "ISSO, ISSM",

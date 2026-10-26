@@ -126,3 +126,76 @@ Adopting a value sets the system ODP with source "CNSSI 1253 (2022) Table D-x p.
   - ACCT covers 23 of 27. It does not cover SA-4, SC-7(24), SI-12(2) or SI-19.
   - When ACCT is applied, those four show "not covered by the applied Privacy Overlay (acct) – SME review".
 - **Display:** the prompt appears in Categorize, in the Select overlays panel and as the stepper's next action (once Prepare and Categorize are complete). It shows for PII = Yes or Unknown only, never for FIPS systems, and the overlay is never applied automatically.
+
+## eMASS Implementation Plan and Risk Assessment fields (Implement step / Control Workbench)
+
+**Source verified before coding:** MITRE `emass_client` OpenAPI spec, `docs/eMASSRestOpenApi.yaml` (rendered at https://mitre.github.io/emass_client/docs/redoc/), operation `PUT /api/systems/{systemId}/controls`, schemas `ControlsRequiredFields`, `ControlsConditionalFields` and `ControlsOptionalFields`. Fetched October 2026.
+
+| Field (eMASS API name) | Values / limit, taken from the spec |
+|---|---|
+| implementationStatus | Planned, Implemented, Inherited, Not Applicable, Manually Inherited |
+| controlDesignation | Common, System-Specific, Hybrid |
+| commonControlProvider | DoD, Component, Enclave |
+| slcmFrequency | Constantly, Daily, Weekly, Monthly, Quarterly, Semi-Annually, Annually, Every Two Years, Every Three Years, Undetermined |
+| slcmMethod | Automated, Semi-Automated, Manual, Undetermined |
+| severity, relevanceOfThreat, likelihood, impact, residualRiskLevel | Very Low, Low, Moderate, High, Very High |
+| responsibleEntities, slcmCriticality, slcmReporting, slcmTracking, naJustification, recommendations, mitigations | free text, max 2,000 characters |
+| slcmComments | free text, max 4,000 characters |
+| implementationNarrative | max 2,000 characters |
+| estimatedCompletionDate | Unix time (integer) in the API; a date picker in the UI; an ISO date in OSCAL and the xlsx |
+
+**Conditional-required rules** (from the "Business Rules" table in the spec):
+- **Planned or Implemented:** all six SLCM fields. The user specification also requires Security Control Designation, Estimated Completion Date and Responsible Entities here. eMASS lists those three as body-required on every PUT.
+- **Not Applicable:** naJustification.
+- **Manually Inherited:** commonControlProvider and all six SLCM fields.
+
+The server enforces these rules with HTTP 422. The UI shows or hides fields to match.
+
+**Inherited controls:**
+- The spec says: "Risk Assessment information cannot be updated if a Security Control is Inherited". The risk endpoint returns 422 for Inherited controls.
+- Implementation Plan fields for Inherited controls are read-only. The panel shows the inheritance record (provider, package and the responsibility split).
+- **Decision:** a control can only be marked "Inherited" when an inheritance record exists (provider_id, or responsibility = inherited). Otherwise the user is directed to "Manually Inherited", which names the Common Control Provider.
+
+**Vulnerability Summary:** the user specification lists this as a Risk Assessment field, but it is **not** an eMASS API field. We store it and export it in the xlsx (marked "no API field – eMASS UI only"). It is excluded from the mocked API payload.
+
+**One status, not two:**
+- `control_assignments.implementation_status` remains the single source of truth. The eMASS Implementation Status is derived from it:
+
+  | eMASS status | Internal status |
+  |---|---|
+  | Planned | planned / partially_implemented / not_implemented |
+  | Implemented | implemented |
+  | Not Applicable | not_applicable |
+  | Inherited | inherited (no manual flag) |
+  | Manually Inherited | inherited (with `emass_control_fields.manually_inherited`) |
+
+- Saving the plan with a different status updates the internal status. That write is audited as `implementation.status_changed` (via = emass_implementation_plan) and re-evaluates the system.
+- Choosing Planned keeps a more specific internal value (for example, partially_implemented).
+
+**Residual risk suggestion:** shown only, never set automatically. It uses a 5×5 Likelihood × Impact lookup in the style of NIST SP 800-30 Rev. 1, Appendix I, Table I-2.
+
+**Editing, saving and audit:**
+- Editing needs `implementation.write` (ISSO and System Owner, the existing system-edit roles). Every other role sees the panels read-only, with the reason.
+- The plan PUT carries the full set of fields for the chosen status.
+- Every save writes `emass.plan_updated` or `emass.risk_updated`, with before/after values for the changed fields only.
+- Accepted suggestions are recorded with `suggestion_source` (ai or rules), `suggested_fields_accepted` and the AI `interaction_id`. AI-assisted values without a logged interaction id are rejected with 422.
+
+**Suggestions:**
+- The prompt is `control.emass_fields_suggest@1.0.0`. It is grounded in the system's categorization, inheritance, evidence, open findings, POA&Ms, policies and role holders.
+- Output is schema-validated with `extra=forbid`, so it has no compliance or test-result keys. Server-side enum, limit and date checks then drop invalid values and list them as rejected.
+- If the reply is truncated, the request is split into plan and risk batches.
+- On any AI failure, or when AI is disabled, the deterministic rules in `services/emass_fields.rule_suggestions` are used instead.
+- Nothing is saved until the user accepts values and presses Save.
+
+**Bulk set:**
+- Sets Implementation Plan fields only, never the status.
+- Needs `confirm=true`. It writes one audit event per control plus a summary event.
+- Skips Inherited and Not Applicable controls.
+- Does not enforce completeness, because partial bulk fills are the purpose. The "Missing required eMASS fields" filter and the validation report show what is still missing.
+
+**Exports:**
+- **xlsx:** "eMASS-formatted, compatibility pending human verification". There is no official eMASS Control Import/Export template in the repo. Column names follow the eMASS field labels, and a Field mapping sheet gives the API names. A Validation sheet is included.
+- **OSCAL SSP:** each `implemented-requirement` gets `props` with ns `https://ironvisionai.com/ns/oscal/emass` (enums and dates) and markdown `remarks` (free text). The SSP still validates against the pinned OSCAL schema.
+- **Mocked eMASS sync:** the queued control change (`entity_type=control`) uses eMASS API field names and stays labelled MOCKED.
+
+**SME review required:** check the xlsx column order against a current eMASS Control Information export before any upload.

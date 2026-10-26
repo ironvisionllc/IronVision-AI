@@ -102,6 +102,17 @@ class EvidenceAnalysisOutput(_Strict):
     explanation_refs: list[str] = []
 
 
+class EmassFieldSuggestion(_Strict):
+    field: str = Field(max_length=40)
+    value: str = Field(max_length=4000)
+    reason: str = Field(max_length=600)
+
+
+class EmassFieldsSuggestOutput(_Strict):
+    """No compliance_status / test result keys exist; extra keys fail validation."""
+    suggestions: list[EmassFieldSuggestion] = Field(default_factory=list, max_length=25)
+
+
 @dataclass(frozen=True)
 class PromptTemplate:
     prompt_id: str
@@ -145,6 +156,16 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
         "\"explanation\": str, \"explanation_refs\": [id]}.",
         "Control: {control}\nCCI: {cci}\nRecords (JSON):\n{records}",
         EvidenceAnalysisOutput, 2500),
+    ("control.emass_fields_suggest", "1.0.0"): PromptTemplate(
+        "control.emass_fields_suggest", "1.0.0",
+        "You suggest eMASS Implementation Plan and Risk Assessment field values for ONE NIST SP 800-53 control of ONE system (SYNTHETIC demo data). "
+        "Use ONLY the supplied records (categorization, inheritance, evidence, open findings, POA&Ms, policies, people). Never invent tools, people, "
+        "dates or evidence. Each suggestion gets a short reason (max 30 words) naming the records it is based on. Enumerated fields MUST use one of the "
+        "listed values exactly. Dates are YYYY-MM-DD. Free-text fields: plain text, max 400 characters. You do NOT set compliance status, test results, "
+        "assessment results or approvals; a human reviews and saves every value. Only suggest the requested fields. "
+        "Return ONLY JSON: {\"suggestions\": [{\"field\": str, \"value\": str, \"reason\": str}]}.",
+        "Implementation Status: {status}\nFields to suggest: {fields}\nAllowed values (JSON): {enums}\nRecords (JSON):\n{context}",
+        EmassFieldsSuggestOutput, 2500),
     ("policy.coverage_refine", "1.0.0"): PromptTemplate(
         "policy.coverage_refine", "1.0.0",
         "You assess whether an organizational policy document addresses each NIST SP 800-53A assessment objective / DISA CCI of one control. "

@@ -90,7 +90,8 @@ def generate_deadline_notifications(db: Session) -> int:
 # ---------- settings ----------
 AI_DEFAULTS = {"provider": None, "endpoint": None, "model": None, "logging_policy": "full_prompt_and_response_retained",
                "human_approval_required": True, "retrieval_restrictions": "Only records of the requesting user's authorized system",
-               "use_cases": {"control.implementation_statement": True, "policy.audit": True, "health.ping": True, "mapping.suggest": True}}
+               "use_cases": {"control.implementation_statement": True, "policy.audit": True, "health.ping": True, "mapping.suggest": True,
+                             "control.emass_fields_suggest": True}}
 
 
 def get_setting(db: Session, org_id, key: str, default: dict) -> dict:

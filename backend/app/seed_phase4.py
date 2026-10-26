@@ -1,6 +1,6 @@
 """Phase 4 synthetic seed: content versions (Demo OS STIG V1R1 installed, V1R2 available; pinned KEV), observation content
 version backfill, risk weights, job schedules, and the MOCK eMASS remote store for LTP. Idempotent."""
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
@@ -53,6 +53,35 @@ def seed_phase4(db: Session, org: Organization) -> None:
                                 summary={"remote_id": rid, "seed": True}))
         db.add(EmassRemoteRecord(system_id=ltp.id, entity_type="poam", remote_id="EM-POAM-6999",
                                  data={"weakness": "Legacy remote-only POA&M (exists only in mock eMASS)", "status": "Ongoing", "SYNTHETIC_MOCK": True}))
+    db.flush()
+    if ltp:
+        seed_emass_fields(db, ltp)
+
+
+EMASS_DEMO = ("ac-2", "ac-2.3", "ac-17", "at-2", "au-9", "cm-6", "ia-2", "ra-5", "sc-13", "sc-28", "si-2")
+EMASS_PARTIAL = ("cp-4", "au-2")  # intentionally incomplete: shows the "missing required eMASS fields" filter
+
+
+def seed_emass_fields(db: Session, s: System) -> None:
+    """SYNTHETIC eMASS Implementation Plan / Risk Assessment values for a subset of LTP controls, derived with the same deterministic
+    rules as "Suggest values" (no AI). Idempotent; statuses are not changed."""
+    from app.models import ControlAssignment, EmassControlFields
+    from app.services import emass_fields as ef
+
+    if db.scalar(select(EmassControlFields.id).where(EmassControlFields.system_id == s.id).limit(1)):
+        return
+    for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == s.id, ControlAssignment.control_id.in_(EMASS_DEMO + EMASS_PARTIAL))):
+        st = ef.emass_status(a, None)
+        if st == "Inherited":
+            continue
+        f = EmassControlFields(system_id=s.id, assignment_id=a.id, control_id=a.control_id, is_synthetic=True,
+                               assisted={"_seed": {"source": "rules", "note": "SYNTHETIC demo values"}})
+        for it in ef.rule_suggestions(ef.grounding(db, s, a), st):
+            if a.control_id in EMASS_PARTIAL and it["field"] in ("slcm_reporting", "slcm_tracking", "slcm_comments"):
+                continue
+            v = it["value"]
+            setattr(f, it["field"], date.fromisoformat(v) if it["field"] == "estimated_completion_date" else v)
+        db.add(f)
     db.flush()
 
 

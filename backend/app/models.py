@@ -1402,3 +1402,36 @@ class EvidenceVersion(CoreMixin, Base):
     uploaded_by: Mapped[str | None] = mapped_column(String(255))
     reason: Mapped[str | None] = mapped_column(Text)
     scan_result: Mapped[str | None] = mapped_column(String(50))
+
+
+class EmassControlFields(CoreMixin, Base):
+    """eMASS Implementation Plan + Risk Assessment values for one system control. Status itself lives on ControlAssignment
+    (implementation_status); manually_inherited distinguishes eMASS "Manually Inherited" from "Inherited"."""
+    __tablename__ = "emass_control_fields"
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    assignment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("control_assignments.id", ondelete="CASCADE"), nullable=False, unique=True)
+    control_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    manually_inherited: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    control_designation: Mapped[str | None] = mapped_column(String(30))
+    estimated_completion_date: Mapped[date | None] = mapped_column(Date)
+    responsible_entities: Mapped[str | None] = mapped_column(Text)
+    slcm_criticality: Mapped[str | None] = mapped_column(Text)
+    slcm_frequency: Mapped[str | None] = mapped_column(String(30))
+    slcm_method: Mapped[str | None] = mapped_column(String(30))
+    slcm_reporting: Mapped[str | None] = mapped_column(Text)
+    slcm_tracking: Mapped[str | None] = mapped_column(Text)
+    slcm_comments: Mapped[str | None] = mapped_column(Text)
+    na_justification: Mapped[str | None] = mapped_column(Text)
+    common_control_provider: Mapped[str | None] = mapped_column(String(20))
+    severity: Mapped[str | None] = mapped_column(String(20))
+    relevance_of_threat: Mapped[str | None] = mapped_column(String(20))
+    likelihood: Mapped[str | None] = mapped_column(String(20))
+    impact: Mapped[str | None] = mapped_column(String(20))
+    impact_description: Mapped[str | None] = mapped_column(Text)
+    residual_risk_level: Mapped[str | None] = mapped_column(String(20))
+    vulnerability_summary: Mapped[str | None] = mapped_column(Text)
+    recommendations: Mapped[str | None] = mapped_column(Text)
+    mitigations: Mapped[str | None] = mapped_column(Text)
+    assisted: Mapped[dict | None] = mapped_column(JSONB)
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
