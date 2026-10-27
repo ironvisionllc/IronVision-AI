@@ -111,3 +111,22 @@ Before and after the evidence guard, for RA under v2 (`ra_v2_first` → `ra_v2_f
 - Met quotes that do not address the requirement's subject 32 → 0. The scorer ignores xx-1 policy-element rows, which legitimately quote section headings.
 
 How to read precision: it treats any met or partial result as "addressed". Deliberate gaps that the analyzer flags as *partial* therefore count against precision, even though they are shown to the reviewer as gaps. "Gold gaps flagged" counts them as found.
+
+## Tester round 3: progress, evidence wording, trigger relevance, snippet sentences
+
+All v2, real model calls (`anthropic/claude-sonnet-5.5`), scored with the current scorer (`GOLD=docs/perf/corpus/<k>_raven.gold.json scripts/perf/score_ra.py <run>`). Before = `<k>_v2_final` (round 2); after = `<k>_v2_r7`.
+
+| policy | run | wall | precision | recall | exact | false gaps | gold gaps flagged | citation validity | off-subject met quotes | violations |
+|---|---|---|---|---|---|---|---|---|---|---|
+| RA (user) | before | 16.1 s | 0.987 | 1.000 | 0.699 | 0 | 4/4 | 1.0 | 5 | none |
+| RA (user) | **after** | 16.8 s | 0.987 | 1.000 | **0.737** | 0 | 4/4 | 1.0 | **0** | none |
+| AC demo | before | 14.7 s | 0.909 | 1.000 | 0.701 | 0 | 24/24 | 1.0 | 3 | none |
+| AC demo | **after** | 14.9 s | 0.909 | 1.000 | **0.753** | 0 | 24/24 | 1.0 | **0** | none |
+| SC demo | before | 14.2 s | 0.924 | 1.000 | 0.815 | 0 | 18/18 | 1.0 | 0 | none |
+| SC demo | **after** | 14.4 s | 0.917 | 1.000 | 0.795 | 0 | 18/18 | 1.0 | 0 | none |
+
+Changes in this round:
+- Trigger clauses ("when new vulnerabilities are identified and reported") need two condition terms when the condition has three or more. "Identified / reported / announced / published" count as one term. CCI-001056 is now backed by the re-scan sentence, not by threat-monitoring text.
+- An AI quote that is only part of a sentence is widened to the full sentence before it is shown.
+
+Intermediate run r6 had only the trigger rule. Its RA recall dropped to 0.994 because "announced" did not count as "reported", and it showed one fragment quote. r7 fixes both.

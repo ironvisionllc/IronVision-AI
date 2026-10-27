@@ -223,10 +223,23 @@ def _loc(text: str, quote: str | None) -> str:
     return locate(text, i) if i >= 0 else ""
 
 
+def _whole_sentence(text: str, quote: str) -> str:
+    """A verified AI quote that is a sentence fragment ("for at least the prior 90 days…") is widened to its full sentence(s)."""
+    from app.services.rmf import split_sentences
+    i = text.find(quote.strip())
+    if i < 0:
+        return quote
+    j = i + len(quote.strip())
+    spans = [(a, b) for a, b in split_sentences(text) if a < j and b > i]
+    return text[spans[0][0]:spans[-1][1]].strip() if spans else quote
+
+
 def apply_ai(text: str, row: dict, ai: dict | None) -> dict:
     """Merge an AI verdict into a deterministic result. AI may only raise to MET with an exact quote; disagreement → Low (review needed)."""
     if not ai:
         return row
+    if verify_quote(text, ai.get("quote")):
+        ai = {**ai, "quote": _whole_sentence(text, ai["quote"])}
     if ai.get("status") == "met":
         if not verify_quote(text, ai.get("quote")):
             row["reason"] = (row.get("reason") or "") + " AI suggested MET but its quote is not in the policy text – AI result discarded."

@@ -99,3 +99,20 @@ def test_mapping_review_not_selected_grouped_and_coverage_notes_labelled(client,
     assert all(x.get("group") == "not_selected" for x in pm[first_ns:]), "not-selected grouped after normal proposals"
     for r in q.get("review_needed", []):
         assert r["label"] == ("Coverage note – mapping already approved" if r["mapping_decided"] else "Review needed")
+
+
+def test_trigger_condition_accepts_synonym_but_not_monitoring_only():
+    from app.services.policy_coverage import relevant
+    req = "Updates the system vulnerabilities to be scanned prior to a new scan and when new vulnerabilities are identified and reported."
+    assert relevant("Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced.", req, "Vulnerability Monitoring and Scanning")
+    req2 = "Scans for vulnerabilities in the system and hosted applications when new vulnerabilities potentially affecting the system are identified and reported."
+    assert not relevant("The ISSO shall monitor threat intelligence feeds and CSSP reports to update the vulnerability scanning schedule.", req2, "Vulnerability Monitoring and Scanning")
+    assert relevant("The ISSO shall scan the system again whenever a new vulnerability potentially affecting the system is identified and reported.", req2, "Vulnerability Monitoring and Scanning")
+
+
+def test_ai_fragment_quote_widened_to_full_sentence():
+    from app.services.policy_profile import apply_ai
+    text = "8.2 Exposure\nWhen a high vulnerability is found, the ISSO shall review CloudTrail logs for at least the prior 90 days to determine whether it was exploited. Next sentence here."
+    row = {"status": "missing", "confidence": "High", "snippets": [], "reason": "", "needs": "x"}
+    out = apply_ai(text, row, {"status": "partial", "quote": "for at least the prior 90 days to determine whether it was exploited.", "rationale": "r"})
+    assert out["snippets"][0]["text"].startswith("When a high vulnerability is found") and "Next sentence" not in out["snippets"][0]["text"]

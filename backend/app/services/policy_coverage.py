@@ -249,6 +249,13 @@ def _stems(t: str | None) -> set:
     return {w[:4] for w in re.findall(r"[a-z]{4,}", (t or "").lower()) if w not in SUBJ_STOP}
 
 
+KNOWN = {"iden", "repo", "anno", "publ"}  # "becomes known" verbs are one condition term (identified / reported / announced …)
+
+
+def _known(stems: set) -> set:
+    return {"~known" if s in KNOWN else s for s in stems}
+
+
 def relevant(quote: str | None, req_text: str, title: str = "") -> bool:
     """Does a quote address the requirement's SUBJECT (not merely share boilerplate like "in accordance with")? ≥2 shared subject stems
     (requirement + control title), or ≥1 when the requirement itself has ≤2. Generic – no family-specific word lists."""
@@ -261,8 +268,8 @@ def relevant(quote: str | None, req_text: str, title: str = "") -> bool:
     plain = re.sub(r"\[[^\]]*\]", " ", req_text or "")  # organization-defined parameter placeholders are values, not conditions
     m = TRIGGER.search(plain)  # multi-part requirement with a trigger/condition: the condition must be matched too
     if m:
-        cond = _stems(m.group(1)) - _stems(plain[:m.start()]) - ttl
-        if cond and len(cond & q) < (1 if len(cond) <= 2 else 2):  # "…when new vulnerabilities are identified and reported": ≥2 condition terms
+        cond = _known(_stems(m.group(1)) - _stems(plain[:m.start()]) - ttl)
+        if cond and len(cond & _known(q)) < (1 if len(cond) <= 2 else 2):  # "…when new vulnerabilities are identified and reported": ≥2 condition terms
             return False
     return True
 
