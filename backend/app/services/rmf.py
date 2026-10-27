@@ -351,7 +351,7 @@ def _docx_para(p) -> str:
 
 
 def refresh_text(db: Session, p: Policy) -> bool:
-    """Re-extract an older policy from its stored original with page breaks; re-run the analysis when the text changed."""
+    """Re-extract an older policy from its stored original; when the text changed, QUEUE a background re-analysis (never inline)."""
     a = p.analysis or {}
     if a.get("text_version") == TEXT_VERSION or not p.storage_key or (p.file_name or "").lower().rsplit(".", 1)[-1] not in ("pdf", "docx"):
         return False
@@ -359,8 +359,16 @@ def refresh_text(db: Session, p: Policy) -> bool:
     changed = text != (p.text_content or "")
     p.text_content = text
     p.analysis = {**a, "text_version": TEXT_VERSION}
-    if changed and p.analysis_status == "analyzed":
-        analyze_policy(db, p)
+    if changed and p.analysis_status == "analyzed":  # never analyse on access: a normal background job (AI lane, not the bulk lane)
+        from app.models import Job
+        from app.services import jobs as jobsvc
+        p.analysis = {**p.analysis, "text_refreshed": {"at": datetime.now(timezone.utc).isoformat(), "text_version": TEXT_VERSION,
+                                                       "reason": "improved table extraction"}}
+        p.analysis_status = "queued"
+        pending = db.scalar(select(Job.id).where(Job.job_type == "policy.analyze", Job.status.in_(("queued", "running")),
+                                                 Job.payload["policy_id"].astext == str(p.id)).limit(1))
+        if pending is None:
+            jobsvc.enqueue(db, "policy.analyze", {"policy_id": str(p.id), "reason": "text_refresh"})
     return changed
 
 

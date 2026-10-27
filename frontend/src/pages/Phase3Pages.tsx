@@ -178,6 +178,7 @@ export function PolicyDetailPage() {
         <button className="btn-secondary" onClick={() => downloadFile(`/policies/${id}/parameters.csv`, "policy-parameters.csv", "Parameter comparison")} data-testid="export-params-btn">Export parameter comparison (CSV)</button>
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="policy-msg">{msg}</div>}
+      {p.analysis?.text_refreshed && <div className="mb-3 text-[12px] text-slate-600" data-testid="policy-text-refreshed">Re-analysed with improved table extraction on {new Date(p.analysis.text_refreshed.at).toLocaleDateString()}{["queued", "processing"].includes(p.analysis_status) ? " (re-analysis in progress)" : ""}. Your earlier decisions are kept; differences show as “Re-analysis differs from approved”.</div>}
       <Panel title="Mapped controls (confidence · basis · matched text)" className="mb-5" testId="policy-control-mappings">
         <PolicyMappingsPanel policyId={id} data={data} canMap={can("finding.map")} reload={reload} setMsg={setMsg} />
       </Panel>
