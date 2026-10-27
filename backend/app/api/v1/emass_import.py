@@ -1,7 +1,7 @@
 """eMASS Control Information import: upload → review (per-field accept/reject) → apply / discard; history per system."""
 import uuid
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -87,10 +87,15 @@ def decisions(system_id: uuid.UUID, import_id: uuid.UUID, body: EmassImportDecid
 
 
 @router.post("/systems/{system_id}/emass-imports/{import_id}/apply")
-def apply(system_id: uuid.UUID, import_id: uuid.UUID, request: Request, db: Session = Depends(get_db),
-          current: CurrentUser = Depends(require_permission("implementation.write"))) -> dict:
+def apply(system_id: uuid.UUID, import_id: uuid.UUID, request: Request, slcm_mode: str = Query("strategy", pattern="^(strategy|per_control)$"),
+          db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("implementation.write"))) -> dict:
     enforce(request, current, "implementation.write", system_id)
     imp = _imp(db, system_id, import_id)
+    allowed = _allowed(current, system_id)
+    bad = {i.get("section", "Controls") for i in imp.items or [] for f in i["fields"].values() if f.get("decision") == "accept" and i.get("section", "Controls") not in allowed}
+    if bad:
+        raise HTTPException(403, f"Accepted changes in sections you cannot apply: {', '.join(sorted(bad))}")
+    imp.report = {**(imp.report or {}), "slcm_mode": slcm_mode}
     res = ei.apply(db, imp, current, audit.request_meta(request))
     audit.record(db, action="emass.import_applied", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="emass_import",
                  entity_id=str(imp.id), after={"counts": imp.counts}, details={"file_name": imp.file_name, "sha256": imp.sha256}, **audit.request_meta(request))
@@ -161,7 +166,7 @@ async def generic_upload(request: Request, file: UploadFile = File(...), system_
     ident = er.identity(sheets)
     det.update(identity=ident, context_system_id=str(ctx.id) if ctx else None, context_system=(ctx.acronym or ctx.name) if ctx else None,
                mismatch=er.mismatch(ident, ctx), labels={t: er.label(t) for t in er.TYPES})
-    imp = ei.store(db, current.user.org_id, None, name, data, current.user, det["type"] or "control_information", det)
+    imp = ei.store(db, current.user.org_id, None, name, data, current.user, er.route_type(det), det)
     audit.record(db, action="emass.import_uploaded", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="emass_import",
                  entity_id=str(imp.id), after={"file_name": imp.file_name, "sha256": imp.sha256, "detected_type": det["type"], "confidence": det["confidence"]},
                  **audit.request_meta(request))
@@ -259,7 +264,8 @@ def generic_decisions(import_id: uuid.UUID, body: EmassImportDecideIn, request: 
 
 
 @router.post("/emass-imports/{import_id}/apply")
-def generic_apply(import_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+def generic_apply(import_id: uuid.UUID, request: Request, slcm_mode: str = Query("strategy", pattern="^(strategy|per_control)$"),
+                  db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
     imp = _org_imp(db, import_id, current, request)
     allowed = _allowed(current, imp.system_id) if imp.system_id else set()
     if not imp.system_id or not allowed:
@@ -267,6 +273,7 @@ def generic_apply(import_id: uuid.UUID, request: Request, db: Session = Depends(
     bad = {i["section"] for i in imp.items or [] for f in i["fields"].values() if f.get("decision") == "accept" and i.get("section", "Controls") not in allowed}
     if bad:
         raise HTTPException(403, f"Accepted changes in sections you cannot apply: {', '.join(sorted(bad))}")
+    imp.report = {**(imp.report or {}), "slcm_mode": slcm_mode}
     res = ei.apply(db, imp, current, audit.request_meta(request))
     audit.record(db, action="emass.import_applied", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="emass_import",
                  entity_id=str(imp.id), after={"counts": imp.counts}, details={"file_name": imp.file_name, "sha256": imp.sha256, "report_type": imp.report_type},
@@ -418,5 +425,9 @@ def migration_report(system_id: uuid.UUID, request: Request, db: Session = Depen
         st = "applied" if any(x["status"] == "applied" for x in mine) else ("in review" if any(x["status"] == "review" for x in mine) else "not imported")
         cover.append({"type": t, "label": er.TYPES[t], "status": st, "steps": _steps(t, system_id),
                       "applied_fields": sum((x["counts"] or {}).get("applied_fields") or 0 for x in mine if x["status"] == "applied")})
-    return {"system": {"id": str(s.id), "name": s.name, "acronym": s.acronym}, "coverage": cover, "sessions": sessions,
+    base = f"/api/v1/systems/{system_id}"
+    exports = [{"type": "control_information", "label": "eMASS Implementation Plan (.xlsx)", "href": f"{base}/emass/implementation-plan.xlsx"},
+               {"type": "slcm", "label": "eMASS SLCM worksheet – Final Results (.xlsx)", "href": f"{base}/emass-exports/slcm"},
+               {"type": "ppsm", "label": "eMASS PPSM Boundaries export (.xlsx)", "href": f"{base}/emass-exports/ppsm"}]
+    return {"system": {"id": str(s.id), "name": s.name, "acronym": s.acronym}, "coverage": cover, "sessions": sessions, "exports": exports,
             "deferred": [{"type": k, "label": v, "note": "Deferred – existing parser kept working; not part of the migration wizard yet"} for k, v in em.DEFERRED.items()]}

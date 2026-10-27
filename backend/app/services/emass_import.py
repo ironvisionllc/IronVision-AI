@@ -359,12 +359,14 @@ def target(db: Session, imp: EmassImport, s: System, report_type: str, data: byt
     imp.detection, imp.report, imp.items, imp.counts = det, rep, items, tally(items)
 
 
-def create(db: Session, s: System, file_name: str, data: bytes, user) -> EmassImport:
-    """Per-system upload of a Control Information export (kept for the original endpoint)."""
+def create(db: Session, s: System, file_name: str, data: bytes, user, report_type: str | None = None) -> EmassImport:
+    """Per-system upload – routed by the detected type through the same dispatcher as the global and Import Center uploads."""
     from app.services import emass_reports as er
     sheets = er.read_sheets(data, file_name)
-    imp = store(db, s.org_id, s, file_name, data, user, "control_information", {**er.detect(sheets), "identity": er.identity(sheets)})
-    target(db, imp, s, "control_information", data)
+    det = {**er.detect(sheets), "identity": er.identity(sheets), "context_system_id": str(s.id), "context_system": s.acronym or s.name}
+    typ = er.route_type(det, report_type)
+    imp = store(db, s.org_id, s, file_name, data, user, typ, det)
+    target(db, imp, s, typ, data)
     return imp
 
 
@@ -418,6 +420,9 @@ def decide(db: Session, imp: EmassImport, decisions: list[dict], bulk: str | Non
             f["decision"] = d.get("decision")
     imp.items = items
     imp.counts = tally(items)
+    if imp.report_type == "slcm" and imp.system_id:
+        from app.services import emass_migration as em
+        imp.report = {**(imp.report or {}), "strategy_plan": em.plan_public(em.slcm_plan(db, db.get(System, imp.system_id), items))}
 
 
 def apply(db: Session, imp: EmassImport, current, meta: dict) -> dict:

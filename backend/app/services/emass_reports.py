@@ -150,8 +150,32 @@ def detect(sheets: list[tuple[str, list[tuple]]]) -> dict:
     ranked = sorted(scores.items(), key=lambda x: -x[1])
     (top, s1), (_, s2) = ranked[0], ranked[1]
     conf = "high" if s1 >= 5 and s1 - s2 >= 3 else "medium" if s1 >= 3 and s1 - s2 >= 1 else "low"
-    return {"type": top if s1 >= 2 else None, "confidence": conf if s1 >= 2 else "none", "scores": dict(ranked),
-            "candidates": [t for t, sc in ranked if sc >= max(2, s1 - 1)], "ambiguous": s1 - s2 <= 1}
+    typ = top if s1 >= 2 else None
+    return {"type": typ, "confidence": conf if s1 >= 2 else "none", "scores": dict(ranked),
+            "candidates": [t for t, sc in ranked if sc >= max(2, s1 - 1)], "ambiguous": s1 - s2 <= 1,
+            "sheets": [t for t, _ in sheets], "record_count": record_count(sheets, typ) if typ else None}
+
+
+def record_count(sheets, typ: str) -> int | None:
+    """Data rows below the best-matching header row of the detected type (Control Information: parsed control rows)."""
+    if typ == "control_information":
+        try:
+            return len(ei.parse_sheets(sheets)["rows"])
+        except HTTPException:
+            return None
+    sig = {_n(h) for h in SIGS.get(typ, ([], ""))[0]}
+    best = None
+    for _, rows in sheets:
+        for i, r in enumerate(rows[:ei.HEADER_SCAN_ROWS]):
+            hits = sum(1 for v in r if v is not None and _n(v) in sig)
+            if hits >= 2 and (best is None or hits > best[0]):
+                best = (hits, sum(1 for x in rows[i + 1:] if any(v not in (None, "") for v in x)))
+    return best[1] if best else None
+
+
+def route_type(det: dict, override: str | None = None) -> str:
+    """ONE dispatcher for every upload path: explicit choice → detected type → Control Information (its parser explains what is missing)."""
+    return override or det.get("type") or "control_information"
 
 
 def identity(sheets) -> dict:
@@ -340,6 +364,8 @@ def apply_other(db: Session, imp: EmassImport, s: System, current, meta: dict, s
     from app.services import workflow as wf
     from app.services.storage.base import get_storage
     results = []
+    if imp.report_type == "slcm":
+        return em.apply_slcm_all(db, imp, s, current, meta, src)
     for i in imp.items or []:
         acc = {k: f for k, f in i["fields"].items() if ei._ok(f) and f["decision"] == "accept"}
         if not acc or i["section"] == "Controls":

@@ -4,6 +4,7 @@ Also: exports for round trips, AI column assist (redacted, suggestion-only), cop
 import asyncio
 import io
 import re
+import uuid
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -198,7 +199,8 @@ def build_slcm(db: Session, s: System, sheets) -> tuple[list[dict], dict]:
             rep["not_in_system"].append({"row": n, "control": ei.fmt_acronym(cid)})
             continue
         f = fields.get(a.id)
-        cur = res.apply(cid, ef.emass_status(a, f), f, ef.values(f))[0]
+        status, raw_vals = ef.emass_status(a, f), ef.values(f)
+        cur = res.apply(cid, status, f, raw_vals)[0]
         fs = {}
         for k, c in cols.items():
             if k == "control":
@@ -219,13 +221,144 @@ def build_slcm(db: Session, s: System, sheets) -> tuple[list[dict], dict]:
             if err:
                 rep["invalid"].append({"row": n, "control": ei.fmt_acronym(cid), "field": SLCM_LABEL[k], "value": v[:100], "error": err})
         items.append({"section": "SLCM", "key": cid, "control_id": cid, "label": ei.fmt_acronym(cid), "create": False, "row": n,
-                      "fields": fs, "required_issue": None, "ai_mapped": bool(ai)})
+                      "fields": fs, "required_issue": None, "ai_mapped": bool(ai), "status": status,
+                      "designation": raw_vals.get("control_designation")})
     rep["matched"] = len(items)
     rep["missing_from_file"] = [ei.fmt_acronym(c) for c in sorted(set(assigned) - set(seen))][:2000]
     return items, rep
 
 
-def apply_slcm(db: Session, s: System, i: dict, acc: dict, current, meta: dict, src: dict) -> dict:
+IMPORT_TAG = "(eMASS SLCM import)"
+STRATEGY_NOTE = ("The strategy is saved as a DRAFT. Its defaults and family profiles take effect on controls only after the ISSM approves it "
+                 "(the resolver reads only the approved strategy). Per-control exceptions are stored now. Choose “apply as per-control values now” "
+                 "to also write every imported value to its control immediately (today's behaviour); after approval, "
+                 "“Merge overrides equal to the strategy” in the Continuous Monitoring Strategy removes the redundant ones.")
+
+
+def _mode(vals: list) -> str | None:
+    """Most common value (ties → alphabetical); only a value shared by ≥ 2 controls becomes a default/profile."""
+    from collections import Counter
+    if not vals:
+        return None
+    v, n = sorted(Counter(vals).items(), key=lambda x: (-x[1], str(x[0])))[0]
+    return v if n >= 2 or len(vals) == 1 else None
+
+
+def slcm_plan(db: Session, s: System, items: list[dict]) -> dict:
+    """SLCM worksheet → ISCM strategy: system defaults (most common value per field), family profiles where the family's most common value
+    differs from the default, per-control exceptions only where a control differs from its resolved profile/default."""
+    from app.services import iscm
+    vals, skipped = {}, 0
+    for i in items:
+        if i.get("section") != "SLCM":
+            continue
+        if i.get("status") in iscm.NO_SLCM:
+            skipped += 1
+            continue
+        v = {k: f["imported"] for k, f in i["fields"].items() if not f.get("error") and f.get("decision") != "reject" and f.get("imported") not in (None, "")}
+        if v:
+            vals[i["control_id"]] = (v, i.get("designation"))
+    defaults = {k: m for k in iscm.SLCM if (m := _mode([v[k] for v, _ in vals.values() if k in v])) is not None}
+    fams: dict[str, list[dict]] = {}
+    for cid, (v, _) in vals.items():
+        fams.setdefault(cid.split("-")[0], []).append(v)
+    profiles = []
+    for fam, rows in sorted(fams.items()):
+        pv = {}
+        for k in iscm.SLCM:
+            col = [r[k] for r in rows if k in r]
+            m = _mode(col) if len(col) >= 2 else None
+            if m is not None and m != defaults.get(k):
+                pv[k] = m
+        if pv:
+            profiles.append({"name": f"{fam.upper()} family {IMPORT_TAG}", "match_type": "family", "match_value": fam, "values": pv})
+    st = iscm.strategy(db, s)
+    old = list(db.scalars(select(IscmProfile).where(IscmProfile.strategy_id == st.id).order_by(IscmProfile.sort_order))) if st else []
+    keep = [{"name": p.name, "match_type": p.match_type, "match_value": p.match_value, "values": dict(p.values or {})} for p in old if not p.name.endswith(IMPORT_TAG)]
+    merged_defaults = {**((st.defaults or {}) if st else {}), **defaults}
+
+    def diffs(profs):
+        res = iscm.Resolver({"defaults": merged_defaults, "profiles": profs + keep})
+        out = {}
+        for cid, (v, des) in vals.items():
+            strat = res.strategy_values(cid, des)[0]
+            if d := {k: x for k, x in v.items() if strat.get(k) != x}:
+                out[cid] = d
+        return out
+
+    # values shared by ≥ 3 deviating controls (e.g. a CRWG criticality tier + its reporting) → one control-list profile instead of N exceptions
+    from itertools import combinations
+    tiers: list[dict] = []
+    for _ in range(6):
+        cur = diffs(tiers + profiles)
+        cand: dict[tuple, list[str]] = {}
+        for cid, d in cur.items():
+            for n in (1, 2):
+                for sub in combinations(sorted(d.items()), n):
+                    cand.setdefault(sub, []).append(cid)
+        best = max(((sub, c) for sub, c in cand.items() if len(c) >= 3), key=lambda x: (len(x[1]) * len(x[0]), x[0]), default=None)
+        if best is None:
+            break
+        d = dict(best[0])
+        what = d.get("slcm_criticality") or d.get("slcm_frequency") or d.get("slcm_method") or "Shared SLCM values"
+        tiers.append({"name": f"{what} – {len(best[1])} controls {IMPORT_TAG}"[:120], "match_type": "control_list",
+                      "match_value": ", ".join(ei.fmt_acronym(c) for c in sorted(best[1])), "values": d})
+    profiles = tiers + profiles
+    merged = {"defaults": merged_defaults, "profiles": profiles + keep}
+    exceptions = {cid: sorted(d) for cid, d in diffs(profiles).items()}
+    blocked = ("The Continuous Monitoring Strategy is waiting for ISSM approval – it cannot be changed now, so imported values are applied per control"
+               if st and st.status == "pending_approval" else None)
+    n_d, n_p, n_e, n_t = len(defaults), len(profiles) - len(tiers), len(exceptions), len(tiers)
+    return {"defaults": defaults, "profiles": profiles, "kept_profiles": len(keep), "exceptions": exceptions, "merged": merged,
+            "counts": {"defaults": n_d, "profiles": n_p + n_t, "family_profiles": n_p, "shared_value_profiles": n_t, "exceptions": n_e,
+                       "exception_fields": sum(len(x) for x in exceptions.values()), "controls": len(vals), "no_slcm_skipped": skipped},
+            "summary": f"{n_d} default{'s' * (n_d != 1)}, {n_p} family profile{'s' * (n_p != 1)}"
+                       + (f", {n_t} shared-value profile{'s' * (n_t != 1)}" if n_t else "") + f", {n_e} per-control exception{'s' * (n_e != 1)}",
+            "existing_strategy": st.status if st else None, "blocked": blocked, "note": STRATEGY_NOTE}
+
+
+def plan_public(plan: dict) -> dict:
+    return {k: v for k, v in plan.items() if k != "merged"}
+
+
+def apply_strategy(db: Session, s: System, plan: dict, current, meta: dict, src: dict) -> dict:
+    from app.services import audit, iscm
+    st = iscm.strategy(db, s)
+    before = None
+    if st:
+        old = db.scalars(select(IscmProfile).where(IscmProfile.strategy_id == st.id).order_by(IscmProfile.sort_order))
+        before = {"defaults": st.defaults, "narrative": st.narrative, "scope": st.scope, "status": st.status, "version": st.version,
+                  "reporting": st.reporting, "review_activities": st.review_activities, "evidence_requirements": st.evidence_requirements,
+                  "profiles": [{"name": p.name, "match_type": p.match_type, "match_value": p.match_value, "values": p.values, "sort_order": p.sort_order} for p in old]}
+    body = {"narrative": (st.narrative if st else None) or f"Derived from the eMASS SLCM worksheet {src.get('import_file')} – review before submitting for ISSM approval.",
+            "scope": st.scope if st else None, "defaults": plan["merged"]["defaults"], "profiles": plan["merged"]["profiles"],
+            **{k: (getattr(st, k) if st else None) or [] for k in ("reporting", "review_activities", "evidence_requirements")}}
+    st = iscm.save(db, s, body, current)
+    audit.record(db, action="emass.slcm_strategy_drafted", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="iscm_strategy",
+                 entity_id=str(st.id), before=before and {k: before[k] for k in ("defaults", "status", "version")},
+                 after={"defaults": plan["defaults"], "profiles": plan["profiles"], "status": st.status, "version": st.version},
+                 details={**src, "summary": plan["summary"], "counts": plan["counts"], "exceptions": plan["exceptions"]}, **meta)
+    return {"control": "Continuous Monitoring Strategy (draft)", "key": "iscm_strategy", "applied": ["defaults", "profiles"], "failed": None,
+            "summary": plan["summary"], "undo": {"kind": "strategy", "strategy_id": str(st.id), "before": before}}
+
+
+def apply_slcm_all(db: Session, imp, s: System, current, meta: dict, src: dict) -> list[dict]:
+    plan = slcm_plan(db, s, imp.items or [])
+    mode = (imp.report or {}).get("slcm_mode") or "strategy"
+    if plan["blocked"]:
+        mode = "per_control"
+    out = [apply_strategy(db, s, plan, current, meta, src)] if mode == "strategy" else []
+    for i in imp.items or []:
+        acc = {k: f for k, f in i["fields"].items() if ei._ok(f) and f["decision"] == "accept"}
+        if acc and i.get("section") == "SLCM":
+            out.append(apply_slcm(db, s, i, acc, current, meta, src, None if mode == "per_control" else set(plan["exceptions"].get(i["control_id"], []))))
+    imp.report = {**(imp.report or {}), "slcm_mode": mode, "strategy_plan": {**plan_public(plan), "mode": mode}}
+    return out
+
+
+def apply_slcm(db: Session, s: System, i: dict, acc: dict, current, meta: dict, src: dict, exc: set | None = None) -> dict:
+    """exc=None → every imported value is a per-control override; otherwise only the exception fields are stored per control and a
+    conflicting old override on a strategy-covered field is cleared so the strategy value applies (after ISSM approval)."""
     from app.services import audit
     a = db.scalar(select(ControlAssignment).where(ControlAssignment.system_id == s.id, ControlAssignment.control_id == i["control_id"]))
     if a is None:
@@ -234,16 +367,26 @@ def apply_slcm(db: Session, s: System, i: dict, acc: dict, current, meta: dict, 
     before = {k: getattr(f, k) for k in acc}
     inherit_before = dict(f.slcm_inherit or {})
     follow = dict(inherit_before)
+    written, via_strategy = {}, []
     for k, fd in acc.items():
-        setattr(f, k, fd["imported"])
+        if exc is None or k in exc:
+            written[k] = fd["imported"]
+        elif getattr(f, k) not in (None, ""):
+            written[k] = None
+            via_strategy.append(k)
+        else:
+            via_strategy.append(k)
+            continue
+        setattr(f, k, written[k])
         follow.pop(k, None)
     f.slcm_inherit = follow or None
     f.updated_by = current.user.id
     audit.record(db, action="emass.slcm_imported", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="control_assignment",
-                 entity_id=str(a.id), before=before, after={k: fd["imported"] for k, fd in acc.items()},
-                 details={**src, "row": i.get("row"), "provenance": {k: fd.get("src") for k, fd in acc.items()}}, **meta)
-    return {"control": i["label"], "key": i["key"], "applied": sorted(acc), "failed": None,
-            "undo": {"kind": "slcm", "assignment_id": str(a.id), "before": before, "inherit_before": inherit_before}}
+                 entity_id=str(a.id), before=before, after=written,
+                 details={**src, "row": i.get("row"), "imported": {k: fd["imported"] for k, fd in acc.items()}, "via_strategy": sorted(via_strategy),
+                          "provenance": {k: fd.get("src") for k, fd in acc.items()}}, **meta)
+    return {"control": i["label"], "key": i["key"], "applied": sorted(k for k, v in written.items() if v is not None), "via_strategy": sorted(via_strategy),
+            "failed": None, "undo": {"kind": "slcm", "assignment_id": str(a.id), "before": before, "inherit_before": inherit_before}}
 
 
 def slcm_rows(db: Session, s: System) -> list[list]:
@@ -313,8 +456,9 @@ def build_categorization(db: Session, s: System, sheets) -> tuple[list[dict], di
         return [], {**rep, "matched": 0}
     approved = db.scalar(select(CategorizationRecord).where(CategorizationRecord.system_id == s.id, CategorizationRecord.status == "approved")
                          .order_by(CategorizationRecord.revision.desc()).limit(1)) if s else None
-    blocked = ("An approved categorization is never overwritten by an import – this stays a proposal; change it in Categorize (AO re-approval)"
-               if approved else None)
+    rep["proposal"] = ("Applying creates a categorization revision PENDING AO RE-APPROVAL – the approved categorization stays in effect until the AO approves"
+                       if approved else "Applying creates a DRAFT categorization revision for AO approval – the system's categorization is unchanged until the AO approves")
+    blocked = None
     fs = {}
     for k, (fld, lab) in enumerate((("confidentiality_impact", "Confidentiality"), ("integrity_impact", "Integrity"), ("availability_impact", "Availability"))):
         rows = [x["row"] for x in p["selected"] if x["impacts"][k] == p["impacts"][k]]
@@ -325,25 +469,49 @@ def build_categorization(db: Session, s: System, sheets) -> tuple[list[dict], di
     fs["emass_mission_types"] = _f(cur_mt, mt, None, blocked, "eMASS Mission Types (recorded; SP 800-60 information types are chosen in Categorize)",
                                   p["sheet"], p["selected"][0]["row"], 0)
     item = {"section": "Categorization", "key": "categorization", "label": "Categorization proposal", "create": False, "fields": fs,
-            "required_issue": None, "note": "Overall = high-water mark of the applicable mission types. The baseline is not changed here – re-select it in Select."}
+            "required_issue": None, "mission_rows": p["selected"],
+            "note": "Never written to the system directly: applying creates a categorization proposal (revision) in Categorize for AO approval. "
+                    "Overall = high-water mark of the applicable mission types; on approval the usual FIPS 199 / CNSSI 1253 baseline proposal follows in Select."}
     return [item], {**rep, "matched": 1}
 
 
 def apply_categorization(db: Session, s: System, i: dict, acc: dict, current, meta: dict, src: dict) -> dict:
+    """Creates a CategorizationRecord through the existing revision flow (draft, or pending_reapproval when one is approved).
+    C/I/A on the system change only when the AO approves the revision (rmf_accuracy.approve)."""
     from app.services import audit
-    from app.services.systems import high_water_mark
-    before = {k: ei._j(getattr(s, k)) for k in ("confidentiality_impact", "integrity_impact", "availability_impact", "categorization")}
-    before["emass_mission_types"] = (s.environment_detail or {}).get("emass_mission_types")
-    for k, fd in acc.items():
-        if k == "emass_mission_types":
-            s.environment_detail = {**(s.environment_detail or {}), "emass_mission_types": fd["imported"]}
-        else:
-            setattr(s, k, fd["imported"])
-    s.categorization = high_water_mark(s.confidentiality_impact, s.integrity_impact, s.availability_impact)
-    audit.record(db, action="system.categorization_imported", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
-                 entity_id=str(s.id), before=before, after={k: fd["imported"] for k, fd in acc.items()},
+    from app.services import rmf_accuracy as ra
+    from app.services.rmf_steps import _lvl
+    mt_before = (s.environment_detail or {}).get("emass_mission_types")
+    fs = i["fields"]
+    if "emass_mission_types" in acc:
+        s.environment_detail = {**(s.environment_detail or {}), "emass_mission_types": acc["emass_mission_types"]["imported"]}
+    cur = {"c": s.confidentiality_impact, "i": s.integrity_impact, "a": s.availability_impact}
+    cia = {k: (fs[fld]["imported"] if fld in fs and not fs[fld].get("error") and fs[fld].get("decision") != "reject" else cur[k])
+           for k, fld in (("c", "confidentiality_impact"), ("i", "integrity_impact"), ("a", "availability_impact"))}
+    framework = s.categorization_mode or "fips199"
+    rows = [{"id": f"eMASS-MT-{n + 1}", "name": f"eMASS mission type: {r['mission_type']}", "c": r["impacts"][0], "i": r["impacts"][1], "a": r["impacts"][2],
+             "rationale": f"From eMASS Categorization template {src.get('import_file')} row {r['row']}", "adjusted": False,
+             "provisional": dict(zip("cia", r["impacts"]))} for n, r in enumerate(i.get("mission_rows") or [])]
+    existing = [{**{k: t.get(k) for k in ("id", "name", "c", "i", "a", "rationale", "adjusted")}, "provisional": None} for t in (s.information_types or [])
+                if not str(t.get("id") or "").startswith("eMASS-MT-")]
+    top = max((v for v in cia.values() if v), key=_lvl, default=None)
+    calc = {**cia, "rows": existing + rows, "overall": None if framework == "cnssi1253" else top, "baseline": top.lower() if top else None,
+            "security_category": f"{{(confidentiality, {cia['c'] or '—'}), (integrity, {cia['i'] or '—'}), (availability, {cia['a'] or '—'})}}",
+            "steps": [f"Imported from the eMASS Categorization template ({src.get('import_file')}, sha256 {str(src.get('import_sha256'))[:12]}…): "
+                      f"high-water mark of {len(rows)} applicable mission type(s) – C={cia['c'] or '—'}, I={cia['i'] or '—'}, A={cia['a'] or '—'}"]}
+    prev_open = {str(r.id): r.status for r in db.scalars(select(CategorizationRecord).where(
+        CategorizationRecord.system_id == s.id, CategorizationRecord.status.in_(("draft", "pending_reapproval", "legacy_unreviewed"))))}
+    rec = ra.record(db, s, calc, framework, s.nss_determination, f"Proposed by eMASS import {src.get('import_file')} – awaiting AO approval",
+                    current.user.email)
+    created = str(rec.id) not in prev_open
+    audit.record(db, action="categorization.proposed_from_import", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
+                 entity_id=str(s.id), after={"revision": rec.revision, "status": rec.status, "impacts": rec.impacts, "baseline": rec.baseline},
                  details={**src, "provenance": {k: fd.get("src") for k, fd in acc.items()}}, **meta)
-    return {"control": "Categorization", "key": i["key"], "applied": sorted(acc), "failed": None, "undo": {"kind": "system", "before": before}}
+    return {"control": "Categorization", "key": i["key"], "applied": sorted(acc), "failed": None, "revision": rec.revision, "record_status": rec.status,
+            "summary": f"Categorization revision {rec.revision} ({'pending AO re-approval' if rec.status == 'pending_reapproval' else rec.status}) – "
+                       "the system's categorization is unchanged until the AO approves",
+            "undo": {"kind": "categorization_record", "record_id": str(rec.id) if created else None, "reopen": prev_open if created else {},
+                     "mission_types_before": mt_before}}
 
 
 # ---------- PPSM ----------
@@ -481,12 +649,12 @@ BUILD = {"slcm": build_slcm, "categorization": build_categorization, "ppsm": bui
 def build(db: Session, s: System, typ: str, sheets) -> tuple[list[dict], dict]:
     items, rep = BUILD[typ](db, s, sheets)
     preselect(items)
+    if typ == "slcm" and s is not None:
+        rep["strategy_plan"] = plan_public(slcm_plan(db, s, items))
     return items, rep
 
 
 def apply_item(db, imp, s, i, acc, current, meta, src) -> dict:
-    if i["section"] == "SLCM":
-        return apply_slcm(db, s, i, acc, current, meta, src)
     if i["section"] == "PPSM":
         return apply_ppsm(db, s, i, acc, current, meta, src, imp.id)
     return apply_categorization(db, s, i, acc, current, meta, src)
@@ -497,7 +665,7 @@ def revert(db: Session, imp, current, meta: dict, keys: list[str] | None) -> lis
     from app.services import audit
     s = db.get(System, imp.system_id)
     done_keys = set((imp.report or {}).get("reverted_keys") or [])
-    out = []
+    out, skipped = [], []
     for r in (imp.report or {}).get("apply_results") or []:
         u = r.get("undo")
         if not u or r.get("key") in done_keys or (keys and r.get("key") not in keys):
@@ -522,6 +690,44 @@ def revert(db: Session, imp, current, meta: dict, keys: list[str] | None) -> lis
                 for k, v in u["before"].items():
                     setattr(e, k, v)
             ent = ("ppsm_entry", u["id"])
+        elif u["kind"] == "strategy":
+            st = db.get(IscmStrategy, uuid.UUID(u["strategy_id"]))
+            if st is None or st.status != "draft":
+                skipped.append({"key": r.get("key"), "control": r.get("control"),
+                                "reason": "The strategy was submitted or approved after this import – change it in the Continuous Monitoring Strategy"})
+                continue
+            after = {"defaults": st.defaults, "status": st.status, "version": st.version}
+            b = u["before"]
+            if b is None:
+                db.delete(st)
+            else:
+                for k in ("defaults", "narrative", "scope", "status", "version", "reporting", "review_activities", "evidence_requirements"):
+                    setattr(st, k, b[k])
+                db.query(IscmProfile).filter(IscmProfile.strategy_id == st.id).delete()
+                for p in b["profiles"]:
+                    db.add(IscmProfile(strategy_id=st.id, **p))
+            db.flush()
+            ent = ("iscm_strategy", u["strategy_id"])
+            u = {**u, "before": b and {k: b[k] for k in ("defaults", "status", "version")}}
+        elif u["kind"] == "categorization_record":
+            rec = db.get(CategorizationRecord, uuid.UUID(u["record_id"])) if u.get("record_id") else None
+            if rec is not None and rec.status not in ("draft", "pending_reapproval"):
+                skipped.append({"key": r.get("key"), "control": r.get("control"),
+                                "reason": f"Categorization revision {rec.revision} is already {rec.status} – it cannot be withdrawn by a revert"})
+                continue
+            after = {"revision": rec.revision if rec else None, "status": rec.status if rec else None}
+            if rec is not None:
+                rec.status = "superseded"
+                for rid, stt in (u.get("reopen") or {}).items():
+                    old = db.get(CategorizationRecord, uuid.UUID(rid))
+                    if old is not None and old.status == "superseded":
+                        old.status = stt
+            det = dict(s.environment_detail or {})
+            v = u.get("mission_types_before")
+            det.pop("emass_mission_types", None) if v is None else det.update(emass_mission_types=v)
+            s.environment_detail = det or None
+            ent = ("system", str(s.id))
+            u = {**u, "before": {"revision": after["revision"], "status": "withdrawn (superseded)" if rec else None}}
         else:
             after = {k: ei._j(getattr(s, k)) for k in ("confidentiality_impact", "integrity_impact", "availability_impact", "categorization")}
             for k, v in u["before"].items():
@@ -538,7 +744,7 @@ def revert(db: Session, imp, current, meta: dict, keys: list[str] | None) -> lis
         done_keys.add(r.get("key"))
         out.append({"key": r.get("key"), "control": r.get("control")})
     all_keys = {r.get("key") for r in (imp.report or {}).get("apply_results") or [] if r.get("undo")}
-    imp.report = {**(imp.report or {}), "reverted_keys": sorted(k for k in done_keys if k)}
+    imp.report = {**(imp.report or {}), "reverted_keys": sorted(k for k in done_keys if k), "revert_skipped": skipped}
     if all_keys and all_keys <= done_keys:
         imp.status = "reverted"
     return out

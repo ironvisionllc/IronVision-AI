@@ -49,8 +49,20 @@ Values seen:
 | Tracking | `emass_control_fields.slcm_tracking` | ≤ 2000 |
 | SLCM Comments | `emass_control_fields.slcm_comments` | ≤ 4000 |
 
-- Imported values become per-control SLCM **overrides**: the field's `slcm_inherit` flag is cleared. "Current" is the effective value, meaning the override or else the approved ISCM strategy/profile value. A file that only repeats strategy values therefore proposes nothing.
-- The approved S-5 strategy itself is never modified.
+- **Default: "Save as strategy draft + per-control exceptions".** The worksheet builds the system's Continuous Monitoring Strategy as a DRAFT (`iscm.save`, same as the S-5 editor):
+  - system default per field = the most common value (only a value shared by at least 2 controls);
+  - family profiles where a family's most common value differs from the default;
+  - shared-value control-list profiles (for example one CRWG criticality tier), each covering at least 3 controls, at most 6 of them;
+  - per-control overrides **only** where a control still differs from its resolved profile or default (same resolver: override, then first matching profile, then default).
+  - The preview shows "N defaults, M family profiles, [T shared-value profiles,] K per-control exceptions". The real v1.3 worksheet (70 controls in a Moderate system) gives 6 defaults, 3 family, 5 shared-value profiles and 12 exceptions, where it used to give 70+ overrides.
+- Resolver semantics are unchanged: only the **approved** strategy feeds controls and exports. Draft defaults and profiles take effect when the ISSM approves the strategy. Exceptions apply immediately. An existing old override on a field that the strategy now covers is cleared, so the strategy value applies after approval.
+- Existing strategy handling:
+  - Existing non-import profiles are kept, after the imported ones.
+  - An approved strategy gets a new draft version, and its approved snapshot stays in effect.
+  - If a strategy is pending approval, it cannot be edited. In that case values are applied per control and the preview says so.
+- **Option: "Apply as per-control values now"** (`POST …/apply?slcm_mode=per_control`) keeps the earlier behaviour: every imported value becomes an override immediately. After approval, "merge overrides equal to the strategy" removes the redundant ones.
+- Original values stay on the import session with sheet/row/column provenance, and in the `emass.slcm_strategy_drafted` and `emass.slcm_imported` audit events.
+- Revert restores the strategy exactly as it was before the import, or deletes it if the import created it. This works only while the strategy is still a draft.
 - Ignored columns: Sort #, Order #, Control Title, Comments, Enhancement.
 - Export: `GET /systems/{id}/emass-exports/slcm` (Final Results layout).
 
@@ -71,11 +83,15 @@ The existing HW/SW importer (`services/inventory/hwsw.py`) is unchanged.
 | Source | Target | Rule |
 |---|---|---|
 | Rows with Applicability = Yes | `systems.environment_detail.emass_mission_types` (list "Category – Sub-type") | Recorded only. SP 800-60 information types are still chosen in Categorize. |
-| C/I/A of applicable rows | `systems.confidentiality_impact / integrity_impact / availability_impact` + `systems.categorization` (high-water mark) | Computed by the app. The template's cached formula values are not trusted. "National Security" header rows are ignored. |
+| C/I/A of applicable rows | a **categorization proposal** (`categorization_records` revision) | Computed by the app as the high-water mark. The template's cached formula values are not trusted. "National Security" header rows are ignored. The import **never** writes `systems.*_impact` or `systems.categorization`. |
 | Package (B1) | registration pre-fill `name` | Placeholders ("Insert Package Name") are ignored. |
 
-- If the system has an **approved** categorization record, the fields are blocked. The import stays a proposal; change it in Categorize with AO re-approval.
-- The baseline is never changed by the import. Re-select it in Select.
+- Apply always goes through the existing revision flow (`rmf_accuracy.record`):
+  - No approved record: a **draft** revision is created.
+  - Approved record exists: a revision **pending AO re-approval** is created, and the approved record stays in effect.
+- The system's C/I/A change only when the AO approves the revision (`POST /systems/{id}/categorization/records/{rid}/approve`). After that, the usual FIPS 199 / CNSSI 1253 baseline proposal follows in Select.
+- Each mission type is kept as a row in the revision, so the approval check finds information types. Existing SP 800-60 types are kept.
+- Revert withdraws an unapproved revision: it is marked superseded and kept for history, and earlier open revisions are reopened.
 - With "Register new system", the form is pre-filled and nothing is created until the user submits.
 
 ### PPSM Boundaries (`PPSMBoundariesInformationExport_Template - eMASS 2.xlsx`) → system boundary (new `ppsm_entries` table, migration `0036`)

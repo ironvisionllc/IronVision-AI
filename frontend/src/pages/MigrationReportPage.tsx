@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { Row, useApi } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
+import { downloadFile } from "@/lib/download";
 
 const TONE: Row = { applied: "bg-emerald-50 text-emerald-800", "in review": "bg-amber-50 text-amber-900", "not imported": "bg-slate-100 text-slate-600" };
 
@@ -23,6 +24,10 @@ export default function MigrationReportPage() {
             </div>))}
             {data.deferred.map((d: Row) => <div key={d.type} className="rounded border border-dashed border-slate-300 p-3 text-[12px] text-slate-500" data-testid={`migration-deferred-${d.type}`}><b>{d.label}</b> – {d.note}</div>)}
           </div>
+        </Panel>
+        <Panel title="Exports (eMASS layout, .xlsx)" testId="migration-exports">
+          <div className="flex flex-wrap gap-4 text-[12px]">{(data.exports || []).map((x: Row) => (
+            <button key={x.type} className="text-blue-800 underline" onClick={() => downloadFile(x.href.replace(/^\/api\/v1/, ""), `${data.system.acronym || "system"}_${x.type}.xlsx`, x.label)} data-testid={`migration-export-${x.type}`}>{x.label}</button>))}</div>
         </Panel>
         <Panel title="Import sessions" testId="migration-sessions">
           <table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>When</th><th>Type</th><th>File (SHA-256)</th><th>Status</th><th>Applied</th><th>Exceptions</th><th>Failed</th><th /></tr></thead>

@@ -58,21 +58,8 @@ SUPPORTED = ("Supported: policy documents (.pdf/.docx/.txt), STIG CKL/CKLB, SCAP
 
 
 def _count_rows(sheets, typ: str) -> int | None:
-    from app.services import emass_import as ei
     from app.services import emass_reports as er
-    if typ == "control_information":
-        try:
-            return len(ei.parse_sheets(sheets)["rows"])
-        except HTTPException:
-            return None
-    sig = {er._n(h) for h in er.SIGS.get(typ, ([], ""))[0]}
-    best = None
-    for _, rows in sheets:
-        for i, r in enumerate(rows[:ei.HEADER_SCAN_ROWS]):
-            hits = sum(1 for v in r if v is not None and er._n(v) in sig)
-            if hits >= 2 and (best is None or hits > best[0]):
-                best = (hits, sum(1 for x in rows[i + 1:] if any(v not in (None, "") for v in x)))
-    return best[1] if best else None
+    return er.record_count(sheets, typ)
 
 
 def detect_file(name: str, data: bytes) -> dict:
@@ -101,7 +88,7 @@ def detect_file(name: str, data: bytes) -> dict:
         if typ == "test_results":
             cands.append("test_plan")
         return {"type": typ, "confidence": d.get("confidence"), "record_count": _count_rows(sheets, typ), "candidates": cands,
-                "ambiguous": d.get("ambiguous", False)}
+                "ambiguous": d.get("ambiguous", False), "sheets": d.get("sheets")}
     try:
         fmt = detect_format(name, data)
     except ParseError as exc:

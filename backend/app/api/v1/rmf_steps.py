@@ -196,7 +196,8 @@ def pii_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser
     from app.services.rmf_steps import baseline_control_ids
     base = set(baseline_control_ids(db, s.baseline_key)) if s.baseline_key else set()
     return {"answer": pii.display(s), "applied": pii.applied_key(s), "source": (s.pta or {}).get("pii_source"),
-            "yes": pii.preview(db, s.categorization_mode, s.categorization, current_ids=have),
+            "yes": pii.preview(db, s.categorization_mode, s.categorization,
+                               current_ids=have - ((set(ids) & have) - base) if pii.applied_key(s) else have),
             "no_affects": sorted((set(ids) & have) - base)}
 
 

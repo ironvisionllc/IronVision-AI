@@ -70,8 +70,8 @@ def _import(client, o, name, data, typ=None, sid=None):
     return r.json()
 
 
-def _apply(client, o, imp):
-    r = client.post(f"/api/v1/emass-imports/{imp['id']}/apply", headers=o["isso"])
+def _apply(client, o, imp, mode=None):
+    r = client.post(f"/api/v1/emass-imports/{imp['id']}/apply", params={"slcm_mode": mode} if mode else None, headers=o["isso"])
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -107,7 +107,7 @@ def test_slcm_real_worksheet_preselected_provenance_apply_audit_revert(client, c
     assert f["imported"] == "Annually" and f["src"]["sheet"] == "Final Results" and f["src"]["col"] == "E" and f["src"]["row"] == ac2["row"]
     assert all(fd["decision"] == "accept" for i in imp["items"] for fd in i["fields"].values() if fd["change"] and not fd["error"])  # imported wins by default
     assert imp["report"]["not_in_system"], "worksheet controls outside the moderate baseline go to the exception queue"
-    done = _apply(client, ctx, imp)
+    done = _apply(client, ctx, imp, "per_control")
     assert done["counts"]["applied_fields"] > 100
     with SessionLocal() as db:
         fs = db.scalar(select(EmassControlFields).where(EmassControlFields.system_id == uuid.UUID(ctx["sid"]), EmassControlFields.control_id == "ac-2"))
@@ -149,24 +149,139 @@ def test_slcm_bad_frequency_flagged(client, ctx):
     assert f["slcm_frequency"]["error"] and f["slcm_method"]["error"] and f["slcm_frequency"]["decision"] is None
 
 
-def test_categorization_proposal_and_approved_stays_proposal(client, ctx):
+def test_categorization_new_system_creates_draft_proposal_never_writes_cia(client, ctx):
     sid = _mk(client, ctx, "Cat Target", "CAT")
-    imp = _import(client, ctx, "cat.xlsx", em.sample("categorization"), sid=sid)
-    f = imp["items"][0]["fields"]
-    assert (f["confidentiality_impact"]["imported"], f["integrity_impact"]["imported"], f["availability_impact"]["imported"]) == ("Moderate",) * 3
-    assert len(f["emass_mission_types"]["imported"]) == 2
-    _apply(client, ctx, imp)
     with SessionLocal() as db:
         s = db.get(System, uuid.UUID(sid))
-        assert s.categorization == "moderate" or s.categorization in ("Moderate",)
-        assert len(s.environment_detail["emass_mission_types"]) == 2
-    with SessionLocal() as db:
+        before = (s.confidentiality_impact, s.integrity_impact, s.availability_impact, s.categorization)
         from app.models import CategorizationRecord
-        db.add(CategorizationRecord(system_id=uuid.UUID(sid), revision=99, framework="fips199", status="approved"))
+        for r in db.scalars(select(CategorizationRecord).where(CategorizationRecord.system_id == s.id)):
+            db.delete(r)  # "no prior approval" case
         db.commit()
-    imp2 = _import(client, ctx, "cat2.xlsx", _set_high(em.sample("categorization")), sid=sid)
-    f2 = imp2["items"][0]["fields"]
-    assert f2["confidentiality_impact"]["imported"] == "High" and f2["confidentiality_impact"]["blocked"]
+    imp = _import(client, ctx, "cat.xlsx", _set_high(em.sample("categorization")), sid=sid)
+    f = imp["items"][0]["fields"]
+    assert f["confidentiality_impact"]["imported"] == "High" and not f["confidentiality_impact"]["blocked"]
+    assert "DRAFT categorization revision" in imp["report"]["proposal"]
+    done = _apply(client, ctx, imp)
+    res = next(x for x in done["results"] if x.get("revision"))
+    assert res["record_status"] == "draft"
+    with SessionLocal() as db:
+        s = db.get(System, uuid.UUID(sid))
+        assert (s.confidentiality_impact, s.integrity_impact, s.availability_impact, s.categorization) == before, "C/I/A never written by the import"
+        assert len(s.environment_detail["emass_mission_types"]) == 3
+        rec = db.scalar(select(CategorizationRecord).where(CategorizationRecord.system_id == s.id, CategorizationRecord.revision == res["revision"]))
+        assert rec.status == "draft" and rec.impacts == {"c": "High", "i": "High", "a": "High"} and rec.baseline == "high"
+        rid = str(rec.id)
+    ao = ctx["role"]("ao")
+    r = client.post(f"/api/v1/systems/{sid}/categorization/records/{rid}/approve", json={"rationale": "AO approves the imported eMASS categorization"}, headers=ao)
+    assert r.status_code == 200, r.text
+    with SessionLocal() as db:
+        s = db.get(System, uuid.UUID(sid))
+        assert (s.confidentiality_impact, s.integrity_impact, s.availability_impact, s.categorization) == ("High", "High", "High", "high"), "applied only on AO approval"
+
+
+def test_categorization_with_approved_record_pending_reapproval_and_revert(client, ctx):
+    sid = _mk(client, ctx, "Cat Approved", "CAA")
+    from app.models import CategorizationRecord
+    with SessionLocal() as db:
+        db.add(CategorizationRecord(system_id=uuid.UUID(sid), revision=99, framework="fips199", status="approved",
+                                    impacts={"c": "Moderate", "i": "Moderate", "a": "Moderate"}, information_types=[{"id": "D.16.3"}]))
+        db.commit()
+        s = db.get(System, uuid.UUID(sid))
+        before = (s.confidentiality_impact, s.integrity_impact, s.availability_impact, s.categorization)
+    imp = _import(client, ctx, "cat2.xlsx", _set_high(em.sample("categorization")), sid=sid)
+    assert "PENDING AO RE-APPROVAL" in imp["report"]["proposal"]
+    done = _apply(client, ctx, imp)
+    res = next(x for x in done["results"] if x.get("revision"))
+    assert res["record_status"] == "pending_reapproval"
+    with SessionLocal() as db:
+        s = db.get(System, uuid.UUID(sid))
+        assert (s.confidentiality_impact, s.integrity_impact, s.availability_impact, s.categorization) == before
+        assert db.scalar(select(CategorizationRecord).where(CategorizationRecord.system_id == s.id, CategorizationRecord.revision == 99)).status == "approved"
+    r = client.post(f"/api/v1/emass-imports/{imp['id']}/revert", json={}, headers=ctx["isso"]).json()
+    assert r["status"] == "reverted"
+    with SessionLocal() as db:
+        rec = db.scalar(select(CategorizationRecord).where(CategorizationRecord.system_id == uuid.UUID(sid), CategorizationRecord.revision == res["revision"]))
+        assert rec.status == "superseded", "revert withdraws the proposal (kept for history)"
+
+
+def test_slcm_real_worksheet_builds_strategy_draft_not_74_overrides(client, ctx):
+    sid = _mk(client, ctx, "SLCM Strategy", "SLS")
+    imp = _import(client, ctx, REAL["slcm"], (FX / REAL["slcm"]).read_bytes(), sid=sid)
+    plan = imp["report"]["strategy_plan"]
+    c = plan["counts"]
+    assert c["controls"] > 50 and c["defaults"] >= 3 and c["profiles"] <= 10 and c["exceptions"] <= 15 and c["exceptions"] < c["controls"] / 4, c
+    assert plan["summary"].endswith("per-control exceptions") or "per-control exception" in plan["summary"]
+    assert "ISSM approves" in plan["note"]
+    done = _apply(client, ctx, imp)
+    assert next(x for x in done["results"] if x["key"] == "iscm_strategy")["summary"] == plan["summary"]
+    v = client.get(f"/api/v1/systems/{sid}/iscm", headers=ctx["isso"]).json()
+    assert v["strategy"]["status"] == "draft" and v["strategy"]["approved_snapshot"] is None
+    assert len(v["strategy"]["profiles"]) == c["profiles"] and v["strategy"]["defaults"] == plan["defaults"]
+    assert v["feeds"]["overrides"] == c["exceptions"], v["feeds"]
+    with SessionLocal() as db:
+        ev = db.scalar(select(AuditEvent).where(AuditEvent.action == "emass.slcm_strategy_drafted", AuditEvent.entity_type == "iscm_strategy")
+                       .order_by(AuditEvent.created_at.desc()).limit(1))
+        assert ev.details["import_sha256"] == imp["sha256"] and ev.details["counts"] == c
+    # original values stay on the session with provenance
+    ac2 = next(i for i in client.get(f"/api/v1/emass-imports/{imp['id']}", headers=ctx["isso"]).json()["items"] if i["key"] == "ac-2")
+    assert ac2["fields"]["slcm_frequency"]["imported"] == "Annually" and ac2["fields"]["slcm_frequency"]["src"]["sheet"] == "Final Results"
+    r = client.post(f"/api/v1/emass-imports/{imp['id']}/revert", json={}, headers=ctx["isso"]).json()
+    assert r["status"] == "reverted"
+    v = client.get(f"/api/v1/systems/{sid}/iscm", headers=ctx["isso"]).json()
+    assert v["strategy"] is None and v["feeds"]["overrides"] == 0, "revert removes the strategy draft and the exceptions"
+
+
+def test_slcm_strategy_revert_restores_existing_strategy(client, ctx):
+    sid = _mk(client, ctx, "SLCM Existing", "SLE")
+    with SessionLocal() as db:
+        db.add(IscmStrategy(system_id=uuid.UUID(sid), status="approved", version=3, narrative="SYNTHETIC approved", defaults={"slcm_frequency": "Monthly"},
+                            approved_snapshot={"version": 3, "defaults": {"slcm_frequency": "Monthly"}, "profiles": []}))
+        db.commit()
+    imp = _import(client, ctx, REAL["slcm"], (FX / REAL["slcm"]).read_bytes(), sid=sid)
+    assert imp["report"]["strategy_plan"]["existing_strategy"] == "approved"
+    _apply(client, ctx, imp)
+    v = client.get(f"/api/v1/systems/{sid}/iscm", headers=ctx["isso"]).json()["strategy"]
+    assert v["status"] == "draft" and v["version"] == 4 and v["approved_snapshot"]["defaults"] == {"slcm_frequency": "Monthly"}, "approved snapshot still in effect"
+    client.post(f"/api/v1/emass-imports/{imp['id']}/revert", json={}, headers=ctx["isso"])
+    v = client.get(f"/api/v1/systems/{sid}/iscm", headers=ctx["isso"]).json()["strategy"]
+    assert (v["status"], v["version"], v["defaults"], v["profiles"]) == ("approved", 3, {"slcm_frequency": "Monthly"}, [])
+
+
+@pytest.mark.parametrize("typ", list(REAL))
+def test_every_upload_path_routes_by_detected_type(client, ctx, typ):
+    data, name = (FX / REAL[typ]).read_bytes(), REAL[typ]
+    sid = ctx["sid"]
+    # 1) per-system endpoint
+    r = client.post(f"/api/v1/systems/{sid}/emass-imports", files={"file": (name, data)}, headers=ctx["isso"])
+    assert r.status_code == 201, r.text
+    assert r.json()["report_type"] == typ, (typ, r.json()["report_type"])
+    # 2) global upload + target (no explicit type)
+    g = client.post("/api/v1/emass-imports", files={"file": (name, data)}, data={"system_id": sid}, headers=ctx["isso"]).json()
+    assert g["report_type"] == typ and g["detected"]["type"] == typ
+    assert g["detected"]["sheets"] and g["detected"]["record_count"] is not None
+    t = client.post(f"/api/v1/emass-imports/{g['id']}/target", json={"action": "update", "system_id": sid}, headers=ctx["isso"])
+    if t.status_code == 200:
+        assert t.json()["report_type"] == typ
+    # 3) Import Center detection → same type, sheet list and record count
+    d = client.post("/api/v1/import-center/detect", files={"file": (name, data)}, data={"system_id": sid}, headers=ctx["isso"]).json()
+    assert d["type"] == typ and d["sheets"] == g["detected"]["sheets"] and d["record_count"] == g["detected"]["record_count"]
+
+
+def test_pii_view_count_when_privacy_applied(client, ctx):
+    sid = _mk(client, ctx, "PII Count", "PIC")
+    assert client.put(f"/api/v1/systems/{sid}/pii", json={"processes_pii": True}, headers=ctx["h"]).status_code == 200
+    y = client.get(f"/api/v1/systems/{sid}/pii", headers=ctx["h"]).json()["yes"]
+    assert y["count"] == 53 and "(53 controls)" in y["note"]
+
+
+def test_migration_report_has_xlsx_exports(client, ctx):
+    d = client.get(f"/api/v1/systems/{ctx['sid']}/migration-report", headers=ctx["isso"]).json()
+    ex = {x["type"]: x["href"] for x in d["exports"]}
+    assert set(ex) == {"control_information", "slcm", "ppsm"}
+    for href in ex.values():
+        r = client.get(href, headers=ctx["isso"])
+        assert r.status_code == 200 and r.content[:2] == b"PK", href
 
 
 def _set_high(data: bytes) -> bytes:
@@ -274,6 +389,7 @@ def test_copy_setup_copies_setup_never_assessments(client, ctx):
     src = ctx["sid"]
     with SessionLocal() as db:
         db.add(OdpValue(system_id=uuid.UUID(src), control_id="ac-2", parameter="ac-02_odp.01", value="30 days", source="manual", approved_by="AO"))
+        db.query(IscmStrategy).filter(IscmStrategy.system_id == uuid.UUID(src)).delete()  # an earlier SLCM import drafted one
         db.add(IscmStrategy(system_id=uuid.UUID(src), status="approved", narrative="SYNTHETIC strategy", defaults={"slcm_frequency": "Monthly"}))
         db.commit()
     r = client.post("/api/v1/systems", json={"name": "Copy Target", "acronym": "CPY" + uuid.uuid4().hex[:3], "processes_pii": False,

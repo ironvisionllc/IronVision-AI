@@ -17,6 +17,25 @@ const List = ({ title, rows, render, testId }: { title: string; rows: Row[]; ren
   <details className="text-[12px]" data-testid={testId}><summary className="cursor-pointer font-medium">{title} ({rows.length})</summary>
     <ul className="ml-4 mt-1 list-disc">{rows.slice(0, 200).map((r, i) => <li key={i}>{render(r)}</li>)}</ul></details>) : null;
 
+function StrategyPlan({ plan, mode, setMode, editable }: { plan: Row; mode: string; setMode: (m: "strategy" | "per_control") => void; editable: boolean }) {
+  const used = plan.mode || mode;
+  return (
+    <Panel title="Continuous Monitoring Strategy from this worksheet" testId="import-strategy-plan">
+      <p className="text-[13px] font-medium" data-testid="import-strategy-summary">{plan.summary}</p>
+      <p className="mt-1 text-[12px] text-slate-600">From {plan.counts?.controls} controls{plan.counts?.no_slcm_skipped ? ` (${plan.counts.no_slcm_skipped} Inherited / Not Applicable controls skipped – no SLCM)` : ""}.
+        {plan.kept_profiles ? ` ${plan.kept_profiles} existing profile(s) kept.` : ""}</p>
+      <p className="mt-1 rounded bg-amber-50 px-2 py-1 text-[12px] text-amber-900" data-testid="import-strategy-note">{plan.note}</p>
+      {plan.blocked && <p className="mt-1 text-[12px] text-rose-700" data-testid="import-strategy-blocked">{plan.blocked}</p>}
+      {editable && !plan.blocked ? <div className="mt-2 flex flex-wrap gap-4 text-[12px]" role="radiogroup">
+        <label className="flex items-center gap-1"><input type="radio" checked={mode === "strategy"} onChange={() => setMode("strategy")} data-testid="slcm-mode-strategy" />Save as strategy draft + per-control exceptions (recommended)</label>
+        <label className="flex items-center gap-1"><input type="radio" checked={mode === "per_control"} onChange={() => setMode("per_control")} data-testid="slcm-mode-per-control" />Apply as per-control values now</label></div>
+        : <p className="mt-2 text-[12px]" data-testid="import-strategy-mode">Applied as: <b>{used === "per_control" ? "per-control values" : "strategy draft + per-control exceptions"}</b></p>}
+      <details className="mt-2 text-[12px]"><summary className="cursor-pointer">Defaults and family profiles</summary>
+        <ul className="mt-1 list-disc pl-5">{Object.entries(plan.defaults || {}).map(([k, v]) => <li key={k}>Default {LABELS[k] || k}: {String(v)}</li>)}
+          {(plan.profiles || []).map((p: Row) => <li key={p.name}>{p.name}: {Object.entries(p.values).map(([k, v]) => `${LABELS[k] || k} = ${v}`).join("; ")}</li>)}</ul></details>
+    </Panel>);
+}
+
 function Report({ imp }: { imp: Row }) {
   const r = imp.report || {}, c = imp.counts || {}, d = imp.detection || {};
   return (
@@ -64,6 +83,7 @@ export default function EmassImportPage() {
   const [imp, setImp] = useState<Row | null>(null);
   const [sample, setSample] = useState("slcm");
   const [busy, setBusy] = useState("");
+  const [slcmMode, setSlcmMode] = useState<"strategy" | "per_control">("strategy");
   useEffect(() => { setImp(null); if (importId) api.get<Row>(`/emass-imports/${importId}`).then((r) => setImp(r.data)).catch((e) => toast.error(errorMessage(e))); }, [importId]);
   const revert = async () => {
     if (!window.confirm("Revert every change this import applied? The values from before the import are restored; each step is audited.")) return;
@@ -74,7 +94,7 @@ export default function EmassImportPage() {
   const finish = async (what: "apply" | "discard") => {
     if (what === "apply" && !window.confirm(`Apply ${imp?.counts?.accepted ?? 0} accepted field(s)? Fields that break a rule are reported, not saved. Each change is audited.`)) return;
     setBusy(what);
-    try { const r = await api.post<Row>(`/emass-imports/${importId}/${what}`); setImp(what === "apply" ? r.data : { ...imp, ...r.data }); reload(); toast.success(what === "apply" ? `Applied ${r.data.counts?.applied_fields ?? 0} field(s)` : "Import discarded"); }
+    try { const r = await api.post<Row>(`/emass-imports/${importId}/${what}`, undefined, what === "apply" && imp?.report_type === "slcm" ? { params: { slcm_mode: slcmMode } } : undefined); setImp(what === "apply" ? r.data : { ...imp, ...r.data }); reload(); toast.success(what === "apply" ? `Applied ${r.data.counts?.applied_fields ?? 0} field(s)` : "Import discarded"); }
     catch (e) { toast.error(errorMessage(e)); } finally { setBusy(""); }
   };
   return (
@@ -111,6 +131,9 @@ export default function EmassImportPage() {
           {imp.status !== "review" && imp.system_id && <span className="ml-auto flex gap-2">
             <Link className="btn-secondary" to={`/systems/${imp.system_id}/migration-report`} data-testid="import-completion-report">Completion report</Link>
             {imp.status === "applied" && REVERTIBLE.includes(imp.report_type) && imp.can_apply && <button className="btn-secondary" disabled={!!busy} onClick={revert} data-testid="import-revert-btn">Revert this import</button>}</span>}</div>
+        {imp.report_type === "slcm" && imp.report?.strategy_plan && <StrategyPlan plan={imp.report.strategy_plan} mode={slcmMode} setMode={setSlcmMode} editable={imp.status === "review"} />}
+        {imp.report_type === "categorization" && imp.report?.proposal && <p className="rounded border border-blue-200 bg-blue-50 px-3 py-2 text-[12px] text-blue-900" data-testid="import-categorization-proposal">{imp.report.proposal}.
+          {(imp.report.apply_results || []).filter((x: Row) => x.revision).map((x: Row) => <span key={x.revision}> {x.summary}. <Link className="underline" to="/rmf/categorize">Open Categorize →</Link></span>)}</p>}
         <Report imp={imp} />
         <ImportReview imp={{ ...imp, labels: LABELS }} onChange={setImp} />
       </div>}
