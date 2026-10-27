@@ -1,0 +1,9 @@
+SYNTHETIC Travel and Expense Policy (benchmark negative – no security content)
+
+--- Page 1 ---
+
+## 1 Purpose
+Employees book economy airfare at least 14 days before travel. Meal receipts over 25 dollars are submitted within 30 days. Mileage is reimbursed at the published federal rate.
+
+## 2 Approvals
+Managers approve travel requests in the finance portal.

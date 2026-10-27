@@ -1128,6 +1128,19 @@ class PolicyControlMap(CoreMixin, Base):
     coverage_override: Mapped[dict | None] = mapped_column(JSONB)
 
 
+class PolicyAiCache(CoreMixin, Base):
+    """v2 Policy Auditor AI batch results – strictly per tenant (org_id is part of the unique key and of every lookup)."""
+    __tablename__ = "policy_ai_cache"
+    __table_args__ = (UniqueConstraint("org_id", "cache_key", name="uq_policy_ai_cache_org_key"),)
+    org_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    cache_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    analyzer_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    model: Mapped[str | None] = mapped_column(String(120))
+    result: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    provenance: Mapped[dict | None] = mapped_column(JSONB)
+    hits: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0", default=0)
+
+
 class PolicyRequirementCoverage(CoreMixin, Base):
     """How well one policy covers one requirement (DISA CCI or 800-53A objective) of a mapped control: met | partial | missing."""
     __tablename__ = "policy_requirement_coverage"

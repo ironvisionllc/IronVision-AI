@@ -5,6 +5,7 @@ Each result keeps the matched snippet(s) with page/section, a confidence, the re
 import hashlib
 import logging
 import re
+import os
 import time
 import uuid
 from datetime import datetime, timezone
@@ -256,8 +257,23 @@ def prefetch_ai(db: Session, policy: Policy, control_ids) -> dict:
     text, org_id = policy.text_content or "", policy.org_id
     sents = _sentences(text)
     todo = [(cid, *_stage1(db, text, sents, cid)) for cid in sorted(set(control_ids)) if not is_xx1(cid)]
+    if analyzer() == "v2":
+        from app.services import policy_analyzer_v2 as v2
+        from app.services.content.loader import active_catalog_id
+        titles, catalog, pid = dict(db.execute(select(Control.control_id, Control.title)).all()), active_catalog_id(db), policy.id
+        db.commit()  # read-only: ends the transaction before the external calls
+        out, stats = v2.analyze_ai(text, pid, org_id, todo, titles, catalog)
+        return {**out, V2_STATS: stats}
     db.commit()  # read-only: ends the transaction before the external calls
     return _ai_many(text, todo, org_id)
+
+
+V2_STATS = "__v2_stats__"
+
+
+def analyzer() -> str:
+    """POLICY_ANALYZER=v2 (section retrieval + batched AI + tenant cache) or v-current (one call per ≤8 requirements, full text)."""
+    return (os.environ.get("POLICY_ANALYZER") or "v-current").strip()
 
 
 def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: dict | None = None) -> list[PolicyRequirementCoverage]:
@@ -271,7 +287,9 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
     t0 = time.perf_counter()
     prepared = [(m, *_stage1(db, text, sents, m.control_id)) for m in maps]  # stage 1: deterministic evaluation (DB + regex)
     t1 = time.perf_counter()
-    pre = ai_prefetched or {}
+    pre = dict(ai_prefetched or {})
+    v2_stats = pre.pop(V2_STATS, None)
+    not_examined = set((v2_stats or {}).get("not_examined_ids") or [])
     ai_by_ctl: dict = {cid: v for cid, v in pre.items() if use_ai}
     todo = [(m.control_id, reqs, results) for m, reqs, results in prepared if use_ai and not is_xx1(m.control_id) and m.control_id not in ai_by_ctl]
     if todo:  # stage 2: AI refinement not prefetched (e.g. API-triggered re-analysis) – AI_WORKERS concurrent calls, same prompt + quote verification
@@ -286,6 +304,9 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
             merged = [(c, pp.apply_ai(text, r, ai.get(req["id"]))) for req, (c, r) in zip(reqs, results)]
             results = [("profile-ai" if r.get("basis") == "ai" else c, r) for c, r in merged]
         for req, (concept, r) in zip(reqs, results):
+            if f"{m.control_id}|{req['id']}" in not_examined and r["status"] != "met":
+                r["reason"] = ("Not examined by AI: no policy section was retrieved for this requirement, so it is not addressed by the retrieved "
+                               "content (not a pass, fail or N/A). " + (r.get("reason") or ""))[:2000]
             r.pop("basis", None)
             r.pop("ai_discarded", None)
             prev = old.get((m.control_id, req["id"]))
@@ -297,7 +318,10 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
                                             linked=prev.linked if prev else None)
             db.add(row)
             out.append(row)
-    policy.analysis = {**(policy.analysis or {}), "coverage_version": ANALYZER_VERSION,
+    if v2_stats is not None:
+        policy.analysis = {**(policy.analysis or {}), "v2": {k: v for k, v in v2_stats.items() if k != "not_examined_ids"}}
+    policy.analysis = {k: v for k, v in (policy.analysis or {}).items() if k != "progress"}
+    policy.analysis = {**(policy.analysis or {}), "coverage_version": ANALYZER_VERSION, "analyzer": analyzer() if use_ai else "deterministic",
                        "values": _merge_values((policy.analysis or {}).get("values", []), out),
                        "timing_s": {"controls": len(prepared), "ai_controls": len(todo) + len([c for c in pre if use_ai]), "ai_prefetched": len(pre) if use_ai else 0,
                                     "deterministic": round(t1 - t0, 2),

@@ -1,0 +1,2031 @@
+{
+"policy": "p20_ac",
+"controls": [
+"ac-1",
+"ac-2",
+"ac-2.1",
+"ac-2.2",
+"ac-2.3",
+"ac-2.4",
+"ac-2.5",
+"ac-2.13",
+"ac-3",
+"ac-4",
+"ac-5",
+"ac-6",
+"ac-6.1",
+"ac-6.2",
+"ac-6.3",
+"ac-6.5",
+"ac-6.7",
+"ac-6.9",
+"ac-6.10",
+"ac-7"
+],
+"requirements": {
+"ac-1|CCI-000002": {
+"control_id": "ac-1",
+"label": "partial",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that disseminate the organization-level; mission/business process-level; and/or system-level access control policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance to as determined by the organization.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-000003": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that review and update the current access control policy on an within 24 hours.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-000005": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that disseminate procedures to facilitate the implementation of the organization-level; mission/business process-level; and/or system-level access control policy and associated access controls to the the ISSO and ISSM.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-000006": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that review and update the current access control procedures on an annually.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-001545": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that defines a frequency for reviewing and updating the access control policy.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-001546": {
+"control_id": "ac-1",
+"label": "not_addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-002107": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that defines the personnel or roles to be recipients of the organization-level; mission/business process-level; and/or system-level access control policy necessary to facilitate the implementation of the access control policy and associated access controls.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-002108": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that defines the personnel or roles to be recipients of the procedures necessary to facilitate the implementation of the organization-level; mission/business process-level; and/or system-level access control policy and associated access controls.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003601": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that develop and document an organization-level; mission/business process-level; and/or system-level access control policy that is consistent with applicable laws, Executive Orders, directives, regulations, policies, standards, and guidelines.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003602": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that develop and document an organization-level; mission/business process-level; and/or system-level access control policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003603": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that disseminate the organization-level; mission/business process-level; and/or system-level access control policy that is consistent with applicable laws, Executive Orders, directives, regulations, policies, standards, and guidelines to annually.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003604": {
+"control_id": "ac-1",
+"label": "not_addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003605": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that designate an 15 minutes.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003606": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that designate an three attempts.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003607": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that defines the official designated to manage the development, documentation, and dissemination of the access control policy and procedures.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003608": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that review and update the current access control policy following within 24 hours.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003609": {
+"control_id": "ac-1",
+"label": "not_addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003610": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that review and update the current access control procedures following annually.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|CCI-003611": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that defines the events following reviewing and updating the current access control procedures.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a-1": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that an access control policy is developed and documented;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a-2": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the access control policy is disseminated to three attempts;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a-3": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that access control procedures to facilitate the implementation of the access control policy and associated controls are developed and documented;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a-4": {
+"control_id": "ac-1",
+"label": "not_addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a.1.a-1": {
+"control_id": "ac-1",
+"label": "partial",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the as determined by the organization access control policy addresses purpose;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a.1.a-2": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the annually access control policy addresses scope;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a.1.a-3": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the FIPS 140-3 validated cryptography access control policy addresses roles;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a.1.a-4": {
+"control_id": "ac-1",
+"label": "not_addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a.1.a-5": {
+"control_id": "ac-1",
+"label": "partial",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the as determined by the organization access control policy addresses management commitment;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a.1.a-6": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the every 90 days access control policy addresses coordination among organizational entities;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a.1.a-7": {
+"control_id": "ac-1",
+"label": "not_addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.a.1.b": {
+"control_id": "ac-1",
+"label": "partial",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the as determined by the organization access control policy is consistent with applicable laws, Executive Orders, directives, regulations, policies, standards, and guidelines;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.b": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the annually is designated to manage the development, documentation, and dissemination of the access control policy and procedures;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.c.1-1": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the current access control policy is reviewed and updated FIPS 140-3 validated cryptography;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.c.1-2": {
+"control_id": "ac-1",
+"label": "partial",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the current access control policy is reviewed and updated following as determined by the organization;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.c.2-1": {
+"control_id": "ac-1",
+"label": "addressed",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the current access control procedures are reviewed and updated three attempts;.",
+"span": [
+102,
+4781
+]
+},
+"ac-1|ac-1_obj.c.2-2": {
+"control_id": "ac-1",
+"label": "partial",
+"section": "AC-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the current access control procedures are reviewed and updated following as determined by the organization.",
+"span": [
+102,
+4781
+]
+},
+"ac-2|CCI-000010": {
+"control_id": "ac-2",
+"label": "partial",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that require approvals by as determined by the organization.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-000011": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that create, enable, modify, disable, and remove system accounts in accordance with within 24 hours.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-000012": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that review accounts for compliance with account management requirements per the ISSO and ISSM.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-001547": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002112": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that assign account managers.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002115": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that specify authorized users of the system.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002116": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that specify authorized users of the group.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002117": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that specify authorized users of the role membership.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002118": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that specify authorized access authorizations (i.e., privileges) for each account.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002119": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that specify organization-attributes (as required) for each account on the system.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002120": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002121": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that defines the procedures to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002122": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that monitor the use of accounts.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002123": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that notify account managers and three attempts-defined time-period when accounts are no longer required.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002124": {
+"control_id": "ac-2",
+"label": "partial",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that notify account managers and as determined by the organization-defined time-period when users are terminated or transferred.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002125": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002126": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that authorize access to the system based on a valid access authorization.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002127": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that authorize access to the system based on intended system usage.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002128": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that authorize access to the system based on FIPS 140-3 validated cryptography(as required).",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-002129": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003612": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that define and document the types of accounts allowed and specifically prohibited for use within the system.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003613": {
+"control_id": "ac-2",
+"label": "partial",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that require as determined by the organization.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003614": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003615": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that defines the prerequisites and criteria for group and role membership.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003616": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that defines the attributes (as required) for each account.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003617": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003618": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that create, enable, modify, disable, and remove system accounts in accordance with 15 minutes.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003619": {
+"control_id": "ac-2",
+"label": "partial",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that create, enable, modify, disable, and remove system accounts in accordance with as determined by the organization.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003620": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that defines the policy to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003621": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that defines the prerequisites to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003622": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that defines the criteria to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003623": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that defines the personnel or roles of whom to notify when accounts are no longer required; when users are terminated or transferred; and when system usage or need-to-know changes for an individual.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003624": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that defines the time period of when to notify account managers for each situation.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003625": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|CCI-003626": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that align account management processes with personnel termination and transfer processes.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.a-1": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that account types allowed for use within the system are defined and documented;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.a-2": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that account types specifically prohibited for use within the system are defined and documented;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.b": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that account managers are assigned;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.c": {
+"control_id": "ac-2",
+"label": "partial",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that as determined by the organization for group and role membership are required;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.d.1": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that authorized users of the system are specified;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.d.2": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that group and role membership are specified;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.d.3-1": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that access authorizations (i.e., privileges) are specified for each account;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.d.3-2": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that every 90 days are specified for each account;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.e": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.f-1": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that accounts are created in accordance with the ISSO and ISSM;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.f-2": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.f-3": {
+"control_id": "ac-2",
+"label": "partial",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that accounts are modified in accordance with as determined by the organization;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.f-4": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.f-5": {
+"control_id": "ac-2",
+"label": "partial",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that accounts are removed in accordance with as determined by the organization;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.g": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.h.1": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that account managers and within 24 hours are notified within within 24 hours when accounts are no longer required;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.h.2": {
+"control_id": "ac-2",
+"label": "partial",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that account managers and as determined by the organization are notified within as determined by the organization when users are terminated or transferred;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.h.3": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.i.1": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that access to the system is authorized based on a valid access authorization;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.i.2": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.i.3": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that access to the system is authorized based on three attempts;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.j": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.k-1": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that a process is established for changing shared or group account authenticators (if deployed) when individuals are removed from the group;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.k-2": {
+"control_id": "ac-2",
+"label": "not_addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.l-1": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that account management processes are aligned with personnel termination processes;.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2|ac-2_obj.l-2": {
+"control_id": "ac-2",
+"label": "addressed",
+"section": "AC-2 Account Management",
+"page": 1,
+"quote": "The organization ensures that account management processes are aligned with personnel transfer processes.",
+"span": [
+4781,
+10060
+]
+},
+"ac-2.1|CCI-000015": {
+"control_id": "ac-2.1",
+"label": "addressed",
+"section": "AC-2(1) Automated System Account Management",
+"page": 1,
+"quote": "The organization ensures that support the management of system accounts using every 90 days.",
+"span": [
+10060,
+10301
+]
+},
+"ac-2.1|ac-2.1_obj": {
+"control_id": "ac-2.1",
+"label": "addressed",
+"section": "AC-2(1) Automated System Account Management",
+"page": 1,
+"quote": "The organization ensures that the management of system accounts is supported using within 24 hours.",
+"span": [
+10060,
+10301
+]
+},
+"ac-2.2|CCI-000016": {
+"control_id": "ac-2.2",
+"label": "partial",
+"section": "AC-2(2) Automated Temporary and Emergency Account Management",
+"page": 2,
+"quote": "The organization ensures that automatically remove or disable temporary and emergency accounts after an as determined by the organization-period for each type of account.",
+"span": [
+10317,
+10935
+]
+},
+"ac-2.2|CCI-001361": {
+"control_id": "ac-2.2",
+"label": "addressed",
+"section": "AC-2(2) Automated Temporary and Emergency Account Management",
+"page": 2,
+"quote": "The organization ensures that defines a time period after which temporary accounts are automatically terminated.",
+"span": [
+10317,
+10935
+]
+},
+"ac-2.2|CCI-001365": {
+"control_id": "ac-2.2",
+"label": "addressed",
+"section": "AC-2(2) Automated Temporary and Emergency Account Management",
+"page": 2,
+"quote": "The organization ensures that defines a time period after which emergency accounts are automatically terminated.",
+"span": [
+10317,
+10935
+]
+},
+"ac-2.2|CCI-001682": {
+"control_id": "ac-2.2",
+"label": "not_addressed",
+"section": "AC-2(2) Automated Temporary and Emergency Account Management",
+"page": 2,
+"span": [
+10317,
+10935
+]
+},
+"ac-2.2|ac-2.2_obj": {
+"control_id": "ac-2.2",
+"label": "partial",
+"section": "AC-2(2) Automated Temporary and Emergency Account Management",
+"page": 2,
+"quote": "The organization ensures that temporary and emergency accounts are automatically as determined by the organization after as determined by the organization.",
+"span": [
+10317,
+10935
+]
+},
+"ac-2.3|CCI-000017": {
+"control_id": "ac-2.3",
+"label": "addressed",
+"section": "AC-2(3) Disable Accounts",
+"page": 2,
+"quote": "The organization ensures that disable accounts when the accounts have been inactive for the every 90 days-period.",
+"span": [
+10935,
+12015
+]
+},
+"ac-2.3|CCI-000217": {
+"control_id": "ac-2.3",
+"label": "addressed",
+"section": "AC-2(3) Disable Accounts",
+"page": 2,
+"quote": "The organization ensures that defines a time period after which inactive accounts are automatically disabled.",
+"span": [
+10935,
+12015
+]
+},
+"ac-2.3|CCI-003627": {
+"control_id": "ac-2.3",
+"label": "addressed",
+"section": "AC-2(3) Disable Accounts",
+"page": 2,
+"quote": "The organization ensures that disable accounts when the accounts have expired.",
+"span": [
+10935,
+12015
+]
+},
+"ac-2.3|CCI-003628": {
+"control_id": "ac-2.3",
+"label": "addressed",
+"section": "AC-2(3) Disable Accounts",
+"page": 2,
+"quote": "The organization ensures that disable accounts when the accounts are no longer associated to a user.",
+"span": [
+10935,
+12015
+]
+},
+"ac-2.3|CCI-003629": {
+"control_id": "ac-2.3",
+"label": "addressed",
+"section": "AC-2(3) Disable Accounts",
+"page": 2,
+"quote": "The organization ensures that disable accounts when the accounts are in violation of organizational policy.",
+"span": [
+10935,
+12015
+]
+},
+"ac-2.3|ac-2.3_obj.a": {
+"control_id": "ac-2.3",
+"label": "partial",
+"section": "AC-2(3) Disable Accounts",
+"page": 2,
+"quote": "The organization ensures that accounts are disabled within as determined by the organization when the accounts have expired;.",
+"span": [
+10935,
+12015
+]
+},
+"ac-2.3|ac-2.3_obj.b": {
+"control_id": "ac-2.3",
+"label": "addressed",
+"section": "AC-2(3) Disable Accounts",
+"page": 2,
+"quote": "The organization ensures that accounts are disabled within three attempts when the accounts are no longer associated with a user or individual;.",
+"span": [
+10935,
+12015
+]
+},
+"ac-2.3|ac-2.3_obj.c": {
+"control_id": "ac-2.3",
+"label": "addressed",
+"section": "AC-2(3) Disable Accounts",
+"page": 2,
+"quote": "The organization ensures that accounts are disabled within every 90 days when the accounts are in violation of organizational policy;.",
+"span": [
+10935,
+12015
+]
+},
+"ac-2.3|ac-2.3_obj.d": {
+"control_id": "ac-2.3",
+"label": "addressed",
+"section": "AC-2(3) Disable Accounts",
+"page": 2,
+"quote": "The organization ensures that accounts are disabled within within 24 hours when the accounts have been inactive for within 24 hours.",
+"span": [
+10935,
+12015
+]
+},
+"ac-2.4|CCI-000018": {
+"control_id": "ac-2.4",
+"label": "addressed",
+"section": "AC-2(4) Automated Audit Actions",
+"page": 2,
+"quote": "The organization ensures that automatically audit account creation actions.",
+"span": [
+12015,
+12737
+]
+},
+"ac-2.4|CCI-001403": {
+"control_id": "ac-2.4",
+"label": "not_addressed",
+"section": "AC-2(4) Automated Audit Actions",
+"page": 2,
+"span": [
+12015,
+12737
+]
+},
+"ac-2.4|CCI-001404": {
+"control_id": "ac-2.4",
+"label": "addressed",
+"section": "AC-2(4) Automated Audit Actions",
+"page": 2,
+"quote": "The organization ensures that automatically audit account disabling actions.",
+"span": [
+12015,
+12737
+]
+},
+"ac-2.4|CCI-001405": {
+"control_id": "ac-2.4",
+"label": "addressed",
+"section": "AC-2(4) Automated Audit Actions",
+"page": 2,
+"quote": "The organization ensures that automatically audit account removal actions.",
+"span": [
+12015,
+12737
+]
+},
+"ac-2.4|CCI-002130": {
+"control_id": "ac-2.4",
+"label": "addressed",
+"section": "AC-2(4) Automated Audit Actions",
+"page": 2,
+"quote": "The organization ensures that automatically audit account enabling actions.",
+"span": [
+12015,
+12737
+]
+},
+"ac-2.4|ac-2.4_obj-1": {
+"control_id": "ac-2.4",
+"label": "addressed",
+"section": "AC-2(4) Automated Audit Actions",
+"page": 2,
+"quote": "The organization ensures that account creation is automatically audited;.",
+"span": [
+12015,
+12737
+]
+},
+"ac-2.4|ac-2.4_obj-2": {
+"control_id": "ac-2.4",
+"label": "addressed",
+"section": "AC-2(4) Automated Audit Actions",
+"page": 2,
+"quote": "The organization ensures that account modification is automatically audited;.",
+"span": [
+12015,
+12737
+]
+},
+"ac-2.4|ac-2.4_obj-3": {
+"control_id": "ac-2.4",
+"label": "addressed",
+"section": "AC-2(4) Automated Audit Actions",
+"page": 2,
+"quote": "The organization ensures that account enabling is automatically audited;.",
+"span": [
+12015,
+12737
+]
+},
+"ac-2.4|ac-2.4_obj-4": {
+"control_id": "ac-2.4",
+"label": "addressed",
+"section": "AC-2(4) Automated Audit Actions",
+"page": 2,
+"quote": "The organization ensures that account disabling is automatically audited;.",
+"span": [
+12015,
+12737
+]
+},
+"ac-2.4|ac-2.4_obj-5": {
+"control_id": "ac-2.4",
+"label": "addressed",
+"section": "AC-2(4) Automated Audit Actions",
+"page": 2,
+"quote": "The organization ensures that account removal actions are automatically audited.",
+"span": [
+12015,
+12737
+]
+},
+"ac-2.5|CCI-000019": {
+"control_id": "ac-2.5",
+"label": "not_addressed",
+"section": "AC-2(5) Inactivity Logout",
+"page": 3,
+"span": [
+12753,
+13060
+]
+},
+"ac-2.5|CCI-001406": {
+"control_id": "ac-2.5",
+"label": "addressed",
+"section": "AC-2(5) Inactivity Logout",
+"page": 3,
+"quote": "The organization ensures that defines a time period of expected inactivity when users are required to log out.",
+"span": [
+12753,
+13060
+]
+},
+"ac-2.5|CCI-002133": {
+"control_id": "ac-2.5",
+"label": "addressed",
+"section": "AC-2(5) Inactivity Logout",
+"page": 3,
+"quote": "The organization ensures that defines other conditions when users are required to log out.",
+"span": [
+12753,
+13060
+]
+},
+"ac-2.5|ac-2.5_obj": {
+"control_id": "ac-2.5",
+"label": "addressed",
+"section": "AC-2(5) Inactivity Logout",
+"page": 3,
+"quote": "The organization ensures that users are required to log out when annually.",
+"span": [
+12753,
+13060
+]
+},
+"ac-2.13|CCI-002150": {
+"control_id": "ac-2.13",
+"label": "addressed",
+"section": "AC-2(13) Disable Accounts for High-risk Individuals",
+"page": 3,
+"quote": "The organization ensures that defines the time period within which the accounts of users posing a significant risk are to be disabled after discovery of the risk.",
+"span": [
+13060,
+13565
+]
+},
+"ac-2.13|CCI-002151": {
+"control_id": "ac-2.13",
+"label": "not_addressed",
+"section": "AC-2(13) Disable Accounts for High-risk Individuals",
+"page": 3,
+"span": [
+13060,
+13565
+]
+},
+"ac-2.13|CCI-003637": {
+"control_id": "ac-2.13",
+"label": "addressed",
+"section": "AC-2(13) Disable Accounts for High-risk Individuals",
+"page": 3,
+"quote": "The organization ensures that defines the significant risks that may be discovered requiring disabled accounts of individuals.",
+"span": [
+13060,
+13565
+]
+},
+"ac-2.13|ac-2.13_obj": {
+"control_id": "ac-2.13",
+"label": "partial",
+"section": "AC-2(13) Disable Accounts for High-risk Individuals",
+"page": 3,
+"quote": "The organization ensures that accounts of individuals are disabled within as determined by the organization of discovery of as determined by the organization.",
+"span": [
+13060,
+13565
+]
+},
+"ac-3|CCI-000213": {
+"control_id": "ac-3",
+"label": "addressed",
+"section": "AC-3 Access Enforcement",
+"page": 3,
+"quote": "The organization ensures that enforce approved authorizations for logical access to information and system resources in accordance with applicable access control policies.",
+"span": [
+13565,
+13765
+]
+},
+"ac-3|ac-3_obj": {
+"control_id": "ac-3",
+"label": "not_addressed",
+"section": "AC-3 Access Enforcement",
+"page": 3,
+"span": [
+13565,
+13765
+]
+},
+"ac-4|CCI-001368": {
+"control_id": "ac-4",
+"label": "addressed",
+"section": "AC-4 Information Flow Enforcement",
+"page": 4,
+"quote": "The organization ensures that enforce approved authorizations for controlling the flow of information within the system based on every 90 days.",
+"span": [
+13781,
+14400
+]
+},
+"ac-4|CCI-001414": {
+"control_id": "ac-4",
+"label": "addressed",
+"section": "AC-4 Information Flow Enforcement",
+"page": 4,
+"quote": "The organization ensures that enforce approved authorizations for controlling the flow of information between connected systems based on within 24 hours.",
+"span": [
+13781,
+14400
+]
+},
+"ac-4|CCI-001548": {
+"control_id": "ac-4",
+"label": "addressed",
+"section": "AC-4 Information Flow Enforcement",
+"page": 4,
+"quote": "The organization ensures that defines the information flow control policies for controlling the flow of information within the system.",
+"span": [
+13781,
+14400
+]
+},
+"ac-4|CCI-001549": {
+"control_id": "ac-4",
+"label": "addressed",
+"section": "AC-4 Information Flow Enforcement",
+"page": 4,
+"quote": "The organization ensures that defines the information flow control policies for controlling the flow of information between interconnected systems.",
+"span": [
+13781,
+14400
+]
+},
+"ac-4|ac-4_obj": {
+"control_id": "ac-4",
+"label": "not_addressed",
+"section": "AC-4 Information Flow Enforcement",
+"page": 4,
+"span": [
+13781,
+14400
+]
+},
+"ac-5|CCI-002219": {
+"control_id": "ac-5",
+"label": "addressed",
+"section": "AC-5 Separation of Duties",
+"page": 4,
+"quote": "The organization ensures that defines the duties of individuals requiring separation.",
+"span": [
+14400,
+14886
+]
+},
+"ac-5|CCI-002220": {
+"control_id": "ac-5",
+"label": "addressed",
+"section": "AC-5 Separation of Duties",
+"page": 4,
+"quote": "The organization ensures that define system access authorizations to support separation of duties.",
+"span": [
+14400,
+14886
+]
+},
+"ac-5|CCI-003684": {
+"control_id": "ac-5",
+"label": "addressed",
+"section": "AC-5 Separation of Duties",
+"page": 4,
+"quote": "The organization ensures that identify and document the ISSO and ISSM.",
+"span": [
+14400,
+14886
+]
+},
+"ac-5|ac-5_obj.a": {
+"control_id": "ac-5",
+"label": "partial",
+"section": "AC-5 Separation of Duties",
+"page": 4,
+"quote": "The organization ensures that as determined by the organization are identified and documented;.",
+"span": [
+14400,
+14886
+]
+},
+"ac-5|ac-5_obj.b": {
+"control_id": "ac-5",
+"label": "addressed",
+"section": "AC-5 Separation of Duties",
+"page": 4,
+"quote": "The organization ensures that system access authorizations to support separation of duties are defined.",
+"span": [
+14400,
+14886
+]
+},
+"ac-6|CCI-000225": {
+"control_id": "ac-6",
+"label": "addressed",
+"section": "AC-6 Least Privilege",
+"page": 4,
+"quote": "The organization ensures that employ the principle of least privilege, allowing only authorized accesses for users (or processes acting on behalf of users) which are necessary to accomplish assigned organizational tasks.",
+"span": [
+14886,
+15357
+]
+},
+"ac-6|ac-6_obj": {
+"control_id": "ac-6",
+"label": "addressed",
+"section": "AC-6 Least Privilege",
+"page": 4,
+"quote": "The organization ensures that the principle of least privilege is employed, allowing only authorized accesses for users (or processes acting on behalf of users) that are necessary to accomplish assigned organizational tasks.",
+"span": [
+14886,
+15357
+]
+},
+"ac-6.1|CCI-001558": {
+"control_id": "ac-6.1",
+"label": "addressed",
+"section": "AC-6(1) Authorize Access to Security Functions",
+"page": 5,
+"quote": "The organization ensures that defines the security functions (deployed in hardware, software, and firmware) for which access must be authorized.",
+"span": [
+15373,
+16580
+]
+},
+"ac-6.1|CCI-002221": {
+"control_id": "ac-6.1",
+"label": "addressed",
+"section": "AC-6(1) Authorize Access to Security Functions",
+"page": 5,
+"quote": "The organization ensures that defines the security-relevant information for which access must be explicitly authorized.",
+"span": [
+15373,
+16580
+]
+},
+"ac-6.1|CCI-002222": {
+"control_id": "ac-6.1",
+"label": "partial",
+"section": "AC-6(1) Authorize Access to Security Functions",
+"page": 5,
+"quote": "The organization ensures that authorize access for as determined by the organization-defined security functions (deployed in hardware, software, and firmware).",
+"span": [
+15373,
+16580
+]
+},
+"ac-6.1|CCI-002223": {
+"control_id": "ac-6.1",
+"label": "partial",
+"section": "AC-6(1) Authorize Access to Security Functions",
+"page": 5,
+"quote": "The organization ensures that authorize access for as determined by the organization-defined security-relevant information.",
+"span": [
+15373,
+16580
+]
+},
+"ac-6.1|CCI-003685": {
+"control_id": "ac-6.1",
+"label": "partial",
+"section": "AC-6(1) Authorize Access to Security Functions",
+"page": 5,
+"quote": "The organization ensures that defines the individuals or roles who authorize access to as determined by the organization.",
+"span": [
+15373,
+16580
+]
+},
+"ac-6.1|CCI-003686": {
+"control_id": "ac-6.1",
+"label": "addressed",
+"section": "AC-6(1) Authorize Access to Security Functions",
+"page": 5,
+"quote": "The organization ensures that defines the individuals or roles who authorize access to 15 minutes-relevant information.",
+"span": [
+15373,
+16580
+]
+},
+"ac-6.1|ac-6.1_obj.a-1": {
+"control_id": "ac-6.1",
+"label": "addressed",
+"section": "AC-6(1) Authorize Access to Security Functions",
+"page": 5,
+"quote": "The organization ensures that access is authorized for three attempts to three attempts;.",
+"span": [
+15373,
+16580
+]
+},
+"ac-6.1|ac-6.1_obj.a-2": {
+"control_id": "ac-6.1",
+"label": "addressed",
+"section": "AC-6(1) Authorize Access to Security Functions",
+"page": 5,
+"quote": "The organization ensures that access is authorized for every 90 days to every 90 days;.",
+"span": [
+15373,
+16580
+]
+},
+"ac-6.1|ac-6.1_obj.a-3": {
+"control_id": "ac-6.1",
+"label": "addressed",
+"section": "AC-6(1) Authorize Access to Security Functions",
+"page": 5,
+"quote": "The organization ensures that access is authorized for within 24 hours to within 24 hours;.",
+"span": [
+15373,
+16580
+]
+},
+"ac-6.1|ac-6.1_obj.b": {
+"control_id": "ac-6.1",
+"label": "addressed",
+"section": "AC-6(1) Authorize Access to Security Functions",
+"page": 5,
+"quote": "The organization ensures that access is authorized for the ISSO and ISSM to the ISSO and ISSM.",
+"span": [
+15373,
+16580
+]
+},
+"ac-6.2|CCI-000039": {
+"control_id": "ac-6.2",
+"label": "not_addressed",
+"section": "AC-6(2) Non-privileged Access for Nonsecurity Functions",
+"page": 5,
+"span": [
+16580,
+16983
+]
+},
+"ac-6.2|CCI-001419": {
+"control_id": "ac-6.2",
+"label": "addressed",
+"section": "AC-6(2) Non-privileged Access for Nonsecurity Functions",
+"page": 5,
+"quote": "The organization ensures that defines the security functions or security-relevant information to which users of system accounts, or roles, have access.",
+"span": [
+16580,
+16983
+]
+},
+"ac-6.2|ac-6.2_obj": {
+"control_id": "ac-6.2",
+"label": "addressed",
+"section": "AC-6(2) Non-privileged Access for Nonsecurity Functions",
+"page": 5,
+"quote": "The organization ensures that users of system accounts (or roles) with access to the ISSO and ISSM are required to use non-privileged accounts or roles when accessing non-security functions.",
+"span": [
+16580,
+16983
+]
+},
+"ac-6.3|CCI-000041": {
+"control_id": "ac-6.3",
+"label": "addressed",
+"section": "AC-6(3) Network Access to Privileged Commands",
+"page": 5,
+"quote": "The organization ensures that authorize network access to every 90 days-defined compelling operational needs.",
+"span": [
+16983,
+17846
+]
+},
+"ac-6.3|CCI-000042": {
+"control_id": "ac-6.3",
+"label": "partial",
+"section": "AC-6(3) Network Access to Privileged Commands",
+"page": 5,
+"quote": "The organization ensures that document the rationale for authorized network access to as determined by the organization.",
+"span": [
+16983,
+17846
+]
+},
+"ac-6.3|CCI-001420": {
+"control_id": "ac-6.3",
+"label": "partial",
+"section": "AC-6(3) Network Access to Privileged Commands",
+"page": 5,
+"quote": "The organization ensures that defines the privileged commands to which network access is to be authorized only for as determined by the organization.",
+"span": [
+16983,
+17846
+]
+},
+"ac-6.3|CCI-002224": {
+"control_id": "ac-6.3",
+"label": "addressed",
+"section": "AC-6(3) Network Access to Privileged Commands",
+"page": 5,
+"quote": "The organization ensures that defines the compelling operational needs that must be met in order to be authorized network access to annually.",
+"span": [
+16983,
+17846
+]
+},
+"ac-6.3|ac-6.3_obj-1": {
+"control_id": "ac-6.3",
+"label": "addressed",
+"section": "AC-6(3) Network Access to Privileged Commands",
+"page": 5,
+"quote": "The organization ensures that network access to FIPS 140-3 validated cryptography is authorized only for FIPS 140-3 validated cryptography;.",
+"span": [
+16983,
+17846
+]
+},
+"ac-6.3|ac-6.3_obj-2": {
+"control_id": "ac-6.3",
+"label": "addressed",
+"section": "AC-6(3) Network Access to Privileged Commands",
+"page": 5,
+"quote": "The organization ensures that the rationale for authorizing network access to privileged commands is documented in the security plan for the system.",
+"span": [
+16983,
+17846
+]
+},
+"ac-6.5|CCI-002226": {
+"control_id": "ac-6.5",
+"label": "not_addressed",
+"section": "AC-6(5) Privileged Accounts",
+"page": 6,
+"span": [
+17862,
+17995
+]
+},
+"ac-6.5|CCI-002227": {
+"control_id": "ac-6.5",
+"label": "not_addressed",
+"section": "AC-6(5) Privileged Accounts",
+"page": 6,
+"span": [
+17862,
+17995
+]
+},
+"ac-6.5|ac-6.5_obj": {
+"control_id": "ac-6.5",
+"label": "addressed",
+"section": "AC-6(5) Privileged Accounts",
+"page": 6,
+"quote": "The organization ensures that privileged accounts on the system are restricted to the ISSO and ISSM.",
+"span": [
+17862,
+17995
+]
+},
+"ac-6.7|CCI-002228": {
+"control_id": "ac-6.7",
+"label": "addressed",
+"section": "AC-6(7) Review of User Privileges",
+"page": 6,
+"quote": "The organization ensures that defines the frequency on which it conducts reviews of the privileges assigned to every 90 days.",
+"span": [
+17995,
+18762
+]
+},
+"ac-6.7|CCI-002229": {
+"control_id": "ac-6.7",
+"label": "not_addressed",
+"section": "AC-6(7) Review of User Privileges",
+"page": 6,
+"span": [
+17995,
+18762
+]
+},
+"ac-6.7|CCI-002230": {
+"control_id": "ac-6.7",
+"label": "partial",
+"section": "AC-6(7) Review of User Privileges",
+"page": 6,
+"quote": "The organization ensures that review, on an as determined by the organization, the privileges assigned to as determined by the organization.",
+"span": [
+17995,
+18762
+]
+},
+"ac-6.7|CCI-002231": {
+"control_id": "ac-6.7",
+"label": "addressed",
+"section": "AC-6(7) Review of User Privileges",
+"page": 6,
+"quote": "The organization ensures that reassign or remove privileges, if necessary, to correctly reflect organizational mission and business needs.",
+"span": [
+17995,
+18762
+]
+},
+"ac-6.7|ac-6.7_obj.a": {
+"control_id": "ac-6.7",
+"label": "addressed",
+"section": "AC-6(7) Review of User Privileges",
+"page": 6,
+"quote": "The organization ensures that privileges assigned to FIPS 140-3 validated cryptography are reviewed FIPS 140-3 validated cryptography to validate the need for such privileges;.",
+"span": [
+17995,
+18762
+]
+},
+"ac-6.7|ac-6.7_obj.b": {
+"control_id": "ac-6.7",
+"label": "addressed",
+"section": "AC-6(7) Review of User Privileges",
+"page": 6,
+"quote": "The organization ensures that privileges are reassigned or removed, if necessary, to correctly reflect organizational mission and business needs.",
+"span": [
+17995,
+18762
+]
+},
+"ac-6.9|CCI-002234": {
+"control_id": "ac-6.9",
+"label": "addressed",
+"section": "AC-6(9) Log Use of Privileged Functions",
+"page": 6,
+"quote": "The organization ensures that log the execution of privileged functions.",
+"span": [
+18762,
+18958
+]
+},
+"ac-6.9|ac-6.9_obj": {
+"control_id": "ac-6.9",
+"label": "addressed",
+"section": "AC-6(9) Log Use of Privileged Functions",
+"page": 6,
+"quote": "The organization ensures that the execution of privileged functions is logged.",
+"span": [
+18762,
+18958
+]
+},
+"ac-6.10|CCI-002235": {
+"control_id": "ac-6.10",
+"label": "addressed",
+"section": "AC-6(10) Prohibit Non-privileged Users from Executing Privileged Functions",
+"page": 7,
+"quote": "The organization ensures that prevent non-privileged users from executing privileged functions.",
+"span": [
+18974,
+19251
+]
+},
+"ac-6.10|ac-6.10_obj": {
+"control_id": "ac-6.10",
+"label": "addressed",
+"section": "AC-6(10) Prohibit Non-privileged Users from Executing Privileged Functions",
+"page": 7,
+"quote": "The organization ensures that non-privileged users are prevented from executing privileged functions.",
+"span": [
+18974,
+19251
+]
+},
+"ac-7|CCI-000043": {
+"control_id": "ac-7",
+"label": "addressed",
+"section": "AC-7 Unsuccessful Logon Attempts",
+"page": 7,
+"quote": "The organization ensures that defines the maximum number of consecutive invalid logon attempts to the information system by a user during an every 90 days.",
+"span": [
+19251,
+20381
+]
+},
+"ac-7|CCI-000044": {
+"control_id": "ac-7",
+"label": "not_addressed",
+"section": "AC-7 Unsuccessful Logon Attempts",
+"page": 7,
+"span": [
+19251,
+20381
+]
+},
+"ac-7|CCI-001423": {
+"control_id": "ac-7",
+"label": "addressed",
+"section": "AC-7 Unsuccessful Logon Attempts",
+"page": 7,
+"quote": "The organization ensures that defines the time period in which the the ISSO and ISSM.",
+"span": [
+19251,
+20381
+]
+},
+"ac-7|CCI-002236": {
+"control_id": "ac-7",
+"label": "addressed",
+"section": "AC-7 Unsuccessful Logon Attempts",
+"page": 7,
+"quote": "The organization ensures that defines the time period the information system will automatically lock the account or node when the maximum number of unsuccessful logon attempts is exceeded.",
+"span": [
+19251,
+20381
+]
+},
+"ac-7|CCI-002237": {
+"control_id": "ac-7",
+"label": "addressed",
+"section": "AC-7 Unsuccessful Logon Attempts",
+"page": 7,
+"quote": "The organization ensures that defines the delay algorithm to delay the next logon prompt when the maximum number of unsuccessful logon attempts is exceeded.",
+"span": [
+19251,
+20381
+]
+},
+"ac-7|CCI-002238": {
+"control_id": "ac-7",
+"label": "addressed",
+"section": "AC-7 Unsuccessful Logon Attempts",
+"page": 7,
+"quote": "The organization ensures that automatically lock the account or node for either an 15 minutes, until the locked account or node is released by an administrator, or delays the next logon prompt according to the 15 minutes.",
+"span": [
+19251,
+20381
+]
+},
+"ac-7|ac-7_obj.a": {
+"control_id": "ac-7",
+"label": "not_addressed",
+"section": "AC-7 Unsuccessful Logon Attempts",
+"page": 7,
+"span": [
+19251,
+20381
+]
+},
+"ac-7|ac-7_obj.b": {
+"control_id": "ac-7",
+"label": "addressed",
+"section": "AC-7 Unsuccessful Logon Attempts",
+"page": 7,
+"quote": "The organization ensures that automatically every 90 days ; lock the account or node until released by an administrator; delay next logon prompt per every 90 days ; notify system administrator; take other every 90 days ] when the maximum number of unsuccessful attempts is exceeded.",
+"span": [
+19251,
+20381
+]
+}
+},
+"note": "builder-authored gold labels \u2013 NOT SME reviewed"
+}

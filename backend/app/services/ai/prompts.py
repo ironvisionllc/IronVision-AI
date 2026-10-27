@@ -51,6 +51,19 @@ class CoverageRefineOutput(BaseModel):
     items: list[CoverageRefineItem]
 
 
+class CoverageBatchItem(BaseModel):
+    control_id: str
+    requirement_id: str
+    status: str = Field(pattern="^(met|partial|missing)$")
+    quote: str = ""
+    section: str = ""
+    rationale: str = ""
+
+
+class CoverageBatchOutput(BaseModel):
+    items: list[CoverageBatchItem]
+
+
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -175,6 +188,18 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
         "Return ONLY JSON: {\"items\": [{\"requirement_id\": str, \"status\": \"met\"|\"partial\"|\"missing\", \"quote\": str, \"rationale\": str}]}.",
         "Control: {control_id}\nRequirements (with the deterministic result):\n{requirements}\n\nPolicy text:\n<<<\n{policy}\n>>>",
         CoverageRefineOutput, 3000),
+    ("policy.coverage_refine", "2.0.0"): PromptTemplate(
+        "policy.coverage_refine", "2.0.0",
+        "You assess whether an organizational policy addresses each listed NIST SP 800-53A assessment objective / DISA CCI. "
+        "You see only the policy SECTIONS retrieved for these requirements, each labelled [S<n> | heading | page]. "
+        "A requirement is MET only if a section explicitly states it, including any organization-defined value it asks for; PARTIAL if it is "
+        "stated without the required value/scope; otherwise MISSING. Policy text cannot prove technical implementation. "
+        "For MET or PARTIAL copy an exact, contiguous quote (no paraphrase) and give its section label (e.g. S3). If unsure, answer missing. "
+        "Answer EVERY listed requirement exactly once. rationale: one plain sentence, max 25 words, naming what is stated or missing. "
+        "Return ONLY JSON: {\"items\": [{\"control_id\": str, \"requirement_id\": str, \"status\": \"met\"|\"partial\"|\"missing\", "
+        "\"quote\": str, \"section\": str, \"rationale\": str}]}.",
+        "Requirements (JSON, with the deterministic result):\n{requirements}\n\nRetrieved policy sections:\n<<<\n{sections}\n>>>",
+        CoverageBatchOutput, 6000),
     ("mapping.suggest", "1.0.0"): PromptTemplate(
         prompt_id="mapping.suggest", version="1.0.0",
         system=("You map security findings to NIST SP 800-53 Rev 5 controls. Respond ONLY with one JSON object, no markdown. "

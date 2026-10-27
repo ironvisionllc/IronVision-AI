@@ -1,0 +1,1312 @@
+{
+"policy": "neg_ra",
+"controls": [
+"ra-1",
+"ra-2",
+"ra-3",
+"ra-3.1",
+"ra-5",
+"ra-5.2",
+"ra-5.5",
+"ra-5.11",
+"ra-7",
+"ra-9"
+],
+"requirements": {
+"ra-1|CCI-001037": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that develop and document an organization-level; mission/business process-level; system-level risk assessment policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-001038": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that disseminate an organization-level; mission/business process-level; system-level risk assessment policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance to within 24 hours.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-001039": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that review and update the current risk assessment policy in accordance with the ISSO and ISSM.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-001040": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-001041": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that develop and document procedures to facilitate the implementation of the risk assessment policy and associated risk assessment controls.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-001042": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that disseminate risk assessment procedures to facilitate the implementation of the risk assessment policy and associated risk assessment controls to 15 minutes.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-001043": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that review and update the current risk assessment procedures in accordance with three attempts.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-001044": {
+"control_id": "ra-1",
+"label": "not_addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-002368": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that defines the personnel or roles to whom the organization-level; mission/business process-level; system-level risk assessment policy is disseminated.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-002369": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that defines the personnel or roles to whom the risk assessment procedures are disseminated.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004603": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that develop and document an organization-level; mission/business process-level; system-level risk assessment policy that is consistent with applicable laws, Executive Orders, directives, regulations, policies, standards, and guidelines.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004604": {
+"control_id": "ra-1",
+"label": "partial",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that disseminate an organization-level; mission/business process-level; system-level risk assessment policy that is consistent with applicable laws, Executive Orders, directives, regulations, policies, standards, and guidelines, to as determined by the organization.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004605": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that designate an 15 minutes.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004606": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that designate an three attempts.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004607": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that designate an every 90 days.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004608": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that designate an within 24 hours.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004609": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that defines the official designated to manage the development, documentation, and dissemination of the risk assessment policy and procedures.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004610": {
+"control_id": "ra-1",
+"label": "partial",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that review and update the current risk assessment policy following as determined by the organization.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004611": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that defines the events following reviewing and updating the current risk assessment policy.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004612": {
+"control_id": "ra-1",
+"label": "partial",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that review and update the current risk assessment procedures following as determined by the organization.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|CCI-004613": {
+"control_id": "ra-1",
+"label": "not_addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a-1": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that a risk assessment policy is developed and documented;.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a-2": {
+"control_id": "ra-1",
+"label": "partial",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the risk assessment policy is disseminated to as determined by the organization;.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a-3": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that risk assessment procedures to facilitate the implementation of the risk assessment policy and associated risk assessment controls are developed and documented;.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a-4": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the risk assessment procedures are disseminated to annually;.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a.1.a-1": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the FIPS 140-3 validated cryptography risk assessment policy addresses purpose;.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a.1.a-2": {
+"control_id": "ra-1",
+"label": "not_addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a.1.a-3": {
+"control_id": "ra-1",
+"label": "partial",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the as determined by the organization risk assessment policy addresses roles;.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a.1.a-4": {
+"control_id": "ra-1",
+"label": "partial",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the as determined by the organization risk assessment policy addresses responsibilities;.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a.1.a-5": {
+"control_id": "ra-1",
+"label": "not_addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a.1.a-6": {
+"control_id": "ra-1",
+"label": "partial",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the as determined by the organization risk assessment policy addresses coordination among organizational entities;.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a.1.a-7": {
+"control_id": "ra-1",
+"label": "not_addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.a.1.b": {
+"control_id": "ra-1",
+"label": "not_addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.b": {
+"control_id": "ra-1",
+"label": "not_addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.c.1-1": {
+"control_id": "ra-1",
+"label": "not_addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.c.1-2": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the current risk assessment policy is reviewed and updated following every 90 days;.",
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.c.2-1": {
+"control_id": "ra-1",
+"label": "not_addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"span": [
+103,
+4255
+]
+},
+"ra-1|ra-1_obj.c.2-2": {
+"control_id": "ra-1",
+"label": "addressed",
+"section": "RA-1 Policy and Procedures",
+"page": 1,
+"quote": "The organization ensures that the current risk assessment procedures are reviewed and updated following the ISSO and ISSM.",
+"span": [
+103,
+4255
+]
+},
+"ra-2|CCI-001046": {
+"control_id": "ra-2",
+"label": "not_addressed",
+"section": "RA-2 Security Categorization",
+"page": 1,
+"span": [
+4255,
+5140
+]
+},
+"ra-2|CCI-001047": {
+"control_id": "ra-2",
+"label": "addressed",
+"section": "RA-2 Security Categorization",
+"page": 1,
+"quote": "The organization ensures that verify the security categorization decision is reviewed and approved by the authorizing official or authorizing official designated representative.",
+"span": [
+4255,
+5140
+]
+},
+"ra-2|CCI-004614": {
+"control_id": "ra-2",
+"label": "addressed",
+"section": "RA-2 Security Categorization",
+"page": 1,
+"quote": "The organization ensures that categorize the system and information it processes.",
+"span": [
+4255,
+5140
+]
+},
+"ra-2|CCI-004615": {
+"control_id": "ra-2",
+"label": "addressed",
+"section": "RA-2 Security Categorization",
+"page": 1,
+"quote": "The organization ensures that categorize the system and information it stores.",
+"span": [
+4255,
+5140
+]
+},
+"ra-2|CCI-004616": {
+"control_id": "ra-2",
+"label": "addressed",
+"section": "RA-2 Security Categorization",
+"page": 1,
+"quote": "The organization ensures that categorize the system and information it transmits.",
+"span": [
+4255,
+5140
+]
+},
+"ra-2|ra-2_obj.a": {
+"control_id": "ra-2",
+"label": "addressed",
+"section": "RA-2 Security Categorization",
+"page": 1,
+"quote": "The organization ensures that the system and the information it processes, stores, and transmits are categorized;.",
+"span": [
+4255,
+5140
+]
+},
+"ra-2|ra-2_obj.b": {
+"control_id": "ra-2",
+"label": "addressed",
+"section": "RA-2 Security Categorization",
+"page": 1,
+"quote": "The organization ensures that the security categorization results, including supporting rationale, are documented in the security plan for the system;.",
+"span": [
+4255,
+5140
+]
+},
+"ra-2|ra-2_obj.c": {
+"control_id": "ra-2",
+"label": "addressed",
+"section": "RA-2 Security Categorization",
+"page": 1,
+"quote": "The organization ensures that the authorizing official or authorizing official designated representative reviews and approves the security categorization decision.",
+"span": [
+4255,
+5140
+]
+},
+"ra-3|CCI-001048": {
+"control_id": "ra-3",
+"label": "not_addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-001049": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that document risk assessment results in the within 24 hours.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-001050": {
+"control_id": "ra-3",
+"label": "partial",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that review risk assessment results on an as determined by the organization.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-001051": {
+"control_id": "ra-3",
+"label": "not_addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-001052": {
+"control_id": "ra-3",
+"label": "not_addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-001053": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that defines a frequency for updating the risk assessment.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-001642": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that defines the organizational document in which risk assessment results are documented (e.g., security plan, privacy plan; risk assessment report).",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-002370": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that disseminate risk assessment results to every 90 days.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-002371": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that defines the personnel or roles to whom the risk assessment results will be disseminated.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-004618": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that conduct a risk assessment, including identifying threats to the system.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-004619": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that conduct a risk assessment, including identifying vulnerabilities in the system.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-004620": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that conduct a risk assessment, including determining the likelihood and impact of adverse effects on individuals arising from the processing of personally-identifiable information.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-004621": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that integrate risk assessment results from the organization.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-004622": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that integrate risk management decisions from the organization.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|CCI-004623": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that integrate mission or business process perspectives with system-level risk assessments.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|ra-3_obj.a.1": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that a risk assessment is conducted to identify threats to and vulnerabilities in the system;.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|ra-3_obj.a.2": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that a risk assessment is conducted to determine the likelihood and magnitude of harm from unauthorized access, use, disclosure, disruption, modification, or destruction of the system; the information it processes, stores, or transmits; and any related information;.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|ra-3_obj.a.3": {
+"control_id": "ra-3",
+"label": "not_addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"span": [
+5140,
+7555
+]
+},
+"ra-3|ra-3_obj.b": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that risk assessment results and risk management decisions from the organization and mission or business process perspectives are integrated with system-level risk assessments;.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|ra-3_obj.c": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that risk assessment results are documented in 15 minutes ];.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|ra-3_obj.d": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that risk assessment results are reviewed three attempts;.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3|ra-3_obj.e": {
+"control_id": "ra-3",
+"label": "not_addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"span": [
+5140,
+7555
+]
+},
+"ra-3|ra-3_obj.f": {
+"control_id": "ra-3",
+"label": "addressed",
+"section": "RA-3 Risk Assessment",
+"page": 1,
+"quote": "The organization ensures that the risk assessment is updated within 24 hours or when there are significant changes to the system, its environment of operation, or other conditions that may impact the security or privacy state of the system.",
+"span": [
+5140,
+7555
+]
+},
+"ra-3.1|CCI-004624": {
+"control_id": "ra-3.1",
+"label": "addressed",
+"section": "RA-3(1) Supply Chain Risk Assessment",
+"page": 2,
+"quote": "The organization ensures that assess supply chain risks associated with every 90 days, system components, and system services.",
+"span": [
+7571,
+8072
+]
+},
+"ra-3.1|CCI-004625": {
+"control_id": "ra-3.1",
+"label": "not_addressed",
+"section": "RA-3(1) Supply Chain Risk Assessment",
+"page": 2,
+"span": [
+7571,
+8072
+]
+},
+"ra-3.1|CCI-004626": {
+"control_id": "ra-3.1",
+"label": "addressed",
+"section": "RA-3(1) Supply Chain Risk Assessment",
+"page": 2,
+"quote": "The organization ensures that update the supply chain risk assessment on an the ISSO and ISSM, or when changes to the system, environments of operation, or other conditions may necessitate a change in the supply chain.",
+"span": [
+7571,
+8072
+]
+},
+"ra-3.1|CCI-004627": {
+"control_id": "ra-3.1",
+"label": "not_addressed",
+"section": "RA-3(1) Supply Chain Risk Assessment",
+"page": 2,
+"span": [
+7571,
+8072
+]
+},
+"ra-3.1|ra-3.1_obj.a": {
+"control_id": "ra-3.1",
+"label": "addressed",
+"section": "RA-3(1) Supply Chain Risk Assessment",
+"page": 2,
+"quote": "The organization ensures that supply chain risks associated with FIPS 140-3 validated cryptography are assessed;.",
+"span": [
+7571,
+8072
+]
+},
+"ra-3.1|ra-3.1_obj.b": {
+"control_id": "ra-3.1",
+"label": "not_addressed",
+"section": "RA-3(1) Supply Chain Risk Assessment",
+"page": 2,
+"span": [
+7571,
+8072
+]
+},
+"ra-5|CCI-001054": {
+"control_id": "ra-5",
+"label": "not_addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-001055": {
+"control_id": "ra-5",
+"label": "partial",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that defines a frequency for scanning for vulnerabilities in the system and hosted applications, and/or randomly in accordance with as determined by the organization.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-001056": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that monitor and scan for vulnerabilities in the system and hosted applications when new vulnerabilities potentially affecting the system/applications are identified and reported.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-001057": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that employ vulnerability monitoring tools and techniques that facilitate interoperability among tools and automate parts of the vulnerability management process by using standards for: enumerating platforms, software flaws, and improper configurations.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-001058": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that analyze vulnerability scan reports and results from vulnerability monitoring.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-001059": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that remediate legitimate vulnerabilities in 15 minutes.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-001060": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that defines response times for remediating legitimate vulnerabilities in accordance with an organization assessment of risk.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-001061": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that share information obtained from the vulnerability monitoring process and control assessments with every 90 days.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-001641": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that defines the process for conducting random vulnerability scans on the system and hosted applications.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-001643": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that monitor and scan for vulnerabilities in the system and hosted applications in accordance with the the ISSO and ISSM.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-002376": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that defines the personnel or roles with whom the information obtained from the vulnerability monitoring process and control assessments will be shared.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-004634": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that employ vulnerability monitoring tools and techniques that facilitate interoperability among tools and automate parts of the vulnerability management process by using standards for: formatting checklists and test procedures.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-004635": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that employ vulnerability monitoring tools and techniques that facilitate interoperability among tools and automate parts of the vulnerability management process by using standards for: measuring vulnerability impact.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|CCI-004636": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that employ vulnerability monitoring tools that include the capability to readily update the vulnerabilities to be scanned.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|ra-5_obj.a-1": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that systems and hosted applications are monitored for vulnerabilities every 90 days and when new vulnerabilities potentially affecting the system are identified and reported;.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|ra-5_obj.a-2": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that systems and hosted applications are scanned for vulnerabilities within 24 hours and when new vulnerabilities potentially affecting the system are identified and reported;.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|ra-5_obj.b": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that vulnerability monitoring tools and techniques are employed to facilitate interoperability among tools;.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|ra-5_obj.b.1": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that vulnerability monitoring tools and techniques are employed to automate parts of the vulnerability management process by using standards for enumerating platforms, software flaws, and improper configurations;.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|ra-5_obj.b.2": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that vulnerability monitoring tools and techniques are employed to facilitate interoperability among tools and to automate parts of the vulnerability management process by using standards for formatting checklists and test procedures;.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|ra-5_obj.b.3": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that vulnerability monitoring tools and techniques are employed to facilitate interoperability among tools and to automate parts of the vulnerability management process by using standards for measuring vulnerability impact;.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|ra-5_obj.c": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that vulnerability scan reports and results from vulnerability monitoring are analyzed;.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5|ra-5_obj.d": {
+"control_id": "ra-5",
+"label": "not_addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"span": [
+8072,
+11938
+]
+},
+"ra-5|ra-5_obj.e": {
+"control_id": "ra-5",
+"label": "not_addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"span": [
+8072,
+11938
+]
+},
+"ra-5|ra-5_obj.f": {
+"control_id": "ra-5",
+"label": "addressed",
+"section": "RA-5 Vulnerability Monitoring and Scanning",
+"page": 2,
+"quote": "The organization ensures that vulnerability monitoring tools that include the capability to readily update the vulnerabilities to be scanned are employed.",
+"span": [
+8072,
+11938
+]
+},
+"ra-5.2|CCI-001063": {
+"control_id": "ra-5.2",
+"label": "addressed",
+"section": "RA-5(2) Update Vulnerabilities to Be Scanned",
+"page": 2,
+"quote": "The organization ensures that update the system vulnerabilities scanned on an every 90 days, prior to a new scan, and/or when new vulnerabilities are identified and reported.",
+"span": [
+11938,
+12440
+]
+},
+"ra-5.2|CCI-001064": {
+"control_id": "ra-5.2",
+"label": "addressed",
+"section": "RA-5(2) Update Vulnerabilities to Be Scanned",
+"page": 2,
+"quote": "The organization ensures that defines a frequency for updating the system vulnerabilities scanned.",
+"span": [
+11938,
+12440
+]
+},
+"ra-5.2|ra-5.2_obj": {
+"control_id": "ra-5.2",
+"label": "addressed",
+"section": "RA-5(2) Update Vulnerabilities to Be Scanned",
+"page": 2,
+"quote": "The organization ensures that the system vulnerabilities to be scanned are updated the ISSO and ISSM ; prior to a new scan; when new vulnerabilities are identified and reported].",
+"span": [
+11938,
+12440
+]
+},
+"ra-5.5|CCI-001067": {
+"control_id": "ra-5.5",
+"label": "addressed",
+"section": "RA-5(5) Privileged Access",
+"page": 3,
+"quote": "The organization ensures that implement privileged access authorization to organization-identified system components for every 90 days.",
+"span": [
+12456,
+13091
+]
+},
+"ra-5.5|CCI-001645": {
+"control_id": "ra-5.5",
+"label": "partial",
+"section": "RA-5(5) Privileged Access",
+"page": 3,
+"quote": "The organization ensures that the organization identifies the information system components to which privileged access is authorized for selected as determined by the organization.",
+"span": [
+12456,
+13091
+]
+},
+"ra-5.5|CCI-002906": {
+"control_id": "ra-5.5",
+"label": "addressed",
+"section": "RA-5(5) Privileged Access",
+"page": 3,
+"quote": "The organization ensures that defines the vulnerability scanning activities in which the system implements privileged access authorization to organization-identified system components.",
+"span": [
+12456,
+13091
+]
+},
+"ra-5.5|ra-5.5_obj": {
+"control_id": "ra-5.5",
+"label": "addressed",
+"section": "RA-5(5) Privileged Access",
+"page": 3,
+"quote": "The organization ensures that privileged access authorization is implemented to annually for annually.",
+"span": [
+12456,
+13091
+]
+},
+"ra-5.11|CCI-004640": {
+"control_id": "ra-5.11",
+"label": "addressed",
+"section": "RA-5(11) Public Disclosure Program",
+"page": 3,
+"quote": "The organization ensures that establish a public reporting channel for receiving reports of vulnerabilities in organizational systems and system components.",
+"span": [
+13091,
+13449
+]
+},
+"ra-5.11|ra-5.11_obj": {
+"control_id": "ra-5.11",
+"label": "addressed",
+"section": "RA-5(11) Public Disclosure Program",
+"page": 3,
+"quote": "The organization ensures that a public reporting channel is established for receiving reports of vulnerabilities in organizational systems and system components.",
+"span": [
+13091,
+13449
+]
+},
+"ra-7|CCI-004641": {
+"control_id": "ra-7",
+"label": "not_addressed",
+"section": "RA-7 Risk Response",
+"page": 3,
+"span": [
+13449,
+13866
+]
+},
+"ra-7|CCI-004642": {
+"control_id": "ra-7",
+"label": "addressed",
+"section": "RA-7 Risk Response",
+"page": 3,
+"quote": "The organization ensures that respond to findings from privacy assessments.",
+"span": [
+13449,
+13866
+]
+},
+"ra-7|CCI-004643": {
+"control_id": "ra-7",
+"label": "addressed",
+"section": "RA-7 Risk Response",
+"page": 3,
+"quote": "The organization ensures that respond to findings from monitoring.",
+"span": [
+13449,
+13866
+]
+},
+"ra-7|CCI-004644": {
+"control_id": "ra-7",
+"label": "not_addressed",
+"section": "RA-7 Risk Response",
+"page": 3,
+"span": [
+13449,
+13866
+]
+},
+"ra-7|ra-7_obj-1": {
+"control_id": "ra-7",
+"label": "addressed",
+"section": "RA-7 Risk Response",
+"page": 3,
+"quote": "The organization ensures that findings from security assessments are responded to in accordance with organizational risk tolerance;.",
+"span": [
+13449,
+13866
+]
+},
+"ra-7|ra-7_obj-2": {
+"control_id": "ra-7",
+"label": "not_addressed",
+"section": "RA-7 Risk Response",
+"page": 3,
+"span": [
+13449,
+13866
+]
+},
+"ra-7|ra-7_obj-3": {
+"control_id": "ra-7",
+"label": "not_addressed",
+"section": "RA-7 Risk Response",
+"page": 3,
+"span": [
+13449,
+13866
+]
+},
+"ra-7|ra-7_obj-4": {
+"control_id": "ra-7",
+"label": "addressed",
+"section": "RA-7 Risk Response",
+"page": 3,
+"quote": "The organization ensures that findings from audits are responded to in accordance with organizational risk tolerance.",
+"span": [
+13449,
+13866
+]
+},
+"ra-9|CCI-004648": {
+"control_id": "ra-9",
+"label": "not_addressed",
+"section": "RA-9 Criticality Analysis",
+"page": 4,
+"span": [
+13882,
+14494
+]
+},
+"ra-9|CCI-004649": {
+"control_id": "ra-9",
+"label": "addressed",
+"section": "RA-9 Criticality Analysis",
+"page": 4,
+"quote": "The organization ensures that defines the system, system components, or system services to perform a criticality analysis for identifying critical system components and functions.",
+"span": [
+13882,
+14494
+]
+},
+"ra-9|CCI-004650": {
+"control_id": "ra-9",
+"label": "addressed",
+"section": "RA-9 Criticality Analysis",
+"page": 4,
+"quote": "The organization ensures that defines the decision points in the system development life cycle at which the ISSO and ISSM, system components, or system services to perform a criticality analysis for identifying critical system components and functions.",
+"span": [
+13882,
+14494
+]
+},
+"ra-9|ra-9_obj": {
+"control_id": "ra-9",
+"label": "addressed",
+"section": "RA-9 Criticality Analysis",
+"page": 4,
+"quote": "The organization ensures that critical system components and functions are identified by performing a criticality analysis for annually at annually.",
+"span": [
+13882,
+14494
+]
+}
+},
+"note": "builder-authored gold labels \u2013 NOT SME reviewed"
+}
