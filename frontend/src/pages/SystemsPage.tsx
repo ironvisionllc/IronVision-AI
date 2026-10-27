@@ -8,7 +8,9 @@ import { PageHeader, Panel } from "@/components/common/Panel";
 import { Table } from "@/components/common/Bits";
 import { showNextStep } from "@/components/common/NextStep";
 import { RolesEditor } from "@/components/rmf/RolesEditor";
-import { CategorizeForm, EMPTY_CAT, catBody, useCategorization } from "@/components/rmf/CategorizeForm";
+import { CategorizeForm, EMPTY_CAT, catBody, catFromSystem, useCategorization } from "@/components/rmf/CategorizeForm";
+import { RegisterStart } from "@/components/rmf/RegisterStart";
+import { toast } from "sonner";
 import { Gated } from "@/components/common/RoleGate";
 
 export function SystemsPage() {
@@ -63,6 +65,9 @@ export function RegisterSystemPage() {
   const calc = useCategorization(cat);
   const [baseline, setBaseline] = useState("");
   const [error, setError] = useState("");
+  const [start, setStart] = useState<string>(emassPrefill ? "emass" : "");
+  const [copyFrom, setCopyFrom] = useState<Row | null>(null);
+  const applyCopy = (tpl: Row) => { setCopyFrom(tpl.source); setCat({ ...catFromSystem(tpl), processes_pii: null }); setBaseline(tpl.baseline_key || ""); setStart("copy"); };
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const auto = calc?.baseline ?? "";
   const chosen = baseline && (["low", "moderate", "high"].indexOf(baseline) >= ["low", "moderate", "high"].indexOf(auto)) ? baseline : auto;
@@ -77,6 +82,10 @@ export function RegisterSystemPage() {
       .filter(([, v]) => (v as unknown) !== "" && v !== undefined));
     try {
       const r = await api.post<Row>("/systems", body);
+      if (copyFrom) {
+        const c = (await api.post<Row>(`/systems/${r.data.id}/copy-setup`, { source_system_id: copyFrom.id })).data;
+        toast.success(`Copied from ${copyFrom.acronym || copyFrom.name}: ${c.overlays.length} overlay(s), ${c.tailoring.length} tailoring decision(s), ${c.odps} ODP value(s)${c.iscm ? ", ISCM strategy (draft)" : ""}, ${c.policies} policy link(s)`);
+      }
       await refresh();
       select(r.data.id);
       showNextStep({ message: `System “${r.data.name}” registered: ${r.data.categorization ?? ""} categorization, ${r.data.baseline_key} baseline, ${r.data.metrics.assigned_controls} controls assigned.`,
@@ -84,8 +93,11 @@ export function RegisterSystemPage() {
       nav("/rmf/select");
     } catch (err) { setError(errorMessage(err)); }
   };
+  if (!start) return <div><PageHeader title="Register system" subtitle="Start from scratch, migrate an eMASS system, or reuse the setup of a system you already manage." />
+    <RegisterStart onScratch={() => setStart("scratch")} onCopy={applyCopy} /></div>;
   return (
     <form onSubmit={submit} data-testid="register-system-form">
+      {copyFrom && <div className="mb-4 rounded border border-violet-200 bg-violet-50 px-3 py-2 text-[12px] text-violet-900" data-testid="register-copy-banner">Setup will be copied from {copyFrom.acronym || copyFrom.name} after registration (overlays, tailoring, ODPs, ISCM strategy as draft, policy links). Assessments, evidence, POA&Ms, test results, approvals and inventory are never copied.</div>}
       {emassPrefill && <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-[12px] text-blue-900" data-testid="register-emass-prefill">{emassPrefill.note} Nothing has been created yet.{emassPrefill.categorization_hint ? ` File categorization: C ${emassPrefill.categorization_hint.c ?? "?"} / I ${emassPrefill.categorization_hint.i ?? "?"} / A ${emassPrefill.categorization_hint.a ?? "?"} – pick the information types below; the categorization still needs AO approval.` : ""}</div>}
       <PageHeader title="Register system" subtitle="Step 1 Prepare and step 2 Categorize in one form: name the system and its key people, pick its information types, and the app derives the impact level and baseline. Overlays and tailoring follow in step 3 Select." />
       <div className="grid gap-5">

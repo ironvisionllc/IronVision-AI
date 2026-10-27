@@ -30,6 +30,17 @@ class PolicyAuditOutput(BaseModel):
     findings: list[PolicyAuditItem] = Field(default_factory=list, max_length=15)
 
 
+class ColumnMapItem(BaseModel):
+    column: int = Field(ge=0, le=200)
+    field: str = Field(max_length=40)
+    confidence: str = Field(pattern="^(high|medium|low)$")
+    reason: str = Field(max_length=300)
+
+
+class ColumnMapOutput(BaseModel):
+    mappings: list[ColumnMapItem] = Field(default_factory=list, max_length=60)
+
+
 class MappingSuggestion(BaseModel):
     control_id: str = Field(max_length=30)
     rationale: str = Field(max_length=1000)
@@ -306,6 +317,18 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
         output_model=PolicyAuditOutput,
         max_tokens=4000,
         reasoning_effort="low",  # 1.0.0/first 1.1.0 runs: ~3.9k of the 4k budget went to hidden reasoning → "reply cut off"
+    ),
+    ("emass.column_map", "1.0.0"): PromptTemplate(
+        prompt_id="emass.column_map",
+        version="1.0.0",
+        system=("You map spreadsheet columns of an eMASS export to known target fields. You only SUGGEST mappings: never invent values, "
+                "never assess compliance. Values were redacted before you see them. Respond ONLY with JSON."),
+        user_template=("Report type: {report_type}\nTarget fields: {fields}\nColumns (index: header | redacted sample values):\n{columns}\n\n"
+                       "Return {{\"mappings\": [{{\"column\": <index>, \"field\": \"<one target field>\", \"confidence\": \"high|medium|low\", "
+                       "\"reason\": \"<under 25 words>\"}}]}}. Omit columns that match no target field."),
+        output_model=ColumnMapOutput,
+        max_tokens=1500,
+        reasoning_effort="low",
     ),
 }
 

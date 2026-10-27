@@ -304,6 +304,10 @@ def target(db: Session, imp: EmassImport, s: System, report_type: str, data: byt
         parsed = parse(data, imp.file_name)
         rows = parsed.pop("rows")
         det.update(parsed, data_rows=len(rows))
+    prev = db.scalar(select(EmassImport.id).where(EmassImport.org_id == s.org_id, EmassImport.system_id == s.id, EmassImport.sha256 == imp.sha256,
+                                                  EmassImport.status == "applied", EmassImport.id != imp.id).limit(1))
+    if prev:  # idempotent retry: same file already applied – current values already match, so nothing new is proposed
+        rep = {**rep, "duplicate_of": str(prev)}
     imp.system_id, imp.report_type, imp.status = s.id, report_type, "review"
     imp.detection, imp.report, imp.items, imp.counts = det, rep, items, tally(items)
 
@@ -329,7 +333,7 @@ def tally(items: list[dict]) -> dict:
     return c
 
 
-def decide(db: Session, imp: EmassImport, decisions: list[dict], bulk: str | None, allowed: set | None = None) -> None:
+def decide(db: Session, imp: EmassImport, decisions: list[dict], bulk: str | None, allowed: set | None = None, section: str | None = None) -> None:
     if imp.status != "review":
         raise HTTPException(409, f"This import is {imp.status} – decisions can no longer change")
     items = [{**i, "fields": {k: dict(v) for k, v in i["fields"].items()}} for i in imp.items or []]
@@ -340,6 +344,12 @@ def decide(db: Session, imp: EmassImport, decisions: list[dict], bulk: str | Non
                 for f in i["fields"].values():
                     if _ok(f) and f["decision"] is None:
                         f["decision"] = "accept"
+    elif bulk in ("keep_existing", "use_imported"):  # global or per-section "keep existing" / "use imported"
+        for i in items:
+            if (section is None or i.get("section", "Controls") == section) and (allowed is None or i.get("section", "Controls") in allowed):
+                for f in i["fields"].values():
+                    if _ok(f):
+                        f["decision"] = "reject" if bulk == "keep_existing" else "accept"
     elif bulk in ("reject_all", "reset"):
         for i in items:
             for f in i["fields"].values():

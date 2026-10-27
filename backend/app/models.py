@@ -1482,6 +1482,25 @@ class EmassImport(CoreMixin, Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class PpsmEntry(CoreMixin, Base):
+    """One PPSM boundary row (port / protocol / data service / boundaries) of a system."""
+    __tablename__ = "ppsm_entries"
+    __table_args__ = (UniqueConstraint("system_id", "record_key", name="uq_ppsm_entries_system_key"),)
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    record_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    asset_id: Mapped[str | None] = mapped_column(String(50))
+    port: Mapped[str] = mapped_column(String(20), nullable=False)
+    protocol: Mapped[str] = mapped_column(String(20), nullable=False)
+    data_service: Mapped[str] = mapped_column(String(100), nullable=False)
+    boundaries: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    fqdn: Mapped[str | None] = mapped_column(String(100))
+    purpose: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(30), nullable=False, server_default="manual")
+    import_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    source_row: Mapped[int | None] = mapped_column(Integer)
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+
+
 class IscmStrategy(CoreMixin, Base):
     """Continuous Monitoring Strategy (SP 800-37 Task S-5) – one per system; its approved snapshot feeds the eMASS SLCM fields."""
     __tablename__ = "iscm_strategies"

@@ -65,14 +65,15 @@ def detail(system_id: uuid.UUID, import_id: uuid.UUID, request: Request, db: Ses
 
 class Decision(BaseModel):
     control_id: str | None = Field(None, max_length=50)
-    key: str | None = Field(None, max_length=60)
+    key: str | None = Field(None, max_length=220)
     field: str | None = Field(None, max_length=40)
     decision: str | None = Field(None, pattern="^(accept|reject)$")
 
 
 class EmassImportDecideIn(BaseModel):
     decisions: list[Decision] = Field(default_factory=list, max_length=20000)
-    bulk: str | None = Field(None, pattern="^(accept_safe|reject_all|reset)$")
+    bulk: str | None = Field(None, pattern="^(accept_safe|reject_all|reset|keep_existing|use_imported)$")
+    section: str | None = Field(None, max_length=40, description="keep_existing / use_imported for one section; omitted = every section")
 
 
 @router.put("/systems/{system_id}/emass-imports/{import_id}/decisions")
@@ -118,6 +119,7 @@ def discard(system_id: uuid.UUID, import_id: uuid.UUID, request: Request, db: Se
 # ---------- generic eMASS report import (all types; in-system and no-system entry points) ----------
 from app.security.rbac import effective_permissions, has_permission  # noqa: E402
 from app.services import emass_reports as er  # noqa: E402
+from app.services import emass_migration as em  # noqa: E402
 
 
 def _allowed(current: CurrentUser, system_id) -> set:
@@ -170,7 +172,7 @@ async def generic_upload(request: Request, file: UploadFile = File(...), system_
 class TargetIn(BaseModel):
     action: str = Field(pattern="^(update|register|cancel)$")
     system_id: uuid.UUID | None = None
-    report_type: str | None = Field(None, pattern="^(system_details|control_information|test_results|poam|hwsw)$")
+    report_type: str | None = Field(None, pattern="^(system_details|control_information|test_results|poam|hwsw|slcm|categorization|ppsm)$")
 
 
 @router.post("/emass-imports/{import_id}/target")
@@ -219,7 +221,8 @@ def generic_target(import_id: uuid.UUID, body: TargetIn, request: Request, db: S
 def generic_history(system_id: uuid.UUID | None = None, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
     q = select(EmassImport).where(EmassImport.org_id == current.user.org_id)
     q = q.where(EmassImport.system_id == system_id) if system_id else q
-    return {"items": [ei.out(i) for i in db.scalars(q.order_by(EmassImport.created_at.desc()).limit(200))], "types": er.TYPES}
+    return {"items": [ei.out(i) for i in db.scalars(q.order_by(EmassImport.created_at.desc()).limit(200))], "types": er.TYPES,
+            "migration_types": er.MIGRATION_TYPES, "deferred": em.DEFERRED, "ai_enabled": em.ai_enabled(db, current.user.org_id)}
 
 
 @router.get("/emass-imports/samples/{report_type}")
@@ -232,6 +235,8 @@ def generic_sample(report_type: str, system_id: uuid.UUID | None = None, request
         enforce(request, current, "system.read", system_id)
         rows = ef.rows(db, get_system(db, system_id))
     ext = "xlsm" if report_type == "hwsw" else "xlsx"
+    if report_type in em.TYPES:
+        rows = None
     return Response(er.sample_xlsx(report_type, rows), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     headers={"Content-Disposition": f'attachment; filename="SYNTHETIC_eMASS_{report_type}_sample.{ext}"'})
 
@@ -248,7 +253,7 @@ def generic_decisions(import_id: uuid.UUID, body: EmassImportDecideIn, request: 
     allowed = _allowed(current, imp.system_id) if imp.system_id else set()
     if not allowed:
         raise HTTPException(403, "Your role cannot apply any section of this import (view only)")
-    ei.decide(db, imp, [d.model_dump() for d in body.decisions], body.bulk, allowed)
+    ei.decide(db, imp, [d.model_dump() for d in body.decisions], body.bulk, allowed, body.section)
     db.commit()
     return _view(imp, current)
 
@@ -284,3 +289,101 @@ def generic_discard(import_id: uuid.UUID, request: Request, db: Session = Depend
                  entity_id=str(imp.id), details={"file_name": imp.file_name, "sha256": imp.sha256}, **audit.request_meta(request))
     db.commit()
     return ei.out(imp)
+
+
+class RevertIn(BaseModel):
+    keys: list[str] | None = Field(None, max_length=20000, description="Item keys to revert; omitted = the whole session")
+
+
+@router.post("/emass-imports/{import_id}/revert")
+def generic_revert(import_id: uuid.UUID, body: RevertIn, request: Request, db: Session = Depends(get_db),
+                   current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    """Undo applied SLCM / Categorization / PPSM changes of one session (or some items): before values restored, audited."""
+    imp = _org_imp(db, import_id, current, request)
+    if imp.status != "applied" or imp.report_type not in em.TYPES:
+        raise HTTPException(409, "Only an applied SLCM, Categorization or PPSM import can be reverted")
+    allowed = _allowed(current, imp.system_id)
+    if not {i.get("section") for i in imp.items or []} <= allowed:
+        raise HTTPException(403, "Your role cannot revert this import")
+    done = em.revert(db, imp, current, audit.request_meta(request), body.keys)
+    audit.record(db, action="emass.import_reverted", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="emass_import",
+                 entity_id=str(imp.id), after={"reverted": len(done), "status": imp.status}, details={"file_name": imp.file_name, "sha256": imp.sha256},
+                 **audit.request_meta(request))
+    db.commit()
+    return {**_view(imp, current), "reverted": done}
+
+
+class AiIn(BaseModel):
+    enabled: bool
+
+
+@router.get("/emass-import-settings/ai")
+def ai_get(db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    from app.services.ai.service import get_ai_service
+    return {"enabled": em.ai_enabled(db, current.user.org_id), "provider_configured": get_ai_service().configured,
+            "notice": "When on, unrecognised column headers and up to 3 redacted sample values per column may be sent to the configured "
+                      "OpenRouter AI provider. Names, e-mails, phone numbers, IP addresses and host names are removed first. AI only suggests "
+                      "column mappings – it never creates assessments, statuses or evidence and never approves anything."}
+
+
+@router.put("/emass-import-settings/ai")
+def ai_put(body: AiIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("emass.admin"))) -> dict:
+    from app.services import rmf
+    before = em.ai_enabled(db, current.user.org_id)
+    rmf.set_setting(db, current.user.org_id, "emass_ai", {"enabled": body.enabled})
+    audit.record(db, action="admin.emass_ai_updated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="setting",
+                 entity_id="emass_ai", before={"enabled": before}, after={"enabled": body.enabled}, **audit.request_meta(request))
+    db.commit()
+    return ai_get(db, current)
+
+
+@router.get("/systems/{system_id}/ppsm")
+def ppsm(system_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    enforce(request, current, "system.read", system_id)
+    return {"items": em.ppsm_list(db, get_system(db, system_id))}
+
+
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+@router.get("/systems/{system_id}/emass-exports/{kind}")
+def export(system_id: uuid.UUID, kind: str, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))):
+    """eMASS-layout exports for round trips (formula injection neutralized)."""
+    if kind not in ("slcm", "ppsm"):
+        raise HTTPException(404, "Unknown export")
+    enforce(request, current, "system.read", system_id)
+    s = get_system(db, system_id)
+    data = em.slcm_export(db, s) if kind == "slcm" else em.ppsm_export(db, s)
+    audit.record(db, action="emass.exported", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system", entity_id=str(s.id),
+                 after={"kind": kind, "bytes": len(data)}, **audit.request_meta(request))
+    db.commit()
+    name = "SLCM_Final_Results" if kind == "slcm" else "PPSMBoundariesInformationExport"
+    return Response(data, media_type=XLSX, headers={"Content-Disposition": f'attachment; filename="{s.acronym or "system"}_{name}.xlsx"'})
+
+
+@router.get("/systems/{system_id}/setup-template")
+def setup_template(system_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    enforce(request, current, "system.read", system_id)
+    s = get_system(db, system_id)
+    if s.org_id != current.user.org_id:
+        raise HTTPException(404, "System not found")
+    return em.setup_template(s)
+
+
+class CopyIn(BaseModel):
+    source_system_id: uuid.UUID
+
+
+@router.post("/systems/{system_id}/copy-setup")
+def copy_setup(system_id: uuid.UUID, body: CopyIn, request: Request, db: Session = Depends(get_db),
+               current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+    """Copy baseline-related setup (overlays, tailoring, ODPs, ISCM strategy/profiles, policy links) from a same-org system the user can read.
+    Never copies assessments, evidence, POA&Ms, test results, approvals or inventory."""
+    enforce(request, current, "system.write", system_id)
+    enforce(request, current, "system.read", body.source_system_id)
+    dst, src = get_system(db, system_id), get_system(db, body.source_system_id)
+    if src.org_id != current.user.org_id or dst.org_id != current.user.org_id or src.id == dst.id:
+        raise HTTPException(404, "System not found")
+    out = em.copy_setup(db, src, dst, current.user)
+    db.commit()
+    return out

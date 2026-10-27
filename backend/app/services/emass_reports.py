@@ -12,11 +12,14 @@ from sqlalchemy.orm import Session
 
 from app.models import ControlAssignment, EmassImport, Poam, System
 from app.services import emass_import as ei
+from app.services import emass_migration as em
 
 TYPES = {"system_details": "System Details", "control_information": "Control Information", "test_results": "Test Results", "poam": "POA&M",
-         "hwsw": "Hardware/Software List"}
+         "hwsw": "Hardware/Software List", "slcm": "SLCM Worksheet", "categorization": "Categorization", "ppsm": "PPSM Boundaries"}
+MIGRATION_TYPES = ["test_results", "slcm", "hwsw", "categorization", "ppsm", "system_details"]  # Import Center / migration wizard; Control Information + POA&M deferred
 SECTION_PERM = {"System details": "system.write", "Categorization": "system.write", "Roles": "system.write", "Controls": "implementation.write",
-                "Test Results": "ingest.upload", "POA&M": "poam.manage", "Inventory": "system.write"}
+                "Test Results": "ingest.upload", "POA&M": "poam.manage", "Inventory": "system.write", "SLCM": "implementation.write",
+                "PPSM": "system.write"}
 
 
 def label(t: str) -> str:
@@ -82,6 +85,10 @@ SIGS = {
               "source identifying weakness", "raw severity", "resources required", "point of contact", "severity", "status"], r"poa&?m"),
     "hwsw": (["machine name", "asset name", "manufacturer", "model number", "serial number", "software vendor", "software name", "software version",
               "ip address", "operating system"], r"hardware|software"),
+    "slcm": (["control acronym", "control title", "criticality", "frequency", "method", "reporting", "tracking", "slcm comments", "order #", "sort #",
+              "security control #"], r"final results|security controls|continuous monitoring"),
+    "categorization": (["mission type", "applicability", "security category", "package", "availablilty", "confidentiality", "integrity"], r"mission types|categoriz"),
+    "ppsm": (["port (required)", "protocol (required)", "data service (required)", "boundary (required)", "fqdn", "purpose", "ditpr id:", "poc name:"], r"ppsm"),
 }
 
 
@@ -323,6 +330,8 @@ def build(db: Session, s: System, typ: str, data: bytes, file_name: str) -> tupl
         return build_system(db, s, sheets)
     if typ == "poam":
         return build_poam(db, s, sheets)
+    if typ in em.TYPES:
+        return em.build(db, s, typ, sheets)
     return build_file_item("Test Results" if typ == "test_results" else "Inventory", typ, data, file_name)
 
 
@@ -335,7 +344,9 @@ def apply_other(db: Session, imp: EmassImport, s: System, current, meta: dict, s
         acc = {k: f for k, f in i["fields"].items() if ei._ok(f) and f["decision"] == "accept"}
         if not acc or i["section"] == "Controls":
             continue
-        if i["section"] == "System details":
+        if imp.report_type in em.TYPES:
+            results.append(em.apply_item(db, imp, s, i, acc, current, meta, src))
+        elif i["section"] == "System details":
             before = {k: ei._j(getattr(s, k)) for k in acc}
             for k, f in acc.items():
                 setattr(s, k, f["imported"])
@@ -389,6 +400,12 @@ def apply_other(db: Session, imp: EmassImport, s: System, current, meta: dict, s
 
 def prefill(imp: EmassImport, sheets) -> dict:
     """Values for the existing registration form – nothing is created."""
+    if imp.report_type == "categorization" or (imp.detected or {}).get("type") == "categorization":
+        p = em.parse_categorization(sheets)
+        hint = {k: v for k, v in zip("cia", p["impacts"]) if v}
+        return {"system": {"name": p["meta"]["package"]} if p["meta"].get("package") else {}, "categorization_hint": hint or None,
+                "mission_types": [x["mission_type"] for x in p["selected"]],
+                "note": "Pre-filled from the eMASS Categorization template (high-water mark of the applicable mission types). Registration validation and AO approval still apply."}
     items, _ = build_system(None, None, sheets)  # type: ignore[arg-type]
     vals = {k: f["imported"] for i in items for k, f in i["fields"].items() if not f["error"]}
     out = {k: vals[k] for k in ("name", "acronym", "emass_id", "description", "organization_name", "mission_owner") if vals.get(k)}
@@ -421,6 +438,8 @@ SAMPLES = {
 def sample_xlsx(typ: str, system_rows: list[dict] | None = None) -> bytes:
     if typ == "control_information":
         return ei.sample_xlsx(system_rows)
+    if typ in em.TYPES:
+        return em.sample(typ)
     if typ in ("test_results", "hwsw"):
         from pathlib import Path
 

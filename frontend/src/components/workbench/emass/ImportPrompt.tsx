@@ -6,7 +6,8 @@ import { Row } from "@/lib/useApi";
 import { Panel } from "@/components/common/Panel";
 import { useSystems } from "@/context/SystemContext";
 
-export const TYPES: Row = { system_details: "System Details", control_information: "Control Information", test_results: "Test Results", poam: "POA&M", hwsw: "Hardware/Software List" };
+export const TYPES: Row = { system_details: "System Details", categorization: "Categorization", test_results: "Test Results", slcm: "SLCM Worksheet", hwsw: "Hardware/Software List",
+  ppsm: "PPSM Boundaries", control_information: "Control Information (deferred)", poam: "POA&M (deferred)" };
 
 /** Context-aware prompt after upload: in a system → update it (mismatch warning) / register new / cancel; no system → register / pick / cancel. */
 export function ImportPrompt({ imp, contextSystem, onTargeted }: { imp: Row; contextSystem?: Row; onTargeted: (d: Row) => void }) {
