@@ -213,10 +213,23 @@ def _policy_analyze(db: Session, pol) -> dict:
     text_ = pol.text_content or ""
     db.commit()  # read-only so far: never hold a transaction open across an external AI call
 
-    def _audit():  # no DB access in this thread; runs concurrently with the coverage AI (was strictly before it)
+    def _audit():  # no DB transaction held across the AI call; runs concurrently with the coverage AI (was strictly before it)
+        import hashlib
+
+        from app.services import policy_analyzer_v2 as v2
+        from app.services import policy_coverage as pc_
         t = _t.perf_counter()
+        use_cache = pc_.analyzer() == "v2"
+        model = svc.provider.model if svc.provider else None
+        key = hashlib.sha256(f"policy.audit|1.1.0|{pol.org_id}|{model}|{text_[:60000]}".encode()).hexdigest()  # tenant-scoped like v2 batches
+        hit = v2._cache_get(pol.org_id, key) if use_cache else None
+        if hit:
+            return hit["output"], uuid.UUID(hit["interaction_id"]) if hit.get("interaction_id") else None, f"AI {hit.get('model')} (cached)", _t.perf_counter() - t
         try:
             r = asyncio.run(svc.run("policy.audit", "1.1.0", {"text": text_[:60000]}))  # 1.0.0 had "ac-17" as its example ID and saw only 12k chars
+            if use_cache:
+                v2._cache_put(pol.org_id, key, r.model, {"output": r.output.model_dump(), "interaction_id": str(r.interaction_id) if r.interaction_id else None,
+                                                         "model": r.model}, {"policy_id": str(pol.id), "prompt": "policy.audit@1.1.0"})
             return r.output.model_dump(), r.interaction_id, f"AI {r.model}", _t.perf_counter() - t
         except Exception as exc:  # AI failure must not block deterministic findings
             return None, None, f"AI step failed: {exc}"[:300], _t.perf_counter() - t
