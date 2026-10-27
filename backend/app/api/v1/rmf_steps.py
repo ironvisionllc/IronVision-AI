@@ -238,7 +238,7 @@ def select_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
             continue
         ovs[o.overlay_key] = o
     from app.services.overlays import OVERLAY_META, groups_view
-    from app.services.rmf_accuracy import overlay_availability, review_flags
+    from app.services.rmf_accuracy import baseline_review, overlay_availability, review_flags
 
     groups = groups_view(db, s)
     for g in groups:
@@ -246,7 +246,7 @@ def select_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
         g["meta"] = OVERLAY_META.get(g["group"])
     groups = [g for g in groups if g["available"] or any(v.get("applied") for v in g.get("variants", [])) or g["group"] in ("privacy", "classified")]
 
-    return {"baseline_key": s.baseline_key, "framework": s.categorization_mode, "review_flags": review_flags(s),
+    return {"baseline_key": s.baseline_key, "framework": s.categorization_mode, "review_flags": review_flags(s), "baseline_review": baseline_review(s),
             "cnssi": _cnssi_view(db, s), "privacy_prompt": _privacy_prompt(db, s),
             "classified_information": (s.applicability_flags or {}).get("classified_information"), "recommended_baseline": (s.categorization or "").lower() or None, "include_privacy": s.include_privacy, "privacy_state": privacy_state(s),
             "processes_pii": s.processes_pii, "overlay_keys": s.overlay_keys or [], "counts": system_counts(db, s),

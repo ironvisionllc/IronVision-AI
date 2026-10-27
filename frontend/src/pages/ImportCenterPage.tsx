@@ -51,6 +51,7 @@ async function route(type: string, sid: string, file: File): Promise<{ link: str
 
 function FileRow({ f, n, sid, types, preset, onDone }: { f: Row; n: number; sid: string; types: Row; preset?: string; onDone: () => void }) {
   const [type, setType] = useState<string>((preset && f.candidates?.includes(preset) ? preset : f.type) || "");
+  const [forced, setForced] = useState(false);
   const [res, setRes] = useState<Row | null>(null);
   const [busy, setBusy] = useState(false);
   const t = types[type];
@@ -66,10 +67,11 @@ function FileRow({ f, n, sid, types, preset, onDone }: { f: Row; n: number; sid:
   return (
     <tr className="border-t border-slate-100 align-top" data-testid={`ic-file-${n}`}>
       <td className="min-w-[180px] break-all py-2 pr-2 font-medium">{f.file_name}</td>
-      <td className="pr-2">{f.type || f.candidates?.length ? (
+      <td className="pr-2">{f.type || f.candidates?.length || forced ? (
         <select className="input w-auto" value={type} onChange={(e) => setType(e.target.value)} data-testid={`ic-type-${n}`}>
           {Object.values(types).map((x: Row) => <option key={x.key} value={x.key} disabled={!x.allowed}>{x.label}{x.allowed ? "" : " (not permitted)"}</option>)}</select>)
-        : <span className="text-rose-700" data-testid={`ic-unknown-${n}`}>{f.message}</span>}</td>
+        : <span className="text-rose-700" data-testid={`ic-unknown-${n}`}>{f.message}
+          {f.override && <button className="ml-2 text-blue-800 underline" onClick={() => { setForced(true); setType(f.override); }} data-testid={`ic-force-${n}`}>{f.override_label}</button>}</span>}</td>
       <td className="pr-2" data-testid={`ic-confidence-${n}`}>{f.confidence}{f.ambiguous ? " – confirm" : ""}</td>
       <td className="pr-2">{t ? <><b>{t.step}</b><div className="text-[11px] text-slate-500">{t.dest}</div></> : "–"}</td>
       <td className="pr-2" data-testid={`ic-count-${n}`}>{f.record_count ?? "–"}</td>

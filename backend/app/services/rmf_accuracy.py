@@ -131,9 +131,22 @@ def validate_environment(env: str | None, detail: dict | None, framework: str | 
         raise ValueError(opt["reason"] if opt else f"Unknown impact level {il}")
 
 
+def baseline_review(s: System) -> dict | None:
+    """Approved FIPS 199 categorization above/below the applied 800-53B baseline → a proposal to review in Select (never auto-changed).
+    CNSSI 1253 systems use the existing cnssi1253.proposal flow."""
+    rec = (s.categorization or "").lower()
+    if s.categorization_mode == "cnssi1253" or rec not in ("low", "moderate", "high") or not s.baseline_key or s.baseline_key == rec:
+        return None
+    return {"from": s.baseline_key, "to": rec, "title": "Categorization changed – review baseline",
+            "message": f"The approved categorization is {rec.title()} but the applied baseline is {s.baseline_key.title()}. "
+                       f"Preview the {rec.title()} baseline in Select and apply it if appropriate – nothing changes automatically."}
+
+
 def review_flags(s: System) -> list[dict]:
     """Existing values kept as-is but flagged when they no longer fit the framework/context."""
     out = []
+    if br := baseline_review(s):
+        out.append({"field": "baseline", "value": br["from"], "message": f"{br['title']}: {br['message']}"})
     det, f = s.environment_detail or {}, flags(s)
     il = det.get("impact_level")
     if il and s.operating_environment not in CLOUD_ENVS:

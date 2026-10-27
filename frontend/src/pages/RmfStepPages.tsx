@@ -126,6 +126,9 @@ function Baseline({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
   return (
     <Panel title="Baseline" eyebrow="NIST SP 800-53B" testId="select-baseline">
       <Msg m={m} />
+      {d.baseline_review && <div className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid="select-baseline-review">
+        <b>{d.baseline_review.title}</b> – {d.baseline_review.message}
+        {key !== d.baseline_review.to && <button className="ml-2 underline" onClick={() => setKey(d.baseline_review.to)} data-testid="select-baseline-review-use">Use {d.baseline_review.to}</button>}</div>}
       <div className="grid gap-3 text-[12px] md:grid-cols-4">
         <div>Current baseline<div className="text-[15px] font-semibold capitalize" data-testid="select-current">{d.baseline_key}</div></div>
         <div>From categorization<div className="text-[15px] font-semibold capitalize" data-testid="select-recommended">{rec ?? "— (categorize first)"}</div></div>

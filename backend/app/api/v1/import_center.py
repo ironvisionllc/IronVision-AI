@@ -57,6 +57,29 @@ SUPPORTED = ("Supported: policy documents (.pdf/.docx/.txt), STIG CKL/CKLB, SCAP
              "Hardware/Software List, Test Result Import template / Test Plan). Reference data (catalog content, overlays) is imported in Admin.")
 
 
+POLICY_MIN_SCORE = 3
+_CTRL = re.compile(r"\b(?:AC|AT|AU|CA|CM|CP|IA|IR|MA|MP|PE|PL|PM|PS|PT|RA|SA|SC|SI|SR)-\d{1,2}(?:\s?\(\d{1,2}\))?\b")
+
+
+def policy_score(text: str) -> tuple[int, list[str]]:
+    """Plain text counts as a policy document only with policy-like content (score ≥ POLICY_MIN_SCORE)."""
+    low = text.lower()
+    lines = [x.strip() for x in text.splitlines() if x.strip()]
+    sig = []
+    if re.search(r"\b(polic(y|ies)|procedures?|standard operating procedure)\b", low):
+        sig.append(("policy/procedure wording", 2))
+    if len(re.findall(r"\b(shall|must)\b", low)) >= 2:
+        sig.append(("'shall'/'must' requirements", 2))
+    if _CTRL.search(text):
+        sig.append(("NIST SP 800-53 control IDs", 2))
+    heads = [x for x in lines if len(x) < 80 and (x.startswith("#") or re.match(r"^\d+(\.\d+)*\.?\s+[A-Z]", x) or (x.isupper() and len(x) > 3))]
+    if len(heads) >= 2:
+        sig.append(("section headings", 1))
+    if re.search(r"\b(purpose|scope|roles and responsibilities|applicability|enforcement)\b", low):
+        sig.append(("purpose/scope/responsibilities sections", 1))
+    return sum(w for _, w in sig), [s for s, _ in sig]
+
+
 def _count_rows(sheets, typ: str) -> int | None:
     from app.services import emass_reports as er
     return er.record_count(sheets, typ)
@@ -73,8 +96,14 @@ def detect_file(name: str, data: bytes) -> dict:
         return {"type": None, "confidence": "none", "message": f"{name}: larger than 20 MB. {SUPPORTED}"}
     is_pdf = data.lstrip()[:5] == b"%PDF-"
     is_zip = data[:4] == b"PK\x03\x04"
-    if is_pdf or (is_zip and b"word/" in data[:300_000]) or low.endswith((".txt", ".md")):
-        return {"type": "policy", "confidence": "high" if (is_pdf or is_zip) else "medium", "record_count": None, "candidates": ["policy"]}
+    if is_pdf or (is_zip and b"word/" in data[:300_000]):
+        return {"type": "policy", "confidence": "high", "record_count": None, "candidates": ["policy"]}
+    if low.endswith((".txt", ".md")):
+        score, why = policy_score(data[:200_000].decode("utf-8", "replace"))
+        if score >= POLICY_MIN_SCORE:
+            return {"type": "policy", "confidence": "high" if score >= 6 else "medium", "record_count": None, "candidates": ["policy"], "policy_score": score, "signals": why}
+        return {"type": None, "confidence": "none", "policy_score": score, "signals": why, "override": "policy", "override_label": "Import as policy anyway",
+                "message": f"{name}: Not recognised as a supported import (plain text without policy/procedure content). {SUPPORTED}"}
     if is_zip or low.endswith((".xlsx", ".xlsm")) or (low.endswith(".csv") and b"Plugin ID" not in data[:4000]):
         try:
             sheets = er.read_sheets(data, name)

@@ -178,6 +178,14 @@ def test_categorization_new_system_creates_draft_proposal_never_writes_cia(clien
     with SessionLocal() as db:
         s = db.get(System, uuid.UUID(sid))
         assert (s.confidentiality_impact, s.integrity_impact, s.availability_impact, s.categorization) == ("High", "High", "High", "high"), "applied only on AO approval"
+        assert s.baseline_key == "moderate", "the baseline is never changed automatically"
+    sel = client.get(f"/api/v1/systems/{sid}/select", headers=ctx["isso"]).json()
+    assert sel["baseline_key"] == "moderate" and sel["recommended_baseline"] == "high"
+    assert sel["baseline_review"]["title"] == "Categorization changed – review baseline" and sel["baseline_review"]["to"] == "high"
+    assert any(f["field"] == "baseline" and "review baseline" in f["message"] for f in sel["review_flags"])
+    pv = client.post(f"/api/v1/systems/{sid}/select/baseline", json={"baseline_key": "high", "dry_run": True}, headers=ctx["isso"])
+    assert pv.status_code == 200, pv.text
+    assert client.get(f"/api/v1/systems/{sid}/select", headers=ctx["isso"]).json()["baseline_key"] == "moderate", "dry-run proposal changes nothing"
 
 
 def test_categorization_with_approved_record_pending_reapproval_and_revert(client, ctx):

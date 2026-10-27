@@ -103,3 +103,22 @@ def test_history_unified_tenant_isolated_and_retry(client, ctx):
         assert db.get(IngestRun, uuid.UUID(run_id)).status == "queued"
         assert db.scalar(select(Job).where(Job.id == uuid.UUID(r.json()["job_id"]))).job_type == "ingest.process"
     assert client.post(f"/api/v1/import-center/retry/ingest/{run_id}", headers=ctx["isso"]).status_code == 409
+
+
+POLICY_TXT = b"""ACCESS CONTROL POLICY
+1. Purpose
+This policy establishes the access control requirements (AC-2, AC-3).
+2. Scope
+All system users shall be uniquely identified. Accounts must be reviewed quarterly and the ISSO shall disable inactive accounts.
+"""
+
+
+def test_txt_policy_content_classified_as_policy(client, ctx):
+    d = _detect(client, ctx, "ac_policy.txt", POLICY_TXT)
+    assert d["type"] == "policy" and d["policy_score"] >= 3 and "NIST SP 800-53 control IDs" in d["signals"]
+
+
+def test_txt_without_policy_content_not_recognised_with_override(client, ctx):
+    d = _detect(client, ctx, "notes.txt", b"grocery list\neggs\nmilk\nbread\ncall the plumber on tuesday\n")
+    assert d["type"] is None and "Not recognised as a supported import" in d["message"] and "Supported:" in d["message"]
+    assert d["override"] == "policy" and d["override_label"] == "Import as policy anyway"
