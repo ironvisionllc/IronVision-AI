@@ -3,6 +3,7 @@ import { TableScroll } from "@/components/common/TableScroll";
 import { ApproveDialog } from "@/components/tr/ApproveDialog";
 import { TestPlanImport } from "@/components/tr/TestPlanImport";
 import { Link } from "react-router-dom";
+import { ImportButton } from "@/components/import/ImportButton";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
@@ -18,20 +19,10 @@ const ROLE_LABEL: Record<string, string> = { control_acronym: "Control Acronym",
   implementation_guidance: "Implementation Guidance", assessment_procedures: "Assessment Procedures", compliance_status: "Compliance Status",
   date_tested: "Date Tested", tested_by: "Tested By", test_results: "Test Results" };
 
-function Upload({ sid, onDone }: { sid: string; onDone: (id: string) => void }) {
-  const [msg, setMsg] = useState("");
-  const up = async (f: File) => {
-    const fd = new FormData(); fd.append("file", f);
-    try {
-      const r = await api.post<Row>(`/systems/${sid}/tr/workbooks`, fd);
-      setMsg(`“${f.name}” uploaded (v${r.data.version}, SHA-256 ${r.data.sha256.slice(0, 12)}…) – Queued: detecting sheets, header row and columns.`);
-      window.dispatchEvent(new Event(PROCESSING_STARTED)); onDone(r.data.id);
-    } catch (e) { setMsg(errorMessage(e)); }
-  };
+function Upload({ sid }: { sid: string; onDone?: (id: string) => void }) {
   return (<div className="rounded border border-dashed border-slate-300 p-4" data-testid="tr-upload">
     <div className="mb-2 text-sm font-medium">Import an eMASS Test Result workbook (.xlsx)</div>
-    <input type="file" accept=".xlsx,.xlsm" onChange={(e) => e.target.files?.[0] && up(e.target.files[0])} data-testid="tr-upload-input" />
-    {msg && <div className="mt-2 text-[12px]" role="status" data-testid="tr-upload-msg">{msg}</div>}
+    <ImportButton systemId={sid} type="test_results" testId="tr-upload-input" />
   </div>);
 }
 

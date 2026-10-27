@@ -136,7 +136,7 @@ export default function WorkbenchPage() {
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="wb-export-parameters" title="System-wide CSV: every policy value next to the system's defined value (ODP), overlay values and the latest observed value">Export parameter comparison</button>
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/emass/implementation-plan.xlsx`, "eMASS-formatted-implementation-plan.xlsx", "eMASS-formatted Implementation Plan")} data-testid="wb-export-emass-plan" title="eMASS-formatted, compatibility pending human verification">eMASS plan (xlsx)</button>
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/emass/implementation-plan/validation?fmt=csv`, "emass-validation.csv", "eMASS validation report")} data-testid="wb-export-emass-validation" title="Rows missing required eMASS fields">eMASS validation</button>
-        <Link className="btn-secondary" to={`/systems/${id}/emass-import`} data-testid="wb-import-emass-btn" title="eMASS Control Information import – compatibility pending verification against a real eMASS export">Import from eMASS</Link>
+        <Link className="btn-secondary" to={`/systems/${id}/import-center?type=control_information`} data-testid="wb-import-emass-btn" title="Opens the Import Center pre-set to eMASS Control Information / Implementation Plan">Import…</Link>
         <Link to="/catalog" className="btn-secondary" data-testid="open-catalog-btn" title="Browse every NIST SP 800-53 Rev 5 control and baseline">Reference catalog</Link>
       </PageHeader>
       {sum && (

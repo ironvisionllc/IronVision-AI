@@ -44,6 +44,7 @@ export default function SystemDetailPage() {
     <div data-testid="system-detail-page">
       <PageHeader title={s.name} subtitle={s.description}>
         <ArchiveSystem s={s} onDone={reload} />
+        <Link className="btn-secondary" to={`/systems/${id}/import-center`} data-testid="open-import-center-btn">Import Center</Link>
         <Link className="btn-secondary" to={`/systems/${id}/authorization`} data-testid="open-authorization-btn">Authorization package</Link>
         <Link className="btn-primary" to={`/systems/${id}/controls`} data-testid="open-workbench-btn">Open control workbench ({s.metrics.assigned_controls})</Link>
       </PageHeader>

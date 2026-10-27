@@ -18,6 +18,7 @@ import SystemDetailPage from "@/pages/SystemDetailPage";
 import WorkbenchPage from "@/pages/WorkbenchPage";
 import EmassImportPage from "@/pages/EmassImportPage";
 import MigrationReportPage from "@/pages/MigrationReportPage";
+import ImportCenterPage from "@/pages/ImportCenterPage";
 import { IngestRunPage, LedgerPage, SourcesPage } from "@/pages/EvidencePages";
 import { useSystems } from "@/context/SystemContext";
 import { PoamDetailPage, PoamListPage } from "@/pages/PoamPages";
@@ -69,6 +70,8 @@ function Shell() {
           <Route path="/systems/:id/emass-import" element={<EmassImportPage />} />
           <Route path="/systems/:id/emass-import/:importId" element={<EmassImportPage />} />
           <Route path="/systems/:id/migration-report" element={<MigrationReportPage />} />
+          <Route path="/import-center" element={<ImportCenterPage />} />
+          <Route path="/systems/:id/import-center" element={<ImportCenterPage />} />
           <Route path="/emass-import" element={<EmassImportPage />} />
           <Route path="/emass-import/:importId" element={<EmassImportPage />} />
           <Route path="/evidence-sources" element={<SourcesPage />} />

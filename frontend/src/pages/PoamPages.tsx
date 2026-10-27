@@ -26,7 +26,7 @@ export function PoamListPage() {
     <div data-testid="poam-list-page">
       <PageHeader title="POA&M" subtitle={`Plan of Action & Milestones · all counts computed from the database · eMASS: ${sm?.emass_note ?? ""}`}>
         <label className="flex items-center gap-1 text-[12px]"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} data-testid="poam-all-systems" />All my systems</label>
-        <Link className="btn-secondary" to="/emass-import" data-testid="emass-import-entry">Import from eMASS</Link>
+        <Link className="btn-secondary" to="/import-center?type=poam" data-testid="emass-import-entry">Import…</Link>
       </PageHeader>
       {sm && (
         <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-6">

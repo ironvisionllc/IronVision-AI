@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { TableScroll } from "@/components/common/TableScroll";
 import { Link } from "react-router-dom";
+import { ImportButton } from "@/components/import/ImportButton";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
@@ -27,15 +28,11 @@ function AiBox({ ai, testId }: { ai: Row | null; testId: string }) {
 }
 
 function Imports({ sid, o, reload }: { sid: string; o: Row; reload: () => void }) {
-  const [msg, setMsg] = useState("");
-  const up = async (f: File) => { const fd = new FormData(); fd.append("file", f);
-    try { const r = await api.post<Row>(`/systems/${sid}/inventory/imports`, fd); setMsg(`“${f.name}” uploaded (v${r.data.version}) – Queued: reading Hardware and Software sheets.`); reload(); } catch (e) { setMsg(errorMessage(e)); } };
   const exp = async () => { try { const r = await api.post<Row>(`/systems/${sid}/inventory/export`); toast.success(`Exported v${r.data.version}: ${r.data.counts.hardware} hardware, ${r.data.counts.software} software – validation passed, VBA unchanged`); reload(); } catch (e) { toast.error(errorMessage(e)); } };
   return (<div className="grid gap-3 md:grid-cols-2">
     <div className="rounded border border-dashed border-slate-300 p-3" data-testid="inv-upload"><div className="mb-1 text-sm font-medium">1 · Import the eMASS HW/SW List (.xlsm)</div>
-      <input type="file" accept=".xlsm,.xlsx" onChange={(e) => e.target.files?.[0] && up(e.target.files[0])} data-testid="inv-upload-input" />
+      <ImportButton systemId={sid} type="hwsw" testId="inv-upload-input" />
       <div className="mt-1 text-[11px] text-slate-600">Macros are never run. Existing inventory is never overwritten – differences become proposals you approve.</div>
-      {msg && <div className="mt-1 text-[12px]" role="status" data-testid="inv-upload-msg">{msg}</div>}
       {(o.imports || []).slice(0, 3).map((i: Row) => <div key={i.id} className="mt-1 text-[11px]" data-testid={`inv-import-${i.version}`}>v{i.version} {i.file_name} – <b>{i.status}</b>{i.error ? ` (${i.error})` : ""}
         {i.counts && ` · ${i.counts.created} created, ${i.counts.unchanged} unchanged, ${i.counts.proposed_changes} proposed changes, ${i.counts.linked_scan_assets} scan hosts linked${i.counts.errors?.length ? `, ${i.counts.errors.length} row errors` : ""}`}</div>)}</div>
     <div className="rounded border border-slate-200 p-3" data-testid="inv-export"><div className="mb-1 text-sm font-medium">4 · Export to the same template</div>

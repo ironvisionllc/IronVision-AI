@@ -1,6 +1,6 @@
 import {
   Activity, BookOpen, ClipboardCheck, Database, FileCheck, FileCode, Gauge, GitFork, HelpCircle, LayoutDashboard, Layers, ListChecks, ListOrdered, LucideIcon,
-  Network, Server, Settings, ShieldCheck, Stamp, Users, Workflow,
+  Network, Server, Settings, ShieldCheck, Stamp, Upload, Users, Workflow,
 } from "lucide-react";
 
 export interface NavItem {
@@ -31,6 +31,7 @@ export const NAV_GROUPS: { key: string; label: string; step?: string; help: stri
 export const NAV_ITEMS: NavItem[] = [
   { id: "rmf-workflow", group: "start", label: "Getting started (RMF overview)", path: "/rmf-workflow", icon: Workflow, phase: null, summary: "Prepare → Categorize → Select → Implement → Assess → Authorize → Monitor workflow." },
   { id: "systems", group: "start", label: "Systems", path: "/systems", icon: Server, phase: null, summary: "System registration, categorization (FIPS 199 / SP 800-60) and baseline selection." },
+  { id: "import-center", group: "start", label: "Import Center", path: "/import-center", icon: Upload, phase: null, perm: "system.read", summary: "One place for every system data import: policies, STIG/SCAP, Nessus/ACAS, eMASS workbooks, Test Results, HW/SW." },
   { id: "portfolio", group: "start", label: "Portfolio / Leadership", path: "/portfolio", icon: LayoutDashboard, phase: null, perm: "portfolio.read", summary: "Cross-system risk posture, ATO expirations and trend reporting for leadership." },
   { id: "rmf-prepare", group: "prepare", label: "Key roles", path: "/rmf/prepare", icon: Users, phase: null, summary: "" },
   { id: "rmf-categorize", group: "categorize", label: "Categorization", path: "/rmf/categorize", icon: Layers, phase: null, summary: "" },
@@ -62,7 +63,7 @@ export const NAV_ITEMS: NavItem[] = [
 const ROUTE_OWNERS: [RegExp, string][] = [
   [/^\/systems\/[^/]+\/controls/, "controls"], [/^\/findings\//, "controls"],
   [/^\/systems\/[^/]+\/authorization/, "rmf-authorize"], [/^\/docs-center/, "admin"], [/^\/ingest-runs\//, "evidence-sources"], [/^\/poams?(\/|$)/, "poam"],
-  [/^\/policy-auditor\//, "policy-auditor"], [/^\/reviews\//, "reviews"],
+  [/^\/policy-auditor\//, "policy-auditor"], [/^\/reviews\//, "reviews"], [/^\/systems\/[^/]+\/import-center/, "import-center"],
 ];
 
 export function activeNavId(pathname: string): string | undefined {

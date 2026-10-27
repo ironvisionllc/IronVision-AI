@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ImportButton } from "@/components/import/ImportButton";
 import { useAuth } from "@/context/AuthContext";
 import { useSystems } from "@/context/SystemContext";
 import { api, errorMessage } from "@/lib/api";
@@ -139,7 +140,8 @@ export function PolicyAuditorPage() {
         <div className="flex gap-2"><input className="input" placeholder="Title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} data-testid="policy-title" />
           <input className="input" placeholder="Owner" value={f.owner} onChange={(e) => setF({ ...f, owner: e.target.value })} data-testid="policy-owner" />
           <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && up(e.target.files[0])} data-testid="policy-file-input" />
-          <button className="btn-primary whitespace-nowrap" onClick={() => fileRef.current?.click()} data-testid="policy-upload-btn">Upload & analyze</button></div>
+          <button className="btn-secondary whitespace-nowrap" onClick={() => fileRef.current?.click()} data-testid="policy-upload-btn">Upload with title & owner</button>
+          <ImportButton systemId={sid} type="policy" primary testId="policy-import-center-btn" /></div>
         {msg && <div className="mt-2 text-[12px]" data-testid="policy-upload-msg">{msg}</div>}
       </Panel></Gated>
       <Panel title="Policy library" testId="policy-library">

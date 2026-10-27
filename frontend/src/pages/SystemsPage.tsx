@@ -22,7 +22,7 @@ export function SystemsPage() {
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-1.5 text-[12px] text-slate-600"><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} data-testid="show-archived-toggle" />Show archived</label>
           <Link className="btn-secondary" to="/emass" data-testid="import-emass-btn">eMASS sync / import</Link>
-          <Link className="btn-secondary" to="/emass-import" data-testid="global-import-emass-btn">Import from eMASS</Link>
+          <Link className="btn-secondary" to="/import-center" data-testid="global-import-emass-btn">Import…</Link>
           <Gated perm="system.register"><Link to="/systems/new" className="btn-primary" data-testid="register-system-btn"><Plus className="h-4 w-4" />Register system</Link></Gated>
         </div>
       </PageHeader>
