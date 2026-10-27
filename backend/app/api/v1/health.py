@@ -48,4 +48,5 @@ def health(db: Session = Depends(get_db)) -> HealthOut:
 
     components = {"database": _check(database), "storage": _check(storage), "worker": _check(worker), "ai": _check(ai)}
     status = "ok" if all(c.ok for c in components.values()) else "degraded"
-    return HealthOut(status=status, version=VERSION, components=components)
+    from app.build_info import build_info
+    return HealthOut(status=status, version=VERSION, build=build_info(), components=components)

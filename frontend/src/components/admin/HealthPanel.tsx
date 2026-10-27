@@ -28,6 +28,8 @@ export function HealthPanel() {
         <button className="btn-secondary px-2 py-1" onClick={load} data-testid="health-refresh-btn" aria-label="Refresh health"><RefreshCw className="h-3.5 w-3.5" /></button>
       </>}>
       {error && <p className="text-sm text-rose-700" role="alert">{error}</p>}
+      {health?.build && <p className="mb-2 text-[12px] text-slate-700" data-testid="health-build">Running code: <span className="font-mono">{health.build.git_sha ? health.build.git_sha.slice(0, 12) : "unknown"}</span>
+        {health.build.build_time && <> · built {health.build.build_time}</>}{health.build.commit_time && <> · commit {health.build.commit_time}</>}{health.build.dirty && " · uncommitted changes"} · <span className="text-slate-500">{health.build.source}</span></p>}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {COMPONENTS.map(({ key, label, icon: Icon }) => {
           const c = health?.components[key];

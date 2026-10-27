@@ -72,6 +72,7 @@ class HealthComponent(BaseModel):
 class HealthOut(BaseModel):
     status: str
     version: str
+    build: dict | None = None
     components: dict[str, HealthComponent]
 
 

@@ -182,6 +182,7 @@ fi
 step "requirements: static manifest check (host – host packages not used)" "requirements check failed – fix the manifests/locks; regenerate a lock with the command printed above"
 python3 scripts/check_requirements.py
 step "build images" "image build failed – see the build output above"
+BUILD_SHA="$(git rev-parse HEAD 2>/dev/null || true)"; BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; export BUILD_SHA BUILD_TIME  # shown on /api/v1/health + Admin
 "${DC[@]}" build "${BUILD_ARGS[@]}"
 step "image self-check (imports every module, before anything starts)" "an import failed – a package is missing from backend/requirements.prod.txt; run: python3 scripts/check_requirements.py"
 "${DC[@]}" run --rm --no-deps -T backend python -m app.tools.selfcheck

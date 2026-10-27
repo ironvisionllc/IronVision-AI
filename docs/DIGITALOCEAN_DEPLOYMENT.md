@@ -373,6 +373,12 @@ sudo cp deploy/digitalocean/docker-daemon.json /etc/docker/daemon.json && sudo s
 # TLS first (see §4), then – the only supported deploy command (also creates the §2.10 directories with the right owners):
 scripts/deploy.sh deploy/digitalocean/.env.production
 ```
+**Which code is running?** `deploy.sh` bakes the git commit (`BUILD_SHA`) and build time (`BUILD_TIME`) into the backend and worker
+images as build args. They are shown in `GET /api/v1/health` → `build` and in Admin → Platform health ("Running code: <sha> · built
+<time>"). In a dev checkout without build args the backend reads `git log -1` instead and flags uncommitted changes. An image built by
+hand without the args shows "unknown" – rebuild with `BUILD_SHA=$(git rev-parse HEAD) BUILD_TIME=$(date -u +%FT%TZ) docker compose ... build`.
+```bash
+```
 `deploy.sh` runs, in order: check_env → config → pull → build → postgres → seaweedfs → objectstore-init (bucket, versioning, SHA-256 round-trip) → migrate (alembic + reference content) → backend/worker/frontend/edge → `/api/v1/ready`. It stops at the first failure. For later `ps` / `logs` commands it prints the exact compose command in its summary (`export COMPOSE="docker compose -p ironvision --env-file deploy/digitalocean/.env.production -f docker-compose.yml -f docker-compose.prod.yml -f deploy/digitalocean/docker-compose.do.yml"`).
 
 **Start on boot:** every long-running service uses `restart: unless-stopped`. The optional systemd unit adds an env check and ordered start/stop:

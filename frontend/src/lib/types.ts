@@ -127,6 +127,7 @@ export interface HealthComponent {
 export interface Health {
   status: string;
   version: string;
+  build?: { git_sha: string | null; build_time: string | null; commit_time?: string; dirty?: boolean; source: string };
   components: Record<string, HealthComponent>;
 }
 

@@ -39,3 +39,16 @@ def test_real_org_signup_without_demo_data_has_no_statements(client, signup_on):
     with SessionLocal() as db:
         org = db.scalar(select(User.org_id).where(User.email == email))
     assert _stmts(org) == []
+
+
+def test_health_reports_running_code_version(client, monkeypatch):
+    from app import build_info as bi
+    bi.build_info.cache_clear()
+    monkeypatch.setenv("BUILD_SHA", "abc123def4567890")
+    monkeypatch.setenv("BUILD_TIME", "2026-10-27T11:00:00Z")
+    b = client.get("/api/v1/health").json()["build"]
+    assert b == {"git_sha": "abc123def4567890", "build_time": "2026-10-27T11:00:00Z", "source": "image build args"}
+    bi.build_info.cache_clear()
+    monkeypatch.delenv("BUILD_SHA")
+    assert len(client.get("/api/v1/health").json()["build"]["git_sha"] or "") in (0, 40)
+    bi.build_info.cache_clear()
