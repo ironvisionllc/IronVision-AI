@@ -61,3 +61,10 @@ def test_rbac_sca_cannot_edit_risk(client, ctx):
 def test_import_raw_severity_not_converted():
     from app.services.emass_reports import CATS, RAW
     assert RAW["veryhigh"] == "Very High" and CATS["cati"] == "CAT I" and "critical" not in RAW.values()
+
+
+def test_poam_updated_audit_has_changed_fields_before_after(client, ctx):
+    assert client.patch(f"/api/v1/poams/{ctx['pid']}", json={"impact": "Moderate", "mitigations": "SYNTHETIC v2"}, headers=ctx["isso"]).status_code == 200
+    ev = [e for e in client.get("/api/v1/audit-events?action=poam.updated&limit=20", headers=ctx["isso"]).json() if e["entity_id"] == ctx["pid"]][0]
+    assert ev["details"]["changed_fields"] == ["impact", "mitigations"]
+    assert ev["after"] == {"impact": "Moderate", "mitigations": "SYNTHETIC v2"} and "impact" in ev["before"] and ev["before"]["impact"] != "Moderate"

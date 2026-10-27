@@ -184,6 +184,8 @@ class AuditEventOut(ORM):
     outcome: str
     correlation_id: str | None
     ip: str | None
+    before: dict | None = None
+    after: dict | None = None
     details: dict | None
     hash: str
     prev_hash: str

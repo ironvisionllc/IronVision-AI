@@ -278,7 +278,8 @@ def update(poam_id: str, body: PoamIn, request: Request, db: Session = Depends(g
         raise HTTPException(409, f"{p.human_id} is in {p.status.replace('_', ' ')}; status changes only through the pending review decision")
     if "due_date" in changes and p.due_date and changes["due_date"] and changes["due_date"] > p.due_date:
         raise HTTPException(409, "Moving the due date later requires a deadline extension or waiver request")
-    before = {k: str(getattr(p, k)) for k in changes}
+    js = lambda v: v if v is None or isinstance(v, (bool, int, float, str, list, dict)) else str(v)  # noqa: E731 – keep nulls as null
+    before = {k: js(getattr(p, k)) for k in changes}
     for k, v in changes.items():
         setattr(p, k, [c.lower() for c in v] if k == "control_ids" else v)
     if risk := [k for k in changes if k in (*RISK_FIELDS, "comments")]:
@@ -287,7 +288,8 @@ def update(poam_id: str, body: PoamIn, request: Request, db: Session = Depends(g
         wf.notify(db, p.owner_id, f"{p.human_id} assigned to you", f"/poams/{p.id}", "assignment", p.weakness[:200])
     wf.history(db, p, current.user, "updated", before=before, after={k: str(v) for k, v in changes.items()})
     audit.record(db, action="poam.updated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="poam",
-                 entity_id=str(p.id), before=before, after={k: str(v) for k, v in changes.items()})
+                 entity_id=str(p.id), before=before, after={k: js(v) for k, v in changes.items()},
+                 details={"changed_fields": sorted(k for k in changes if before.get(k) != js(changes[k])), "poam": p.human_id})
     take_snapshots(db, trigger="poam.updated")
     db.commit()
     return _row(db, p)
