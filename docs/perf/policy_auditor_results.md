@@ -130,3 +130,20 @@ Changes in this round:
 - An AI quote that is only part of a sentence is widened to the full sentence before it is shown.
 
 Intermediate run r6 had only the trigger rule. Its RA recall dropped to 0.994 because "announced" did not count as "reported", and it showed one fragment quote. r7 fixes both.
+
+## Tester round 4: readable gaps, agreement, consistency across uploads
+
+Before = `<k>_v2_r7` (round 3), after = `<k>_v2_r9`. All v2, real `anthropic/claude-sonnet-5.5`, same scorer.
+
+| policy | run | wall | precision | recall | exact | false gaps | gold gaps flagged | citation validity | off-subject met | unreadable gaps | agreement errors | violations |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| RA (user) | before | 16.8 s | 0.987 | 1.000 | 0.737 | 0 | 4/4 | 1.0 | 0 | 43 | 6 | none |
+| RA (user) | **after** | 16.5 s | 0.987 | 1.000 | 0.744 | 0 | 4/4 | 1.0 | 0 | **0** | **0** | none |
+| AC demo | before | 14.9 s | 0.909 | 1.000 | 0.753 | 0 | 24/24 | 1.0 | 0 | n/m | n/m | none |
+| AC demo | **after** | 14.5 s | 0.909 | 1.000 | 0.737 | 0 | 24/24 | 1.0 | 0 | 0 | 0 | none |
+| SC demo | before | 14.4 s | 0.917 | 1.000 | 0.795 | 0 | 18/18 | 1.0 | 0 | n/m | n/m | none |
+| SC demo | **after** | 13.6 s | 0.917 | 1.000 | 0.795 | 0 | 18/18 | 1.0 | 0 | 0 | 0 | none |
+
+- The RA "before" counts for unreadable gaps (43) and agreement errors (6) are the tester's, from one RA upload. n/m = not measured.
+- Progress denominator now matches the final total: RA 156 = 156, AC 194 = 194, SC 151 = 151.
+- Audit suggestions vs stored findings: SC had 8 suggestions and 7 findings stored, with a note explaining the one that was dropped.

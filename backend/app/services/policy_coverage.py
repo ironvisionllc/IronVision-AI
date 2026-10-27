@@ -117,6 +117,7 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
     sents, low = _sentences(text), text.lower()
     fam = family.lower()
     r = {"status": "missing", "confidence": "High", "snippets": [], "parameter": None, "value": None, "needs": None}
+    be = "are" if (target or "").endswith("s") else "is"  # "the RA procedures are …", "the RA policy is …"
 
     def found(hits, reason, conf="High", value=None, param=None, status="met"):
         r.update(status=status, confidence=conf, snippets=_snip(text, hits), reason=reason, value=value, parameter=param)
@@ -173,12 +174,12 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
                 rec = m.group(2).strip(" ,")
                 break
         if hits and rec:
-            return found(hits, f"The {target} is disseminated to {rec}.", value=rec[:255], param=f"dissemination recipients ({target})")
+            return found(hits, f"The {target} {be} disseminated to {rec}.", value=rec[:255], param=f"dissemination recipients ({target})")
         if hits:
             r.update(status="partial", confidence="Medium", snippets=_snip(text, hits), reason=f"Dissemination of the {target} is mentioned but the personnel or roles are not named.",
-                     needs=f"Name who receives the {target}, e.g. “The {fam} {target} is disseminated to all system owners, ISSOs and the ISSM.”")
+                     needs=f"Name who receives the {target}, e.g. “The {fam} {target} {be} disseminated to all system owners, ISSOs and the ISSM.”")
             return r
-        r.update(reason=f"No statement that the {target} is disseminated.", needs=f"Add: “The {fam} {target} is disseminated to <personnel or roles>.”")
+        r.update(reason=f"No statement that the {target} {be} disseminated.", needs=f"Add: “The {fam} {target} {be} disseminated to <personnel or roles>.”")
         return r
     if concept == "official":
         hits = [h for h in sents if re.search(r"\bofficial\b|designat|appoint", h[2], re.I) and re.search(r"manag|develop|disseminat|responsib|review|maintain", h[2], re.I)]
@@ -208,12 +209,12 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
         other = [h for h in rev if re.search(rx, h[2], re.I)]
         if [h for h in rev if id(h) in ab]:
             r.update(status="partial", confidence="Medium", snippets=_snip(text, [h for h in rev if id(h) in ab]),
-                     reason=f"The policy says the {target} is reviewed, but it does not state the {what} for the {target}."
+                     reason=f"The policy says the {target} {be} reviewed, but it does not state the {what} for the {target}."
                      + (" The document states one for something else, not for the " + target + "." if other else ""))
         else:
             r.update(reason=f"No {what} is stated for the {target}.")
-        r["needs"] = (f"Add: “The {fam} {target} is reviewed and updated at least annually.”" if concept == "frequency"
-                      else f"Add: “The {fam} {target} is reviewed and updated following significant changes, incidents or assessment findings.”")
+        r["needs"] = (f"Add: “The {fam} {target} {be} reviewed and updated at least annually.”" if concept == "frequency"
+                      else f"Add: “The {fam} {target} {be} reviewed and updated following significant changes, incidents or assessment findings.”")
         return r
     words = {w for w in re.findall(r"[a-z]{5,}", req_text.lower())} - {"organization", "defined", "assignment", "selection", "system", "policy", "controls"}
     ws = _wordsets(text)
@@ -226,10 +227,10 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
         r.update(status="partial", confidence="Low", snippets=_snip(text, [best]), manual_review=True,
                  reason=f"Manual review needed – not confirmed automatically. Requirement: “{short}”. Closest policy sentence is quoted below; "
                         "it uses related wording but the rule-based check cannot tell whether it actually satisfies the requirement.",
-                 needs=f"Confirm the quoted sentence meets the requirement, or add a statement that does: “{short}”.")
+                 needs=pp.gap_text(req_text, "review"))
         return r
     r.update(confidence="Low", reason=f"Not found: no sentence in the policy addresses the requirement “{short}”.",
-             needs=f"Add a statement to the {fam} policy that addresses: “{short}”.")
+             needs=pp.gap_text(req_text, "missing"))
     return r
 
 
@@ -304,11 +305,10 @@ def _guard(text: str, sents: list, control_id: str, req: dict, title: str, r: di
     a MISSING requirement whose part the policy explicitly tags (e.g. "(RA-2a)") becomes partial with the tagged text for review."""
     q = (r.get("snippets") or [{}])[0].get("text") if r.get("snippets") else None
     if r["status"] == "met" and q and not relevant(q, req["text"], title):
-        miss = missing_terms(q, req["text"])
         r.update(status="partial", confidence="Low", manual_review=True,
                  reason="Manual review: the quoted text does not clearly address this requirement's subject, so it is not counted as met. "
                         + (r.get("reason") or ""),
-                 needs=f"The quoted text does not state {_join(miss) or 'the requirement'}; confirm it or add a statement that does.")
+                 needs=pp.gap_text(req["text"], "review"))
     if r["status"] in ("missing", "partial"):
         rx = part_tag(control_id, req)
         tagged = []
@@ -324,16 +324,26 @@ def _guard(text: str, sents: list, control_id: str, req: dict, title: str, r: di
             r.update(status="met", confidence="Medium", manual_review=False, snippets=_snip(text, [best]), needs=None,
                      reason="The policy states this requirement" + (" in the text it tags for this part." if best in tagged else " in a “shall” statement."))
         elif tagged:
-            miss = missing_terms(" ".join(h[2] for h in tagged), req["text"])
+            that, _ = pp.obligation(req["text"])
             r.update(status="partial", confidence="Low", manual_review=True, snippets=_snip(text, tagged[:2]),
-                     reason=f"The policy tags this text “{rx.search(tagged[0][2]).group(0)}” for this requirement's part, but it does not state "
-                            f"{_join(miss) or 'every element'}.",
-                     needs=f"State {_join(miss) or 'every element of the requirement'} in the tagged section.")
-        elif r["status"] == "partial" and (not r.get("needs") or str(r.get("needs")).startswith("Add a statement")):
-            miss = missing_terms(" ".join(x.get("text", "") for x in r.get("snippets") or []), req["text"])
-            if miss:
-                r["needs"] = f"The related text does not state {_join(miss)}; add it to the policy."
+                     reason=f"The policy tags this text “{rx.search(tagged[0][2]).group(0)}” for this requirement's part, but the rule-based check "
+                            f"cannot confirm that it states that {that}.",
+                     needs=pp.gap_text(req["text"], "review", "tagged section"))
+    if r["status"] != "met" and not is_readable_gap(r.get("needs"), req["text"]):
+        r["needs"] = pp.gap_text(req["text"], "review" if r["status"] == "partial" else "missing")
     return r
+
+
+def is_readable_gap(g: str | None, req_text: str = "") -> bool:
+    """False for keyword salad ("State randomly …", "State employ, vulnerability, monitoring …") and generic "Add a statement…" text.
+    A comma list is fine only when it is the requirement's own wording ("creating, enabling, modifying, disabling, and removing")."""
+    if not g:
+        return False
+    if re.search(r"\bState [a-z]+\b(?! that)|\bdoes not state [a-z]{3,}(?:, [a-z]{3,})*,? and [a-z]{3,}[;.]", g) or re.match(r"Add a statement(?! such as)", g) \
+            or "Add a statement covering" in g:
+        return False
+    req = " ".join((req_text or "").lower().split())
+    return all(m.group(0).lower() in req for m in re.finditer(r"\b[a-z]{3,}(?:, [a-z]{3,}){2,},? and [a-z]{3,}\b", g))
 
 
 def _join(ws: list) -> str:
@@ -400,7 +410,12 @@ def _ai_many(text: str, todo: list, org_id) -> dict:
         return {cid: f.result() for cid, f in futs.items()}
 
 
-def prefetch_ai(db: Session, policy: Policy, control_ids) -> dict:
+def in_scope_requirements(db: Session, control_ids) -> int:
+    """Requirements the final result will contain for these controls (AI-reviewed + policy-element rule checks of xx-1)."""
+    return sum(len(requirements(db, c)) for c in set(control_ids))
+
+
+def prefetch_ai(db: Session, policy: Policy, control_ids, in_scope: int | None = None) -> dict:
     """AI refinement BEFORE the analysis writes anything: inputs are read, the read-only transaction is ended, then the slow AI calls
     run with no open transaction (no "idle in transaction" connection holding locks for minutes). Only call with no pending writes."""
     if db.new or db.dirty or db.deleted:
@@ -413,7 +428,7 @@ def prefetch_ai(db: Session, policy: Policy, control_ids) -> dict:
         from app.services.content.loader import active_catalog_id
         titles, catalog, pid = dict(db.execute(select(Control.control_id, Control.title)).all()), active_catalog_id(db), policy.id
         db.commit()  # read-only: ends the transaction before the external calls
-        out, stats = v2.analyze_ai(text, pid, org_id, todo, titles, catalog)
+        out, stats = v2.analyze_ai(text, pid, org_id, todo, titles, catalog, in_scope)
         return {**out, V2_STATS: stats}
     db.commit()  # read-only: ends the transaction before the external calls
     return _ai_many(text, todo, org_id)
@@ -451,10 +466,19 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
     if todo:  # stage 2: AI refinement not prefetched (e.g. API-triggered re-analysis) – AI_WORKERS concurrent calls, same prompt + quote verification
         ai_by_ctl.update(_ai_many(text, todo, policy.org_id))
     t2 = time.perf_counter()
+    prev_an = (policy.analysis or {}).get("analyzer")
+    # A re-analysis without AI (after a human mapping decision) must not replace AI-merged rows with deterministic-only ones:
+    # rows of controls already analysed at this policy version by the current analyzer are kept as they are.
+    keep = {c.control_id for c in old.values() if c.policy_version == policy.version} if (
+        not use_ai and prev_an in ("v2", "v-current") and (policy.analysis or {}).get("coverage_version") == ANALYZER_VERSION) else set()
     for c in old.values():  # old rows are deleted only now, so no row lock is held during the AI stage
-        db.delete(c)
+        if c.control_id not in keep or c.control_id not in {m.control_id for m in maps}:
+            db.delete(c)
     db.flush()
     for m, reqs, results in prepared:  # stage 3: verify AI quotes against the text (apply_ai) and write rows
+        if m.control_id in keep:
+            out.extend(c for c in old.values() if c.control_id == m.control_id)
+            continue
         ttl = titles.get(m.control_id, "")
         if m.control_id in ai_by_ctl and not is_xx1(m.control_id):
             ai = ai_by_ctl[m.control_id]
@@ -482,8 +506,9 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
     _S1.clear()  # the deterministic memo lives only for one analysis (no long-lived cache of customer content)
     if v2_stats is not None:
         policy.analysis = {**(policy.analysis or {}), "v2": {k: v for k, v in v2_stats.items() if k != "not_examined_ids"}}
-    policy.analysis = {k: v for k, v in (policy.analysis or {}).items() if k != "progress"}
-    policy.analysis = {**(policy.analysis or {}), "coverage_version": ANALYZER_VERSION, "analyzer": analyzer() if use_ai else "deterministic",
+    policy.analysis = {k: v for k, v in (policy.analysis or {}).items() if k != "progress" or (v or {}).get("phase") == "done"}  # final summary kept
+    policy.analysis = {**(policy.analysis or {}), "coverage_version": ANALYZER_VERSION,
+                       "analyzer": analyzer() if use_ai else (prev_an if keep else "deterministic"),
                        "values": _merge_values((policy.analysis or {}).get("values", []), out),
                        "timing_s": {"controls": len(prepared), "ai_controls": len(todo) + len([c for c in pre if use_ai]), "ai_prefetched": len(pre) if use_ai else 0,
                                     "deterministic": round(t1 - t0, 2),
@@ -518,7 +543,11 @@ def ensure_current(db: Session, policies) -> int:
         except Exception as exc:  # a missing stored original must not stop the other policies
             p.analysis = {**(p.analysis or {}), "text_refresh_error": f"{type(exc).__name__}: {exc}"[:300]}
         if p.analysis_status == "analyzed" and (p.analysis or {}).get("coverage_version") != ANALYZER_VERSION:
-            analyze(db, p)
+            if (p.analysis or {}).get("analyzer") in ("v2", "v-current"):  # AI-analysed: a background AI re-analysis, never a deterministic downgrade
+                from app.services.rmf import queue_reanalysis
+                queue_reanalysis(db, p, "analyzer_version")
+            else:
+                analyze(db, p)
             n += 1
     if n:
         db.flush()

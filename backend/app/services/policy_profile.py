@@ -161,6 +161,52 @@ LABEL = {  # readable wording for gap/met reasons (was the raw concept key: "doe
 }
 
 
+_ES = re.compile(r"(?:ss|sh|ch|x|z)es$")
+
+
+def _base(v: str) -> str:
+    lv = v.lower()
+    if lv.endswith("ies"):
+        return v[:-3] + "y"
+    if _ES.search(lv):
+        return v[:-2]
+    return v[:-1] if lv.endswith("s") and not lv.endswith(("ss", "us", "is")) else v
+
+
+def obligation(req_text: str) -> tuple[str, str]:
+    """Readable sentence parts derived from the requirement itself (never a keyword list):
+    ("the organization will define a frequency for …", "The organization shall define a frequency for ….")."""
+    t = re.sub(r"\[(?:Assignment|Selection)[^:\]]*:\s*([^\]]+)\]", r"\1", req_text or "")
+    t = re.sub(r"\s*\(defined in [^)]*\)", "", t)  # "(defined in SC-13_ODP[01])" is catalog plumbing, not wording
+    t = re.sub(r"\s+", " ", t).strip().rstrip(".;:, ")
+    m = re.match(r"(?:the (organization|information system|system) )?([A-Za-z-]+)(.*)$", t, re.I)
+    if not m:
+        return "this requirement is met", "This requirement shall be met."
+    if m.group(1) or t[:1].isupper():  # CCI style: imperative ("Monitor and scan …") or 3rd person ("Defines …")
+        who = "the system" if m.group(1) and "system" in m.group(1).lower() else "the organization"
+        verb, rest = _base(m.group(2)).lower(), m.group(3)
+        pos = 0
+        for _ in range(4):  # "Develops, documents, and disseminates" → base form for every verb of the list
+            n = re.compile(r"(,\s*(?:and |or )?|\s+(?:and|or)\s+)([a-z]+s)\b").match(rest, pos)
+            if not n or verb == m.group(2).lower():
+                break
+            rest = rest[:n.start(2)] + _base(n.group(2)) + rest[n.end(2):]
+            pos = n.start(2) + len(_base(n.group(2)))
+        return f"{who} will {verb}{rest}", f"{who.capitalize()} shall {verb}{rest}."
+    clause = t[0].lower() + t[1:]  # 800-53A objective: passive clause ("usage restrictions are established …")
+    shall = re.sub(r"\b(?:is|are)\b", "shall be", clause, count=1)
+    shall = shall if shall != clause else "The policy shall ensure that " + clause
+    return clause, shall[0].upper() + shall[1:] + "."
+
+
+def gap_text(req_text: str, kind: str, where: str = "quoted sentence") -> str:
+    """Gap / suggested-fix sentence. kind: "missing" (nothing found) or "review" (related text may address it)."""
+    that, shall = obligation(req_text)
+    if kind == "missing":
+        return f"The policy does not state that {that}. Add a statement such as: “{shall}”"
+    return f"Requires manual review – the {where} may address this requirement. Confirm that it states that {that}, or add: “{shall}”"
+
+
 def _lbl(k: str) -> str:
     return "the organization-defined value" if k.startswith("value") else LABEL.get(k, k.replace("_", " "))
 
@@ -200,11 +246,11 @@ def evaluate(text: str, sents: list, control_id: str, req_text: str, snip) -> di
         hits = sents[pair_i:pair_i + 2] if got is pair else sents[best_i:best_i + 1]
         r.update(status="partial", confidence="Medium" if len(need) - len(got) == 1 else "Low", snippets=snip(hits), basis="concept",
                  reason=f"Related text found, but the policy does not state {'; '.join(_lbl(m) for m in missing)}.",
-                 needs=f"Add a statement covering {'; '.join(_lbl(m) for m in missing)}.")
+                 needs=gap_text(req_text, "review"))
         return r
     r.update(status="missing", confidence="High" if not got else "Medium", snippets=[], basis="concept",
              reason="No sentence addresses this requirement." if not got else f"Only {len(got)} of {len(need)} required elements appear near each other.",
-             needs=f"Add a statement covering: {label}.")
+             needs=gap_text(req_text, "missing"))
     return r
 
 

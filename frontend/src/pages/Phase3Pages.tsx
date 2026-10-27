@@ -16,7 +16,7 @@ import { downloadFile } from "@/lib/download";
 import { CCI_TIP, CoverageChecklist } from "@/components/policy/Coverage";
 import { useActiveSystemId } from "@/components/rmf/Stepper";
 import { ProcessingList } from "@/components/shell/Processing";
-import { AnalysisProgress, usePollWhile } from "@/components/policy/AnalysisProgress";
+import { AnalysisProgress, StageHistory, usePollWhile } from "@/components/policy/AnalysisProgress";
 
 export function InheritancePage() {
   const { selectedId: sid } = useSystems();
@@ -182,7 +182,9 @@ export function PolicyDetailPage() {
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="policy-msg">{msg}</div>}
       {analysing && <div className="panel mb-4 p-3" data-testid="policy-detail-progress"><div className="text-[12px] font-semibold">Analysis {p.analysis_status === "queued" ? "queued" : "in progress"}</div>
         <AnalysisProgress p={p.analysis?.progress ?? { pct: 0, stage: "Queued – waiting for a worker" }} testId="policy-detail-progress-bar" /></div>}
-      {!analysing && p.analysis?.progress?.phase === "done" && <div className="mb-3 text-[12px] text-slate-600" data-testid="policy-detail-completed">Analysis {p.analysis.progress.stage.toLowerCase()} · {p.analysis.progress.requirements_analyzed} requirements analysed · {p.analysis.progress.requirement_gaps} requirement gaps · {p.analysis.progress.audit_findings} audit findings</div>}
+      {!analysing && p.analysis?.progress?.phase === "done" && <div className="mb-3 text-[12px] text-slate-600" data-testid="policy-detail-completed">Analysis {p.analysis.progress.stage.toLowerCase()} · {p.analysis.progress.requirements_analyzed} requirements analysed · {p.analysis.progress.requirement_gaps} requirement gaps · {p.analysis.progress.audit_findings} audit findings stored{p.analysis.progress.audit_suggestions != null && ` (${p.analysis.progress.audit_suggestions} AI suggestions)`}
+        {p.analysis.progress.audit_note && <div className="text-amber-800" data-testid="policy-detail-audit-note">{p.analysis.progress.audit_note}</div>}
+        <StageHistory p={p.analysis.progress} testId="policy-detail-stage-history" /></div>}
       {p.analysis?.text_refreshed && <div className="mb-3 text-[12px] text-slate-600" data-testid="policy-text-refreshed">Re-analysed with improved table extraction on {new Date(p.analysis.text_refreshed.at).toLocaleDateString()}{["queued", "processing"].includes(p.analysis_status) ? " (re-analysis in progress)" : ""}. Your earlier decisions are kept; differences show as “Re-analysis differs from approved”.</div>}
       <Panel title="Mapped controls (confidence · basis · matched text)" className="mb-5" testId="policy-control-mappings">
         <PolicyMappingsPanel policyId={id} data={data} canMap={can("finding.map")} reload={reload} setMsg={setMsg} />

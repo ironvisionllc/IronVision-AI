@@ -284,7 +284,7 @@ class Run:
         return got
 
 
-def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog) -> tuple[dict, dict]:
+def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog, in_scope: int | None = None) -> tuple[dict, dict]:
     """todo = [(control_id, reqs, results)] → ({control: {requirement: verdict}}, stats). Unretrieved requirements are recorded as
     not examined (never satisfied/failed/N-A); a sample of them still gets a cheap verification pass to measure screening misses."""
     from app.services.ai.service import get_ai_service
@@ -331,7 +331,7 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog) 
     done = Counter()
     started = time.perf_counter()
     base = {"analyzer": ANALYZER, "controls_screened": len(todo), "requirements_total": st["requirements"], "batches_total": len(batches),
-            "label": "analysis in progress"}
+            "requirements_in_scope": in_scope if in_scope is not None else st["requirements"], "label": "analysis in progress"}
     _progress(policy_id, {**base, "phase": "screen", "stage": "2/4 relevance screening done – AI review starting", "pct": 10, "batches_done": 0,
                           "requirements_analyzed": 0, "requirement_gaps_so_far": 0, "elapsed_s": round(time.perf_counter() - t0, 1)})
 

@@ -11,7 +11,7 @@ import { PageSizeSelect, Pager, usePageSize } from "@/components/common/PageSize
 import { SideBySideReview } from "@/components/controls/SideBySideReview";
 import { BulkJobProgress } from "@/components/evidence/BulkJobProgress";
 
-const KIND: Record<string, string> = { policy_status: "Policy coverage → status", status: "Status suggestion", policy_map: "Policy → control", finding_map: "STIG rule → control" };
+const KIND: Record<string, string> = { policy_status: "Status suggestion (from policy coverage) – needs SCA confirmation", status: "Status suggestion", policy_map: "Policy → control", finding_map: "STIG rule → control" };
 const fmt = (c: string) => c.toUpperCase().replace(/\.(\d+)$/, "($1)");
 const SCA_MSG = "Implementation set to Implemented. Assessment status needs SCA confirmation";
 
@@ -92,7 +92,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
       setSel([]); setJust(""); setEditTo(""); reload();
     } catch (e) { setErr(`Nothing was changed: ${errorMessage(e)}`); } finally { setBusy(false); }
   };
-  const tabs: [string, string][] = [["", `All open (${open.length})`], ["status", `Status suggestions (${open.filter((q) => q.kind === "status").length})`], ["policy_status", `Policy coverage (${open.filter((q) => q.kind === "policy_status").length})`], ["policy_map", `Policy mappings (${counts.policy_map})`],
+  const tabs: [string, string][] = [["", `All open (${open.length})`], ["status", `Status suggestions (${open.filter((q) => q.kind === "status").length})`], ["policy_status", `Status suggestions from policy coverage (${open.filter((q) => q.kind === "policy_status").length})`], ["policy_map", `Policy mappings (${counts.policy_map})`],
     ["finding_map", `STIG mappings (${counts.finding_map})`], ["sca", `Awaiting assessor (SCA) (${waiting.length})`]];
   return (
     <>{sbs && <SideBySideReview policyId={sbs.p} controlId={sbs.c} canDecide={canMap} onClose={() => setSbs(null)} onChanged={reload} />}
@@ -131,6 +131,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
               {q.policy_id ? <Link className="text-blue-800 underline" to={`/policy-auditor/${q.policy_id}`}>{q.title}</Link> : q.title}
               {q.not_selected && <div className="text-[10px] font-semibold text-amber-800" data-testid={`queue-not-selected-${q.key}`}>Policy states not selected – confirm: “{q.not_selected}”</div>}
               {q.kind === "policy_map" && q.policy_id && <button className="ml-1 text-[11px] text-blue-800 underline" onClick={() => setSbs({ p: q.policy_id, c: q.control_id })} data-testid={`queue-sbs-${q.key}`}>Review side by side</button>}
+              {q.kind === "policy_status" && <div className="text-[10px] text-slate-600" data-testid={`queue-status-suggestion-note-${q.key}`}>Status suggestion, not a coverage note: approving sets Implementation; the Assessment result still needs SCA confirmation.</div>}
               {q.mapping_note && <div className="text-[10px] text-blue-800" data-testid={`queue-mapping-note-${q.key}`}>{q.mapping_note}</div>}
               {q.why_new && <div className="text-[10px] font-medium text-amber-800" data-testid={`queue-why-new-${q.key}`}>{q.why_new}</div>}
               {q.next_actor && <div className="text-[10px] text-slate-600" data-testid={`queue-next-actor-${q.key}`}>Next: {q.next_actor}</div>}

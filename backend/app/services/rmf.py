@@ -395,17 +395,22 @@ def refresh_text(db: Session, p: Policy) -> bool:
     p.text_content = text
     p.analysis = {**a, "text_version": TEXT_VERSION}
     if changed and p.analysis_status == "analyzed":  # never analyse on access: a normal background job (AI lane, not the bulk lane)
-        from app.models import Job
-        from app.services import jobs as jobsvc
         p.analysis = {**p.analysis, "text_refreshed": {"at": datetime.now(timezone.utc).isoformat(), "text_version": TEXT_VERSION,
                                                        "reason": "improved table extraction"}}
-        p.analysis_status = "queued"
-        pending = db.scalar(select(Job.id).where(Job.job_type == "policy.analyze", Job.status.in_(("queued", "running")),
-                                                 Job.payload["policy_id"].astext == str(p.id)).limit(1))
-        if pending is None:
-            from app.services.policy_analyzer_v2 import queued_progress
-            queued_progress(db, p, jobsvc.enqueue(db, "policy.analyze", {"policy_id": str(p.id), "reason": "text_refresh"}))
+        queue_reanalysis(db, p, "text_refresh")
     return changed
+
+
+def queue_reanalysis(db: Session, p: Policy, reason: str) -> None:
+    """Queue one ordinary policy.analyze job (AI lane) unless one is already queued/running; human decisions are kept by the analysis."""
+    from app.models import Job
+    from app.services import jobs as jobsvc
+    from app.services.policy_analyzer_v2 import queued_progress
+    p.analysis_status = "queued"
+    pending = db.scalar(select(Job.id).where(Job.job_type == "policy.analyze", Job.status.in_(("queued", "running")),
+                                             Job.payload["policy_id"].astext == str(p.id)).limit(1))
+    if pending is None:
+        queued_progress(db, p, jobsvc.enqueue(db, "policy.analyze", {"policy_id": str(p.id), "reason": reason}))
 
 
 def section_at(text: str, start: int, window: int | None = 40) -> str | None:

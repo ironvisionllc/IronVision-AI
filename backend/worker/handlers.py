@@ -240,29 +240,32 @@ def _policy_analyze(db: Session, pol) -> dict:
     fut = ex.submit(_audit) if audit_on else None
     t_audit = _t.perf_counter()
     pre = None
-    if use_ai:  # coverage AI runs BEFORE any analysis write, with no open transaction (was: minutes "idle in transaction" holding row locks)
-        from sqlalchemy import select as _sel
+    from sqlalchemy import select as _sel
 
-        from app.models import PolicyControlMap
-        from app.services import policy_coverage as pc
-        from app.services import policy_mapping as pm
-        cids = {m["control_id"] for m in pm.extract_mappings(db, text_) if m["confidence"] in ("High", "Medium") and not m.get("not_selected")}
-        cids |= set(db.scalars(_sel(PolicyControlMap.control_id).where(PolicyControlMap.policy_id == pol.id, PolicyControlMap.valid_to.is_(None),
-                                                                        PolicyControlMap.status == "mapped")))
-        pre = pc.prefetch_ai(db, pol, cids)
+    from app.models import PolicyControlMap
+    from app.services import policy_coverage as pc
+    from app.services import policy_mapping as pm
+    cids = {m["control_id"] for m in pm.extract_mappings(db, text_) if m["confidence"] in ("High", "Medium") and not m.get("not_selected")}
+    cids |= set(db.scalars(_sel(PolicyControlMap.control_id).where(PolicyControlMap.policy_id == pol.id, PolicyControlMap.valid_to.is_(None),
+                                                                    PolicyControlMap.status == "mapped")))
+    in_scope = pc.in_scope_requirements(db, cids)  # one denominator: live progress and the final summary count the same requirements
+    db.commit()
+    if use_ai:  # coverage AI runs BEFORE any analysis write, with no open transaction (was: minutes "idle in transaction" holding row locks)
+        pre = pc.prefetch_ai(db, pol, cids, in_scope)
     from app.services.policy_analyzer_v2 import _progress
     if pre is None:  # AI off / v-current: the same four stages, deterministic only
         _progress(pol.id, {"phase": "screen", "stage": "2/4 screening controls (deterministic only – AI review off)", "pct": 10, "label": "analysis in progress",
-                           "elapsed_s": round(_t.perf_counter() - t_start, 1)})
+                           "requirements_in_scope": in_scope, "elapsed_s": round(_t.perf_counter() - t_start, 1)})
         _progress(pol.id, {"phase": "AI review", "stage": "3/4 checking requirements (deterministic)", "pct": 50, "label": "analysis in progress",
-                           "elapsed_s": round(_t.perf_counter() - t_start, 1)})
+                           "requirements_in_scope": in_scope, "elapsed_s": round(_t.perf_counter() - t_start, 1)})
     audit_s = 0.0
     if fut is not None:
         _progress(pol.id, {"phase": "audit", "stage": "4/4 waiting for the policy audit", "pct": 88, "label": "analysis in progress",
                            "elapsed_s": round(_t.perf_counter() - t_start, 1)})
         ai_out, iid, ai_note, audit_s = fut.result()
     _progress(pol.id, {"phase": "validate", "stage": "4/4 validating quotes and writing results", "pct": 92, "label": "analysis in progress",
-                       "audit_findings": len((ai_out or {}).get("findings") or []), "elapsed_s": round(_t.perf_counter() - t_start, 1)})
+                       "audit_suggestions": len((ai_out or {}).get("findings") or []), "requirements_in_scope": in_scope,
+                       "elapsed_s": round(_t.perf_counter() - t_start, 1)})
     db.expire(pol)
     ex.shutdown()
     prog = (pol.analysis or {}).get("progress")
@@ -279,12 +282,24 @@ def _policy_analyze(db: Session, pol) -> dict:
     el = round(_t.perf_counter() - t_start, 1)
     final = with_history(prog, {"phase": "done", "stage": f"Completed in {el:g} s", "pct": 100, "label": "analysis complete", "elapsed_s": el,
                                 "requirements_analyzed": sum(st.values()), "requirement_gaps": st.get("missing", 0) + st.get("partial", 0),
-                                "audit_findings": len(found), "completed_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()})
+                                "requirements_in_scope": in_scope, "audit_suggestions": len((ai_out or {}).get("findings") or []),
+                                "audit_findings": len(found), "audit_note": _audit_note(pol, ai_out, found), "completed_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()})
     pol.analysis = {**(pol.analysis or {}), "ai_note": ai_note, "timing_s": tm, "progress": final}  # final summary kept (UI: "Completed in X s")
     from app.services import audit
     audit.record(db, action="policy.analyzed", actor_email="worker", entity_type="policy", entity_id=str(pol.id),
                  details={"proposed_findings": len(found), "ai": ai_note})
     return {"proposed_findings": len(found), "ai": ai_note}
+
+
+def _audit_note(pol, ai_out, found) -> str | None:
+    """Why the stored audit findings differ from the AI's suggestions (findings are stored per linked system)."""
+    n, stored = len((ai_out or {}).get("findings") or []), len({(f.control_id, f.description) for f in found if f.origin == "ai"})
+    if not n or stored >= n:
+        return None
+    if not pol.system_ids:
+        return f"{n} policy-audit suggestion(s) were not stored as findings: the policy is not linked to a system. Link a system and re-run the analysis."
+    return (f"{n} policy-audit suggestion(s), {stored} stored as findings; {n - stored} dropped (control outside this policy's families, "
+            "stated as not selected, or not in the catalog).")
 
 
 HANDLERS: dict[str, Callable[[Session, dict], dict]] = {
