@@ -178,6 +178,9 @@ def mismatch(ident: dict, s: System | None) -> str | None:
         return None
     pairs = [("eMASS ID", ident.get("emass_id"), s.emass_id), ("acronym", ident.get("acronym"), s.acronym), ("name", ident.get("name"), s.name)]
     known = [(k, a, b) for k, a, b in pairs if a and b]
+    if ident.get("emass_id") and s.emass_id and _n(ident["emass_id"]) != _n(s.emass_id):
+        return (f"The file identifies eMASS ID '{ident['emass_id']}' – this does not match the current system {s.acronym or s.name} "
+                f"(eMASS ID '{s.emass_id}'), even if the name or acronym is the same. Check the file before continuing")
     if any(_n(a) == _n(b) for _, a, b in known):
         return None
     return "The file identifies " + ", ".join(f"{k} '{a}'" for k, a, _ in known or [(k, a, b) for k, a, b in pairs if a]) + \
@@ -210,7 +213,7 @@ def build_system(db: Session, s: System, sheets) -> tuple[list[dict], dict]:
         blocked = None if f in APPLY_SYS else BLOCK_SYS.get(f) or BLOCK_SYS.get(sec)
         secs.setdefault(sec, {})[f] = _field(cur, v, err, blocked if s else None, lab)
     items = [{"section": sec, "key": sec.lower().replace(" ", "_"), "label": sec, "create": False, "fields": fs, "required_issue": None} for sec, fs in secs.items()]
-    return items, {"matched": len(vals), "fields_read": sorted(vals)}
+    return items, {"matched": len(items), "fields_read": sorted(vals)}
 
 
 def build_poam(db: Session, s: System, sheets) -> tuple[list[dict], dict]:
@@ -241,7 +244,7 @@ def build_poam(db: Session, s: System, sheets) -> tuple[list[dict], dict]:
             lab = POAM_FIELDS[f][0]
             v, err, blocked = str(raw).strip(), None, None
             if f == "control":
-                v = sorted(cids)
+                v = [ei.fmt_acronym(c) for c in sorted(cids)]
                 err = None if cids else f"'{raw}' is not a Control Acronym"
                 if cids and (bad := [c for c in cids if c not in assigned]):
                     err = f"Not assigned to this system: {', '.join(ei.fmt_acronym(c) for c in bad)}"
@@ -262,7 +265,7 @@ def build_poam(db: Session, s: System, sheets) -> tuple[list[dict], dict]:
                 v = v[:50]
             cur = None
             if p is not None:
-                cur = {"control": sorted(p.control_ids or []), "residual_risk": None, "comments": None, "mitigations": None}.get(f, getattr(p, f, None)) \
+                cur = {"control": [ei.fmt_acronym(c) for c in sorted(p.control_ids or [])], "residual_risk": None, "comments": None, "mitigations": None}.get(f, getattr(p, f, None)) \
                     if f not in ("residual_risk", "comments", "mitigations", "poc") else None
             fs[f] = _field(cur, v, err, blocked, lab)
             if err:
@@ -272,8 +275,10 @@ def build_poam(db: Session, s: System, sheets) -> tuple[list[dict], dict]:
         else:
             issue = None
         rep["matched_existing" if p else "new"] += 1
+        note = ("eMASS marks this item Completed/Closed/Risk Accepted – creating it here starts a new open POA&M; closure still needs the ISSM workflow"
+                if p is None and _n(r.get("status") or "") in ("completed", "closed", "riskaccepted") else None)
         items.append({"section": "POA&M", "key": p.human_id if p else f"new-row-{n}", "label": f"{p.human_id} (eMASS {p.emass_remote_id or '—'})" if p else
-                      f"New POA&M from row {n}", "create": p is None, "poam_id": str(p.id) if p else None, "row": n, "fields": fs, "required_issue": issue})
+                      f"New POA&M from row {n}", "create": p is None, "poam_id": str(p.id) if p else None, "row": n, "fields": fs, "required_issue": issue, "note": note})
     rep["matched"] = len(items)
     return items, rep
 
@@ -336,7 +341,7 @@ def apply_other(db: Session, imp: EmassImport, s: System, current, meta: dict, s
             vals = {k: f["imported"] for k, f in acc.items()}
             extra = "; ".join(f"{POAM_FIELDS[k][0]}: {vals.pop(k)}" for k in ("residual_risk", "mitigations", "comments") if k in vals)
             if "control" in vals:
-                vals["control_ids"] = vals.pop("control")
+                vals["control_ids"] = [ei.norm_acronym(c) for c in vals.pop("control")]
             if "due_date" in vals:
                 vals["due_date"] = date.fromisoformat(vals["due_date"])
             if extra:

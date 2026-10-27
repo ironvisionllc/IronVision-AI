@@ -186,3 +186,25 @@ def test_rejects_unknown_files(client, ctx):
     assert d["detected"]["type"] == "control_information"
     with SessionLocal() as db:
         assert db.get(EmassImport, uuid.UUID(d["id"])).storage_key.endswith("x.csv")
+
+
+def test_emass_id_mismatch_warns_even_when_acronym_matches(client, ctx):
+    d = _up(client, ctx, "y.xlsx", _wb([["System Name", "System Acronym", "System ID"], ["Report System", "RPT", "SYN-999"]])).json()
+    assert "eMASS ID 'SYN-999'" in d["detected"]["mismatch"]
+
+
+def test_read_only_role_cannot_upload(client, ctx):
+    r = client.post("/api/v1/emass-imports", files={"file": ("a.xlsx", (FX / FILES["poam"]).read_bytes())}, data={"system_id": ctx["sid"]},
+                    headers=ctx["role"]("leadership_viewer"))
+    assert r.status_code == 403
+
+
+def test_cancel_and_register_close_the_session_with_audit(client, ctx):
+    d = _up(client, ctx, "system_details", system=False).json()
+    assert client.post(f"/api/v1/emass-imports/{d['id']}/target", json={"action": "cancel"}, headers=ctx["isso"]).json()["status"] == "discarded"
+    d2 = _up(client, ctx, "system_details", system=False).json()
+    assert client.post(f"/api/v1/emass-imports/{d2['id']}/target", json={"action": "register"}, headers=ctx["role"]("system_owner")).json()["status"] == "to_registration"
+    with SessionLocal() as db:
+        acts = set(db.scalars(select(AuditEvent.action).where(AuditEvent.entity_id.in_([d["id"], d2["id"]]))))
+        assert {"emass.import_discarded", "emass.import_to_registration"} <= acts
+        assert db.get(EmassImport, uuid.UUID(d["id"])).finished_at is not None

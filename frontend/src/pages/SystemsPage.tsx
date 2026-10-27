@@ -86,7 +86,7 @@ export function RegisterSystemPage() {
   };
   return (
     <form onSubmit={submit} data-testid="register-system-form">
-      {emassPrefill && <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-[12px] text-blue-900" data-testid="register-emass-prefill">Pre-filled from an eMASS file – nothing has been created yet. {emassPrefill.note}{emassPrefill.categorization_hint ? ` File categorization: C ${emassPrefill.categorization_hint.c ?? "?"} / I ${emassPrefill.categorization_hint.i ?? "?"} / A ${emassPrefill.categorization_hint.a ?? "?"} – pick the information types below; the categorization still needs AO approval.` : ""}</div>}
+      {emassPrefill && <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-[12px] text-blue-900" data-testid="register-emass-prefill">{emassPrefill.note} Nothing has been created yet.{emassPrefill.categorization_hint ? ` File categorization: C ${emassPrefill.categorization_hint.c ?? "?"} / I ${emassPrefill.categorization_hint.i ?? "?"} / A ${emassPrefill.categorization_hint.a ?? "?"} – pick the information types below; the categorization still needs AO approval.` : ""}</div>}
       <PageHeader title="Register system" subtitle="Step 1 Prepare and step 2 Categorize in one form: name the system and its key people, pick its information types, and the app derives the impact level and baseline. Overlays and tailoring follow in step 3 Select." />
       <div className="grid gap-5">
         <Panel title="1 · Prepare – identity and key roles">

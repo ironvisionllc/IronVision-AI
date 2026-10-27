@@ -116,7 +116,7 @@ def discard(system_id: uuid.UUID, import_id: uuid.UUID, request: Request, db: Se
 
 
 # ---------- generic eMASS report import (all types; in-system and no-system entry points) ----------
-from app.security.rbac import has_permission  # noqa: E402
+from app.security.rbac import effective_permissions, has_permission  # noqa: E402
 from app.services import emass_reports as er  # noqa: E402
 
 
@@ -148,6 +148,10 @@ async def generic_upload(request: Request, file: UploadFile = File(...), system_
     if system_id:
         enforce(request, current, "system.read", system_id)
         ctx = get_system(db, system_id)
+    writable = set(er.SECTION_PERM.values()) | {"system.register"}
+    if not ((_allowed(current, system_id) if system_id else set()) or has_permission(current.assignments, "system.register", current.user.org_id, None)
+            or (not system_id and writable & set(effective_permissions(current.assignments)))):
+        raise HTTPException(403, "Your role is read-only – importing an eMASS file needs a write permission (e.g. system.write, implementation.write, poam.manage)")
     data = await file.read(ei.MAX_BYTES + 1)
     name = file.filename or "upload.xlsx"
     sheets = er.read_sheets(data, name)
@@ -178,8 +182,11 @@ def generic_target(import_id: uuid.UUID, body: TargetIn, request: Request, db: S
     from app.services.storage.base import get_storage
     data = get_storage().get(imp.storage_key)
     typ = body.report_type or (imp.detected or {}).get("type")
+    from datetime import datetime, timezone
     if body.action == "cancel":
-        imp.status = "discarded"
+        imp.status, imp.finished_at, imp.applied_by_email = "discarded", datetime.now(timezone.utc), current.user.email
+        audit.record(db, action="emass.import_discarded", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="emass_import",
+                     entity_id=str(imp.id), details={"file_name": imp.file_name, "sha256": imp.sha256, "reason": "cancelled at the prompt"}, **audit.request_meta(request))
         db.commit()
         return _view(imp, current)
     if not typ:
@@ -187,7 +194,13 @@ def generic_target(import_id: uuid.UUID, body: TargetIn, request: Request, db: S
     if body.action == "register":
         if not has_permission(current.assignments, "system.register", current.user.org_id, None):
             raise HTTPException(403, "Registering a system needs the system.register permission")
-        return {**_view(imp, current), "prefill": er.prefill(imp, er.read_sheets(data, imp.file_name)), "report_type": typ}
+        pre = er.prefill(imp, er.read_sheets(data, imp.file_name))
+        imp.status, imp.finished_at, imp.applied_by_email = "to_registration", datetime.now(timezone.utc), current.user.email
+        audit.record(db, action="emass.import_to_registration", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="emass_import",
+                     entity_id=str(imp.id), details={"file_name": imp.file_name, "sha256": imp.sha256, "report_type": typ, "prefill": pre["system"]},
+                     **audit.request_meta(request))
+        db.commit()
+        return {**_view(imp, current), "prefill": pre, "report_type": typ}
     if not body.system_id:
         raise HTTPException(422, "Pick the system to update")
     enforce(request, current, "system.read", body.system_id)

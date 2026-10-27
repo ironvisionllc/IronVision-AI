@@ -30,7 +30,7 @@ export function ImportReview({ imp, onChange }: { imp: Row; onChange: (d: Row) =
       <label className="mb-3 flex items-center gap-2 text-[12px]"><input type="checkbox" checked={showSame} onChange={(e) => setShowSame(e.target.checked)} data-testid="import-show-unchanged" />Show unchanged fields</label>
       {sections.map((sec) => {
         const all: Row[] = (imp.items || []).filter((i: Row) => (i.section || "Controls") === sec);
-        const items = all.filter((i) => showSame || i.create || Object.values(i.fields).some((f: any) => f.change || f.error || f.blocked));
+        const items = all.filter((i) => showSame || i.create || Object.values(i.fields).some((f: any) => f.change || f.error));
         const ro = !open || !(imp.allowed_sections || []).includes(sec);
         return (
           <section key={sec} className="mb-5" data-testid={`import-section-${tid(sec)}`}>
@@ -39,7 +39,7 @@ export function ImportReview({ imp, onChange }: { imp: Row; onChange: (d: Row) =
               {!ro && <span className="ml-auto flex gap-2 text-[12px]"><button className="underline" onClick={() => dec(all, "*", "accept")} data-testid={`import-accept-section-${tid(sec)}`}>Accept section</button>
                 <button className="underline" onClick={() => dec(all, "*", "reject")} data-testid={`import-reject-section-${tid(sec)}`}>Reject section</button></span>}</div>
             <div className="space-y-2">{items.map((i) => {
-              const fs = Object.entries(i.fields as Row).filter(([, f]: [string, any]) => showSame || f.change || f.error || f.blocked);
+              const fs = Object.entries(i.fields as Row).filter(([, f]: [string, any]) => showSame || f.change || f.error);
               return (
                 <div key={i.key} className="rounded border border-slate-200" data-testid={`import-item-${tid(i.key)}`}>
                   <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-[12px]">

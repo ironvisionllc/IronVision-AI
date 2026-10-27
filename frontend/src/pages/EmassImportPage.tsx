@@ -19,7 +19,7 @@ function Report({ imp }: { imp: Row }) {
   return (
     <Panel title={`Import report – ${imp.report_type_label}`} testId="emass-import-report">
       <div className="grid gap-2 text-[12px] md:grid-cols-4" data-testid="import-counts">
-        <div>Status: <b data-testid="import-status">{imp.status}</b> · {imp.detected?.confidence} confidence</div><div>Items: <b>{r.matched}</b></div>
+        <div>Status: <b data-testid="import-status">{imp.status}</b> · {imp.detected?.confidence} confidence</div><div>Items: <b>{(imp.items || []).length}</b></div>
         <div>Changed fields: <b>{c.changed_fields}</b> (accepted {c.accepted}, rejected {c.rejected}, undecided {c.undecided})</div>
         <div>Invalid: <b>{c.invalid}</b> · blocked: <b>{c.blocked}</b>{c.applied_fields !== undefined && <> · applied: <b data-testid="import-applied-count">{c.applied_fields}</b></>}</div>
       </div>

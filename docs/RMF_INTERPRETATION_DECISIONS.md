@@ -280,7 +280,9 @@ The Control Information import above is now the first type of one shared import 
 **Context prompts:**
 - **Import from a system page** (Workbench, Test Results, Inventory): the user can update this system, register a new system from the file, or cancel.
   - The file's System Name, Acronym or eMASS ID is compared with the current system.
-  - If none of them match, a mismatch warning is shown before the user picks.
+  - A mismatch warning is shown before the user picks when none of these match, or whenever the eMASS IDs differ.
+- **Cancel** discards the session (audited).
+- **Register** closes the session as `to_registration` (audited, with the pre-fill values).
 - **Global import** (Systems page and POA&M page "Import from eMASS"): the user can register a new system, pick an existing system to update, or cancel.
   - Until the user chooses, the session is **unassigned**: it has `system_id NULL`, is org-scoped and resumable.
 - **"Register a new system"** only pre-fills the existing registration form (name, acronym, eMASS ID, description, organization, mission owner). It shows the file's C/I/A as a hint.
@@ -343,6 +345,7 @@ The Control Information import above is now the first type of one shared import 
   - POA&M: `poam.manage`;
   - Inventory: `system.write`.
   - A section the user cannot change is shown read-only with the reason, and the API returns 403 for it.
+  - Uploading also needs at least one write permission (a section permission or `system.register`). Read-only roles get 403.
 - Every applied change is audited with before/after and `source = "eMASS <type> import <file> (sha256 …)"`.
 
 **Safety:**
