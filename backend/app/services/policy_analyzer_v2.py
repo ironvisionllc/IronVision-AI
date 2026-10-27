@@ -122,8 +122,14 @@ def _key(org_id, model, catalog, items, secs) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def _cache_on() -> bool:
+    return os.environ.get("POLICY_AI_CACHE", "1") != "0"  # 0 only for benchmark concurrency sweeps
+
+
 def _cache_get(org_id, key):
     from sqlalchemy import select
+    if not _cache_on():
+        return None
 
     from app.db import SessionLocal
     from app.models import PolicyAiCache
@@ -141,6 +147,8 @@ def _cache_put(org_id, key, model, result, prov) -> None:
 
     from app.db import SessionLocal
     from app.models import PolicyAiCache
+    if not _cache_on():
+        return
     with SessionLocal() as db:
         db.execute(insert(PolicyAiCache).values(org_id=org_id, cache_key=key, analyzer_version=ANALYZER, model=model, result=result,
                                                 provenance=prov).on_conflict_do_nothing(constraint="uq_policy_ai_cache_org_key"))
@@ -257,8 +265,8 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog) 
     t1 = time.perf_counter()
     n_verify = min(len(not_examined), max(0, math.ceil(len(not_examined) * float(os.environ.get("POLICY_AI_VERIFY_FRACTION") or 0.1))))
     verify = sorted(not_examined, key=lambda x: hashlib.sha256((x[0]["control_id"] + x[0]["requirement_id"]).encode()).hexdigest())[:n_verify]
-    max_reqs, max_ctx = env_int("POLICY_AI_BATCH_REQS", 20), env_int("POLICY_AI_BATCH_CHARS", 9000)
-    min_batch = env_int("POLICY_AI_MIN_BATCH", 8)
+    max_reqs, max_ctx = env_int("POLICY_AI_BATCH_REQS", 25), env_int("POLICY_AI_BATCH_CHARS", 9000)
+    min_batch = env_int("POLICY_AI_MIN_BATCH", 12)
     batches, cur, cur_secs, cur_primary = [], [], set(), None
     for item, top in sorted(examined + verify, key=lambda x: (x[0]["family"], x[0]["control_id"], x[1][:1])):
         add = cur_secs | set(top)

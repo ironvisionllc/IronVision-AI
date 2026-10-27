@@ -203,19 +203,26 @@ def _policy_analyze(db: Session, pol) -> dict:
 
     import time as _t
     t_start = _t.perf_counter()
+    import os
+    from concurrent.futures import ThreadPoolExecutor
+
     ai_out, iid, ai_note = None, None, "AI not configured – deterministic extractor only"
     svc = get_ai_service()
-    if svc.configured and get_setting(db, pol.org_id, "ai", AI_DEFAULTS)["use_cases"].get("policy.audit"):
-        db.commit()  # read-only so far: never hold a transaction open across an external AI call
-        try:
-            r = asyncio.run(svc.run("policy.audit", "1.0.0", {"text": (pol.text_content or "")[:12000]}))
-            ai_out, iid, ai_note = r.output.model_dump(), r.interaction_id, f"AI {r.model}"
-        except Exception as exc:  # AI failure must not block deterministic findings
-            ai_note = f"AI step failed: {exc}"[:300]
-    import os
+    audit_on = svc.configured and get_setting(db, pol.org_id, "ai", AI_DEFAULTS)["use_cases"].get("policy.audit")
+    use_ai = audit_on and not os.environ.get("PYTEST_CURRENT_TEST")
+    text_ = pol.text_content or ""
+    db.commit()  # read-only so far: never hold a transaction open across an external AI call
 
+    def _audit():  # no DB access in this thread; runs concurrently with the coverage AI (was strictly before it)
+        t = _t.perf_counter()
+        try:
+            r = asyncio.run(svc.run("policy.audit", "1.0.0", {"text": text_[:12000]}))
+            return r.output.model_dump(), r.interaction_id, f"AI {r.model}", _t.perf_counter() - t
+        except Exception as exc:  # AI failure must not block deterministic findings
+            return None, None, f"AI step failed: {exc}"[:300], _t.perf_counter() - t
+    ex = ThreadPoolExecutor(max_workers=1)
+    fut = ex.submit(_audit) if audit_on else None
     t_audit = _t.perf_counter()
-    use_ai = svc.configured and get_setting(db, pol.org_id, "ai", AI_DEFAULTS)["use_cases"].get("policy.audit") and not os.environ.get("PYTEST_CURRENT_TEST")
     pre = None
     if use_ai:  # coverage AI runs BEFORE any analysis write, with no open transaction (was: minutes "idle in transaction" holding row locks)
         from sqlalchemy import select as _sel
@@ -223,13 +230,18 @@ def _policy_analyze(db: Session, pol) -> dict:
         from app.models import PolicyControlMap
         from app.services import policy_coverage as pc
         from app.services import policy_mapping as pm
-        cids = {m["control_id"] for m in pm.extract_mappings(db, pol.text_content or "") if m["confidence"] in ("High", "Medium")}
+        cids = {m["control_id"] for m in pm.extract_mappings(db, text_) if m["confidence"] in ("High", "Medium")}
         cids |= set(db.scalars(_sel(PolicyControlMap.control_id).where(PolicyControlMap.policy_id == pol.id, PolicyControlMap.valid_to.is_(None),
                                                                         PolicyControlMap.status == "mapped")))
         pre = pc.prefetch_ai(db, pol, cids)
+    audit_s = 0.0
+    if fut is not None:
+        ai_out, iid, ai_note, audit_s = fut.result()
+    ex.shutdown()
     t_pre = _t.perf_counter()
     found = analyze_policy(db, pol, ai_out, iid, use_ai=bool(use_ai), ai_prefetched=pre)
-    tm = {**((pol.analysis or {}).get("timing_s") or {}), "policy_audit_ai": round(t_audit - t_start, 2), "coverage_ai_prefetch": round(t_pre - t_audit, 2),
+    tm = {**((pol.analysis or {}).get("timing_s") or {}), "policy_audit_ai_concurrent": round(audit_s, 2), "setup": round(t_audit - t_start, 2),
+          "coverage_ai_prefetch_and_audit_join": round(t_pre - t_audit, 2),
           "store_and_coverage": round(_t.perf_counter() - t_pre, 2)}
     pol.analysis = {**(pol.analysis or {}), "ai_note": ai_note, "timing_s": tm}
     from app.services import audit
