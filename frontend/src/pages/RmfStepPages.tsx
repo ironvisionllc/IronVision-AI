@@ -25,6 +25,7 @@ import { Gated } from "@/components/common/RoleGate";
 import { IscmStrategy } from "@/components/rmf/IscmStrategy";
 import { CategorizationSummary, PreviewBox, SelectionReview, SelectStepper } from "@/components/rmf/SelectSteps";
 import { SlcmDue } from "@/components/rmf/SlcmDue";
+import { PackageDocuments } from "@/components/rmf/PackageDocuments";
 
 function StepFrame({ k, title, purpose, children }: { k: string; title: string; purpose: string; children?: ReactNode }) {
   const { systems, loaded } = useSystems();
@@ -362,7 +363,13 @@ export function ImplementPage() {
         <Go to="/evidence-sources" title="Add evidence" text="Upload STIG checklists, SCAP / ACAS scans and documents." testId="impl-go-evidence" />
         <Go to="/mapping-review" title="Status suggestions" text="Approve controls whose current evidence passes." testId="impl-go-suggestions" />
       </div>
+      {sid && <div className="mt-5"><StepDocs sid={sid} kinds={["ssp"]} eyebrow="RMF Step 4 · Implement (I-2) · the SSP is built from the Implementation Plan statements" /></div>}
     </StepFrame>);
+}
+
+function StepDocs({ sid, kinds, eyebrow }: { sid: string; kinds: string[]; eyebrow: string }) {
+  const { data } = useApi<Row>(`/systems/${sid}`);
+  return data ? <PackageDocuments systemId={sid} acronym={data.acronym} kinds={kinds} eyebrow={eyebrow} /> : null;
 }
 
 export function AssessPage() {
@@ -376,6 +383,7 @@ export function AssessPage() {
         <Go to="/mapping-review" title="Mapping Review" text="Approve STIG, policy and status mappings before relying on them." testId="assess-go-mapping" />
         <Go to="/poams" title="POA&M" text="Track weaknesses found in the assessment." testId="assess-go-poam" />
       </div>
+      {sid && <div className="mt-5"><StepDocs sid={sid} kinds={["sar", "rar"]} eyebrow="RMF Step 5 · Assess (A-5) · SAR from SCA assessment records; RAR from POA&M risk fields" /></div>}
     </StepFrame>);
 }
 
@@ -387,6 +395,7 @@ export function AuthorizePage() {
   const { data, reload } = useApi<Row>(sid ? `/systems/${sid}/authorize` : null);
   return (
     <StepFrame k="authorize" title="Step 6 · Authorize" purpose="Assemble the authorization package (SSP, SAR, POA&M) and send it to the Authorizing Official (AO), who records the decision and its expiration date.">
+      {sid && <div className="mb-5"><StepDocs sid={sid} kinds={["ssp", "sar", "rar"]} eyebrow="RMF Step 6 · Authorize (R-1/R-2) · package documents – always DRAFT until approved" /></div>}
       {data && <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
         <Panel title="Authorization package checklist" testId="auth-checklist">
           <ul className="text-[13px]">{data.checklist.map((i: Row, n: number) => <li key={i.item} className="flex items-center gap-2 border-b border-slate-100 py-1.5" data-testid={`auth-check-${n}`} data-done={i.done}>

@@ -7,12 +7,12 @@ import { downloadFile } from "@/lib/download";
 const DOCS: [string, string][] = [["ssp", "System Security Plan (SSP)"], ["sar", "Security Assessment Report (SAR)"], ["rar", "Risk Assessment Report (RAR)"]];
 
 /** Authorize: generate SSP / SAR / RAR from recorded data. Missing-information check first; output is always labelled DRAFT. */
-export function PackageDocuments({ systemId, acronym }: { systemId: string; acronym: string }) {
+export function PackageDocuments({ systemId, acronym, kinds = ["ssp", "sar", "rar"], eyebrow }: { systemId: string; acronym: string; kinds?: string[]; eyebrow?: string }) {
   const [chk, setChk] = useState<Record<string, Row>>({});
   const [err, setErr] = useState("");
   const check = async (k: string) => { setErr(""); try { const r = await api.get<Row>(`/systems/${systemId}/documents/${k}/check`); setChk((c) => ({ ...c, [k]: r.data })); } catch (e) { setErr(errorMessage(e)); } };
-  return <Panel title="Package documents" eyebrow="RMF Step 6 · Authorize (R-1/R-2) · generated from this system's records, never auto-approved" testId="package-documents">
-    <div className="space-y-3">{DOCS.map(([k, label]) => <div key={k} className="rounded border border-slate-200 p-2" data-testid={`doc-${k}`}>
+  return <Panel title={`Generate ${DOCS.filter(([k]) => kinds.includes(k)).map(([k]) => k.toUpperCase()).join(" / ")} (DOCX, PDF)`} eyebrow={eyebrow ?? "RMF Step 6 · Authorize (R-1/R-2) · generated from this system's records, never auto-approved"} testId="package-documents">
+    <div className="space-y-3">{DOCS.filter(([k]) => kinds.includes(k)).map(([k, label]) => <div key={k} className="rounded border border-slate-200 p-2" data-testid={`doc-${k}`}>
       <div className="flex flex-wrap items-center gap-2 text-[13px]"><b>{label}</b>
         <button className="btn-secondary" onClick={() => check(k)} data-testid={`doc-${k}-check`}>Check missing information</button>
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${systemId}/documents/${k}?format=docx`, `${acronym}_${k.toUpperCase()}_DRAFT.docx`, label)} data-testid={`doc-${k}-docx`}>DOCX</button>
