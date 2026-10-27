@@ -71,3 +71,29 @@ def test_sca_cannot_decide_mappings(client, ws):
         pytest.skip("no mapping item")
     r = _dec(client, ws, "sca", m)
     assert r.status_code == 403 and r.json()["detail"]["code"] == "separation_of_duties"
+
+
+def test_sca_reject_records_assessment_with_reason_and_evidence(client, ws):
+    from app.models import Assessment
+    st = [i for i in _q(client, ws) if i["kind"] == "status" and not i["awaiting_sca"]][:1]
+    if not st:
+        pytest.skip("no evidence-based status suggestion left in the demo system")
+    cid, cited = st[0]["control_id"], sorted(e["id"] for e in st[0]["evidence"])
+    assert _dec(client, ws, "isso", st).status_code == 200
+    w = next(i for i in _q(client, ws, "sca") if i["control_id"] == cid and i["awaiting_sca"])
+    r = _dec(client, ws, "sca", [w], action="reject", just="SYNTHETIC: screenshot does not show the lock timeout")
+    assert r.status_code == 200 and r.json()["rejected"] == 1
+    lst = client.get(f"/api/v1/systems/{ws['sid']}/controls/{cid}/assessments", headers=ws["sca"]).json()
+    assert lst and lst[0]["result"] == "other_than_satisfied" and "lock timeout" in lst[0]["findings_text"]
+    assert sorted(lst[0]["evidence_ids"]) == cited  # the evidence the queue item cited
+    with SessionLocal() as db:
+        a = db.scalar(select(ControlAssignment).where(ControlAssignment.system_id == uuid.UUID(ws["sid"]), ControlAssignment.control_id == cid))
+        assert a.assessment_status == "other_than_satisfied"
+        assert db.scalar(select(func.count()).select_from(Assessment).where(Assessment.assignment_id == a.id)) == 1
+
+
+def test_sca_approve_carries_cited_evidence(client, ws):
+    from app.models import Assessment
+    with SessionLocal() as db:
+        rows = db.scalars(select(Assessment).where(Assessment.system_id == uuid.UUID(ws["sid"]), Assessment.result == "satisfied")).all()
+    assert rows and all(r.evidence_ids for r in rows) and "(0 evidence" not in rows[0].findings_text

@@ -288,8 +288,22 @@ def decide_item(db: Session, system: System, it, action: str, just: str, edit: l
         a = db.get(ControlAssignment, uuid.UUID(it.ids[0]))
         if a is None or a.system_id != system.id:
             raise HTTPException(404, "Control not found in this system")
+        # evidence the queue item cited – resolved BEFORE any status change (the suggestion disappears once Satisfied)
+        ev = [x for x in (it.evidence_fp or "").split(",") if x] or \
+            [e["id"] for e in next((s for s in rq.status_suggestions(db, system) if s["control_id"] == a.control_id), {"evidence": []})["evidence"]]
+        from app.models import Assessment
         if action != "approve":
             rq.dismiss_status(db, system, a.control_id, it.evidence_fp or "", current.user, just)
+            if can_assess and a.implementation_status == "implemented":  # SCA rejects an "Awaiting assessor" item → a real assessment result
+                before = {"assessment_status": a.assessment_status}
+                a.assessment_status = "other_than_satisfied"
+                db.add(Assessment(system_id=system.id, assignment_id=a.id, control_id=a.control_id, assessor_id=current.user.id, objectives=[],
+                                  methods=["examine"], result="other_than_satisfied", evidence_ids=ev,
+                                  findings_text=f"SCA did not confirm Satisfied from the evidence-based status suggestion ({len(ev)} evidence item(s) "
+                                                f"examined). Reason: {just or 'not given'}"))
+                audit.record(db, action="control.assessment_recorded", actor_user_id=current.user.id, actor_email=current.user.email,
+                             entity_type="control_assignment", entity_id=str(a.id), before=before,
+                             after={"assessment_status": a.assessment_status, "result": "other_than_satisfied", "evidence_ids": ev, "reason": just}, **meta)
         else:
             before = {"implementation_status": a.implementation_status, "assessment_status": a.assessment_status}
             a.implementation_status = "implemented"
@@ -297,9 +311,7 @@ def decide_item(db: Session, system: System, it, action: str, just: str, edit: l
                 a.assessment_status = "satisfied"
             else:
                 result["partial"].append(a.control_id)
-            ev = [e["id"] for e in next((s for s in rq.status_suggestions(db, system) if s["control_id"] == a.control_id), {"evidence": []})["evidence"]]
             if can_assess:  # the SCA's confirmation is a real assessment record (feeds the SAR), not only a status flag
-                from app.models import Assessment
                 db.add(Assessment(system_id=system.id, assignment_id=a.id, control_id=a.control_id, assessor_id=current.user.id, objectives=[],
                                   methods=["examine"], result="satisfied", evidence_ids=ev,
                                   findings_text=f"SCA confirmed Satisfied from the evidence-based status suggestion in Mapping Review ({len(ev)} evidence item(s))."
