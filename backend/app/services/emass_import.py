@@ -282,9 +282,11 @@ def _row_rules(fields: dict, cur: dict, row: int, ctl: str, rep: dict) -> None:
     for k, applies, where in (("na_justification", st == "Not Applicable", "Not Applicable"),
                               ("common_control_provider", st in ("Inherited", "Manually Inherited"), "Inherited / Manually Inherited")):
         f = fields.get(k)
-        if f is None or applies or f["error"]:
+        if f is None or applies:
             continue
-        lab, v = ef.FIELD_META[k][0], str(f["imported"] or "")
+        lab, v = ef.FIELD_META[k][0], str(f["imported"] or "").strip()
+        if f["error"]:  # enum error on a field that doesn't apply to this status → not an error, just not applied
+            rep["invalid"] = [x for x in rep["invalid"] if not (x["row"] == row and x["field"] == lab)]
         if _n(v) in PLACEHOLDERS:
             rep["info"].append({"row": row, "control": ctl, "field": lab, "value": v, "note": f"Placeholder ignored – {lab} does not apply to {st}"})
         else:
@@ -296,8 +298,8 @@ def _row_rules(fields: dict, cur: dict, row: int, ctl: str, rep: dict) -> None:
         miss = ef.missing_required(sf["imported"], vals)
         if miss:
             labs = [ef.FIELD_META[k][0] for k in miss]
-            sf["blocked"] = (f"Not applied – eMASS requires {', '.join(labs)} when Implementation Status is {sf['imported']}. "
-                             "Add them to the file (or the Control Workbench) and re-import; the other values of this row are still imported.")
+            how = "add them to the file" + (", or set the SLCM fields via the system's Continuous Monitoring Strategy" if set(miss) & set(ef.SLCM) else "")
+            sf["blocked"] = f"{sf['imported']} not applied – missing: {', '.join(labs)} ({how}). The other values of this row are still imported."
             rep["status_not_applied"].append({"row": row, "control": ctl, "status": sf["imported"], "missing": labs})
 
 
