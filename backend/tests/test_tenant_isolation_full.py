@@ -163,6 +163,24 @@ def world(client, signup_on):  # noqa: F811
         sid = db.scalar(select(M.System.id).where(M.System.org_id == org))
         uid = db.scalar(select(M.User.id).where(M.User.org_id == org))
         db.add(M.Job(job_type="noop.test", payload={"system_id": str(sid), "note": mark}, status="succeeded", requested_by=uid))
+        # rows the demo data lacks, so every path parameter is probed with a REAL tenant-A id (all SYNTHETIC)
+        pol = db.scalar(select(M.Policy.id).where(M.Policy.org_id == org))
+        wb = M.TrWorkbook(org_id=org, system_id=sid, file_name=f"{mark}.xlsx", sha256="0" * 64, storage_key=f"synthetic/{mark}.xlsx", version=1, status="mapped")
+        db.add(wb)
+        db.flush()
+        db.add_all([
+            M.TrRow(workbook_id=wb.id, row_number=2, match_status="matched"),
+            M.TrExport(workbook_id=wb.id, system_id=sid, version=1, file_name=f"{mark}_export.xlsx", sha256="0" * 64, storage_key=f"synthetic/{mark}_e.xlsx", exported_by=mark),
+            M.EmassImport(org_id=org, system_id=sid, file_name=f"{mark}_poam.xlsx", sha256="1" * 64, size_bytes=1, storage_key=f"synthetic/{mark}_i.xlsx"),
+            M.CategorizationRecord(system_id=sid, revision=1, framework="fips199", status="draft"),
+            M.PtaResponse(system_id=sid, revision=1, answers={"q1": mark}, status="draft"),
+            M.ApprovalRequest(org_id=org, system_id=sid, seq=9001, human_id=f"R-{mark[-4:]}", request_type="poam_closure", rule_version=1,
+                              decision_rule_id=db.scalar(select(M.DecisionRule.id).limit(1)),
+                              justification=f"{mark} request", requester_id=uid),
+            M.PolicyRequirementCoverage(org_id=org, policy_id=pol, policy_version=1, control_id="ac-2", requirement_type="cci", requirement_id="CCI-000015",
+                                        label=mark, text=mark, concept="x", status="missing", confidence="Low", reason=mark, source="rule"),
+            M.InventoryDiscrepancy(system_id=sid, kind="unmatched", key=mark, status="open", title=f"{mark} discrepancy", records=[]),
+        ])
         db.add(M.Notification(user_id=uid, kind="test", title=f"{mark} notification", body=mark) if "kind" in M.Notification.__table__.c else
                M.Notification(user_id=uid, title=f"{mark} notification"))
         db.commit()
