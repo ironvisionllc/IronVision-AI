@@ -144,7 +144,9 @@ def create_system(body: SystemCreate, request: Request, db: Session = Depends(ge
     if body.authorization_type:
         raise HTTPException(422, "Authorization type sought is set in 6 · Authorize (authorization strategy), not at registration.")
     _check_impact_level(body.operating_environment, body.environment_detail, body.categorization_mode or "fips199", body.classified_information)
-    data = body.model_dump(exclude={"tailoring", "provider_ids", "key_roles", "classified_information"}, exclude_none=True)
+    data = body.model_dump(exclude={"tailoring", "provider_ids", "key_roles", "classified_information", "pta"}, exclude_none=True)
+    if body.processes_pii is not None and (body.categorization_mode or "fips199") != "cnssi1253":
+        data["include_privacy"] = body.processes_pii  # FIPS 199: Yes = SP 800-53B privacy baseline, added at registration
     if body.classified_information:
         data["applicability_flags"] = {"classified_information": body.classified_information}
     data.setdefault("lifecycle_phase", "Design")
@@ -165,6 +167,10 @@ def create_system(body: SystemCreate, request: Request, db: Session = Depends(ge
             from app.services.rmf_steps import save_roles
 
             save_roles(db, s, body.key_roles, current.user)
+        if body.processes_pii is not None:  # Yes adds the privacy controls now (NSS: Privacy Overlay variant for the impact level)
+            from app.services import pii
+
+            pii.set_pii(db, s, body.processes_pii, current.user, "registration")
     except ValueError as exc:
         db.rollback()
         raise HTTPException(422, str(exc))
@@ -195,6 +201,8 @@ def update_system(system_id: uuid.UUID, body: SystemBase, request: Request, db: 
                   current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
     s = get_system(db, system_id)
     changes = body.model_dump(exclude_unset=True)
+    new_pii = changes.pop("processes_pii", None)  # PII Yes/No goes through the privacy path (adds/removes the overlay, audited)
+    changes.pop("pta", None)  # PTA questionnaire retired: existing answers stay read-only
     old_env, old_il = s.operating_environment, (s.environment_detail or {}).get("impact_level")
     new_env = changes.get("operating_environment", old_env)
     new_det = changes["environment_detail"] if "environment_detail" in changes else s.environment_detail
@@ -205,6 +213,13 @@ def update_system(system_id: uuid.UUID, body: SystemBase, request: Request, db: 
     for k, v in changes.items():
         setattr(s, k, v)
     s.categorization = high_water_mark(s.confidentiality_impact, s.integrity_impact, s.availability_impact)
+    if new_pii is not None and new_pii != s.processes_pii:
+        from app.services import pii
+        try:
+            pii.set_pii(db, s, new_pii, current.user, "system_details")
+        except ValueError as exc:
+            db.rollback()
+            raise HTTPException(422, str(exc))
     audit.record(db, action="system.updated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
                  entity_id=str(s.id), before=before, after=changes, **audit.request_meta(request))
     db.commit()

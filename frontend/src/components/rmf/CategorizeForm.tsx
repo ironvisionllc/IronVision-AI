@@ -107,14 +107,13 @@ function Choice({ label, help, value, options, onChange, testId }: { label: stri
     {cur?.help && <span className="mt-1 block text-[11px] font-normal text-slate-500">{cur.help}</span>}</label>;
 }
 
-export function CategorizeForm({ v, onChange }: { v: Row; onChange: (v: Row) => void }) {
+export function CategorizeForm({ v, onChange, sid }: { v: Row; onChange: (v: Row) => void; sid?: string }) {
   const { data: cat } = useApi<Row>("/reference/info-types");
   const { data: ref } = useApi<Row>("/reference/rmf");
   const calc = useCategorization(v);
   const set = (k: string, val: unknown) => onChange({ ...v, [k]: val });
   const env = (ref?.environments ?? []).find((e: Row) => e.value === v.operating_environment);
   const det = v.environment_detail ?? {};
-  const pta = v.pta ?? {};
   return (
     <div className="grid gap-5" data-testid="categorize-form">
       <Panel title="Framework, information types and impact" eyebrow="Steps 1–4 · framework → types (NIST SP 800-60 Vol. 2 Rev. 1) → C/I/A → calculation">
@@ -158,25 +157,31 @@ export function CategorizeForm({ v, onChange }: { v: Row; onChange: (v: Row) => 
             onChange={(e) => set("environment_detail", { ...det, other: e.target.value })} data-testid="cat-env-other" /></label>}
         </div>
       </Panel>
-      <Panel title="Privacy (Privacy Threshold Analysis)">
-        <div className="text-[12px]" data-testid="cat-privacy">
-          <div className="font-medium text-slate-700">Does the system collect, use, store or share personally identifiable information (PII)? <Help text="PII = information that can identify a person (name, SSN, e-mail, biometrics…). A 'Yes' adds the privacy controls." /></div>
-          <div className="mt-1 flex flex-wrap gap-4" role="radiogroup" aria-label="Processes PII">{([["Yes", "yes", true], ["No", "no", false], ["Unknown – requires review", "unknown", null]] as const).map(([l, k, b]) => (
-            <label key={k} className="flex items-center gap-1.5"><input type="radio" name="pii" checked={k === "unknown" ? v.processes_pii === null && pta.pii_status === "unknown" : v.processes_pii === b}
-              onChange={() => onChange({ ...v, processes_pii: b, pta: { ...pta, pii_status: k } })} data-testid={`pii-${k}`} />{l}</label>))}
-            {v.processes_pii === null && pta.pii_status !== "unknown" && <span className="text-[11px] text-amber-800" data-testid="pii-unanswered">Not answered yet</span>}</div>
-          {pta.pii_status === "unknown" && <p className="mt-2 rounded bg-amber-50 p-2 text-[11px] text-amber-900" data-testid="pii-unknown-note">Recorded as “requires review” (not as No). A privacy official must resolve it in the Privacy Threshold Analysis.</p>}
-          {v.processes_pii === true && <div className="mt-3 grid gap-3 md:grid-cols-2" data-testid="pta-followup">
-            <label className="font-medium text-slate-700">What kinds of PII?<input className="input mt-1" placeholder="e.g. names, e-mail, SSN, health data" value={pta.pii_types ?? ""} onChange={(e) => set("pta", { ...pta, pii_types: e.target.value })} data-testid="pta-types" /></label>
-            <label className="font-medium text-slate-700">Whose PII?<select className="input mt-1" value={pta.whose ?? ""} onChange={(e) => set("pta", { ...pta, whose: e.target.value })} data-testid="pta-whose">
-              <option value="">—</option>{["Members of the public", "Employees / contractors", "Both"].map((x) => <option key={x}>{x}</option>)}</select></label>
-            <label className="font-medium text-slate-700">Is a System of Records Notice (SORN) needed?<select className="input mt-1" value={pta.sorn ?? ""} onChange={(e) => set("pta", { ...pta, sorn: e.target.value })} data-testid="pta-sorn">
-              <option value="">—</option>{["Yes – published", "Yes – not yet published", "No", "Unknown"].map((x) => <option key={x}>{x}</option>)}</select></label>
-            <label className="font-medium text-slate-700">Privacy Impact Assessment (PIA)?<select className="input mt-1" value={pta.pia ?? ""} onChange={(e) => set("pta", { ...pta, pia: e.target.value })} data-testid="pta-pia">
-              <option value="">—</option>{["Completed", "In progress", "Not started"].map((x) => <option key={x}>{x}</option>)}</select></label>
-            <p className="rounded bg-violet-50 p-2 text-[11px] text-violet-900 md:col-span-2">Because the system processes PII, the NIST SP 800-53B privacy baseline is applied in Select{v.mode === "cnssi1253" ? ", together with the CNSSI 1253 Privacy Overlay (load its official control list under Select → Overlays)" : ""}.</p>
-          </div>}
-        </div>
-      </Panel>
+      <PiiQuestion v={v} onChange={onChange} level={String(calc?.baseline ?? calc?.categorization ?? "")} sid={sid} />
     </div>);
+}
+
+/** One question. Yes adds the privacy controls (FIPS: SP 800-53B privacy baseline; NSS: CNSSI 1253 Privacy Overlay variant for the
+ * impact level); No adds nothing. On an existing system a change is confirmed with the controls affected. */
+function PiiQuestion({ v, onChange, level, sid }: { v: Row; onChange: (v: Row) => void; level: string; sid?: string }) {
+  const mode = v.mode || "fips199";
+  const { data: pre } = useApi<Row>(sid ? null : "/privacy/preview", { mode, level: level.toLowerCase() || undefined, baseline_key: v.baseline_key || undefined });
+  const { data: cur } = useApi<Row>(sid ? `/systems/${sid}/pii` : null);
+  const n = sid ? cur?.yes?.count : pre?.count;
+  const pick = (b: boolean) => {
+    if (sid && cur && v.processes_pii !== b && !window.confirm(b
+      ? `Yes adds ${cur.yes.label} – ${cur.yes.count} controls – to this system when you save.`
+      : `No removes the privacy controls from this system's selection when you save: ${cur.no_affects.length} controls are affected (${cur.no_affects.slice(0, 8).join(", ")}${cur.no_affects.length > 8 ? ", …" : ""}). Implementation statements and evidence are kept; affected controls are flagged.`)) return;
+    onChange({ ...v, processes_pii: b });
+  };
+  return <Panel title="Privacy">
+    <div className="text-[12px]" data-testid="cat-privacy">
+      <div className="font-medium text-slate-700">Does this system contain PII? <Help text="PII = information that can identify a person (name, SSN, e-mail, biometrics…)." /></div>
+      <div className="mt-1 flex flex-wrap gap-4" role="radiogroup" aria-label="Does this system contain PII?">{([["Yes", "yes", true], ["No", "no", false]] as const).map(([l, k, b]) => (
+        <label key={k} className="flex min-h-[32px] items-center gap-1.5"><input type="radio" name="pii" checked={v.processes_pii === b} onChange={() => pick(b)} data-testid={`pii-${k}`} />{l}</label>))}
+        {v.processes_pii == null && <span className="text-[11px] text-amber-800" data-testid="pii-unanswered">Not answered – choose Yes or No</span>}</div>
+      <p className="mt-1 text-[11px] text-slate-600" data-testid="pii-note">{`Yes adds the Privacy Overlay${mode === "cnssi1253" ? "" : " (SP 800-53B privacy baseline)"}${n != null ? ` (${n} controls)` : ""} to this system.`}
+        {sid && cur?.applied && v.processes_pii === true && <span className="ml-1 text-violet-800" data-testid="pii-applied">Applied {cur.source === "registration" ? "from registration" : "from the PII answer"}.</span>}</p>
+    </div>
+  </Panel>;
 }

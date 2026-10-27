@@ -66,26 +66,15 @@ def test_legacy_categorizations_migrated_and_new_systems_get_revision_1(client, 
     assert cur["revision"] == 1 and cur["status"] == "draft"
 
 
-def test_pta_yes_no_not_sure_conditional_and_privacy_approval(client, org):
+def test_pta_questionnaire_retired_history_read_only(client, org):
     sid = org["mk"]("PTA System")
-    isso, ao, priv = org["role"]("isso"), org["role"]("ao"), org["role"]("privacy_official")
-    g = client.get(f"/api/v1/systems/{sid}/pta", headers=isso).json()
-    assert g["question_set"]["label"].startswith("Example set") and g["latest"] is None
-    assert client.post(f"/api/v1/systems/{sid}/pta", json={"answers": {}}, headers=isso).status_code == 422, "required question unanswered"
-    assert client.post(f"/api/v1/systems/{sid}/pta", json={"answers": {"pii": {"answer": "yes"}}}, headers=isso).status_code == 422, "conditional follow-ups now required"
-    no = client.post(f"/api/v1/systems/{sid}/pta", json={"answers": {"pii": {"answer": "no", "explanation": "no personal data"}}}, headers=isso).json()
-    assert "not a finding that no PIA is required" in no["recommendation"] and no["status"] == "submitted"
-    ans = {"pii": {"answer": "yes"}, "pii_whose": {"answer": "not_sure"}, "retrieved_by_id": {"answer": "yes"}, "ssn": {"answer": "no"},
-           "shared": {"answer": "no"}, "pia_done": {"answer": "no"}}
-    r = client.post(f"/api/v1/systems/{sid}/pta", json={"answers": ans}, headers=isso).json()
-    assert {f["question"] for f in r["flags"]} >= {"pii_whose", "retrieved_by_id"} and "privacy official" in r["recommendation"]
-    url = f"/api/v1/systems/{sid}/pta/{r['id']}/review"
-    body = {"decision": "approve", "rationale": "PII confirmed; PIA to be completed", "determination": "pii"}
-    assert client.post(url, json=body, headers=ao).status_code == 403, "only a privacy official approves"
-    ok = client.post(url, json=body, headers=priv).json()
-    assert ok["status"] == "approved" and ok["reviewer"] and ok["reviewed_at"]
-    assert client.get(f"/api/v1/systems/{sid}/categorization", headers=isso).json()["processes_pii"] is True
-    assert len(client.get(f"/api/v1/systems/{sid}/pta", headers=isso).json()["history"]) == 2
+    isso, priv = org["role"]("isso"), org["role"]("privacy_official")
+    g = client.get(f"/api/v1/systems/{sid}/pta", headers=isso)
+    assert g.status_code == 200, "existing PTA records stay readable"
+    r = client.post(f"/api/v1/systems/{sid}/pta", json={"answers": {"pii": {"answer": "no", "explanation": "no personal data"}}}, headers=isso)
+    assert r.status_code == 410 and "Yes/No" in r.json()["detail"]
+    rv = client.post(f"/api/v1/systems/{sid}/pta/{uuid.uuid4()}/review", json={"decision": "approve", "rationale": "PII confirmed; PIA later"}, headers=priv)
+    assert rv.status_code == 410
 
 
 def test_overlays_framework_rules_and_classified_needs_explicit_answer(client, org):

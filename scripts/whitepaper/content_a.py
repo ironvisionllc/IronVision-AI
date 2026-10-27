@@ -108,7 +108,7 @@ PART_A = [
         ["1 Prepare", "Key roles (AO, ISSM, ISSO, System Owner, SCA, Privacy Official …) assigned per system, with role history; system boundary and description.",
          "All required key roles are filled"],
         ["2 Categorize", "Information types from the NIST SP 800-60 Vol. 2 Rev. 1 catalog (168 types); FIPS 199 high-water mark or CNSSI 1253 per-objective C/I/A; "
-                         "NSS determination (Yes/No/Unsure); PTA; AO approval with revision history and re-approval on change.",
+                         "NSS determination (Yes/No/Unsure); PII Yes/No (Yes adds the Privacy Overlay); AO approval with revision history and re-approval on change.",
          "Categorization approved and no required field missing"],
         ["3 Select", "SP 800-53B baseline (FIPS) or CNSSI 1253 Appendix D trigraph union (NSS); overlays; tailoring in/out with justification; "
                      "organization-defined parameters (ODPs); CNSSI parameter adoption; Privacy Overlay prompt.",
@@ -159,19 +159,18 @@ PART_A = [
            "Role changes need system.roles.manage and are audited."),
     H2("5.4 Step 2 – Categorize"),
     SCREEN("Categorization (/rmf/categorize)",
-           "Select information types and compute the security category. Record the NSS determination, framework (FIPS 199 or CNSSI 1253), "
-           "PII presence and Privacy Threshold Analysis.", "ISSO (prepares), AO (approves), Privacy Official (PTA)",
+           "Select information types and compute the security category. Record the NSS determination, framework (FIPS 199 or CNSSI 1253) "
+           "and one Yes/No answer: 'Does this system contain PII?'.", "ISSO (prepares), AO (approves)",
            "Pick SP 800-60 information types with provisional impacts and adjust them with justification; answer 'Is this a National "
-           "Security System?' (Yes/No/Unsure); fill in the PTA questionnaire; submit for approval.",
+           "Security System?' (Yes/No/Unsure); answer the PII question (Yes or No); submit for approval.",
            "FIPS 199: per-objective high-water mark and overall category. CNSSI 1253: separate C/I/A trigraph (e.g. M-H-L) and no overall "
-           "value. A versioned categorization revision.",
+           "value. A versioned categorization revision. PII = Yes adds the Privacy Overlay at once (FIPS 199: SP 800-53B privacy baseline; "
+           "CNSSI 1253: the Privacy Overlay variant for the impact level) and the note under the question shows how many controls it adds.",
            "Approval needs authorization.decide. A change to an approved categorization creates a pending re-approval and the approved "
-           "values stay in force. PTA outcomes are recommendations only; a single 'No' never concludes 'no PIA required'. Only a Privacy "
-           "Official approves a PTA."),
-    NOTE("sme", "The default PTA questions are a generic example set ('validate against your agency's privacy requirements'). Agencies must "
-                "replace or confirm them."),
+           "values stay in force. Changing the PII answer later asks for confirmation naming the controls affected; removal never deletes "
+           "implementation statements or evidence. The answer and the overlay change are audited. The earlier Privacy Threshold Analysis "
+           "questionnaire is retired; existing PTA records stay read-only."),
     IMG(S + "rmf-accuracy/02_categorize_framework_nss.png", "Categorize: NSS determination and framework selection", 90),
-    IMG(S + "rmf-accuracy/04_pta_questionnaire.png", "Privacy Threshold Analysis questionnaire (example question set)", 90),
     H2("5.5 Step 3 – Select"),
     SCREEN("Baseline, overlays and tailoring (/rmf/select)",
            "Apply and reconcile the control baseline, overlays, tailoring decisions and organization-defined parameters.",

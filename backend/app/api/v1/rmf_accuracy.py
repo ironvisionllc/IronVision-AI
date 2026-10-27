@@ -87,18 +87,15 @@ class PtaIn(BaseModel):
     answers: dict = Field(description="question id → {answer: yes|no|not_sure, explanation}")
 
 
+RETIRED = ("The Privacy Threshold Analysis questionnaire is retired: answer “Does this system contain PII?” (Yes/No) in Categorize. "
+           "Existing PTA records stay read-only.")
+
+
 @router.post("/systems/{system_id}/pta", status_code=201)
-def submit_pta(system_id: uuid.UUID, body: PtaIn, request: Request, db: Session = Depends(get_db),
+def submit_pta(system_id: uuid.UUID, body: PtaIn, db: Session = Depends(get_db),
                current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
-    s = _sys(db, system_id, current)
-    try:
-        r = ra.submit(db, s, body.answers, current.user.email)
-    except ValueError as e:
-        raise HTTPException(422, str(e))
-    audit.record(db, action="pta.submitted", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system", entity_id=str(s.id),
-                 after={"revision": r.revision, "flags": r.flags}, **audit.request_meta(request))
-    db.commit()
-    return ra.pta_out(r)
+    _sys(db, system_id, current)
+    raise HTTPException(410, RETIRED)
 
 
 class PtaReviewIn(BaseModel):
@@ -108,23 +105,10 @@ class PtaReviewIn(BaseModel):
 
 
 @router.post("/systems/{system_id}/pta/{response_id}/review")
-def review_pta(system_id: uuid.UUID, response_id: uuid.UUID, body: PtaReviewIn, request: Request, db: Session = Depends(get_db),
+def review_pta(system_id: uuid.UUID, response_id: uuid.UUID, body: PtaReviewIn, db: Session = Depends(get_db),
                current: CurrentUser = Depends(require_permission("privacy.review"))) -> dict:
-    s = _sys(db, system_id, current)
-    r = db.get(PtaResponse, response_id)
-    if r is None or r.system_id != s.id:
-        raise HTTPException(404, "PTA not found")
-    if body.decision == "approve" and not body.determination:
-        raise HTTPException(422, "Approving needs a determination (pii or no_pii)")
-    try:
-        ra.review(db, s, r, current.user.email, body.decision, body.rationale, body.determination)
-    except ValueError as e:
-        raise HTTPException(422, str(e))
-    audit.record(db, action=f"pta.{'approved' if body.decision == 'approve' else 'returned'}", actor_user_id=current.user.id, actor_email=current.user.email,
-                 entity_type="system", entity_id=str(s.id), after={"revision": r.revision, "determination": r.determination},
-                 details={"rationale": body.rationale}, **audit.request_meta(request))
-    db.commit()
-    return ra.pta_out(r)
+    _sys(db, system_id, current)
+    raise HTTPException(410, RETIRED)
 
 
 class QuestionSetIn(BaseModel):

@@ -205,7 +205,8 @@ def privacy_prompt(db: Session, s: System) -> dict | None:
     if applied:
         k = sum(1 for i in items if i["covered"])
         return {"state": "applied", "pii": pii, "count": n, "covered": k, "variant": applied.variant, "overlay_key": applied.overlay_key, "items": items,
-                "by_variant": by_variant, "message": f"Privacy Overlay applied – {k} of {n} covered"}
+                "by_variant": by_variant, "message": ("Applied from registration (PII = Yes) – " if (s.pta or {}).get("pii_source") == "registration" else "")
+                + f"Privacy Overlay applied – {k} of {n} covered"}
     return {"state": "prompt", "pii": pii, "count": n, "items": items, "by_variant": by_variant, "link": "/rmf/select?overlay=privacy",
             "message": f"This system handles PII. CNSSI 1253 leaves {n} NIST privacy-baseline controls to the {PRIVACY_OVERLAY}. "
                        "Apply the Privacy Overlay to select them."}

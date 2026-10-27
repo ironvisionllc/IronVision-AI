@@ -149,11 +149,16 @@ def categorization_save(system_id: uuid.UUID, body: CategorizationIn, db: Sessio
     keep = {f: getattr(s, f) for f in ("categorization_mode", "information_types", "confidentiality_impact", "integrity_impact", "availability_impact",
                                        "categorization", "categorization_detail")}
     calc = _err(apply_categorization, s, body)
+    new_pii, pii_before = body.processes_pii, s.processes_pii
     rec = ra.record(db, s, calc, body.mode, body.nss_determination or s.nss_determination, body.rationale, current.user.email)
     calc = {**calc, "revision": rec.revision, "record_status": rec.status}
     if approved and rec.status == "pending_reapproval":  # an approved categorization is not overwritten until re-approved
         for f, v in keep.items():
             setattr(s, f, v)
+    if new_pii is not None and new_pii != pii_before:
+        from app.services import pii
+        s.processes_pii = pii_before
+        _err(pii.set_pii, db, s, new_pii, current.user, "categorize")
     audit.record(db, action="system.categorized", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
                  entity_id=str(s.id), before=before, after={"mode": body.mode, "c": calc["c"], "i": calc["i"], "a": calc["a"],
                                                             "information_types": [r["id"] for r in calc["rows"]], "processes_pii": s.processes_pii})
@@ -166,15 +171,51 @@ def categorization_save(system_id: uuid.UUID, body: CategorizationIn, db: Sessio
     return {"calculation": calc, "select_actions": needs}
 
 
+class PiiIn(BaseModel):
+    processes_pii: bool
+
+
+@router.get("/privacy/preview")
+def privacy_preview(mode: str = "fips199", level: str | None = None, baseline_key: str | None = None, db: Session = Depends(get_db),
+                    _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    """Registration note: what "Yes" adds for this framework / impact level ("Yes adds the Privacy Overlay (N controls)…")."""
+    from app.services import pii
+    return pii.preview(db, mode, level, baseline_key)
+
+
+@router.get("/systems/{system_id}/pii")
+def pii_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    from app.services import pii
+    from app.services.rmf_steps import _assignments
+    s = get_system(db, system_id)
+    have = {a.control_id for a in _assignments(db, s)}
+    key, ids = pii.target_ids(db, s.categorization_mode, s.categorization)
+    from app.services.rmf_steps import baseline_control_ids
+    base = set(baseline_control_ids(db, s.baseline_key)) if s.baseline_key else set()
+    return {"answer": pii.display(s), "applied": pii.applied_key(s), "source": (s.pta or {}).get("pii_source"),
+            "yes": pii.preview(db, s.categorization_mode, s.categorization, current_ids=have),
+            "no_affects": sorted((set(ids) & have) - base)}
+
+
+@router.put("/systems/{system_id}/pii")
+def pii_save(system_id: uuid.UUID, body: PiiIn, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+    from app.services import pii
+    s = get_system(db, system_id)
+    out = _err(pii.set_pii, db, s, body.processes_pii, current.user, "categorize")
+    db.commit()
+    return {**out, "counts": system_counts(db, s)}
+
+
 def privacy_state(s) -> dict:
     """ONE privacy state for every Select screen: FIPS 199 path = SP 800-53B privacy baseline (include_privacy);
     CNSSI 1253 path = an applied CNSSI 1253F Att. 6 Privacy Overlay variant (overlay_keys)."""
+    reg = "Applied from registration (PII = Yes) – " if (getattr(s, "pta", None) or {}).get("pii_source") == "registration" and getattr(s, "processes_pii", None) else ""
     if s.categorization_mode == "cnssi1253":
         key = next((k for k in (s.overlay_keys or []) if k.startswith("cnssi-privacy")), None)
         return {"applied": bool(key), "source": "privacy_overlay" if key else None, "overlay_key": key,
-                "label": "Privacy Overlay applied" if key else "Privacy Overlay not applied"}
+                "label": reg + "Privacy Overlay applied" if key else "Privacy Overlay not applied"}
     return {"applied": bool(s.include_privacy), "source": "privacy_baseline" if s.include_privacy else None, "overlay_key": None,
-            "label": "Privacy baseline applied" if s.include_privacy else "Privacy baseline not applied"}
+            "label": reg + "Privacy baseline applied" if s.include_privacy else "Privacy baseline not applied"}
 
 
 @router.get("/systems/{system_id}/select")

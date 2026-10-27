@@ -45,13 +45,13 @@ def test_authorization_type_moved_to_authorize(client, org):
         assert db.scalar(select(AuditEvent).where(AuditEvent.action == "system.authorization_strategy_updated", AuditEvent.entity_id == org["sid"]))
 
 
-def test_pii_unknown_is_distinct_from_no_and_unanswered(client, org):
+def test_pii_is_yes_or_no_and_unanswered_stays_unanswered(client, org):
     base = {"acronym": f"PI{uuid.uuid4().hex[:3]}", **SYS}
-    unk = client.post("/api/v1/systems", json={"name": "Unknown PII", **base, "pta": {"pii_status": "unknown"}}, headers=org["h"]).json()
-    no = client.post("/api/v1/systems", json={"name": "No PII", **base, "processes_pii": False, "pta": {"pii_status": "no"}}, headers=org["h"]).json()
-    blank = client.post("/api/v1/systems", json={"name": "Blank PII", **base}, headers=org["h"]).json()
-    assert unk["processes_pii"] is None and unk["pta"]["pii_status"] == "unknown"
-    assert no["processes_pii"] is False and blank["processes_pii"] is None and not (blank.get("pta") or {}).get("pii_status")
+    no = client.post("/api/v1/systems", json={"name": "No PII", **base, "processes_pii": False}, headers=org["h"]).json()
+    blank = client.post("/api/v1/systems", json={"name": "Blank PII", **base, "pta": {"pii_status": "unknown"}}, headers=org["h"]).json()
+    assert no["processes_pii"] is False and no["include_privacy"] is False
+    assert blank["processes_pii"] is None and not (blank.get("pta") or {}).get("pii_status"), "PTA input retired at registration"
+    assert client.get(f"/api/v1/systems/{blank['id']}/pii", headers=org["h"]).json()["answer"] == "not_answered"
 
 
 def _rows(text: str) -> list[list[str]]:

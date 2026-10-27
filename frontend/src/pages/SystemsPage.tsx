@@ -70,7 +70,7 @@ export function RegisterSystemPage() {
     e.preventDefault();
     if (!cat.information_types.length) { setError("Pick at least one information type in Categorize – the app derives the impact level and baseline from them."); return; }
     if (calc?.errors.length) { setError(calc.errors.join("; ")); return; }
-    if (cat.processes_pii === null && cat.pta?.pii_status !== "unknown") { setError("Answer the PII question in Privacy (Yes, No or Unknown – requires review)."); return; }
+    if (cat.processes_pii !== true && cat.processes_pii !== false) { setError("Answer “Does this system contain PII?” (Yes or No) in Privacy."); return; }
     const c = catBody(cat);
     const body = Object.fromEntries(Object.entries({ ...f, ...c, ...(c.cia ? { confidentiality_impact: c.cia.c || undefined, integrity_impact: c.cia.i || undefined, availability_impact: c.cia.a || undefined } : {}),
       cia: undefined, mode: undefined, categorization_mode: cat.mode, key_roles: roles, baseline_key: chosen || "moderate", include_privacy: cat.processes_pii === true })
@@ -108,7 +108,7 @@ export function RegisterSystemPage() {
             <div>From categorization: <b className="capitalize" data-testid="reg-auto-baseline">{auto || "— pick information types first"}</b></div>
             <F label="Baseline to register with"><select className="input" value={chosen} onChange={(e) => setBaseline(e.target.value)} data-testid="reg-baseline">
               {["low", "moderate", "high"].filter((x) => !auto || ["low", "moderate", "high"].indexOf(x) >= ["low", "moderate", "high"].indexOf(auto)).map((v) => <option key={v} value={v}>{v[0].toUpperCase() + v.slice(1)}</option>)}</select></F>
-            {cat.processes_pii === true && <span className="rounded bg-violet-50 px-2 py-1 text-violet-900">+ privacy baseline (system processes PII)</span>}
+            {cat.processes_pii === true && <span className="rounded bg-violet-50 px-2 py-1 text-violet-900" data-testid="register-privacy-chip">+ Privacy Overlay (PII = Yes)</span>}
           </div>
           <p className="mt-2 text-[11px] text-slate-500">You can only choose the derived baseline or a higher one. Overlays and tailoring (adding or removing controls with a rationale) are in step 3 Select after registration.</p>
         </Panel>

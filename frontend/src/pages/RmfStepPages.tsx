@@ -16,7 +16,6 @@ import { CategorizeForm, catBody, catFromSystem } from "@/components/rmf/Categor
 import { ParameterComparison } from "@/components/rmf/ParameterComparison";
 import { AuthStrategy } from "@/components/rmf/AuthStrategy";
 import { CategorizationApproval } from "@/components/rmf/CategorizationApproval";
-import { PtaPanel } from "@/components/rmf/PtaPanel";
 import { CnssiBaseline } from "@/components/rmf/CnssiBaseline";
 import { PrivacyOverlayPrompt } from "@/components/rmf/PrivacyOverlayPrompt";
 import { PageSizeSelect, Pager, usePageSize, usePaged } from "@/components/common/PageSize";
@@ -103,11 +102,11 @@ export function CategorizePage() {
     <StepFrame k="categorize" title="Step 2 · Categorize" purpose="Choose the kinds of information the system handles. The app applies NIST's provisional impact levels, takes the high-water mark (FIPS 199) and picks the matching 800-53B baseline.">
       <Msg m={m} />
       <PrivacyOverlayPrompt p={data?.privacy_prompt} />
-      {v && <CategorizeForm v={v} onChange={setV} />}
+      {v && <CategorizeForm v={v} onChange={setV} sid={sid ?? undefined} />}
       {v && <label className="mt-4 block text-[12px] font-medium text-slate-700">Categorization rationale<textarea className="input mt-1" rows={2} value={v.rationale ?? ""}
         onChange={(e) => setV({ ...v, rationale: e.target.value })} placeholder="Why these types and impacts (recorded with the revision)" data-testid="cat-rationale" /></label>}
       <Gated perm="system.write"><button className="btn-primary mt-3" onClick={save} data-testid="categorize-save">Save categorization</button></Gated>
-      {sid && <div className="mt-5 grid gap-5"><CategorizationApproval sid={sid} version={ver} /><PtaPanel sid={sid} /></div>}
+      {sid && <div className="mt-5 grid gap-5"><CategorizationApproval sid={sid} version={ver} /></div>}
     </StepFrame>);
 }
 
