@@ -16,6 +16,7 @@ import { downloadFile } from "@/lib/download";
 import { CCI_TIP, CoverageChecklist } from "@/components/policy/Coverage";
 import { useActiveSystemId } from "@/components/rmf/Stepper";
 import { ProcessingList } from "@/components/shell/Processing";
+import { AnalysisProgress, usePollWhile } from "@/components/policy/AnalysisProgress";
 
 export function InheritancePage() {
   const { selectedId: sid } = useSystems();
@@ -121,6 +122,8 @@ export function PolicyAuditorPage() {
     const fd = new FormData(); fd.append("file", file); fd.append("title", f.title || file.name); fd.append("owner", f.owner); if (sid) fd.append("system_ids", sid);
     try { const r = await api.post<Row>("/policies", fd); window.dispatchEvent(new Event("iv:processing-started")); if (r.data.duplicate) { setMsg(r.data.message); return; } setMsg(`Uploaded v${r.data.version} – Processing… a summary appears when the analysis finishes`); setTimeout(reload, 4000); reload(); } catch (e) { setMsg(errorMessage(e)); }
   };
+  const running = !!data?.policies?.some((p: Row) => ["queued", "processing"].includes(p.analysis_status));
+  usePollWhile(running, reload);
   if (!data) return null;
   const c = data.cards;
   return (
@@ -144,7 +147,7 @@ export function PolicyAuditorPage() {
           {data.policies.map((p: Row) => <tr key={p.id} data-testid={`policy-row-${p.policy_key}-v${p.version}`} className={cn(p.status === "superseded" && "opacity-60")}>
             <td className="td"><Link className="text-blue-800 hover:underline" to={`/policy-auditor/${p.id}`}>{p.title}</Link>{p.metadata_only && <div className="text-[10px] text-slate-400">metadata only (no document loaded)</div>}</td>
             <td className="td font-mono">v{p.version}</td><td className="td"><S v={p.review_status ?? p.status} testId={`policy-review-status-${p.policy_key}-v${p.version}`} /></td><td className="td text-[12px]">{p.owner}</td><td className="td font-mono text-[11px]">{p.approval_date ?? "—"}</td>
-            <td className="td font-mono text-[11px]">{p.review_due ?? "—"}</td><td className="td"><S v={p.analysis_status} /></td><td className="td font-mono">{p.proposed} / {p.confirmed} / {p.dismissed}</td></tr>)}
+            <td className="td font-mono text-[11px]">{p.review_due ?? "—"}</td><td className="td"><S v={p.analysis_status} />{["queued", "processing"].includes(p.analysis_status) && <AnalysisProgress p={p.analysis?.progress} testId={`policy-progress-${p.policy_key}-v${p.version}`} />}</td><td className="td font-mono">{p.proposed} / {p.confirmed} / {p.dismissed}</td></tr>)}
         </Table>
       </Panel>
     </div>

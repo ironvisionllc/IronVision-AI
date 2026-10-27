@@ -236,10 +236,20 @@ def evaluate_req(text: str, sents: list, control_id: str, req: dict, fam: str) -
     return concept, evaluate(text, concept, target, elem, fam, req["text"])
 
 
+_S1: dict = {}
+
+
 def _stage1(db: Session, text: str, sents: list, control_id: str) -> tuple[list, list]:
-    fam = db.scalar(select(Control.family_title).where(Control.control_id == control_id).limit(1)) or control_id.split("-")[0].upper()
-    reqs = requirements(db, control_id)
-    return reqs, [evaluate_req(text, sents, control_id, req, fam) for req in reqs]
+    """Deterministic stage – memoised per (policy text, control) so the worker's prefetch and analyze() don't compute it twice."""
+    import copy
+    key = (hashlib.sha256(text.encode()).hexdigest(), control_id)
+    if key not in _S1:
+        if len(_S1) > 5000:
+            _S1.clear()
+        fam = db.scalar(select(Control.family_title).where(Control.control_id == control_id).limit(1)) or control_id.split("-")[0].upper()
+        reqs = requirements(db, control_id)
+        _S1[key] = (reqs, [evaluate_req(text, sents, control_id, req, fam) for req in reqs])
+    return copy.deepcopy(_S1[key])
 
 
 def _ai_many(text: str, todo: list, org_id) -> dict:
@@ -318,6 +328,7 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
                                             linked=prev.linked if prev else None)
             db.add(row)
             out.append(row)
+    _S1.clear()  # the deterministic memo lives only for one analysis (no long-lived cache of customer content)
     if v2_stats is not None:
         policy.analysis = {**(policy.analysis or {}), "v2": {k: v for k, v in v2_stats.items() if k != "not_examined_ids"}}
     policy.analysis = {k: v for k, v in (policy.analysis or {}).items() if k != "progress"}
