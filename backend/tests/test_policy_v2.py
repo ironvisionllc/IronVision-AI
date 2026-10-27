@@ -125,3 +125,15 @@ def test_no_transaction_during_ai_and_no_idle_in_transaction_after(fake, monkeyp
     with get_engine().connect() as c:
         mine = c.execute(text("select count(*) from pg_stat_activity where pid = pg_backend_pid() and state like 'idle in transaction%'")).scalar()
     assert mine == 0
+
+
+def test_table_rows_and_id_prose_are_not_section_headings():
+    from pathlib import Path
+
+    from app.services.rmf import extract_text
+    fx = Path(__file__).parent / "fixtures" / "policies" / "ra_policy_dod_aws_raven_demo.docx"
+    secs = v2.sections(extract_text(fx.name, fx.read_bytes()))
+    assert not [s for s in secs if "|" in s["heading"] or s["heading"].startswith("RA-")]
+    rt = v2.Retriever(secs)
+    top = secs[rt.scores("Public Disclosure Program Establish a public reporting channel for receiving reports of vulnerabilities", "ra-5.11")[0][1]]
+    assert top["heading"].startswith("8.3 ")  # the real policy section, not the traceability-matrix row

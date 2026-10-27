@@ -26,10 +26,19 @@ def env_int(k: str, d: int) -> int:
     return int(os.environ.get(k) or d)
 
 
+def _is_head(line: str) -> bool:
+    """Table rows ("RA-6 | … | Not selected") and prose starting with an ID ("RA-10 is outside …") are not headings – as headings they
+    became one-row sections whose ID boost outranked the real policy section in retrieval."""
+    t = line.strip()
+    if "|" in t:
+        return False
+    return not (re.match(r"[A-Z]{2}-\d", t) and (t.endswith(".") or len(t) > 80 or re.search(r"\b(?:is|are|was|were|shall|must)\b", t)))
+
+
 def sections(text: str) -> list[dict]:
     """Sections keep heading, page and character offsets; content-hashed. Headless text is windowed at paragraph boundaries."""
     pages = [(m.start(), int(m.group(1)) if m.group(1) else None) for m in PAGE.finditer(text)]
-    heads = [m.start() for m in HEAD.finditer(text)]
+    heads = [m.start() for m in HEAD.finditer(text) if _is_head(m.group(0))]
     if len(heads) < 2:
         heads, pos = [0], 0
         while pos + 3500 < len(text):

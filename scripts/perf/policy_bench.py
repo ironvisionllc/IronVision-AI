@@ -80,7 +80,7 @@ def main() -> None:
         from app.services.rmf import extract_text
         body = extract_text(a.docx, Path(a.docx).read_bytes())
     else:
-        body = (CORPUS / f"{a.corpus}.txt").read_text()
+        body = None if a.policy_id else (CORPUS / f"{a.corpus}.txt").read_text()
     with SessionLocal() as db:
         org = _bench_org(db, a.fresh_org)
         if a.policy_id:
