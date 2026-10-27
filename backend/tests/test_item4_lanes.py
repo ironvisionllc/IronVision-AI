@@ -44,6 +44,7 @@ def test_policy_analysis_ai_stage_concurrent_and_timing_recorded(client, signup_
     sid = client.post("/api/v1/systems", json={"name": "Lanes", "acronym": f"LN{uuid.uuid4().hex[:3]}", "baseline_key": "moderate",
                                                 "categorization_mode": "fips199", "information_types": [{"id": "D.16.3"}]},
                       headers=auth(t["access_token"])).json()["id"]
+    monkeypatch.setenv("POLICY_ANALYZER", "v-current")  # this test covers the v-current analyzer (v2 has tests/test_policy_v2.py)
     calls = []
 
     def slow_refine(text, cid, reqs, results, org_id):
@@ -86,6 +87,7 @@ def test_policy_ai_runs_without_open_transaction_and_analyze_uses_prefetch(clien
     sid = client.post("/api/v1/systems", json={"name": "Idle", "acronym": f"IT{uuid.uuid4().hex[:3]}", "baseline_key": "moderate",
                                                 "categorization_mode": "fips199", "information_types": [{"id": "D.16.3"}]},
                       headers=auth(t["access_token"])).json()["id"]
+    monkeypatch.setenv("POLICY_ANALYZER", "v-current")
     seen = []
     text = (Path(__file__).resolve().parents[2] / "samples/policies/access_control_policy.txt").read_text()
     with SessionLocal() as db:

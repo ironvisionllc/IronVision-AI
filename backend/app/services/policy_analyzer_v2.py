@@ -201,7 +201,7 @@ class Run:
             try:
                 with self.lock:
                     self.st["calls"] += 1
-                res = asyncio.run(self.svc.run(*PROMPT, {"requirements": reqs, "sections": ctx}, max_tokens=min(8000, 120 * len(items) + 400)))
+                res = asyncio.run(self.svc.run(*PROMPT, {"requirements": reqs, "sections": ctx}, max_tokens=min(8000, 160 * len(items) + 400)))
                 break
             except AIOutputTruncatedError:
                 with self.lock:
@@ -209,7 +209,11 @@ class Run:
                 if len(items) == 1:
                     return {}
                 h = len(items) // 2
-                return {**self.call(items[:h], secs, depth + 1), **self.call(items[h:], secs, depth + 1)}
+                both = {**self.call(items[:h], secs, depth + 1), **self.call(items[h:], secs, depth + 1)}
+                if len(both) == len(items):  # cache the split result under the parent key too (repeat runs hit, no re-truncation)
+                    _cache_put(self.org, key, self.model, {"|".join(k): v for k, v in both.items()},
+                               {"policy_id": str(self.pid), "sections": [s["id"] + ":" + s["hash"] for s in secs], "split": True, "at": time.time()})
+                return both
             except Exception as exc:  # noqa: BLE001
                 msg = str(exc).lower()
                 if attempt < 3 and any(x in msg for x in ("429", "rate", "timed out", "timeout", "502", "503", "overloaded")):
@@ -314,7 +318,7 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog) 
                                       "eta_s": round(el / done["batches"] * (len(batches) - done["batches"]), 1), "label": "analysis in progress"})
         return res
 
-    workers = env_int("POLICY_AI_WORKERS", 8)
+    workers = env_int("POLICY_AI_WORKERS", 16)
     with ThreadPoolExecutor(max_workers=workers) as ex:
         for res in ex.map(one, batches):
             for (cid, rid), v in res.items():

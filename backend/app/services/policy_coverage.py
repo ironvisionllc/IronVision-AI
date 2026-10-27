@@ -303,7 +303,7 @@ V2_STATS = "__v2_stats__"
 
 def analyzer() -> str:
     """POLICY_ANALYZER=v2 (section retrieval + batched AI + tenant cache) or v-current (one call per ≤8 requirements, full text)."""
-    return (os.environ.get("POLICY_ANALYZER") or "v-current").strip()
+    return (os.environ.get("POLICY_ANALYZER") or "v2").strip()
 
 
 def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: dict | None = None) -> list[PolicyRequirementCoverage]:
