@@ -91,6 +91,8 @@ def reanalyze_policy(policy_id: uuid.UUID, db: Session = Depends(get_db), curren
         raise HTTPException(404, "Policy not found")
     p.analysis_status = "queued"
     job = jobs.enqueue(db, "policy.analyze", {"policy_id": str(p.id)})
+    from app.services.policy_analyzer_v2 import queued_progress
+    queued_progress(db, p, job)
     audit.record(db, action="policy.reanalysis_requested", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="policy",
                  entity_id=str(p.id), details={"job_id": str(job.id)})
     db.commit()

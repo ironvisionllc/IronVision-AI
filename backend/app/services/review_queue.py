@@ -51,11 +51,14 @@ def policy_proposals(db: Session, system: System) -> list[dict]:
     for m, p in db.execute(select(PolicyControlMap, Policy).join(Policy, Policy.id == PolicyControlMap.policy_id)
                            .where(PolicyControlMap.org_id == system.org_id, PolicyControlMap.status == "mapped")):
         prior.setdefault((p.title, m.control_id), p.version)
-    return [{"kind": "policy_map", "key": f"pm:{m.id}", "ids": [str(m.id)], "control_id": m.control_id, "title": f"Policy “{p.title}” v{p.version}",
+    out = [{"kind": "policy_map", "key": f"pm:{m.id}", "ids": [str(m.id)], "control_id": m.control_id, "title": f"Policy “{p.title}” v{p.version}",
+             "not_selected": ((p.analysis or {}).get("not_selected") or {}).get(m.control_id),
+             "group": "not_selected" if ((p.analysis or {}).get("not_selected") or {}).get(m.control_id) else "proposal",
              "policy_id": str(p.id), "source": "Policy Auditor", "confidence": m.confidence, "reasoning": m.basis, "snippets": m.snippets or [], "evidence": [],
              **({"why_new": f"New review: approved for v{prior[(p.title, m.control_id)]}; policy version v{p.version} must be reviewed on its own"}
                 if (p.title, m.control_id) in prior else {})}
             for m, p in rows if not p.system_ids or str(system.id) in p.system_ids]
+    return sorted(out, key=lambda x: x["group"] == "not_selected")  # "Policy states not selected – confirm" grouped after normal proposals
 
 
 def status_suggestions(db: Session, system: System) -> list[dict]:

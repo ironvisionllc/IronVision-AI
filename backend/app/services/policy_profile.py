@@ -216,6 +216,13 @@ def verify_quote(text: str, quote: str | None) -> bool:
     return bool(quote and len(quote.strip()) >= 12 and _norm(quote) in _norm(text))
 
 
+def _loc(text: str, quote: str | None) -> str:
+    """Real section heading + page of a quote (AI quotes had an empty location)."""
+    from app.services.rmf import locate
+    i = text.find((quote or "").strip()) if quote else -1
+    return locate(text, i) if i >= 0 else ""
+
+
 def apply_ai(text: str, row: dict, ai: dict | None) -> dict:
     """Merge an AI verdict into a deterministic result. AI may only raise to MET with an exact quote; disagreement → Low (review needed)."""
     if not ai:
@@ -229,15 +236,15 @@ def apply_ai(text: str, row: dict, ai: dict | None) -> dict:
             from app.services.policy_coverage import relevant
             cur = (row.get("snippets") or [{}])[0].get("text") if row.get("snippets") else None
             if row.get("_req") and not relevant(cur, *row["_req"]) and relevant(ai.get("quote"), *row["_req"]):
-                row.update(basis="ai", snippets=[{"text": ai["quote"][:300], "location": ""}], reason=f"AI-verified quote: {ai.get('rationale', '')[:300]}")
+                row.update(basis="ai", snippets=[{"text": ai["quote"][:300], "location": _loc(text, ai["quote"])}], reason=f"AI-verified quote: {ai.get('rationale', '')[:300]}")
             return row
         if row["status"] != "met":
             row.update(status="met" if row["status"] == "partial" else "partial", confidence="Medium" if row["status"] == "partial" else "Low",
-                       basis="ai", snippets=[{"text": ai["quote"][:300], "location": row.get("snippets", [{}])[0].get("location", "") if row.get("snippets") else ""}],
+                       basis="ai", snippets=[{"text": ai["quote"][:300], "location": _loc(text, ai["quote"])}],
                        reason=f"AI-verified quote: {ai.get('rationale', '')[:300]}", needs=None if row["status"] == "partial" else row.get("needs"))
         return row
     if row["status"] == "missing" and ai.get("status") == "partial" and verify_quote(text, ai.get("quote")):  # evidence exists → manual review, not "missing"
-        row.update(status="partial", confidence="Low", basis="ai", snippets=[{"text": ai["quote"][:300], "location": ""}],
+        row.update(status="partial", confidence="Low", basis="ai", snippets=[{"text": ai["quote"][:300], "location": _loc(text, ai["quote"])}],
                    reason=f"AI found related text, but it does not fully meet the requirement: {ai.get('rationale', '')[:300]} – manual review.")
         return row
     if row["status"] == "met" and ai.get("status") in ("partial", "missing"):

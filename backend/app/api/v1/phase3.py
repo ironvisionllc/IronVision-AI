@@ -499,6 +499,8 @@ async def upload_policy(request: Request, file: UploadFile = File(...), title: s
     db.add(p)
     db.flush()
     job = jobsvc.enqueue(db, "policy.analyze", {"policy_id": str(p.id)})
+    from app.services.policy_analyzer_v2 import queued_progress
+    queued_progress(db, p, job)
     audit.record(db, action="policy.uploaded", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="policy", entity_id=str(p.id),
                  details={"sha256": p.sha256, "version": p.version, "job_id": str(job.id)})
     db.commit()
@@ -551,7 +553,7 @@ def policy_detail(policy_id: uuid.UUID, db: Session = Depends(get_db), current: 
                         .order_by(PolicyRequirementCoverage.control_id, PolicyRequirementCoverage.requirement_type, PolicyRequirementCoverage.requirement_id)):
         cov.setdefault(c.control_id, []).append(c)
     coverage = [{"control_id": k, "summary": (s := pc.summarize(v)), "line": pc.summary_line(k, s),
-                 "requirements": [{**to_dict(c), "effective": pc.effective(c), "gap": pc.gap_name(c), "basis": pc.basis_label(c), "kind": pc.kind_label(c)}
+                 "requirements": [{**to_dict(c), "effective": pc.effective(c), "gap": None if pc.effective(c) == "met" else pc.gap_name(c), "basis": pc.basis_label(c), "kind": pc.kind_label(c)}
                                   for c in v]} for k, v in cov.items()]
     newer = db.scalar(select(Policy).where(Policy.supersedes_id == p.id))
     return {"policy": _policy_out(db, p), "findings": fs, "values": values, "versions": versions, "text_preview": (p.text_content or "")[:4000],

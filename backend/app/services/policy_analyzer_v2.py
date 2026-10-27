@@ -170,6 +170,26 @@ def _cache_put(org_id, key, model, result, prov) -> None:
         db.commit()
 
 
+def with_history(prev: dict | None, data: dict) -> dict:
+    """Every emitted stage is kept (stage, pct, time) so short stages remain visible after the fact."""
+    hist = list((prev or {}).get("history") or [])
+    if data.get("stage") and (not hist or hist[-1]["stage"] != data["stage"]):
+        hist.append({"stage": data["stage"], "pct": data.get("pct"), "at": time.strftime("%H:%M:%S")})
+    return {**data, "history": hist[-30:]}
+
+
+def queued_progress(db, policy, job) -> None:
+    """At enqueue: 'Queued – waiting for a worker' (0%), with how many policy analyses are ahead of it."""
+    from sqlalchemy import func, select
+
+    from app.models import Job
+    ahead = db.scalar(select(func.count()).select_from(Job).where(Job.job_type == "policy.analyze", Job.status.in_(("queued", "running")),
+                                                                  Job.id != job.id, Job.created_at <= job.created_at)) or 0
+    stage = "Queued – waiting for a worker" + (f" (queued behind {ahead} analysis job{'s' if ahead != 1 else ''})" if ahead else "")
+    policy.analysis = {**(policy.analysis or {}), "progress": with_history(None, {"phase": "queued", "stage": stage, "pct": 0, "queued_behind": ahead,
+                                                                               "label": "analysis queued"})}
+
+
 def _progress(policy_id, data: dict) -> None:
     """Live progress on the policy row (short own transaction; the analysis itself holds none while AI runs)."""
     from app.db import SessionLocal
@@ -178,7 +198,7 @@ def _progress(policy_id, data: dict) -> None:
         with SessionLocal() as db:
             p = db.get(Policy, policy_id)
             if p is not None:
-                p.analysis = {**(p.analysis or {}), "progress": data}
+                p.analysis = {**(p.analysis or {}), "progress": with_history((p.analysis or {}).get("progress"), data)}
                 db.commit()
     except Exception:  # noqa: BLE001 – progress is best-effort
         log.debug("progress update failed", exc_info=True)

@@ -147,7 +147,7 @@ export function PolicyAuditorPage() {
           {data.policies.map((p: Row) => <tr key={p.id} data-testid={`policy-row-${p.policy_key}-v${p.version}`} className={cn(p.status === "superseded" && "opacity-60")}>
             <td className="td"><Link className="text-blue-800 hover:underline" to={`/policy-auditor/${p.id}`}>{p.title}</Link>{p.metadata_only && <div className="text-[10px] text-slate-400">metadata only (no document loaded)</div>}</td>
             <td className="td font-mono">v{p.version}</td><td className="td"><S v={p.review_status ?? p.status} testId={`policy-review-status-${p.policy_key}-v${p.version}`} /></td><td className="td text-[12px]">{p.owner}</td><td className="td font-mono text-[11px]">{p.approval_date ?? "—"}</td>
-            <td className="td font-mono text-[11px]">{p.review_due ?? "—"}</td><td className="td"><S v={p.analysis_status} />{["queued", "processing"].includes(p.analysis_status) && <AnalysisProgress p={p.analysis?.progress} testId={`policy-progress-${p.policy_key}-v${p.version}`} />}</td><td className="td font-mono">{p.proposed} / {p.confirmed} / {p.dismissed}</td></tr>)}
+            <td className="td font-mono text-[11px]">{p.review_due ?? "—"}</td><td className="td"><S v={p.analysis_status} />{["queued", "processing"].includes(p.analysis_status) && <AnalysisProgress p={p.analysis?.progress} testId={`policy-progress-${p.policy_key}-v${p.version}`} />}{p.analysis_status === "analyzed" && p.analysis?.progress?.phase === "done" && <div className="text-[10px] text-slate-500" data-testid={`policy-completed-${p.policy_key}-v${p.version}`}>{p.analysis.progress.stage}</div>}</td><td className="td font-mono">{p.proposed} / {p.confirmed} / {p.dismissed}</td></tr>)}
         </Table>
       </Panel>
     </div>
@@ -181,7 +181,8 @@ export function PolicyDetailPage() {
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="policy-msg">{msg}</div>}
       {analysing && <div className="panel mb-4 p-3" data-testid="policy-detail-progress"><div className="text-[12px] font-semibold">Analysis {p.analysis_status === "queued" ? "queued" : "in progress"}</div>
-        <AnalysisProgress p={p.analysis?.progress ?? { pct: 0, stage: "queued – waiting for the analysis worker" }} testId="policy-detail-progress-bar" /></div>}
+        <AnalysisProgress p={p.analysis?.progress ?? { pct: 0, stage: "Queued – waiting for a worker" }} testId="policy-detail-progress-bar" /></div>}
+      {!analysing && p.analysis?.progress?.phase === "done" && <div className="mb-3 text-[12px] text-slate-600" data-testid="policy-detail-completed">Analysis {p.analysis.progress.stage.toLowerCase()} · {p.analysis.progress.requirements_analyzed} requirements analysed · {p.analysis.progress.requirement_gaps} requirement gaps · {p.analysis.progress.audit_findings} audit findings</div>}
       {p.analysis?.text_refreshed && <div className="mb-3 text-[12px] text-slate-600" data-testid="policy-text-refreshed">Re-analysed with improved table extraction on {new Date(p.analysis.text_refreshed.at).toLocaleDateString()}{["queued", "processing"].includes(p.analysis_status) ? " (re-analysis in progress)" : ""}. Your earlier decisions are kept; differences show as “Re-analysis differs from approved”.</div>}
       <Panel title="Mapped controls (confidence · basis · matched text)" className="mb-5" testId="policy-control-mappings">
         <PolicyMappingsPanel policyId={id} data={data} canMap={can("finding.map")} reload={reload} setMsg={setMsg} />

@@ -305,10 +305,45 @@ def policy_review_status(p: Policy, today: date | None = None) -> str:
     return "current"
 
 
+ABBR = {"e.g", "i.e", "etc", "rev", "no", "vs", "u.s", "fig", "sec", "approx", "dr", "mr", "ms", "inc", "st", "al", "cf"}
+
+
+def is_stop(text: str, i: int) -> bool:
+    """A "." at i ends a sentence only if followed by whitespace/end/closing quote – never inside "TLS 1.2", "8.2", "RA-1c.1" – and not
+    after an abbreviation ("e.g.", "Rev.", "U.S.") or a single-letter initial ("J. Doe")."""
+    if text[i] != ".":
+        return False
+    nxt = text[i + 1] if i + 1 < len(text) else " "
+    if not (nxt.isspace() or nxt in "\"”’)"):
+        return False
+    j = i
+    while j > 0 and (text[j - 1].isalpha() or text[j - 1] == "."):
+        j -= 1
+    w = text[j:i].lower()
+    return not (w in ABBR or (len(w) == 1 and w.isalpha() and text[j].isupper()))
+
+
+def split_sentences(text: str) -> list[tuple[int, int]]:
+    out, s = [], 0
+    for i, ch in enumerate(text):
+        if ch == "\n" or (ch == "." and is_stop(text, i)):
+            e = i if ch == "\n" else i + 1
+            if text[s:e].strip():
+                out.append((s, e))
+            s = i + 1
+    if text[s:].strip():
+        out.append((s, len(text)))
+    return out
+
+
 def sentence_at(text: str, start: int, end: int) -> tuple[int, int]:
-    s = max(text.rfind(".", 0, start), text.rfind("\n", 0, start)) + 1
-    e_dot, e_nl = text.find(".", end), text.find("\n", end)
-    e = min(x for x in (e_dot + 1 if e_dot >= 0 else len(text), e_nl if e_nl >= 0 else len(text)))
+    s = start
+    while s > 0 and text[s - 1] != "\n" and not (text[s - 1] == "." and is_stop(text, s - 1)):
+        s -= 1
+    e = max(end, start)
+    while e < len(text) and text[e] != "\n" and not (text[e] == "." and is_stop(text, e)):
+        e += 1
+    e = min(e + 1, len(text)) if e < len(text) and text[e] == "." else e
     while s < e and text[s].isspace():
         s += 1
     return s, e
@@ -368,7 +403,8 @@ def refresh_text(db: Session, p: Policy) -> bool:
         pending = db.scalar(select(Job.id).where(Job.job_type == "policy.analyze", Job.status.in_(("queued", "running")),
                                                  Job.payload["policy_id"].astext == str(p.id)).limit(1))
         if pending is None:
-            jobsvc.enqueue(db, "policy.analyze", {"policy_id": str(p.id), "reason": "text_refresh"})
+            from app.services.policy_analyzer_v2 import queued_progress
+            queued_progress(db, p, jobsvc.enqueue(db, "policy.analyze", {"policy_id": str(p.id), "reason": "text_refresh"}))
     return changed
 
 
@@ -378,6 +414,8 @@ def section_at(text: str, start: int, window: int | None = 40) -> str | None:
     lines = text[:eol if eol >= 0 else len(text)].splitlines()
     for line in reversed(lines[-window:] if window else lines):  # include the snippet's own line (A4: a "2. Scope." sentence is § 2)
         t = line.strip()
+        if "|" in t or re.match(r"[A-Z]{2}-\d+(?:\s*\(\d+\))?[a-z]?(?:,?\s*(?:and|or)?\s*[A-Z]{2}-\d+(?:\s*\(\d+\))?)*\s+(?:is|are|was|were|shall|must|has|have)\b", t):
+            continue  # table rows / prose starting with an ID ("RA-5(4) is a High-baseline enhancement.") are not headings
         if re.match(r"^(\d+(\.\d+)*\.?\s+\S|section\s+\d+|[A-Z]{2}-\d+(?:\s*\(\d+\))?\s+[A-Z]|[A-Z][A-Za-z &/-]{3,60}$)", t, re.IGNORECASE):
             m = re.match(r"^((?:section\s+)?\d+(?:\.\d+)*\.?\s+[^.:;]{1,60}|[A-Z]{2}-\d+(?:\s*\(\d+\))?\s+[^.:;]{1,60})(?:[.:;]|$)", t, re.IGNORECASE)
             return (m.group(1) if m else t)[:80]
@@ -386,7 +424,7 @@ def section_at(text: str, start: int, window: int | None = 40) -> str | None:
 
 def locate(text: str, start: int) -> str:
     """Page / section reference for an offset: nearest preceding heading line and form-feed page count."""
-    head = section_at(text, start)
+    head = section_at(text, start) or section_at(text, start, window=None)  # nearest heading, however far back
     return f"p. {text.count(chr(12), 0, start) + 1}" + (f", § {head}" if head else "")
 
 
@@ -402,7 +440,7 @@ def verbatim_quote(text: str, quote: str | None) -> dict:
     if i >= 0:
         s, e = sentence_at(text, i, i + len(q))
         return {"quote": text[s:e], "start": s, "end": e, "quote_status": "verbatim", "location": locate(text, s)}
-    sents = [(m.start(), m.end()) for m in re.finditer(r"[^.\n]+\.?", text)]
+    sents = split_sentences(text)
     best = max(sents, key=lambda se: difflib.SequenceMatcher(None, q.lower(), text[se[0]:se[1]].lower()).ratio(), default=None)
     if best and difflib.SequenceMatcher(None, q.lower(), text[best[0]:best[1]].lower()).ratio() >= 0.6:
         s, e = sentence_at(text, best[0], best[1] - 1)

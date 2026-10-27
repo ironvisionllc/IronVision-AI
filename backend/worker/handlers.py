@@ -183,8 +183,9 @@ def handle_policy_analyze(db: Session, payload: dict) -> dict:
 
     pol = db.get(Policy, uuid.UUID(payload["policy_id"]))
     pol.analysis_status = "processing"  # visible as "Processing…" while the job runs
-    pol.analysis = {**(pol.analysis or {}), "progress": {"phase": "extract", "stage": "1/4 reading the policy and identifying controls", "pct": 2,
-                                                         "label": "analysis in progress", "elapsed_s": 0}}
+    from app.services.policy_analyzer_v2 import with_history
+    pol.analysis = {**(pol.analysis or {}), "progress": with_history((pol.analysis or {}).get("progress"), {
+        "phase": "extract", "stage": "1/4 reading the policy and identifying controls", "pct": 2, "label": "analysis in progress", "elapsed_s": 0})}
     db.commit()
     try:
         return _policy_analyze(db, pol)
@@ -250,6 +251,11 @@ def _policy_analyze(db: Session, pol) -> dict:
                                                                         PolicyControlMap.status == "mapped")))
         pre = pc.prefetch_ai(db, pol, cids)
     from app.services.policy_analyzer_v2 import _progress
+    if pre is None:  # AI off / v-current: the same four stages, deterministic only
+        _progress(pol.id, {"phase": "screen", "stage": "2/4 screening controls (deterministic only – AI review off)", "pct": 10, "label": "analysis in progress",
+                           "elapsed_s": round(_t.perf_counter() - t_start, 1)})
+        _progress(pol.id, {"phase": "AI review", "stage": "3/4 checking requirements (deterministic)", "pct": 50, "label": "analysis in progress",
+                           "elapsed_s": round(_t.perf_counter() - t_start, 1)})
     audit_s = 0.0
     if fut is not None:
         _progress(pol.id, {"phase": "audit", "stage": "4/4 waiting for the policy audit", "pct": 88, "label": "analysis in progress",
@@ -259,12 +265,22 @@ def _policy_analyze(db: Session, pol) -> dict:
                        "audit_findings": len((ai_out or {}).get("findings") or []), "elapsed_s": round(_t.perf_counter() - t_start, 1)})
     db.expire(pol)
     ex.shutdown()
+    prog = (pol.analysis or {}).get("progress")
     t_pre = _t.perf_counter()
     found = analyze_policy(db, pol, ai_out, iid, use_ai=bool(use_ai), ai_prefetched=pre)
     tm = {**((pol.analysis or {}).get("timing_s") or {}), "policy_audit_ai_concurrent": round(audit_s, 2), "setup": round(t_audit - t_start, 2),
           "coverage_ai_prefetch_and_audit_join": round(t_pre - t_audit, 2),
           "store_and_coverage": round(_t.perf_counter() - t_pre, 2)}
-    pol.analysis = {**(pol.analysis or {}), "ai_note": ai_note, "timing_s": tm}
+    from sqlalchemy import func, select
+
+    from app.models import PolicyRequirementCoverage as _PRC
+    from app.services.policy_analyzer_v2 import with_history
+    st = dict(db.execute(select(_PRC.status, func.count()).where(_PRC.policy_id == pol.id).group_by(_PRC.status)).all())
+    el = round(_t.perf_counter() - t_start, 1)
+    final = with_history(prog, {"phase": "done", "stage": f"Completed in {el:g} s", "pct": 100, "label": "analysis complete", "elapsed_s": el,
+                                "requirements_analyzed": sum(st.values()), "requirement_gaps": st.get("missing", 0) + st.get("partial", 0),
+                                "audit_findings": len(found), "completed_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()})
+    pol.analysis = {**(pol.analysis or {}), "ai_note": ai_note, "timing_s": tm, "progress": final}  # final summary kept (UI: "Completed in X s")
     from app.services import audit
     audit.record(db, action="policy.analyzed", actor_email="worker", entity_type="policy", entity_id=str(pol.id),
                  details={"proposed_findings": len(found), "ai": ai_note})

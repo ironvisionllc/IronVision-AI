@@ -32,10 +32,10 @@ RECIP = r"\b(?:to|among|with)\s+((?:all |the )?[A-Za-z][A-Za-z ,/&()-]{2,90}?)(?
 ROLE = (r"\b(ISSM|CISO|CIO|ISSO|CPO|SAOP|Chief [A-Z][a-z]+(?: [A-Z][a-z]+){0,3}|Authorizing Official|Senior Agency Official[a-zA-Z ]*|Risk Executive"
         r"|Information System Security Manager|Information System Security Officer|Privacy Officer|Director of [A-Z][a-z]+(?: [A-Z][a-z]+)?)\b")
 LABEL = {  # complete plain sentences (were fragments like "policy disseminated")
-    "develop": "The {fam} policy is not stated to be developed and documented.",
+    "develop": "The {fam} {target} {be} not stated to be developed and documented.",
     "develop_elements": "The {fam} policy does not address purpose, scope, roles, responsibilities, management commitment, coordination and compliance.",
     "element": "The {fam} policy does not address {elem}.", "laws": "The {fam} policy does not state that it is consistent with applicable laws, directives, regulations and standards.",
-    "disseminate": "The {fam} {target} is not stated to be disseminated.", "recipients": "The personnel or roles the {fam} {target} is disseminated to are not named.",
+    "disseminate": "The {fam} {target} {be} not stated to be disseminated.", "recipients": "The personnel or roles the {fam} {target} {be} disseminated to are not named.",
     "official": "No official is designated to manage the {fam} policy and procedures.", "frequency": "No review and update frequency is stated for the {fam} {target}.",
     "events": "No events that trigger a review and update of the {fam} {target} are stated.", "generic": "The {fam} policy does not address this requirement."}
 
@@ -80,7 +80,8 @@ def classify(text: str) -> tuple[str, str, str | None]:
 
 @functools.lru_cache(maxsize=2)  # cleared after each analysis
 def _sentences(text: str):
-    return [(m.start(), m.end(), m.group().strip()) for m in re.finditer(r"[^.\n]+\.?", text) if len(m.group().strip()) > 3]
+    from app.services.rmf import split_sentences  # decimals / versions / abbreviations never split ("TLS 1.2 or higher")
+    return [(a + (len(text[a:b]) - len(text[a:b].lstrip())), b, text[a:b].strip()) for a, b in split_sentences(text) if len(text[a:b].strip()) > 3]
 
 
 @functools.lru_cache(maxsize=2)
@@ -235,7 +236,13 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
 SUBJ_STOP = set("""organization organizational defined define defines defining assignment selection frequency system systems information policy
 policies procedures procedure process processes accordance personnel roles control controls required requirement requirements ensure ensures
 including within shall other their these those which where based determine determines document documented documents documenting each that this
-with from into used using also such have been when than more must will should able level""".split())
+with from into used using also such have been when than more must will should able level processes stores transmits processed stored
+transmitted""".split())
+TRIGGER = re.compile(r"\b(?:when|whenever|upon|if|in response to)\b(.+)$", re.I)  # condition clauses ("after <time period>" is a value, not a trigger)
+
+
+def _words(t: str) -> dict:
+    return {w[:4]: w for w in re.findall(r"[a-z]{4,}", (t or "").lower()) if w not in SUBJ_STOP}
 
 
 def _stems(t: str | None) -> set:
@@ -247,9 +254,29 @@ def relevant(quote: str | None, req_text: str, title: str = "") -> bool:
     (requirement + control title), or ≥1 when the requirement itself has ≤2. Generic – no family-specific word lists."""
     if not quote:
         return False
-    req, ttl = _stems(req_text), _stems(title)
-    hit = _stems(quote) & (req | ttl)
-    return len(hit) >= 2 or (len(req) <= 2 and len(hit) >= 1)
+    req, ttl, q = _stems(req_text), _stems(title), _stems(quote)
+    hit = q & (req | ttl)
+    if not (len(hit) >= 2 or (len(req) <= 2 and len(hit) >= 1)):
+        return False
+    plain = re.sub(r"\[[^\]]*\]", " ", req_text or "")  # organization-defined parameter placeholders are values, not conditions
+    m = TRIGGER.search(plain)  # multi-part requirement with a trigger/condition: the condition must be matched too
+    if m:
+        cond = _stems(m.group(1)) - _stems(plain[:m.start()]) - ttl
+        if cond and not cond & q:
+            return False
+    return True
+
+
+def missing_terms(quote: str | None, req_text: str) -> list[str]:
+    q = _stems(quote)
+    return [w for k, w in _words(req_text).items() if k not in q]
+
+
+def _states(quote: str, req_text: str, title: str) -> bool:
+    """A sentence STATES the requirement: relevant, and ≥70% of the requirement's subject terms present."""
+    req = _stems(re.sub(r"\[[^\]]*\]", " ", req_text))
+    missing = req - _stems(quote) - _stems(title)  # every distinguishing term ("random", "transmits") must be stated
+    return relevant(quote, req_text, title) and bool(req) and not missing
 
 
 PART_RX = re.compile(r"([A-Za-z]{2})-0*(\d+)\s*([a-z])\b")
@@ -270,18 +297,41 @@ def _guard(text: str, sents: list, control_id: str, req: dict, title: str, r: di
     a MISSING requirement whose part the policy explicitly tags (e.g. "(RA-2a)") becomes partial with the tagged text for review."""
     q = (r.get("snippets") or [{}])[0].get("text") if r.get("snippets") else None
     if r["status"] == "met" and q and not relevant(q, req["text"], title):
+        miss = missing_terms(q, req["text"])
         r.update(status="partial", confidence="Low", manual_review=True,
                  reason="Manual review: the quoted text does not clearly address this requirement's subject, so it is not counted as met. "
                         + (r.get("reason") or ""),
-                 needs=r.get("needs") or f"Confirm the quote meets the requirement, or add a statement that does: “{_short(req['text'])}”.")
-    elif r["status"] == "missing" and (rx := part_tag(control_id, req)):
-        tagged = [h for h in sents if rx.search(h[2])]
-        if tagged:
+                 needs=f"The quoted text does not state {_join(miss) or 'the requirement'}; confirm it or add a statement that does.")
+    if r["status"] in ("missing", "partial"):
+        rx = part_tag(control_id, req)
+        tagged = []
+        for h in (sents if rx else []):  # the paragraph carrying the tag, not just the "(RA-2a)" fragment
+            if rx.search(h[2]):
+                ls, le = text.rfind("\n", 0, h[0]) + 1, text.find("\n", h[1])
+                le = len(text) if le < 0 else le
+                if not any(t[0] == ls for t in tagged):
+                    tagged.append((ls, le, text[ls:le].strip()))
+        shall = [h for h in sents if re.search(r"\bshall\b|\bmust\b|\bis required to\b", h[2], re.I) and _states(h[2], req["text"], title)]
+        best = next((h for h in tagged if _states(h[2], req["text"], title)), None) or (shall[0] if shall else None)
+        if best is not None:  # an explicitly tagged paragraph or a clear "shall <requirement>" sentence states it
+            r.update(status="met", confidence="Medium", manual_review=False, snippets=_snip(text, [best]), needs=None,
+                     reason="The policy states this requirement" + (" in the text it tags for this part." if best in tagged else " in a “shall” statement."))
+        elif tagged:
+            miss = missing_terms(" ".join(h[2] for h in tagged), req["text"])
             r.update(status="partial", confidence="Low", manual_review=True, snippets=_snip(text, tagged[:2]),
-                     reason=f"The policy explicitly tags this text “{rx.search(tagged[0][2]).group(0)}” for this requirement's part; "
-                            "the automatic check could not confirm it fully meets the requirement – manual review.",
-                     needs=f"Confirm the tagged text meets the requirement, or add a statement that does: “{_short(req['text'])}”.")
+                     reason=f"The policy tags this text “{rx.search(tagged[0][2]).group(0)}” for this requirement's part, but it does not state "
+                            f"{_join(miss) or 'every element'}.",
+                     needs=f"State {_join(miss) or 'every element of the requirement'} in the tagged section.")
+        elif r["status"] == "partial" and (not r.get("needs") or str(r.get("needs")).startswith("Add a statement")):
+            miss = missing_terms(" ".join(x.get("text", "") for x in r.get("snippets") or []), req["text"])
+            if miss:
+                r["needs"] = f"The related text does not state {_join(miss)}; add it to the policy."
     return r
+
+
+def _join(ws: list) -> str:
+    ws = list(dict.fromkeys(ws))[:6]
+    return ", ".join(ws[:-1]) + (" and " if len(ws) > 1 else "") + ws[-1] if ws else ""
 
 
 def _short(t: str, n: int = 220) -> str:
@@ -539,7 +589,8 @@ def gap_name(c: PolicyRequirementCoverage) -> str:
         g = " ".join((c.needs or f"Add a statement that addresses: “{c.text}”.").split())
         return f"{c.label}: {g}" if g.endswith((".", "”", "?", "!")) else f"{c.label}: {g}."
     concept, target, elem = classify(c.text)
-    return LABEL.get(concept, LABEL["generic"]).format(target=target, elem=elem or "", fam=c.control_id.split("-")[0].upper())
+    be = "are" if (target or "").endswith("s") else "is"  # "the RA procedures are …", "the RA policy is …"
+    return LABEL.get(concept, LABEL["generic"]).format(target=target or "policy", elem=elem or "", fam=c.control_id.split("-")[0].upper(), be=be)
 
 
 def summarize(rows: list[PolicyRequirementCoverage]) -> dict:
@@ -780,8 +831,11 @@ def suggestions(db: Session, system: System, review: list | None = None, notes: 
         d = control_decision(db, a, vs)
         if "target" not in d:
             if d.get("review") and review is not None:
+                ms = vs[0].get("mapping")
+                decided = ms is None or ms.status == "mapped"
                 review.append({"control_id": cid, "policy_id": str(vs[0]["policy"].id), "policy": f"{vs[0]['policy'].title} v{vs[0]['policy'].version}",
-                               "message": d["note"], "low_confidence": [x for v in vs for x in v["low"]][:10]})
+                               "message": d["note"], "low_confidence": [x for v in vs for x in v["low"]][:10], "mapping_decided": decided,
+                               "label": "Coverage note – mapping already approved" if decided else "Review needed"})
             elif notes is not None:
                 notes.append(d["note"])
             continue
