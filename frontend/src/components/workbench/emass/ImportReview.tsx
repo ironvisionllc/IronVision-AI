@@ -49,8 +49,8 @@ export function ImportReview({ imp, onChange }: { imp: Row; onChange: (d: Row) =
                     {i.create && <span className="rounded bg-emerald-50 px-1.5 text-emerald-800" data-testid={`import-will-create-${tid(i.key)}`}>will be created</span>}
                     {i.required_issue && <span className="rounded bg-rose-50 px-1.5 text-rose-800" data-testid={`import-required-${tid(i.key)}`}>{i.required_issue} – flagged, not saved</span>}
                     {i.note && <span className="text-slate-600" data-testid={`import-note-${tid(i.key)}`}>{i.note}</span>}
-                    {!ro && <span className="ml-auto flex gap-2"><button className="underline" onClick={() => dec([i], "*", "accept")} data-testid={`import-accept-item-${tid(i.key)}`}>Accept item</button>
-                      <button className="underline" onClick={() => dec([i], "*", "reject")} data-testid={`import-reject-item-${tid(i.key)}`}>Reject item</button></span>}
+                    {!ro && <span className="ml-auto flex gap-2"><button className="underline" onClick={() => dec([i], "*", "accept")} data-testid={`import-accept-item-${tid(i.key)}`}>Use imported (item)</button>
+                      <button className="underline" onClick={() => dec([i], "*", "reject")} data-testid={`import-reject-item-${tid(i.key)}`}>Keep existing (item)</button></span>}
                   </div>
                   <table className="w-full text-[12px]"><tbody>{fs.map(([k, f]: [string, any]) => (
                     <tr key={k} className={f.error ? "bg-rose-50/60" : f.blocked ? "bg-amber-50/60" : f.change ? "bg-blue-50/50" : ""} data-testid={`import-field-${tid(i.key)}-${k}`}>
@@ -61,7 +61,7 @@ export function ImportReview({ imp, onChange }: { imp: Row; onChange: (d: Row) =
                       <td className={`w-1/3 px-3 py-1 ${f.change ? "font-semibold text-blue-900" : ""}`}>{val(Array.isArray(f.imported) ? f.imported.join(", ") : f.imported)}
                         {f.error && <div className="text-rose-700" data-testid={`import-error-${tid(i.key)}-${k}`}>{f.error}</div>}
                         {f.blocked && <div className="text-amber-800" data-testid={`import-blocked-${tid(i.key)}-${k}`}>{f.blocked}</div>}</td>
-                      <td className="w-44 px-3 py-1 text-right">{ok(f) ? (ro ? <span>{f.decision || "undecided"}</span> : <span className="flex justify-end gap-1">
+                      <td className="w-64 whitespace-nowrap px-3 py-1 text-right">{ok(f) ? (ro ? <span>{f.decision || "undecided"}</span> : <span className="flex justify-end gap-1">
                         <button className={`rounded px-2 py-0.5 ${f.decision === "accept" ? "bg-emerald-700 text-white" : "border border-slate-300"}`} onClick={() => dec([i], k, f.decision === "accept" ? null : "accept")} data-testid={`import-accept-${tid(i.key)}-${k}`}>Use imported</button>
                         <button className={`rounded px-2 py-0.5 ${f.decision === "reject" ? "bg-slate-700 text-white" : "border border-slate-300"}`} onClick={() => dec([i], k, f.decision === "reject" ? null : "reject")} data-testid={`import-reject-${tid(i.key)}-${k}`}>Keep existing</button></span>)
                         : !f.error && !f.blocked && <span className="text-slate-400">unchanged</span>}</td>

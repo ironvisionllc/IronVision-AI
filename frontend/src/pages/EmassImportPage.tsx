@@ -77,7 +77,7 @@ export default function EmassImportPage() {
           <div className="mb-3"><AiSettingsPanel /></div>
           <BatchUpload systemId={id} base={base} onDone={reload} />
           <div className="mt-3 flex items-center gap-2 text-[12px]">SYNTHETIC samples:
-            <select className="input" value={sample} onChange={(e) => setSample(e.target.value)} data-testid="import-sample-type">{Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{String(v)}</option>)}</select>
+            <select className="input w-auto" value={sample} onChange={(e) => setSample(e.target.value)} data-testid="import-sample-type">{Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{String(v)}</option>)}</select>
             <button className="text-blue-800 underline" onClick={() => downloadFile(`/emass-imports/samples/${sample}${id ? `?system_id=${id}` : ""}`, `SYNTHETIC_eMASS_${sample}_sample.${sample === "hwsw" ? "xlsm" : "xlsx"}`, "Synthetic sample")} data-testid="import-sample-download">Download sample</button></div>
         </Panel>
         {id && <ExportLinks systemId={id} />}
