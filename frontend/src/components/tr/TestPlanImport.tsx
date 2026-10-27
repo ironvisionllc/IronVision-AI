@@ -9,11 +9,12 @@ export function TestPlanImport({ sid, onDone }: { sid: string; onDone: (id: stri
   const [p, setP] = useState<Row | null>(null);
   const [err, setErr] = useState<Row | string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState("");
   const send = async (step: "preview" | "import") => {
     if (!file) return;
     const fd = new FormData(); fd.append("file", file); setBusy(true); setErr(null);
     try { const r = await api.post<Row>(`/systems/${sid}/tr/test-plan/${step}`, fd);
-      if (step === "preview") setP(r.data); else { setP(null); setFile(null); onDone(r.data.id); }
+      if (step === "preview") setP(r.data); else { setP(null); setFile(null); setDone(`Imported ${r.data.preview.counts.accepted} procedure(s) into “${r.data.file_name}” v${r.data.version} – select it below to review. ${r.data.preview.counts.rejected} row(s) were not imported.`); onDone(r.data.id); }
     } catch (e) { const d = detail(e); setErr(d && typeof d === "object" ? d : errorMessage(e)); if (step === "preview") setP(null); } finally { setBusy(false); }
   };
   const e = typeof err === "object" && err ? err : null;
@@ -21,10 +22,11 @@ export function TestPlanImport({ sid, onDone }: { sid: string; onDone: (id: stri
     <div className="text-sm font-medium">Import Test Plan (eMASS Test Results / Assessment Procedures)</div>
     <p className="mb-2 text-[12px] text-slate-600">RMF Task A-2/A-3 · Upload the eMASS Test Result Import template (.xlsx) or a CSV with the same columns. Required: AP Acronym, CCI. Preview first – nothing is saved until you click Import.</p>
     <div className="flex flex-wrap items-center gap-2">
-      <input type="file" accept=".xlsx,.xlsm,.csv" onChange={(x) => { setFile(x.target.files?.[0] || null); setP(null); setErr(null); }} data-testid="tp-file" />
+      <input type="file" accept=".xlsx,.xlsm,.csv" onChange={(x) => { setFile(x.target.files?.[0] || null); setP(null); setErr(null); setDone(""); }} data-testid="tp-file" />
       <button className="btn-secondary" disabled={!file || busy} onClick={() => send("preview")} data-testid="tp-preview-btn">Preview</button>
       {p && <button className="btn-primary" disabled={busy || !p.counts.accepted} onClick={() => send("import")} data-testid="tp-import-btn">Import {p.counts.accepted} procedure(s)</button>}
     </div>
+    {done && <div className="mt-2 rounded bg-emerald-50 p-2 text-[12px] text-emerald-800" data-testid="tp-done">{done}</div>}
     {err && <div className="mt-2 rounded bg-rose-50 p-2 text-[12px] text-rose-800" role="alert" data-testid="tp-error">
       {e ? <>{e.message}{e.missing_columns && <div>Found columns: {(e.found_columns || []).join(", ") || "none"}</div>}
         {e.rejected && <ul>{e.rejected.map((r: Row) => <li key={r.row}>Row {r.row}: {r.reason}</li>)}</ul>}</> : String(err)}</div>}

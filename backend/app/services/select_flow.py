@@ -20,7 +20,8 @@ def losses(db: Session, s: System, ids: list[str]) -> dict:
     if not ids:
         return {"statements": 0, "evidence_links": 0}
     aids = list(db.scalars(select(ControlAssignment.id).where(ControlAssignment.system_id == s.id, ControlAssignment.control_id.in_(ids))))
-    st = db.scalar(select(func.count()).select_from(Implementation).where(Implementation.assignment_id.in_(aids), Implementation.narrative != "")) or 0
+    st = db.scalar(select(func.count()).select_from(Implementation).where(Implementation.assignment_id.in_(aids), Implementation.is_current.is_(True),
+                                                                         Implementation.narrative != "")) or 0
     ev = db.scalar(select(func.count()).select_from(EvidenceControl).where(EvidenceControl.assignment_id.in_(aids), EvidenceControl.removed_at.is_(None))) or 0
     return {"statements": st, "evidence_links": ev}
 
@@ -87,9 +88,8 @@ def review(db: Session, s: System, select_view: dict) -> dict:
             "final": {"count": len(rows)},
             "added": [{"control_id": c, "origin": rows[c][0], "detail": rows[c][1], **({"decision": why[c]} if c in why else {})} for c in added],
             "removed": [{"control_id": c, "decision": why.get(c)} for c in removed],
-            "counts": {"added_by_overlays": sum(1 for c in added if rows[c][0] == "overlay"), "tailored_in": sum(1 for c in added if rows[c][0] == "tailored_in"),
-                       "removed_by_overlays": sum(1 for c in removed if (why.get(c) or {}).get("by", "").startswith("overlay")),
-                       "tailored_out": sum(1 for c in removed if (why.get(c) or {}).get("by") == "tailoring" or c not in why),
+            "counts": {"added_by_overlays": select_view["counts"]["overlay_added"], "tailored_in": select_view["counts"]["tailored_in"],
+                       "removed_by_overlays": select_view["counts"]["overlay_removed"], "tailored_out": select_view["counts"]["tailored_out"],
                        "parameters_set": odp, "overlays_applied": len(s.overlay_keys or [])},
             "reconciliation": select_view["counts"]["labels"]["reconciliation"], "needs_decision": needs,
             "approval": None if not req else {"id": str(req.id), "human_id": req.human_id, "status": req.status, "assigned_role": req.assigned_role,

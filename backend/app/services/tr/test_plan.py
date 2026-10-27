@@ -79,7 +79,7 @@ def preview(db: Session, s: System, file_name: str, data: bytes) -> dict:
     assigned = set(db.scalars(select(ControlAssignment.control_id).where(ControlAssignment.system_id == s.id)))
     existing = {(r.ap_acronym, r.cci_id): (w.file_name, w.version, r.row_number) for r, w in db.execute(
         select(TrRow, TrWorkbook).join(TrWorkbook, TrRow.workbook_id == TrWorkbook.id)
-        .where(TrWorkbook.system_id == s.id, TrWorkbook.status != "failed"))}
+        .where(TrWorkbook.system_id == s.id, TrWorkbook.status != "failed").order_by(TrWorkbook.version, TrRow.row_number))}
     accepted, rejected, seen = [], [], {}
     for r in det["rows"]:
         ap, cci_raw = r.get("ap_acronym"), r.get("cci")

@@ -112,6 +112,8 @@ def save(db: Session, s: System, body: dict, actor) -> IscmStrategy:
         db.add(st)
         db.flush()
     else:
+        if st.status == "pending_approval":
+            raise HTTPException(409, "The strategy is waiting for ISSM approval – the ISSM must approve or return it before it can be edited")
         before = {"defaults": st.defaults, "narrative": st.narrative, "status": st.status}
         if st.status == "approved":
             st.version += 1
@@ -150,8 +152,8 @@ def decide(db: Session, s: System, actor, approve: bool, comment: str) -> IscmSt
     st = strategy(db, s)
     if st is None or st.status != "pending_approval":
         raise HTTPException(409, "No strategy is waiting for approval")
-    if "issm" not in (actor.roles or []):
-        raise HTTPException(403, "Only the ISSM approves the Continuous Monitoring Strategy (SP 800-37 Task S-5)")
+    if not any(ra.role == "issm" and (ra.scope_type != "system" or ra.scope_id == s.id) for ra in (actor.assignments or [])):
+        raise HTTPException(403, "Only the ISSM of this system approves the Continuous Monitoring Strategy (SP 800-37 Task S-5)")
     blocked, sod_details = sod.evaluate(st.submitted_by, actor, sod.is_sandbox(db, s.org_id), "submitted")
     if blocked:
         raise HTTPException(403, blocked)

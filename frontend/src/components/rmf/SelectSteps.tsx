@@ -37,7 +37,7 @@ export function CategorizationSummary({ sid, d, next }: { sid: string; d: Row; n
       <div>Framework<div className="text-[14px] font-semibold" data-testid="select-cat-framework">{cn ? "CNSSI 1253" : "FIPS 199"}</div></div>
       {[["Confidentiality", s.confidentiality_impact], ["Integrity", s.integrity_impact], ["Availability", s.availability_impact]].map(([l, v]) =>
         <div key={l}>{l}<div className="text-[14px] font-semibold capitalize" data-testid={`select-cat-${String(l).toLowerCase()}`}>{v || "—"}</div></div>)}
-      <div>{cn ? "Trigraph / approval" : "Overall (high-water mark)"}<div className="text-[14px] font-semibold" data-testid="select-cat-overall">{cn ? (d.cnssi?.applied?.trigraph || d.cnssi?.trigraph || "—") : (s.categorization || "—")}</div>
+      <div>{cn ? "Trigraph / approval" : "Overall (high-water mark)"}<div className="text-[14px] font-semibold capitalize" data-testid="select-cat-overall">{cn ? (d.cnssi?.applied?.trigraph || d.cnssi?.trigraph || "—") : (s.categorization || "—")}</div>
         {cn && d.cnssi?.approval && <div className="text-[11px] text-slate-500">{d.cnssi.approval.label || d.cnssi.approval.status}</div>}</div>
     </div>
     <div className="mt-3 flex gap-3"><Link className="btn-secondary" to="/rmf/categorize" data-testid="select-cat-edit">Edit in Categorize</Link>

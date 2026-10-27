@@ -45,6 +45,8 @@ def test_draft_does_not_feed_controls_and_only_issm_approves(client, ctx):
     client.post(f"{ctx['u']}/iscm/submit", headers=ctx["isso"])
     r = client.post(f"{ctx['u']}/iscm/decision", json={"approve": True}, headers=ctx["isso"])
     assert r.status_code == 403 and "ISSM" in r.json()["detail"]
+    assert client.put(f"{ctx['u']}/iscm", json={}, headers=ctx["isso"]).status_code == 409, "no silent withdrawal while pending"
+    assert client.post(f"{ctx['u']}/iscm/decision", json={"approve": False, "comment": "return"}, headers=ctx["issm"]).json()["strategy"]["status"] == "rejected"
     assert client.put(f"{ctx['u']}/iscm", json={}, headers=ctx["role"]("leadership_viewer")).status_code == 403
 
 

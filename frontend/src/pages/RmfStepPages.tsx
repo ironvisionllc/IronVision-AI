@@ -327,6 +327,7 @@ export function SelectPage() {
   const setStep = (n: number) => { const x = new URLSearchParams(sp); x.set("sstep", String(n + 1)); x.delete("overlay"); setSp(x, { replace: true }); };
   const ro = <p className="text-[12px] text-slate-600">Changing the control selection needs the “system.write” permission (ISSO, ISSM or System Owner). You can view the selection in the <Link className="underline" to="/traceability">traceability matrix</Link>.</p>;
   const nextBtn = (n: number, label: string) => <button className="btn-primary mt-3 self-start" onClick={() => setStep(n)} data-testid={`select-next-${n}`}>Next: {label}</button>;
+  useEffect(() => { if (data && window.location.hash === "#iscm") setTimeout(() => document.getElementById("iscm")?.scrollIntoView({ block: "start" }), 300); }, [data]);
   return (
     <StepFrame k="select" title="Step 3 · Select – baseline, overlays and tailoring" purpose="Decide which controls apply: start from the baseline that matches the categorization, apply overlays for special situations, then tailor controls in or out with a rationale.">
       {data && sid && <div className="grid gap-5">
@@ -335,7 +336,7 @@ export function SelectPage() {
         <SelectStepper step={step} setStep={setStep} done={[!!data.counts.baseline, !!data.counts.assigned, (data.overlay_keys || []).length > 0, (data.tailoring || []).length > 0, false]} />
         {step === 0 && <CategorizationSummary sid={sid} d={data} next={() => setStep(1)} />}
         {step === 1 && (can("system.write") ? <>{data.cnssi ? <CnssiBaseline sid={sid} d={data} reload={reload} /> : <Baseline sid={sid} d={data} reload={reload} />}{nextBtn(2, "overlays")}</> : ro)}
-        {step === 2 && (can("system.write") ? <><Overlays sid={sid} d={data} reload={reload} />{nextBtn(3, "tailoring & parameters")}</> : ro)}
+        {step === 2 && (can("system.write") || can("admin.content.load") ? <><Overlays sid={sid} d={data} reload={reload} />{nextBtn(3, "tailoring & parameters")}</> : ro)}
         {step === 3 && <>{can("system.write") ? <Tailoring sid={sid} d={data} reload={reload} /> : ro}
           <Panel title="Organization-defined parameters (ODPs)" eyebrow="SP 800-53 assignment / selection values – compare, adopt CNSSI values, export" testId="select-odps">
             <button className="btn-secondary mb-2 px-2 py-0.5 text-[11px]" onClick={() => downloadFile(`/systems/${sid}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="select-export-parameters">Export parameter comparison (CSV)</button>
