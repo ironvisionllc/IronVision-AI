@@ -161,50 +161,74 @@ LABEL = {  # readable wording for gap/met reasons (was the raw concept key: "doe
 }
 
 
-_ES = re.compile(r"(?:ss|sh|ch|x|z)es$")
+VOWEL_OK = ("use", "user", "usage", "uniform", "unique", "unit", "univers", "one", "once", "eu", "ur")
 
 
-def _base(v: str) -> str:
-    lv = v.lower()
-    if lv.endswith("ies"):
-        return v[:-3] + "y"
-    if _ES.search(lv):
-        return v[:-2]
-    return v[:-1] if lv.endswith("s") and not lv.endswith(("ss", "us", "is")) else v
+def render_req(text: str) -> tuple[str, list[str]]:
+    """The authoritative requirement, quoted VERBATIM except for ODP plumbing: "[Assignment: time period]" → "[organization-defined
+    time period]", "[Selection …: a; b]" → "[organization-selected …: a; b]", "(defined in SC-13_ODP[01])" removed. Returns
+    (text, values to define)."""
+    vals: list[str] = []
+
+    def asg(m):
+        v = " ".join(m.group(1).split()).strip(" ;")
+        v = v if v.lower().startswith("organization-defined") else f"organization-defined {v}"
+        vals.append(v)
+        return f"[{v}]"
+    t = re.sub(r"\s*\(defined in [A-Z]{2}-\d+(?:\(\d+\))?_ODP\[\d+\]\)", "", text or "")
+    t = re.sub(r"\b([A-Z]{2}-\d+(?:\(\d+\))?)_ODP\[0*(\d+)\]", r"\1 (organization-defined parameter \2)", t)  # "AU-02_ODP[01]" never leaks
+    t = re.sub(r"\{\{[^}]*\}\}", lambda m: asg(re.match(r"(.*)", "value")), t)
+    t = re.sub(r"\[Assignment:\s*([^\[\]]+)\]", asg, t)
+
+    def sel(m):
+        vals.append("the selected option(s)")
+        return f"[organization-selected{(' ' + m.group(1).strip()) if m.group(1) else ''}: {' '.join(m.group(2).split()).strip(' ;')}]"
+    t = re.sub(r"\[Selection(\s*\([^)]*\))?:\s*((?:[^\[\]]|\[[^\[\]]*\])+)\]", sel, t)
+    for m in re.finditer(r"\borganization-defined ([a-z/ -]+?)(?= (?:for|to|in|on|of|with|when|before|after|by|and/or|that|which|from|are|is)\b|[,.;)]|$)", t):
+        if not t[max(0, m.start() - 1):m.start()] == "[":
+            vals.append(f"organization-defined {m.group(1).strip()}")
+    t = " ".join(t.split()).rstrip(";, ")
+    return (t if t.endswith((".", "?")) else t + "."), list(dict.fromkeys(vals))
 
 
-def obligation(req_text: str) -> tuple[str, str]:
-    """Readable sentence parts derived from the requirement itself (never a keyword list):
-    ("the organization will define a frequency for …", "The organization shall define a frequency for ….")."""
-    t = re.sub(r"\[(?:Assignment|Selection)[^:\]]*:\s*([^\]]+)\]", r"\1", req_text or "")
-    t = re.sub(r"\s*\(defined in [^)]*\)", "", t)  # "(defined in SC-13_ODP[01])" is catalog plumbing, not wording
-    t = re.sub(r"\s+", " ", t).strip().rstrip(".;:, ")
-    m = re.match(r"(?:the (organization|information system|system) )?([A-Za-z-]+)(.*)$", t, re.I)
-    if not m:
-        return "this requirement is met", "This requirement shall be met."
-    if m.group(1) or t[:1].isupper():  # CCI style: imperative ("Monitor and scan …") or 3rd person ("Defines …")
-        who = "the system" if m.group(1) and "system" in m.group(1).lower() else "the organization"
-        verb, rest = _base(m.group(2)).lower(), m.group(3)
-        pos = 0
-        for _ in range(4):  # "Develops, documents, and disseminates" → base form for every verb of the list
-            n = re.compile(r"(,\s*(?:and |or )?|\s+(?:and|or)\s+)([a-z]+s)\b").match(rest, pos)
-            if not n or verb == m.group(2).lower():
-                break
-            rest = rest[:n.start(2)] + _base(n.group(2)) + rest[n.end(2):]
-            pos = n.start(2) + len(_base(n.group(2)))
-        return f"{who} will {verb}{rest}", f"{who.capitalize()} shall {verb}{rest}."
-    clause = t[0].lower() + t[1:]  # 800-53A objective: passive clause ("usage restrictions are established …")
-    shall = re.sub(r"\b(?:is|are)\b", "shall be", clause, count=1)
-    shall = shall if shall != clause else "The policy shall ensure that " + clause
-    return clause, shall[0].upper() + shall[1:] + "."
+def req_source(req: dict, control_id: str | None = None) -> str:
+    ctl = (control_id or "").upper()
+    ctl = re.sub(r"\.(\d+)$", r"(\1)", ctl)
+    if req.get("type") == "cci":
+        return f"DISA {req.get('id')}" + (f", NIST SP 800-53 Rev 5 {ctl}" if ctl else "")
+    if req.get("type") == "objective":
+        return f"NIST SP 800-53A Rev 5 assessment objective {str(req.get('label') or ctl).rstrip('.')}"
+    return ""
 
 
-def gap_text(req_text: str, kind: str, where: str = "quoted sentence") -> str:
-    """Gap / suggested-fix sentence. kind: "missing" (nothing found) or "review" (related text may address it)."""
-    that, shall = obligation(req_text)
-    if kind == "missing":
-        return f"The policy does not state that {that}. Add a statement such as: “{shall}”"
-    return f"Requires manual review – the {where} may address this requirement. Confirm that it states that {that}, or add: “{shall}”"
+def fluent(s: str | None) -> bool:
+    """Grammar/fluency gate for AI-suggested corrective language; anything that fails falls back to the verbatim-quote format."""
+    s = " ".join((s or "").split())
+    if not (20 <= len(s) <= 400) or not s[0].isupper() or not s.endswith("."):
+        return False
+    if re.search(r"\[(?!organization-defined [^\[\]]+\])|_ODP|\{\{|Assignment:|Selection", s) or re.search(r"\b(\w+) \1\b", s, re.I):
+        return False
+    if any(not m.group(1).lower().startswith(VOWEL_OK) for m in re.finditer(r"\ba ([aeiou]\w*)", s, re.I)):
+        return False
+    if re.search(r"\b(?:will|shall|must) (?:for|the|a|an|in|on|of|with|by|at|from|to|be be)\b|\b(?:using|within|per) (?:means|time period|frequency)\b", s, re.I):
+        return False
+    return bool(re.search(r"\b(?:shall|must|will|is|are|has|have|does|do|may)\b", s, re.I))
+
+
+def fix_text(req: dict, status: str, where: str = "quoted policy text", control_id: str | None = None, odp: list | None = None,
+             suggestion: str | None = None) -> str:
+    """Gap + fix for one requirement. Only fixed template sentences are synthesized; the requirement is QUOTED (never rewritten);
+    AI-suggested language is added only when it passes fluent()."""
+    text, vals = render_req(req.get("text") or "")
+    head = ("The policy does not clearly address this requirement." if status == "missing"
+            else f"Manual review needed: the {where} may address this requirement, but this is not confirmed.")
+    fix = "add policy language that states how the organization meets this requirement" + (
+        f", including the organization-defined value(s): {'; '.join(vals)}" if vals else "") + "."
+    fix = ("Fix: " + fix[0].upper() + fix[1:]) if status == "missing" else f"Fix: confirm that the {where} meets it; if it does not, {fix}"
+    known = (" This system has already defined: " + "; ".join(f"{p.replace('_', ' ')} = {v} (organization-defined: {v})" for p, v in odp) + ".") if odp else ""
+    sug = f" The AI suggests this language (validated): “{' '.join(suggestion.split())}”" if fluent(suggestion) else ""
+    src = req_source(req, control_id)
+    return f"{head} Requirement{f' ({src})' if src else ''}: “{text}” {fix}{known}{sug}"
 
 
 def _lbl(k: str) -> str:
@@ -246,11 +270,11 @@ def evaluate(text: str, sents: list, control_id: str, req_text: str, snip) -> di
         hits = sents[pair_i:pair_i + 2] if got is pair else sents[best_i:best_i + 1]
         r.update(status="partial", confidence="Medium" if len(need) - len(got) == 1 else "Low", snippets=snip(hits), basis="concept",
                  reason=f"Related text found, but the policy does not state {'; '.join(_lbl(m) for m in missing)}.",
-                 needs=gap_text(req_text, "review"))
+                 needs=fix_text({"text": req_text}, "partial"))
         return r
     r.update(status="missing", confidence="High" if not got else "Medium", snippets=[], basis="concept",
              reason="No sentence addresses this requirement." if not got else f"Only {len(got)} of {len(need)} required elements appear near each other.",
-             needs=gap_text(req_text, "missing"))
+             needs=fix_text({"text": req_text}, "missing"))
     return r
 
 

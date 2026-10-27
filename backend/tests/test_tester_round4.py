@@ -53,7 +53,7 @@ def test_gaps_are_readable_sentences_never_keyword_lists(two):
     assert not [g for g in gaps if re.search(r"Add a statement(?! such as)", g)], "no generic 'Add a statement…' text"
     for k in (("ra-2.1", "CCI-004617"), ("ra-2.1", "ra-2.1_obj")):
         if k in rows and rows[k]["gap"]:
-            assert "impact-level" in rows[k]["gap"] and "shall" in rows[k]["gap"], rows[k]["gap"]
+            assert "impact-level" in rows[k]["gap"] and "Requirement (" in rows[k]["gap"], rows[k]["gap"]  # round 5: quoted verbatim
 
 
 def test_salad_detector_rejects_the_tester_examples():
@@ -61,19 +61,9 @@ def test_salad_detector_rejects_the_tester_examples():
               "Add a statement covering: review or analysis.", "The quoted text does not state prior, identified and reported; confirm it."):
         assert not pc.is_readable_gap(g), g
     req = "Create, enable, modify, disable, and remove system accounts."
-    assert pc.is_readable_gap(pp.gap_text(req, "missing"), req), "the requirement's own list is wording, not salad"
+    assert pc.is_readable_gap(pp.fix_text({"text": req}, "missing"), req), "the requirement's own list is wording, not salad"
     assert not pc.is_readable_gap("The related text does not cover employ, vulnerability, monitoring and techniques.", req)
-    assert "ODP" not in pp.obligation("types of cryptography (defined in SC-13_ODP[01]) are implemented.")[0]
-    assert pc.is_readable_gap(pp.gap_text("Monitor and scan for vulnerabilities in the system randomly in accordance with organization-defined process.", "review", "tagged section"))
-
-
-def test_obligation_is_derived_from_the_requirement():
-    assert pp.obligation("Defines a frequency for scanning for vulnerabilities.") == (
-        "the organization will define a frequency for scanning for vulnerabilities", "The organization shall define a frequency for scanning for vulnerabilities.")
-    that, shall = pp.obligation("usage restrictions are established and documented for each type of remote access allowed;")
-    assert that.startswith("usage restrictions are established") and shall.startswith("Usage restrictions shall be established")
-    assert pp.obligation("Develops, documents, and disseminates a policy.")[0] == "the organization will develop, document, and disseminate a policy"
-    assert "organization-defined frequency" in pp.obligation("Review results [Assignment: organization-defined frequency].")[0]
+    assert "ODP" not in pp.render_req("types of cryptography (defined in SC-13_ODP[01]) are implemented.")[0]
 
 
 def test_subject_verb_agreement_in_every_template():

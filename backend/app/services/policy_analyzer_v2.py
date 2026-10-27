@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 log = logging.getLogger(__name__)
 ANALYZER = "v2.0"
-PROMPT = ("policy.coverage_refine", "2.1.0")
+PROMPT = ("policy.coverage_refine", "2.2.0")
 STOP = set("the and for with that this shall must are any all its from into each such has have been being which when where or of to in on by be is as an at it not".split())
 PAGE = re.compile(r"^\s*(?:-{2,}\s*)?page\s+(\d+)(?:\s*-{2,})?\s*$|\f", re.I | re.M)
 HEAD = re.compile(r"^\s*(?:#{1,4}\s+.+|(?:\d+(?:\.\d+)*\.?\s+)[A-Z][^\n]{2,90}|[A-Z]{2}-\d+(?:\(\d+\))?\s[^\n]{2,90})\s*$", re.M)
@@ -263,7 +263,7 @@ class Run:
                 with self.lock:
                     self.st["invalid_items"] += 1
                 continue
-            v = {"status": it.status, "quote": it.quote, "rationale": it.rationale[:400]}
+            v = {"status": it.status, "quote": it.quote, "rationale": it.rationale[:400], "suggestion": (getattr(it, "suggestion", "") or "")[:400]}
             s = sec_by.get(it.section.strip().split()[0].strip("[]|") if it.section else "")
             if it.quote and it.status != "missing":
                 real = next((x for x in secs if it.quote.strip()[:80] in x["text"]), None)

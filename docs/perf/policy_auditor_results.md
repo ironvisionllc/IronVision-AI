@@ -147,3 +147,27 @@ Before = `<k>_v2_r7` (round 3), after = `<k>_v2_r9`. All v2, real `anthropic/cla
 - The RA "before" counts for unreadable gaps (43) and agreement errors (6) are the tester's, from one RA upload. n/m = not measured.
 - Progress denominator now matches the final total: RA 156 = 156, AC 194 = 194, SC 151 = 151.
 - Audit suggestions vs stored findings: SC had 8 suggestions and 7 findings stored, with a note explaining the one that was dropped.
+
+## Tester round 5: requirement quoted verbatim, ODPs rendered, AI language gated
+
+Gap/fix text no longer rewrites requirement clauses. It has three parts:
+1. A fixed sentence: "The policy does not clearly address this requirement." or "Manual review needed: …".
+2. `Requirement (<DISA CCI / NIST SP 800-53A objective>): “<verbatim text>”`. ODP placeholders are rendered as `[organization-defined …]` and `[organization-selected …: …]`, and `_ODP[nn]` references are removed or rewritten.
+3. `Fix: … including the organization-defined value(s): …`.
+
+Values the linked system has already defined are added, labelled "(organization-defined: <value>)". AI-suggested language (prompt `policy.coverage_refine@2.2.0`, field `suggestion`) is shown only if it passes `fluent()`.
+
+Catalog sweep (`tests/test_tester_round5.py`): 1,579 CCIs and 1,030 objectives in RA, AC, SC, AU, CM and IR, 3 variants each, 7,827 texts. Result: 0 placeholder leaks, 0 empty values, 0 doubled words, 0 "a" before a vowel, 0 "will <non-verb>", 0 sentences without a finite verb. These checks apply to the synthesized text. Quoted authoritative text is not altered; for example, DISA's own "Conduct a impact-level categorization" in CCI-004617 is quoted as written.
+
+| policy | run | wall | precision | recall | exact | false gaps | gold gaps flagged | citation validity | off-subject met | gap-text problems | AI suggestions shown | violations |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| RA (user) | r9 | 16.5 s | 0.987 | 1.000 | 0.744 | 0 | 4/4 | 1.0 | 0 | n/m | – | none |
+| RA (user) | **r10** | 20.2 s | 0.987 | 1.000 | 0.744 | 0 | 4/4 | 1.0 | 0 | 0 | 11 of 35 | none |
+| AC demo | r9 | 14.5 s | 0.909 | 1.000 | 0.737 | 0 | 24/24 | 1.0 | 0 | n/m | – | none |
+| AC demo | **r10** | 21.8 s | 0.909 | 1.000 | 0.753 | 0 | 23/24 | 1.0 | 0 | 0 | 50 of 51 | none |
+| SC demo | r9 | 13.6 s | 0.917 | 1.000 | 0.795 | 0 | 18/18 | 1.0 | 0 | n/m | – | none |
+| SC demo | **r10** | 16.6 s | 0.924 | 1.000 | 0.861 | 0 | 18/18 | 1.0 | 0 | 0 | 25 of 25 | none |
+
+Notes:
+- Wall time rose by 3–7 s because the model now also writes suggestion text: output tokens went up roughly 15–25%.
+- AC 23/24: AC-8 CCI-002248 was met in r10 through a table-cell quote. It was partial in r9 because the AI disagreed then. This is model variance, not a wording change.

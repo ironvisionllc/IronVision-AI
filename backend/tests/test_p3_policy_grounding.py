@@ -16,15 +16,15 @@ def test_fallback_is_grounded_not_keyword_salad():
     assert "Manual review needed" in r["reason"] and "Requirement: “Employ vulnerability monitoring" in r["reason"]
     assert r["snippets"] and r["snippets"][0]["text"] in text  # verbatim excerpt
     assert "%" not in r["reason"] and "key words" not in r["reason"]
-    assert r["needs"].startswith("Requires manual review – the quoted sentence may address this requirement")  # round 4: requirement-derived wording
-    assert "The organization shall employ vulnerability monitoring tools" in r["needs"]
+    assert r["needs"].startswith("Manual review needed: the quoted sentence may address this requirement")  # round 5: requirement quoted verbatim
+    assert "Requirement: “Employ vulnerability monitoring tools" in r["needs"] and "Fix: confirm that the quoted sentence meets it" in r["needs"]
 
 
 def test_fallback_not_found_has_corrective_language():
     r = evaluate("1. Purpose. SYNTHETIC unrelated text about badges.", "generic", "policy", None, "Risk Assessment", REQ)
     assert r["status"] == "missing" and r["reason"].startswith("Not found:") and not r["snippets"]
-    assert r["needs"].startswith("The policy does not state that the organization will employ vulnerability monitoring")  # round 4: no generic "Add a statement…"
-    assert "Add a statement such as: “The organization shall employ" in r["needs"]
+    assert r["needs"].startswith("The policy does not clearly address this requirement. Requirement: “Employ vulnerability monitoring")  # round 5
+    assert "Fix: Add policy language that states how the organization meets this requirement" in r["needs"]
     assert not re.search(r"\b\w+, \w+, \w+, \w+\b", r["reason"].split("“")[0])  # no bare word lists before the quoted requirement
 
 

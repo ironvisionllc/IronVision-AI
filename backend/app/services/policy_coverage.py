@@ -227,10 +227,10 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
         r.update(status="partial", confidence="Low", snippets=_snip(text, [best]), manual_review=True,
                  reason=f"Manual review needed – not confirmed automatically. Requirement: “{short}”. Closest policy sentence is quoted below; "
                         "it uses related wording but the rule-based check cannot tell whether it actually satisfies the requirement.",
-                 needs=pp.gap_text(req_text, "review"))
+                 needs=pp.fix_text({"text": req_text}, "partial", "quoted sentence"))
         return r
     r.update(confidence="Low", reason=f"Not found: no sentence in the policy addresses the requirement “{short}”.",
-             needs=pp.gap_text(req_text, "missing"))
+             needs=pp.fix_text({"text": req_text}, "missing"))
     return r
 
 
@@ -308,7 +308,7 @@ def _guard(text: str, sents: list, control_id: str, req: dict, title: str, r: di
         r.update(status="partial", confidence="Low", manual_review=True,
                  reason="Manual review: the quoted text does not clearly address this requirement's subject, so it is not counted as met. "
                         + (r.get("reason") or ""),
-                 needs=pp.gap_text(req["text"], "review"))
+                 needs=pp.fix_text(req, "partial"))
     if r["status"] in ("missing", "partial"):
         rx = part_tag(control_id, req)
         tagged = []
@@ -324,13 +324,12 @@ def _guard(text: str, sents: list, control_id: str, req: dict, title: str, r: di
             r.update(status="met", confidence="Medium", manual_review=False, snippets=_snip(text, [best]), needs=None,
                      reason="The policy states this requirement" + (" in the text it tags for this part." if best in tagged else " in a “shall” statement."))
         elif tagged:
-            that, _ = pp.obligation(req["text"])
             r.update(status="partial", confidence="Low", manual_review=True, snippets=_snip(text, tagged[:2]),
-                     reason=f"The policy tags this text “{rx.search(tagged[0][2]).group(0)}” for this requirement's part, but the rule-based check "
-                            f"cannot confirm that it states that {that}.",
-                     needs=pp.gap_text(req["text"], "review", "tagged section"))
+                     reason=f"The policy tags this text “{rx.search(tagged[0][2]).group(0)}” for this requirement's part; the rule-based check "
+                            "cannot confirm that it meets the requirement.",
+                     needs=pp.fix_text(req, "partial", "tagged section"))
     if r["status"] != "met" and not is_readable_gap(r.get("needs"), req["text"]):
-        r["needs"] = pp.gap_text(req["text"], "review" if r["status"] == "partial" else "missing")
+        r["needs"] = pp.fix_text(req, r["status"])
     return r
 
 
@@ -467,6 +466,11 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
         ai_by_ctl.update(_ai_many(text, todo, policy.org_id))
     t2 = time.perf_counter()
     prev_an = (policy.analysis or {}).get("analyzer")
+    odp: dict = {}
+    if policy.system_ids:  # values the (first) linked system has already defined, shown as organization-defined values in the fix
+        from app.models import OdpValue
+        for o in db.scalars(select(OdpValue).where(OdpValue.system_id == uuid.UUID(policy.system_ids[0]))):
+            odp.setdefault(o.control_id, []).append((o.parameter, o.value))
     # A re-analysis without AI (after a human mapping decision) must not replace AI-merged rows with deterministic-only ones:
     # rows of controls already analysed at this policy version by the current analyzer are kept as they are.
     keep = {c.control_id for c in old.values() if c.policy_version == policy.version} if (
@@ -491,6 +495,10 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
             if f"{m.control_id}|{req['id']}" in not_examined and r["status"] != "met":
                 r["reason"] = ("Not examined by AI: no policy section was retrieved for this requirement, so it is not addressed by the retrieved "
                                "content (not a pass, fail or N/A). " + (r.get("reason") or ""))[:2000]
+            if not is_xx1(m.control_id) and r["status"] != "met":  # one generator: quoted requirement + fixed sentences (+ validated AI language)
+                where = "tagged section" if "tags this text" in (r.get("reason") or "") else "quoted policy text"
+                sug = ((ai_by_ctl.get(m.control_id) or {}).get(req["id"]) or {}).get("suggestion") if m.control_id in ai_by_ctl else None
+                r["needs"] = pp.fix_text(req, r["status"], where, m.control_id, odp.get(m.control_id), sug)
             r.pop("basis", None)
             r.pop("ai_discarded", None)
             prev = old.get((m.control_id, req["id"]))
