@@ -127,6 +127,8 @@ def seed_phase1(db: Session, org: Organization, samples_dir: str) -> None:
             take_snapshots(db, trigger="seed_phase3", org_id=org.id)
         from app.seed_phase4 import seed_phase4
         seed_phase4(db, org)
+        from app.seed_statements import seed_statements
+        seed_statements(db, org.id)
         return
     sd = Path(samples_dir)
     isso, issm, ao, so = (role_user(db, org, r) for r in ("isso", "issm", "ao", "system_owner"))
@@ -198,6 +200,8 @@ def seed_phase1(db: Session, org: Organization, samples_dir: str) -> None:
     seed_phase3(db, org, samples_dir)
     from app.seed_phase4 import seed_phase4
     seed_phase4(db, org)
+    from app.seed_statements import seed_statements
+    seed_statements(db, org.id)
     for s_ in db.scalars(select(System).where(System.org_id == org.id)):
         evaluate_system(db, s_.id)
     take_snapshots(db, trigger="seed", org_id=org.id)
