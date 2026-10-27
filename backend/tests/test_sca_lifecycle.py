@@ -99,6 +99,33 @@ def test_sca_approve_carries_cited_evidence(client, ws):
     assert rows and all(r.evidence_ids for r in rows) and "(0 evidence" not in rows[0].findings_text
 
 
+def test_retry_failed_after_mixed_job_not_blocked_by_sod(client, ws, monkeypatch):
+    """UI 942 run found: retry re-checked SoD over ALL original items – the job's approved status items were then 'Awaiting assessor'
+    and the ISSO's retry of 2 failed mappings got 403. Only the re-submitted (failed) items are checked now."""
+    from app.api.v1 import phase4
+    from app.models import Job
+    from app.services import review_bulk as rb
+    q = [i for i in _q(client, ws) if not i.get("awaiting_sca")]
+    st = [i for i in q if i["kind"] == "status"][:2]
+    mp = [i for i in q if i["kind"] in ("policy_map", "finding_map")][:1]
+    if not st or not mp:
+        pytest.skip("need a status suggestion and a mapping")
+    real = phase4.decide_item
+    monkeypatch.setattr(phase4, "decide_item", lambda db, s, it, *a, **k: (_ for _ in ()).throw(RuntimeError("SYNTHETIC failure"))
+                        if it.key == mp[0]["key"] else real(db, s, it, *a, **k))
+    j = client.post("/api/v1/mapping-review/bulk-jobs", json={"system_id": ws["sid"], "action": "approve", "item_keys": [i["key"] for i in st + mp],
+                                                              "justification": "SYNTHETIC", "idempotency_key": uuid.uuid4().hex}, headers=ws["isso"]).json()
+    with SessionLocal() as db:
+        job = db.get(Job, uuid.UUID(j["id"]))
+        job.result, job.status = rb.run(db, job.payload), "succeeded"
+        db.commit()
+        assert [f["key"] for f in job.result["failed"]] == [mp[0]["key"]]
+    monkeypatch.setattr(phase4, "decide_item", real)
+    r = client.post(f"/api/v1/mapping-review/bulk-jobs/{j['id']}/retry", headers=ws["isso"])
+    assert r.status_code == 202, r.text
+    assert r.json()["total"] == 1
+
+
 def test_bulk_isso_then_bulk_sca_approve_and_reject(client, ws):
     """Item 7: bulk path – ISSO bulk-approves status suggestions → Awaiting assessor; SCA bulk-approves some, bulk-rejects others."""
     from app.models import Assessment, Job
@@ -140,3 +167,4 @@ def test_bulk_isso_then_bulk_sca_approve_and_reject(client, ws):
                 asm = db.scalars(select(Assessment).where(Assessment.assignment_id == a.id).order_by(Assessment.created_at.desc())).first()
                 assert a.assessment_status == result and asm is not None and asm.result == result and asm.evidence_ids, (i["control_id"], result)
     print(f"bulk SCA: isso={res['succeeded']} sca_approved={len(ok)} sca_rejected={len(bad)}")
+

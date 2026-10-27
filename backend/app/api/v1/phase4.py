@@ -442,14 +442,15 @@ def mapping_review_bulk_retry(job_id: uuid.UUID, request: Request, db: Session =
     if job is None or job.job_type != rb.JOB:
         raise HTTPException(404, "Bulk job not found")
     sid = uuid.UUID(job.payload["system_id"])
-    can_assess = has_permission(current.assignments, "assessment.perform", current.user.org_id, sid)
-    check_sod(db, current, sid, job.payload["action"], [(i["kind"], i["ids"]) for i in job.payload["items"]], can_assess, request)
     if job.status not in ("succeeded", "failed"):
         raise HTTPException(409, "The bulk job is still running")
     failed = {f["key"] for f in (job.result or {}).get("failed", [])}
     if not failed:
         raise HTTPException(409, "Nothing failed – nothing to retry")
     items = [i for i in job.payload["items"] if i["key"] in failed]
+    # SoD only for what is re-submitted (the job's succeeded status items are now "Awaiting assessor" and would wrongly block the ISSO)
+    can_assess = has_permission(current.assignments, "assessment.perform", current.user.org_id, sid)
+    check_sod(db, current, sid, job.payload["action"], [(i["kind"], i["ids"]) for i in items], can_assess, request)
     new = rb.start(db, db.get(System, sid), current, job.payload["action"], job.payload["justification"], job.payload["edit"], items,
                    f"rb-retry:{job.id}:{len((job.result or {}).get('failed', []))}", retry_of=str(job.id))
     db.commit()

@@ -66,3 +66,11 @@
 - P1: Verify each type against real eMASS exports (SME), then adjust the header aliases.
 - P1: Look into the flaky test `test_tr.py::test_prepopulated_mode_leaves_a_to_l_untouched` (fails sometimes under xdist).
 - P2: Apply Categorization and Roles proposals through the Categorize and Key roles steps.
+
+## 2026-10-27 – UAT remediation (security + items 3–8 + P7), not deployed
+- Security: tenant scoping on /audit-events, /jobs, /jobs/{id}, admin access-history, demo evidence/attestation endpoints; full OpenAPI cross-tenant sweep (298/301 ops, 1480 requests, 5 personas, 0 leaks, 0 tenant-A writes). Assessment: docs/SECURITY_INCIDENT_ASSESSMENT_audit_events.md.
+- SCA reject/approve assessments with cited evidence; bulk review jobs on a dedicated worker lane; policy AI refinement 4 concurrent + timing_s.
+- POA&M audit before/after; SSP/SAR/RAR generate panels (Implement/Assess/Authorize/package); SYNTHETIC demo statements (sandbox only); /api/v1/health build SHA/time + Admin.
+- P7: selection_review approval freezes approved control list + drift; SLCM due in-app notifications.
+- Serial suite: 872 tests, 755 passed, 0 failed, 117 skipped (live-only).
+- Remaining: browser verification of document panels and 942-item UI workflow (awaiting root go-ahead); raw storage-key probe; time a real 284-control analysis; trace idle-in-transaction app connection.
