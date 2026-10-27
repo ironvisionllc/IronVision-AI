@@ -271,6 +271,10 @@ def build(db: Session, s: System, parsed: dict) -> tuple[list[dict], dict]:
     rep["summary"] = {"rows_read": rep["rows_read"], "rows_to_apply": rep["with_changes"], "rows_not_in_system": len(rep["not_in_system"]),
                       "rows_with_warnings": len(rows_of("warnings", "status_not_applied", "required_issues", "blocked") - err),
                       "rows_with_errors": len(err), "placeholders_ignored": len(rep["info"])}
+    for i in items:  # imported values win by default: valid, unblocked changes are preselected "Use imported"
+        for f in i["fields"].values():
+            if _ok(f) and f["decision"] is None:
+                f["decision"] = "accept"
     return items, rep
 
 

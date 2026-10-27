@@ -65,7 +65,7 @@ function FileRow({ f, n, sid, types, preset, onDone }: { f: Row; n: number; sid:
   };
   return (
     <tr className="border-t border-slate-100 align-top" data-testid={`ic-file-${n}`}>
-      <td className="py-2 pr-2 font-medium">{f.file_name}</td>
+      <td className="min-w-[180px] break-all py-2 pr-2 font-medium">{f.file_name}</td>
       <td className="pr-2">{f.type || f.candidates?.length ? (
         <select className="input w-auto" value={type} onChange={(e) => setType(e.target.value)} data-testid={`ic-type-${n}`}>
           {Object.values(types).map((x: Row) => <option key={x.key} value={x.key} disabled={!x.allowed}>{x.label}{x.allowed ? "" : " (not permitted)"}</option>)}</select>)

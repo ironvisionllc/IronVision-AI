@@ -153,14 +153,19 @@ def _st(s: str | None) -> str:
             else "failed" if s in ("failed", "error", "rejected") else "reverted" if s == "reverted" else "discarded" if s == "discarded" else s)
 
 
-def history_rows(db: Session, org_id, sids: list) -> list[dict]:
+def history_rows(db: Session, org_id, sids: list, system_scoped: bool = False) -> list[dict]:
     from app.services import emass_reports as er
     names = {s.id: s.acronym or s.name for s in db.scalars(select(System).where(System.id.in_(sids)))}
     rows = []
+    ssids = {str(x) for x in sids}
     for i in db.scalars(select(EmassImport).where(EmassImport.org_id == org_id, (EmassImport.system_id.in_(sids)) | (EmassImport.system_id.is_(None))).limit(500)):
+        ctx_sid = (i.detected or {}).get("context_system_id")
+        if i.system_id is None and system_scoped and ctx_sid not in ssids:
+            continue  # system tab: only uploads made in this system's context
+        i_sid = i.system_id or (uuid.UUID(ctx_sid) if ctx_sid in ssids else None)
         rows.append({"kind": "emass", "id": str(i.id), "type": i.report_type, "label": f"eMASS {er.TYPES.get(i.report_type, i.report_type)}", "file_name": i.file_name,
-                     "sha256": i.sha256, "user": i.uploaded_by_email, "at": i.created_at, "status": _st(i.status), "raw_status": i.status, "system_id": i.system_id,
-                     "counts": i.counts or {}, "link": f"/systems/{i.system_id}/emass-import/{i.id}" if i.system_id else f"/emass-import/{i.id}"})
+                     "sha256": i.sha256, "user": i.uploaded_by_email, "at": i.created_at, "status": _st(i.status), "raw_status": i.status, "system_id": i_sid,
+                     "counts": i.counts or {}, "link": f"/systems/{i_sid}/emass-import/{i.id}" if i_sid else f"/emass-import/{i.id}"})
     for r in db.scalars(select(IngestRun).where(IngestRun.system_id.in_(sids)).limit(500)):
         rows.append({"kind": "ingest", "id": str(r.id), "type": r.file_format, "label": TYPES.get(r.file_format or "", {}).get("label", r.file_format or "Evidence upload"),
                      "file_name": r.file_name, "sha256": r.sha256, "user": None, "at": r.received_at, "status": _st(r.status), "raw_status": r.status,
@@ -199,7 +204,7 @@ def history(system_id: uuid.UUID | None = None, request: Request = None, db: Ses
         sids = [get_system(db, system_id).id]
     else:
         sids = [s.id for s in visible_systems(db, current)]
-    return {"items": history_rows(db, current.user.org_id, sids)}
+    return {"items": history_rows(db, current.user.org_id, sids, system_scoped=bool(system_id))}
 
 
 RETRY = {"ingest": (IngestRun, "ingest.process", "run_id", "status", "queued", "ingest.upload"),

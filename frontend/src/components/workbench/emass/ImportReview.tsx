@@ -47,7 +47,7 @@ export function ImportReview({ imp, onChange }: { imp: Row; onChange: (d: Row) =
                   <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-[12px]">
                     <b>{i.label}</b>{i.row && <span className="text-slate-500">row {i.row}</span>}
                     {i.create && <span className="rounded bg-emerald-50 px-1.5 text-emerald-800" data-testid={`import-will-create-${tid(i.key)}`}>will be created</span>}
-                    {i.required_issue && <span className="rounded bg-rose-50 px-1.5 text-rose-800" data-testid={`import-required-${tid(i.key)}`}>{i.required_issue} – flagged, not saved</span>}
+                    {i.required_issue && <span className="rounded bg-amber-50 px-1.5 text-amber-900" data-testid={`import-required-${tid(i.key)}`}>{i.required_issue}</span>}
                     {i.note && <span className="text-slate-600" data-testid={`import-note-${tid(i.key)}`}>{i.note}</span>}
                     {!ro && <span className="ml-auto flex gap-2"><button className="underline" onClick={() => dec([i], "*", "accept")} data-testid={`import-accept-item-${tid(i.key)}`}>Use imported (item)</button>
                       <button className="underline" onClick={() => dec([i], "*", "reject")} data-testid={`import-reject-item-${tid(i.key)}`}>Keep existing (item)</button></span>}

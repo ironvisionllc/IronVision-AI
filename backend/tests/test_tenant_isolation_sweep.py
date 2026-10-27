@@ -22,6 +22,10 @@ def tenants(client, signup_on):  # noqa: F811
                                                 "categorization_mode": "fips199", "information_types": [{"id": "D.16.3"}]}, headers=ha).json()["id"]
     isso_a = auth(client.post("/api/v1/sandbox/act-as", json={"role": "isso"}, headers=ha).json()["access_token"])
     pid = client.post("/api/v1/poams", json={"system_id": sid, "weakness": f"{mark} weakness", "control_ids": ["ac-2"]}, headers=isso_a).json()["id"]
+    from app.services import emass_migration as em  # Import Center history / PPSM / migration report must not leak either
+    up = client.post("/api/v1/emass-imports", files={"file": (f"{mark}_ppsm.xlsx", em.sample("ppsm"))}, data={"system_id": sid}, headers=isso_a)
+    assert up.status_code == 201, up.text
+    client.post(f"/api/v1/systems/{sid}/uploads", files={"file": (f"{mark}.ckl", b'<?xml version="1.0"?><CHECKLIST><STIGS><iSTIG><VULN/></iSTIG></STIGS></CHECKLIST>')}, headers=isso_a)
     tb = _signup(client, f"iso-b-{uuid.uuid4().hex[:6]}@example.com", "Isolation B Org")
     hb = auth(tb["access_token"])
     personas = {r: auth(client.post("/api/v1/sandbox/act-as", json={"role": r}, headers=hb).json()["access_token"])
