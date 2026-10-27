@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useApi, Row } from "@/lib/useApi";
 import { Panel } from "@/components/common/Panel";
 
@@ -12,6 +12,7 @@ export function StigDetail({ runId }: { runId: string }) {
   const [st, setSt] = useState("");
   const [sev, setSev] = useState("");
   const [sort, setSort] = useState("status");
+  const [open, setOpen] = useState<string | null>(null);
   const rows = useMemo(() => {
     const r = (data?.rules || []).filter((x: Row) => (!st || x.status === st) && (!sev || x.severity === sev)
       && (!q || `${x.vuln_id} ${x.rule_id} ${x.title} ${x.finding_details} ${x.comments}`.toLowerCase().includes(q.toLowerCase())));
@@ -37,8 +38,19 @@ export function StigDetail({ runId }: { runId: string }) {
         <span className="self-center text-[12px] text-slate-500" data-testid="stig-row-count">{rows.length} of {data.rules.length} rules</span>
       </div>
       <div className="max-h-[520px] overflow-y-auto"><table className="w-full text-[12px]"><thead className="sticky top-0 bg-white"><tr className="text-left text-[11px] text-slate-500"><th>Vuln ID</th><th>Rule ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Finding details</th><th>Comments</th></tr></thead>
-        <tbody>{rows.map((r: Row) => <tr key={r.finding_id + r.rule_id} className="border-t border-slate-100 align-top" data-testid={`stig-rule-${r.vuln_id}`}>
-          <td className="py-1 font-mono">{r.vuln_id}</td><td className="py-1 font-mono text-[11px]">{r.rule_id}</td><td className="py-1">{r.title}</td><td className="py-1">{r.severity}</td>
-          <td className="py-1" title={STATUS_TIP[r.status]}>{r.status}</td><td className="max-w-[260px] py-1 text-[11px]">{r.finding_details}</td><td className="max-w-[200px] py-1 text-[11px]">{r.comments}</td></tr>)}</tbody></table></div>
+        <tbody>{rows.map((r: Row) => <Fragment key={r.finding_id + r.rule_id}><tr className="cursor-pointer border-t border-slate-100 align-top hover:bg-slate-50" onClick={() => setOpen(open === r.finding_id ? null : r.finding_id)} data-testid={`stig-rule-${r.vuln_id}`}>
+          <td className="py-1 font-mono">{r.vuln_id}</td><td className="py-1 font-mono text-[11px]">{r.rule_id}</td><td className="py-1">{r.title}{(r.edited || []).length > 0 && <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-900" data-testid={`stig-edited-${r.vuln_id}`}>edited in app: {r.edited.join(", ")}</span>}</td><td className="py-1">{r.severity}</td>
+          <td className="py-1" title={STATUS_TIP[r.status]}>{r.status}</td><td className="max-w-[260px] py-1 text-[11px]">{r.finding_details}</td><td className="max-w-[200px] py-1 text-[11px]">{r.comments}</td></tr>
+          {open === r.finding_id && <tr data-testid={`stig-rule-detail-${r.vuln_id}`}><td colSpan={7} className="bg-slate-50 p-2 text-[11px]">
+            {!r.source ? <div className="text-rose-700">The source file could not be re-read – only the stored record is shown.</div> : <div className="grid gap-2 md:grid-cols-2">
+              <div><div className="font-semibold">From the uploaded checklist (original, read-only)</div>
+                {[["STIG ID", r.source.stig_id], ["Group title", r.source.group_title], ["Rule version", r.source.rule_version], ["Legacy IDs", r.source.legacy_ids], ["Status", r.source.source_status ?? r.source.status],
+                  ["Severity", r.source.source_severity ?? r.source.severity], ["Severity override", r.source.severity_override], ["Override justification", r.source.severity_justification], ["CCIs", (r.source.ccis || []).join(", ")]]
+                  .filter(([, v]) => v).map(([k, v]) => <div key={k}><span className="text-slate-500">{k}:</span> {v}</div>)}
+                {[["Discussion", r.source.discussion], ["Check text", r.source.check_content], ["Fix text", r.source.fix_text]].map(([k, v]) => <details key={k} className="mt-1"><summary className="cursor-pointer text-slate-600">{k}</summary><pre className="whitespace-pre-wrap">{v || "Not present in the source file"}</pre></details>)}
+              </div>
+              <div><div className="font-semibold">Current record in the app</div><div>Title: {r.title}</div><div>Severity: {r.severity}</div><div>Finding state: {r.current_state}</div>
+                {(r.edited || []).length ? <div className="mt-1 text-amber-800">Differs from the source file: {r.edited.join(", ")}</div> : <div className="mt-1 text-emerald-700">Matches the source file.</div>}</div>
+            </div>}</td></tr>}</Fragment>)}</tbody></table></div>
     </Panel>);
 }

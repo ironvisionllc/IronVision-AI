@@ -152,15 +152,20 @@ def detect(data: bytes, min_score: int = 3) -> dict:
         if re.search(r"[dy]", fmt or "", re.I) and fmt != "General":
             date_fmt, date_write = fmt, "serial"
     limits = {r: _limits(ws, column_index_from_string(c)) for r, c in roles.items() if r in RESULT_ROLES}
-    rows = []
+    rows, skipped = [], []
     for r in range(hr + 1, ws.max_row + 1):
         vals = {role: ws[f"{c}{r}"].value for role, c in roles.items() if role in ID_ROLES}
         if any(v not in (None, "") for k, v in vals.items() if k in ("ap_acronym", "cci", "control_acronym")):
             rows.append({"row": r, **{k: (str(v).strip() if v is not None else None) for k, v in vals.items()}})
+        elif any(ws.cell(r, c).value not in (None, "") for c in range(1, ws.max_column + 1)):
+            skipped.append({"row": r, "reason": "Row has values but no AP Acronym, CCI or Control Acronym – not imported"})
+    warnings = ([] if rows else [f"No data rows under the header row {hr} on '{ws.title}' – the workbook is a blank template"]) + \
+               ([f"{len(skipped)} row(s) with values but no AP Acronym / CCI / Control Acronym were not imported (rows "
+                 + ", ".join(str(x["row"]) for x in skipped[:10]) + ("…" if len(skipped) > 10 else "") + ")"] if skipped else [])
     fp = hashlib.sha256("|".join([ws.title, str(hr)] + [f"{x['col']}={norm(x['header'])}" for x in cols]).encode()).hexdigest()
     return {"sheets": sheets, "sheet": ws.title, "header_row": hr, "columns": cols, "roles": roles, "fingerprint": fp,
             "vocabulary": {"compliance_status": vocab, "source": vsrc}, "date_format": date_fmt, "date_write": date_write, "limits": limits,
-            "rows": rows, "last_row": ws.max_row, "readonly_cols": [x["col"] for x in cols if x["group"] == "readonly"]}
+            "rows": rows, "skipped_rows": skipped, "warnings": warnings, "last_row": ws.max_row, "readonly_cols": [x["col"] for x in cols if x["group"] == "readonly"]}
 
 
 def sheet_part(z: zipfile.ZipFile, title: str) -> str:

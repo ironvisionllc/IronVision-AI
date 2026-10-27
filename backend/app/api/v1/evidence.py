@@ -341,16 +341,25 @@ def run_stig_detail(run_id: uuid.UUID, request: Request, db: Session = Depends(g
                      .where(FindingObservation.ingest_run_id == target)).all()
     rules = [{"finding_id": str(f.id), "vuln_id": f.vuln_id, "rule_id": f.rule_id, "title": f.title, "severity": CAT_LABEL.get((f.severity or "").lower(), f.cat or f.severity),
               "status": STATUS_LABEL.get(o.observed_status, o.observed_status), "finding_details": (o.raw or {}).get("finding_details"),
-              "comments": (o.raw or {}).get("comments"), "ccis": f.ccis or []} for o, f in obs]
+              "comments": (o.raw or {}).get("comments"), "ccis": f.ccis or [], "current_state": f.current_state} for o, f in obs]
     ev = db.get(Evidence, run.evidence_id) if run.evidence_id else None
-    header, source_rules = {}, None
+    header, source_rules, src_by_rule = {}, None, {}
     if ev is not None:
         try:
             data = get_storage().get(ev.storage_key)
             header = stig_header(run.file_format, data)
-            source_rules = len(PARSERS[run.file_format](data))
+            parsed = PARSERS[run.file_format](data)
+            source_rules = len(parsed)
+            src_by_rule = {x.get("rule_id"): x for x in parsed}
         except Exception:  # noqa: BLE001 – file unreadable: report it instead of failing the page
-            header = {}
+            header, src_by_rule = {}, {}
+    for r, (o, f) in zip(rules, obs):
+        x = src_by_rule.get(r["rule_id"])
+        # original values from the uploaded file (re-parsed now, so older imports show them too) vs. the app's current record
+        r["source"] = ({"title": x.get("title"), "severity": CAT_LABEL.get((x.get("severity") or "").lower(), x.get("cat")),
+                        "status": STATUS_LABEL.get(x.get("status"), x.get("status")), **(x.get("raw") or {}), "ccis": x.get("ccis")} if x else None)
+        r["edited"] = [k for k in ("title", "severity") if x and r["source"].get(k) and r[k] != r["source"][k]] + \
+                      (["state"] if f.current_state not in ("open", None) and (x or {}).get("status") == "open" else [])
     return {"run": {"id": str(run.id), "file_name": run.file_name, "file_format": run.file_format, "received_at": run.received_at.isoformat() if run.received_at else None},
             "header": header or {"title": obs[0][1].benchmark if obs else None},
             "rules": sorted(rules, key=lambda r: (r["status"] != "Open", r["severity"] or "", r["vuln_id"] or "")),

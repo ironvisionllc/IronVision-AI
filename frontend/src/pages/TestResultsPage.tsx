@@ -43,6 +43,7 @@ function Mapping({ wb, reload }: { wb: Row; reload: () => void }) {
   const tpl = async () => { try { const r = await api.post<Row>(`/tr/workbooks/${wb.id}/template`, { name }); toast.success(`Saved template “${r.data.name}” v${r.data.version} – the next upload with this layout applies it automatically`); reload(); } catch (e) { toast.error(errorMessage(e)); } };
   return (<div className="rounded border border-slate-200 p-3" data-testid="tr-mapping">
     <div className="mb-1 text-sm font-medium">1 · Columns detected on sheet “{det.sheet}”, header row {det.header_row}</div>
+    {(det.warnings || []).map((w: string, i: number) => <div key={i} className="mb-1 rounded bg-amber-50 p-1.5 text-[12px] text-amber-900" role="alert" data-testid={`tr-detect-warning-${i}`}>{w}</div>)}
     <div className="mb-2 text-[12px] text-slate-600">Results are written only to the “Enter Test Results Here” columns; read-only eMASS columns are never changed. Allowed Compliance Status values: <b>{(wb.definition?.vocabulary?.compliance_status || []).join(", ")}</b> <span className="text-slate-500">(from {wb.definition?.vocabulary?.source})</span>. Dates: {wb.definition?.date_format}.</div>
     <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>Col</th><th>Header</th><th>Section</th><th>Role</th></tr></thead><tbody>
       {(det.columns || []).map((c: Row) => <tr key={c.col} className="border-t border-slate-100" data-testid={`tr-col-${c.col}`}><td className="font-mono">{c.col}</td><td>{c.header}</td>

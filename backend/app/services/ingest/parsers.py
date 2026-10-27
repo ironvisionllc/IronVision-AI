@@ -87,7 +87,11 @@ def _stig_record(host, ip, bench, bench_ver, rule: dict) -> dict:
             "rule_id": rule.get("rule_id"), "vuln_id": rule.get("vuln_id"), "title": rule.get("title") or rule.get("rule_id"),
             "severity": sev, "cat": CAT.get(sev), "status": status, "ccis": rule.get("ccis", []), "cves": [],
             "plugin_id": None, "port": None, "protocol": None, "component": None,
-            "raw": {k: rule.get(k) for k in ("finding_details", "comments", "rule_version")}}
+            "raw": {k: rule.get(k) for k in SOURCE_KEYS if rule.get(k) not in (None, "")}}
+
+
+SOURCE_KEYS = ("finding_details", "comments", "rule_version", "discussion", "check_content", "fix_text", "group_title", "stig_id",
+               "severity_override", "severity_justification", "source_status", "source_severity", "legacy_ids")
 
 
 def parse_ckl(data: bytes) -> list[dict]:
@@ -99,19 +103,30 @@ def parse_ckl(data: bytes) -> list[dict]:
         info = {s.findtext("SID_NAME"): s.findtext("SID_DATA") for s in istig.iterfind("STIG_INFO/SI_DATA")}
         for vuln in istig.iterfind("VULN"):
             attrs: dict = {}
-            ccis = []
+            ccis, legacy = [], []
             for sd in vuln.iterfind("STIG_DATA"):
                 k, v = sd.findtext("VULN_ATTRIBUTE"), sd.findtext("ATTRIBUTE_DATA")
                 if k == "CCI_REF":
                     ccis.append(v)
+                elif k == "LEGACY_ID":
+                    legacy.append(v)
                 else:
                     attrs[k] = v
             out.append(_stig_record(host, ip, info.get("title") or info.get("stigid"), info.get("version"), {
                 "rule_id": attrs.get("Rule_ID"), "vuln_id": attrs.get("Vuln_Num"), "title": attrs.get("Rule_Title"),
                 "severity": attrs.get("Severity"), "status": vuln.findtext("STATUS"), "ccis": ccis,
                 "finding_details": vuln.findtext("FINDING_DETAILS"), "comments": vuln.findtext("COMMENTS"),
-                "rule_version": attrs.get("Rule_Ver")}))
+                "rule_version": attrs.get("Rule_Ver"), "discussion": attrs.get("Vuln_Discuss"), "check_content": attrs.get("Check_Content"),
+                "fix_text": attrs.get("Fix_Text"), "group_title": attrs.get("Group_Title"), "stig_id": info.get("stigid"),
+                "severity_override": vuln.findtext("SEVERITY_OVERRIDE"), "severity_justification": vuln.findtext("SEVERITY_JUSTIFICATION"),
+                "source_status": vuln.findtext("STATUS"), "source_severity": attrs.get("Severity"),
+                "legacy_ids": ", ".join(x for x in legacy if x) or None}))
     return out
+
+
+def _ovr(r: dict, k: str):
+    o = (r.get("overrides") or {}).get("severity") if isinstance(r.get("overrides"), dict) else None
+    return o.get(k) if isinstance(o, dict) else None
 
 
 def parse_cklb(data: bytes) -> list[dict]:
@@ -128,7 +143,12 @@ def parse_cklb(data: bytes) -> list[dict]:
                                         "rule_id": r.get("rule_id"), "vuln_id": r.get("group_id"), "title": r.get("rule_title"),
                                         "severity": r.get("severity"), "status": r.get("status"), "ccis": r.get("ccis", []),
                                         "finding_details": r.get("finding_details"), "comments": r.get("comments"),
-                                        "rule_version": r.get("rule_version")}))
+                                        "rule_version": r.get("rule_version"), "discussion": r.get("discussion"),
+                                        "check_content": r.get("check_content"), "fix_text": r.get("fix_text"), "group_title": r.get("group_title"),
+                                        "stig_id": stig.get("stig_id"), "severity_override": _ovr(r, "severity"),
+                                        "severity_justification": _ovr(r, "reason"),
+                                        "source_status": r.get("status"), "source_severity": r.get("severity"),
+                                        "legacy_ids": ", ".join(r.get("legacy_ids") or []) or None}))
     return out
 
 
