@@ -46,9 +46,37 @@ def table(rows: list[dict]) -> str:
     return "\n".join(out)
 
 
+def ra_rows() -> list[dict]:
+    from score_ra import score as sra
+    out = []
+    for lab in ("ra_vcurrent_first", "ra_v_current_first", "ra_v_current_repeat", "ra_v_current_incr", "ra_v2_first", "ra_v2_repeat", "ra_v2_repeat2", "ra_v2_repeat3", "ra_v2_incr"):
+        f = RUNS / f"{lab}.json"
+        if not f.exists():
+            continue
+        r = json.loads(f.read_text())
+        calls = r["ai_calls"]
+        tin, tout = sum(v["input_tokens"] for v in calls.values()), sum(v["output_tokens"] for v in calls.values())
+        s = sra(lab)
+        out.append({**{k: s[k] for k in ("label", "analyzer", "wall_s", "precision_addressed", "recall_addressed", "exact_label_agreement",
+                                         "false_gaps_on_met", "gold_gaps_flagged", "citation_validity", "review_items", "possible_related_not_proposed",
+                                         "violation_free")},
+                    "ai_calls": sum(v["n"] for v in calls.values()), "input_tokens": tin, "output_tokens": tout,
+                    "cost_usd": round(tin / 1e6 * PIN + tout / 1e6 * POUT, 3), "violations": s["violations"]})
+    return out
+
+
+def ra_table(rows: list[dict]) -> str:
+    cols = ["label", "analyzer", "wall_s", "ai_calls", "input_tokens", "output_tokens", "cost_usd", "precision_addressed", "recall_addressed",
+            "exact_label_agreement", "false_gaps_on_met", "gold_gaps_flagged", "citation_validity", "review_items", "possible_related_not_proposed", "violation_free"]
+    return "\n".join(["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)] + ["| " + " | ".join(str(r.get(c, "")) for c in cols) + " |" for r in rows])
+
+
 if __name__ == "__main__":
     base = [x for x in (summ(f"base_{n}") for n in ("p20", "p100", "p284", "neg_ra", "neg_unrel")) if x]
-    v2 = [x for x in (summ(f.stem) for f in sorted(RUNS.glob("v2_*.json"))) if x]
+    v2 = [x for x in (summ(f.stem) for f in sorted(list(RUNS.glob("v2_*.json")) + list(RUNS.glob("final_v2_*.json")))) if x]
+    ra = ra_rows()
     (OUT / "policy_auditor_baseline.json").write_text(json.dumps(base, indent=1))
     (OUT / "policy_auditor_benchmarks.json").write_text(json.dumps(v2, indent=1))
-    print("## Baseline (analyzer v-current)\n\n" + table(base) + "\n\n## Analyzer v2\n\n" + table(v2))
+    (OUT / "policy_auditor_ra_benchmark.json").write_text(json.dumps(ra, indent=1))
+    print("## Baseline (analyzer v-current)\n\n" + table(base) + "\n\n## Analyzer v2\n\n" + table(v2)
+          + "\n\n## RA UAT policy (gold-labelled, 156 requirements)\n\n" + ra_table(ra))

@@ -3,9 +3,9 @@
 "corpus": "p20_ac",
 "analyzer": "v2",
 "workers": 16,
-"policy_id": "d99cb3a4-c75f-4771-b984-84d2f4b5e067",
-"started": "2026-10-27T13:42:23.775674+00:00",
-"wall_s": 13.4,
+"policy_id": "c5287853-cfb3-4c92-aee9-58f0d3ef0bb2",
+"started": "2026-10-27T14:04:06.618962+00:00",
+"wall_s": 21.4,
 "result": {
 "proposed_findings": 0,
 "ai": "AI anthropic/claude-sonnet-5.5"
@@ -18,61 +18,61 @@
 "ai_controls": 19,
 "verify_write": 0.04,
 "ai_prefetched": 19,
-"deterministic": 0.04,
-"store_and_coverage": 0.15,
-"policy_audit_ai_concurrent": 7.21,
-"coverage_ai_prefetch_and_audit_join": 13.03
+"deterministic": 0.03,
+"store_and_coverage": 0.13,
+"policy_audit_ai_concurrent": 7.81,
+"coverage_ai_prefetch_and_audit_join": 21.09
 },
 "v2": {
-"ai_s": 12.75,
-"calls": 7,
-"batches": 28,
+"ai_s": 20.85,
+"calls": 2,
+"batches": 6,
 "reasked": 0,
 "retries": 0,
 "workers": 16,
 "examined": 149,
 "sections": 21,
 "truncated": 0,
-"cache_hits": 21,
-"screening_s": 0.03,
+"cache_hits": 4,
+"screening_s": 0.01,
 "not_examined": 0,
 "requirements": 149,
 "invalid_items": 0,
 "failed_batches": 0,
 "rate_limit_wait_s": 0.0,
 "verification_found": 0,
-"reused_requirements": 96,
+"reused_requirements": 99,
 "verification_sample": 0,
 "citation_section_fixed": 0
 },
 "ai_calls": {
-"policy.coverage_refine": {
-"n": 7,
-"p50_ms": 4897,
-"p95_ms": 12725,
-"input_tokens": 25791,
-"output_tokens": 6845,
+"policy.audit": {
+"n": 1,
+"p50_ms": 7765,
+"p95_ms": 7765,
+"input_tokens": 3778,
+"output_tokens": 933,
 "status": {
-"completed": 7
+"completed": 1
 },
 "model": "anthropic/claude-sonnet-5.5"
 },
-"policy.audit": {
-"n": 1,
-"p50_ms": 7172,
-"p95_ms": 7172,
-"input_tokens": 3778,
-"output_tokens": 903,
+"policy.coverage_refine": {
+"n": 2,
+"p50_ms": 20828,
+"p95_ms": 20828,
+"input_tokens": 7796,
+"output_tokens": 6637,
 "status": {
-"completed": 1
+"completed": 2
 },
 "model": "anthropic/claude-sonnet-5.5"
 }
 },
 "db": {
-"queries": 541,
-"query_s": 0.21,
-"pool_checkouts": 60
+"queries": 476,
+"query_s": 0.1,
+"pool_checkouts": 20
 },
 "idle_in_transaction_before_after": [
 0,
@@ -80,8 +80,8 @@
 ],
 "coverage_rows": 185,
 "status_counts": {
-"partial": 103,
-"met": 82
+"met": 79,
+"partial": 106
 },
 "rows": [
 {
@@ -499,7 +499,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for each account.",
 "location": "p. 1",
-"reason": "The policy states account, create, disable, in accordance, develop doc. AI disagrees (partial): Account lifecycle actions are stated, but no actual procedures are identified; only a time value that does not name any procedure. \u2013 review needed.",
+"reason": "The policy states account, create, disable, in accordance, develop doc. AI disagrees (partial): Procedures are said to be defined but not given; time values conflict. \u2013 review needed.",
 "needs": null
 },
 {
@@ -510,7 +510,7 @@
 "confidence": "Low",
 "quote": "The organization reviews this section after every significant change.",
 "location": "p. 1",
-"reason": "The policy states review analyze, account, develop doc. AI disagrees (partial): Account review is stated, but the value given is roles (ISSO and ISSM), not a review frequency. \u2013 review needed.",
+"reason": "The policy states review analyze, account, develop doc. AI disagrees (partial): Review required, but no frequency; only roles named. \u2013 review needed.",
 "needs": null
 },
 {
@@ -521,7 +521,7 @@
 "confidence": "Low",
 "quote": "The organization reviews this section after every significant change.",
 "location": "p. 1",
-"reason": "The policy states review analyze, account, develop doc. AI disagrees (missing): No section ties a defined frequency to reviewing accounts; the stray '90 days' text is not linked to account review. \u2013 review needed.",
+"reason": "The policy states review analyze, account, develop doc. AI disagrees (missing): No clear review frequency stated; '90 days' is attached to an unrelated statement. \u2013 review needed.",
 "needs": null
 },
 {
@@ -609,7 +609,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the procedures to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
 "location": "p. 1",
-"reason": "The policy states account, create, disable, develop doc. AI disagrees (partial): Policy says procedures are defined but does not state or reference the actual procedures. \u2013 review needed.",
+"reason": "The policy states account, create, disable, develop doc. AI disagrees (partial): States procedures are defined but gives no procedures. \u2013 review needed.",
 "needs": null
 },
 {
@@ -631,7 +631,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that notify account managers and as determined by the organization-defined time-period when users are terminated or transferred.",
 "location": "p. 1",
-"reason": "The policy states account manager, personnel, account, notify, develop doc. AI disagrees (partial): Notification of account managers when accounts are no longer required is stated, but the time period is garbled (\"three attempts\") and no personnel or roles are specified. \u2013 review needed.",
+"reason": "The policy states account manager, personnel, account, notify, develop doc. AI disagrees (partial): Notification stated, but personnel and time period are nonsensical values. \u2013 review needed.",
 "needs": null
 },
 {
@@ -642,7 +642,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that notify account managers and as determined by the organization-defined time-period when users are terminated or transferred.",
 "location": "p. 1",
-"reason": "The policy states account manager, personnel, account, notify, termination, transfer, develop doc. AI disagrees (partial): Notification upon termination or transfer is stated, but the time period is left as \"as determined by the organization\" with no concrete value. \u2013 review needed.",
+"reason": "The policy states account manager, personnel, account, notify, termination, transfer, develop doc. AI disagrees (partial): Notification stated, but personnel and time period left undefined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -653,7 +653,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the personnel or roles of whom to notify when accounts are no longer required; when users are terminated or transferred; and when system usage or need-to-know changes for an individual.",
 "location": "p. 1",
-"reason": "The policy states account manager, change refresh, personnel, account, notify, develop doc. AI disagrees (partial): Policy says personnel or roles to notify on usage or need-to-know changes are defined, but gives no actual roles, no time period, and no explicit notification statement. \u2013 review needed.",
+"reason": "The policy states account manager, change refresh, personnel, account, notify, develop doc. AI disagrees (partial): Need-to-know change notification mentioned, but no personnel or time period given. \u2013 review needed.",
 "needs": null
 },
 {
@@ -664,7 +664,7 @@
 "confidence": "Medium",
 "quote": "The organization ensures that authorize access to the system based on a valid access authorization.",
 "location": "p. 1",
-"reason": "AI-verified quote: The policy explicitly states that access is authorized based on a valid access authorization.",
+"reason": "AI-verified quote: Access authorization based on valid authorization is stated.",
 "needs": null
 },
 {
@@ -675,7 +675,7 @@
 "confidence": "Medium",
 "quote": "The organization ensures that authorize access to the system based on intended system usage.",
 "location": "p. 1",
-"reason": "AI-verified quote: The policy explicitly states that access is authorized based on intended system usage.",
+"reason": "AI-verified quote: Access authorization based on intended usage is stated.",
 "needs": null
 },
 {
@@ -686,7 +686,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc, when required. AI disagrees (partial): Attributes for authorizing access are mentioned only generically; no meaningful organization-defined attribute values are given. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc, when required. AI disagrees (partial): Attribute-based authorization stated, but the value is not a meaningful attribute. \u2013 review needed.",
 "needs": null
 },
 {
@@ -730,18 +730,18 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the prerequisites and criteria for group and role membership.",
 "location": "p. 1",
-"reason": "The policy states membership, develop doc. AI disagrees (partial): Role membership prerequisites are required, but the criteria are left as 'as determined by the organization' with no specific values. \u2013 review needed.",
+"reason": "The policy states membership, develop doc. AI disagrees (partial): Role membership criteria required but not actually specified. \u2013 review needed.",
 "needs": null
 },
 {
 "control_id": "ac-2",
 "requirement_id": "CCI-003615",
-"status": "met",
-"source": "deterministic",
-"confidence": "Medium",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
 "quote": "The organization ensures that defines the prerequisites and criteria for group and role membership.",
 "location": "p. 1",
-"reason": "The policy states membership, develop doc.",
+"reason": "The policy states membership, develop doc. AI disagrees (partial): States prerequisites and criteria are defined, but none given. \u2013 review needed.",
 "needs": null
 },
 {
@@ -763,7 +763,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for each account.",
 "location": "p. 1",
-"reason": "The policy states account, create, disable, in accordance, develop doc. AI disagrees (partial): Account lifecycle actions are stated, but the policy value is only 'as determined by the organization' and is not specified. \u2013 review needed.",
+"reason": "The policy states account, create, disable, in accordance, develop doc. AI disagrees (partial): Account lifecycle stated, but the policy value is only 'as determined by the organization'. \u2013 review needed.",
 "needs": null
 },
 {
@@ -774,7 +774,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for each account.",
 "location": "p. 1",
-"reason": "The policy states account, create, disable, in accordance, develop doc. AI disagrees (partial): Lifecycle actions are stated, but the criteria value ('15 minutes') is not a meaningful criterion. \u2013 review needed.",
+"reason": "The policy states account, create, disable, in accordance, develop doc. AI disagrees (partial): Lifecycle stated, but no concrete criteria are given. \u2013 review needed.",
 "needs": null
 },
 {
@@ -785,51 +785,51 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for each account.",
 "location": "p. 1",
-"reason": "The policy states account, create, disable, in accordance, develop doc. AI disagrees (partial): Lifecycle actions are stated, but the prerequisites are left undefined as 'as determined by the organization'. \u2013 review needed.",
+"reason": "The policy states account, create, disable, in accordance, develop doc. AI disagrees (partial): Lifecycle stated, but no concrete prerequisites are given. \u2013 review needed.",
 "needs": null
 },
 {
 "control_id": "ac-2",
 "requirement_id": "CCI-003620",
-"status": "met",
-"source": "deterministic",
-"confidence": "High",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
 "quote": "The organization ensures that defines the procedures to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
 "location": "p. 1",
-"reason": "The policy states account, create, disable, develop doc.",
+"reason": "The policy states account, create, disable, develop doc. AI disagrees (partial): Says the policy is defined but gives no actual content. \u2013 review needed.",
 "needs": null
 },
 {
 "control_id": "ac-2",
 "requirement_id": "CCI-003621",
-"status": "met",
-"source": "deterministic",
-"confidence": "High",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
 "quote": "The organization ensures that defines the procedures to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
 "location": "p. 1",
-"reason": "The policy states account, create, disable, develop doc.",
+"reason": "The policy states account, create, disable, develop doc. AI disagrees (partial): Says prerequisites are defined but lists none. \u2013 review needed.",
 "needs": null
 },
 {
 "control_id": "ac-2",
 "requirement_id": "CCI-003622",
-"status": "met",
-"source": "deterministic",
-"confidence": "High",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
 "quote": "The organization ensures that defines the procedures to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
 "location": "p. 1",
-"reason": "The policy states account, create, disable, develop doc.",
+"reason": "The policy states account, create, disable, develop doc. AI disagrees (partial): Says criteria are defined but lists none. \u2013 review needed.",
 "needs": null
 },
 {
 "control_id": "ac-2",
 "requirement_id": "CCI-003623",
-"status": "met",
-"source": "deterministic",
-"confidence": "High",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
 "quote": "The organization ensures that defines the personnel or roles of whom to notify when accounts are no longer required; when users are terminated or transferred; and when system usage or need-to-know changes for an individual.",
 "location": "p. 1",
-"reason": "The policy states change refresh, personnel, account, notify, termination, transfer, develop doc.",
+"reason": "The policy states change refresh, personnel, account, notify, termination, transfer, develop doc. AI disagrees (partial): Account managers named as notified; the roles are not clearly defined for each situation. \u2013 review needed.",
 "needs": null
 },
 {
@@ -840,7 +840,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that notify account managers and three attempts-defined time-period when accounts are no longer required.",
 "location": "p. 1",
-"reason": "The policy states account manager, account, notify, develop doc. AI disagrees (partial): Restates the requirement to define notification time periods, but the actual values are vague (\"as determined by the organization\", \"three attempts\") rather than specified. \u2013 review needed.",
+"reason": "The policy states account manager, account, notify, develop doc. AI disagrees (partial): 24 hours given for one case; others are 'as determined by the organization'. \u2013 review needed.",
 "needs": null
 },
 {
@@ -851,7 +851,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc, when required. AI disagrees (partial): States attributes are to be defined for authorizing access but names no actual attributes. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc, when required. AI disagrees (partial): Attributes mentioned only generically; no specific attributes are defined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -928,7 +928,7 @@
 "confidence": "Medium",
 "quote": "The organization ensures that group and role membership are specified;.",
 "location": "p. 1",
-"reason": "AI-verified quote: Explicitly states group and role membership are specified.",
+"reason": "AI-verified quote: Specifying group and role membership is explicitly stated.",
 "needs": null
 },
 {
@@ -961,7 +961,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that require approvals by as determined by the organization.",
 "location": "p. 1",
-"reason": "The policy states account, approval, create. AI disagrees (partial): Requires approvals but personnel or roles are only given as \"as determined by the organization\", not named. \u2013 review needed.",
+"reason": "The policy states account, approval, create. AI disagrees (partial): Approvals required but approving roles are not identified. \u2013 review needed.",
 "needs": null
 },
 {
@@ -972,7 +972,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that create, enable, modify, disable, and remove system accounts in accordance with within 24 hours.",
 "location": "p. 1",
-"reason": "The policy states account, create, in accordance. AI disagrees (missing): No section states that accounts are created in accordance with policy, procedures, prerequisites, or criteria; the AC-2 account creation requirement is not addressed. \u2013 review needed.",
+"reason": "The policy states account, create, in accordance. AI disagrees (partial): Creation tied to ISSO/ISSM; policy, prerequisites, criteria not specified. \u2013 review needed.",
 "needs": null
 },
 {
@@ -983,7 +983,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that create, enable, modify, disable, and remove system accounts in accordance with within 24 hours.",
 "location": "p. 1",
-"reason": "The policy states account, in accordance. AI disagrees (missing): No retrieved section states that accounts are enabled per policy, procedures, prerequisites, or criteria; AC-1 and AC-2(1) text does not address account enabling. \u2013 review needed.",
+"reason": "The policy states account, in accordance. AI disagrees (partial): Enabling covered generically; no specific policy or criteria. \u2013 review needed.",
 "needs": null
 },
 {
@@ -994,7 +994,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that create, enable, modify, disable, and remove system accounts in accordance with within 24 hours.",
 "location": "p. 1",
-"reason": "The policy states account, in accordance. AI disagrees (missing): No section addresses modifying accounts per policy, procedures, prerequisites, and criteria; AC-1 and AC-2(1) text covers only general policy and automated account management. \u2013 review needed.",
+"reason": "The policy states account, in accordance. AI disagrees (partial): Modification stated but governing values left undefined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1005,7 +1005,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that create, enable, modify, disable, and remove system accounts in accordance with within 24 hours.",
 "location": "p. 1",
-"reason": "The policy states account, disable, in accordance. AI disagrees (partial): Disabling criteria are stated (expired, inactive, no longer associated, policy violation), but no explicit disabling in accordance with defined policy, procedures, or prerequisites; values are garbled \u2013 review needed.",
+"reason": "The policy states account, disable, in accordance. AI disagrees (partial): Disabling covered generically; no specific policy or criteria. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1016,7 +1016,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that create, enable, modify, disable, and remove system accounts in accordance with within 24 hours.",
 "location": "p. 1",
-"reason": "The policy states account, in accordance. AI disagrees (missing): No retrieved section addresses removal of accounts per policy, procedures, prerequisites, and criteria; only AC-1 and AC-2(1) text appears, with no account removal statement. \u2013 review needed.",
+"reason": "The policy states account, in accordance. AI disagrees (partial): Removal stated but governing values left undefined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1038,7 +1038,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that account managers and within 24 hours are notified within within 24 hours when accounts are no longer required;.",
 "location": "p. 1",
-"reason": "The policy states account manager, account, notify, an organization-defined value. AI disagrees (partial): Notification within 24 hours is stated, but the additional personnel or roles are not actually identified (garbled text). \u2013 review needed.",
+"reason": "The policy states account manager, account, notify, an organization-defined value. AI disagrees (partial): Notification stated with 24 hours, but personnel or roles value is garbled. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1049,7 +1049,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that account managers and within 24 hours are notified within within 24 hours when accounts are no longer required;.",
 "location": "p. 1",
-"reason": "The policy states account manager, personnel, account, notify, termination, transfer, an organization-defined value. AI disagrees (partial): Notification on termination or transfer is stated, but roles and time period are left undefined as 'as determined by the organization'. \u2013 review needed.",
+"reason": "The policy states account manager, personnel, account, notify, termination, transfer, an organization-defined value. AI disagrees (partial): Notification stated but roles and time period are not concrete. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1069,9 +1069,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that access to the system is authorized based on a valid access authorization;.",
+"quote": "access to the system is authorized based on a valid access authorization;",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states access is authorized based on a valid access authorization.",
+"reason": "AI-verified quote: Access authorization based on valid access authorization is stated.",
 "needs": null
 },
 {
@@ -1080,9 +1080,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that authorize access to the system based on intended system usage.",
+"quote": "authorize access to the system based on intended system usage.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states access is authorized based on intended system usage.",
+"reason": "AI-verified quote: Authorization based on intended system usage is stated.",
 "needs": null
 },
 {
@@ -1126,7 +1126,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that a process is established for changing shared or group account authenticators (if deployed) when individuals are removed from the group;.",
 "location": "p. 1",
-"reason": "The policy states account type, authenticator, change refresh, account, group role accounts. AI disagrees (partial): The process is stated as established, but implementation of the process is not explicitly stated. \u2013 review needed.",
+"reason": "The policy states account type, authenticator, change refresh, account, group role accounts. AI disagrees (partial): Process is established; implementation cannot be shown by policy text. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1159,7 +1159,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the procedures to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
 "location": "p. 1",
-"reason": "The policy states account, develop doc. AI disagrees (partial): Management of system accounts support is stated, but the automated mechanism is a nonsensical value ('every 90 days'), not an actual mechanism. \u2013 review needed.",
+"reason": "The policy states account, develop doc. AI disagrees (partial): Support stated, but no automated mechanisms are defined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1181,7 +1181,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the time period within which the accounts of users posing a significant risk are to be disabled after discovery of the risk.",
 "location": "p. 1",
-"reason": "The policy states personnel, account, disable, develop doc. AI disagrees (partial): The policy says a time period is defined but gives no actual value. \u2013 review needed.",
+"reason": "The policy states personnel, account, disable, develop doc. AI disagrees (partial): Says a period is defined but gives no specific value. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1192,7 +1192,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the procedures to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
 "location": "p. 1",
-"reason": "The policy states account, disable, develop doc. AI disagrees (partial): Disabling on discovery is stated, but the time period and risks are only 'as determined by the organization', not specified. \u2013 review needed.",
+"reason": "The policy states account, disable, develop doc. AI disagrees (partial): Disabling stated, but time and risks are left undefined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1203,7 +1203,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the procedures to be employed when creating, enabling, modifying, disabling, and removing information system accounts.",
 "location": "p. 1",
-"reason": "The policy states account, disable, develop doc. AI disagrees (partial): States that significant risks are defined but lists none. \u2013 review needed.",
+"reason": "The policy states account, disable, develop doc. AI disagrees (partial): Says risks are defined but lists none. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1214,7 +1214,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that create, enable, modify, disable, and remove system accounts in accordance with within 24 hours.",
 "location": "p. 1",
-"reason": "The policy states account, disable, an organization-defined value. AI disagrees (partial): Both the time period and the significant risks are left undefined ('as determined by the organization'). \u2013 review needed.",
+"reason": "The policy states account, disable, an organization-defined value. AI disagrees (partial): Placeholder 'as determined by the organization' instead of concrete values. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1225,7 +1225,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that automatically remove or disable temporary and emergency accounts after an as determined by the organization-period for each type of account.",
 "location": "p. 1",
-"reason": "The policy states account type, account, disable, develop doc. AI disagrees (partial): Automatic removal or disabling is stated, but the time period is not specified. \u2013 review needed.",
+"reason": "The policy states account type, account, disable, develop doc. AI disagrees (partial): Automatic removal stated but time period undefined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1236,7 +1236,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines a time period after which temporary accounts are automatically terminated.",
 "location": "p. 1",
-"reason": "The policy states account type, account, termination, develop doc. AI disagrees (partial): Says a time period is defined for temporary accounts but gives no value. \u2013 review needed.",
+"reason": "The policy states account type, account, termination, develop doc. AI disagrees (partial): States a time period is defined but gives no value. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1247,7 +1247,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines a time period after which temporary accounts are automatically terminated.",
 "location": "p. 1",
-"reason": "The policy states account type, account, termination, develop doc. AI disagrees (partial): Says a time period is defined for emergency accounts but gives no value. \u2013 review needed.",
+"reason": "The policy states account type, account, termination, develop doc. AI disagrees (partial): States a time period is defined but gives no value. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1258,7 +1258,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that automatically remove or disable temporary and emergency accounts after an as determined by the organization-period for each type of account.",
 "location": "p. 1",
-"reason": "The policy states account type, account, disable, develop doc. AI disagrees (partial): Automatic removal or disabling covers emergency accounts, but the time period is left undefined. \u2013 review needed.",
+"reason": "The policy states account type, account, disable, develop doc. AI disagrees (partial): Automatic removal stated but time period undefined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1275,12 +1275,12 @@
 {
 "control_id": "ac-2.3",
 "requirement_id": "CCI-000017",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
+"status": "met",
+"source": "deterministic",
+"confidence": "High",
 "quote": "The organization ensures that defines a time period after which inactive accounts are automatically disabled.",
 "location": "p. 1",
-"reason": "The policy states inactivity, account, disable, develop doc. AI disagrees (partial): Disabling inactive accounts is stated, but the period value is garbled ('every 90 days') and not clearly defined. \u2013 review needed.",
+"reason": "The policy states inactivity, account, disable, develop doc.",
 "needs": null
 },
 {
@@ -1291,7 +1291,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines a time period after which inactive accounts are automatically disabled.",
 "location": "p. 1",
-"reason": "The policy states inactivity, account, disable, develop doc. AI disagrees (partial): Policy says a time period is defined but gives garbled values ('every 90 days', 'within 24 hours'), with no clear inactivity period stated. \u2013 review needed.",
+"reason": "The policy states inactivity, account, disable, develop doc. AI disagrees (partial): States a time period is defined; value only elsewhere in garbled form. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1346,7 +1346,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that accounts are disabled within every 90 days when the accounts are in violation of organizational policy;.",
 "location": "p. 1",
-"reason": "The policy states personnel, account, disable, an organization-defined value. AI disagrees (partial): Disabling for accounts no longer associated with a user is stated, but the time period given ('three attempts') is not a valid time period. \u2013 review needed.",
+"reason": "The policy states personnel, account, disable, an organization-defined value. AI disagrees (partial): Disabling stated but time period value is nonsensical. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1357,7 +1357,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that create, enable, modify, disable, and remove system accounts in accordance with within 24 hours.",
 "location": "p. 1",
-"reason": "The policy states account, disable, an organization-defined value. AI disagrees (partial): Disabling for policy violation is stated, but the value 'every 90 days' is not a coherent time period for disabling. \u2013 review needed.",
+"reason": "The policy states account, disable, an organization-defined value. AI disagrees (partial): Disabling for policy violation is stated, but 'every 90 days' is not a valid time period. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1368,7 +1368,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that disable accounts when the accounts have been inactive for the every 90 days-period.",
 "location": "p. 1",
-"reason": "The policy states inactivity, account, disable, an organization-defined value. AI disagrees (partial): Disabling of inactive accounts is stated with 24-hour values, but the wording is garbled and the inactivity period is unclear. \u2013 review needed.",
+"reason": "The policy states inactivity, account, disable, an organization-defined value. AI disagrees (partial): Inactivity disabling is stated, but the values are garbled and conflict with the 90-day statement. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1388,9 +1388,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "account modification is automatically audited;",
+"quote": "The organization ensures that account modification is automatically audited;.",
 "location": "p. 1",
-"reason": "AI-verified quote: The policy explicitly states that account modification is automatically audited.",
+"reason": "AI-verified quote: Automatic auditing of account modification is stated.",
 "needs": null
 },
 {
@@ -1412,7 +1412,7 @@
 "confidence": "Medium",
 "quote": "The organization ensures that automatically audit account removal actions.",
 "location": "p. 1",
-"reason": "AI-verified quote: The policy explicitly states automatic auditing of account removal actions.",
+"reason": "AI-verified quote: Automatic auditing of account removal is stated.",
 "needs": null
 },
 {
@@ -1423,7 +1423,7 @@
 "confidence": "Medium",
 "quote": "The organization ensures that automatically audit account enabling actions.",
 "location": "p. 1",
-"reason": "AI-verified quote: The policy explicitly states automatic auditing of account enabling actions.",
+"reason": "AI-verified quote: Automatic auditing of account enabling is stated.",
 "needs": null
 },
 {
@@ -1443,9 +1443,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "account modification is automatically audited;",
+"quote": "The organization ensures that account modification is automatically audited;.",
 "location": "p. 1",
-"reason": "AI-verified quote: The policy explicitly states that account modification is automatically audited.",
+"reason": "AI-verified quote: Account modification auditing is explicitly stated.",
 "needs": null
 },
 {
@@ -1454,9 +1454,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "account enabling is automatically audited;",
+"quote": "The organization ensures that account enabling is automatically audited;.",
 "location": "p. 1",
-"reason": "AI-verified quote: The policy explicitly states that account enabling is automatically audited.",
+"reason": "AI-verified quote: Account enabling auditing is explicitly stated.",
 "needs": null
 },
 {
@@ -1478,7 +1478,7 @@
 "confidence": "Medium",
 "quote": "The organization ensures that account removal actions are automatically audited.",
 "location": "p. 1",
-"reason": "AI-verified quote: AC-2(4) explicitly states that account removal actions are automatically audited.",
+"reason": "AI-verified quote: Account removal auditing is explicitly stated.",
 "needs": null
 },
 {
@@ -1500,7 +1500,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines a time period of expected inactivity when users are required to log out.",
 "location": "p. 1",
-"reason": "The policy states inactivity, personnel, develop doc. AI disagrees (partial): Says a time period is defined but gives no actual value for the inactivity period. \u2013 review needed.",
+"reason": "The policy states inactivity, personnel, develop doc. AI disagrees (partial): Says a period is defined but gives no actual value. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1511,7 +1511,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the personnel or roles to be recipients of the organization-level; mission/business process-level; and/or system-level access control policy necessary to facilitate the implementation of the access control policy and associated access controls.",
 "location": "p. 1",
-"reason": "The policy states personnel, develop doc. AI disagrees (partial): Says other conditions are defined but does not list any specific conditions. \u2013 review needed.",
+"reason": "The policy states personnel, develop doc. AI disagrees (partial): Says conditions are defined but lists none. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1522,7 +1522,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the maximum number of consecutive invalid logon attempts to the information system by a user during an every 90 days.",
 "location": "p. 1",
-"reason": "The policy states personnel, an organization-defined value. AI disagrees (partial): Requires logout but the stated value 'annually' is not a time period of inactivity or a description of when to log out. \u2013 review needed.",
+"reason": "The policy states personnel, an organization-defined value. AI disagrees (partial): Logout stated, but the time period or condition is not valid. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1555,7 +1555,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that enforce approved authorizations for controlling the flow of information between connected systems based on within 24 hours.",
 "location": "p. 1",
-"reason": "The policy states approval, authorize, develop doc. AI disagrees (partial): Enforcement of approved authorizations for flow within the system is stated, but the policy basis is an incoherent value ('every 90 days'), not actual flow control policies. \u2013 review needed.",
+"reason": "The policy states approval, authorize, develop doc. AI disagrees (partial): Enforcement stated, but no information flow control policies are named, only 'every 90 days'. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1566,7 +1566,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that enforce approved authorizations for controlling the flow of information between connected systems based on within 24 hours.",
 "location": "p. 1",
-"reason": "The policy states approval, authorize, develop doc. AI disagrees (partial): Policy states enforcing approved authorizations for flow between connected systems, but the basis given is a nonsensical \"within 24 hours\" rather than defined information flow control policies. \u2013 review needed.",
+"reason": "The policy states approval, authorize, develop doc. AI disagrees (partial): Enforcement stated, but the basis 'within 24 hours' is not a flow control policy. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1599,7 +1599,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that enforce approved authorizations for logical access to information and system resources in accordance with applicable access control policies.",
 "location": "p. 1",
-"reason": "The policy states approval, authorize. AI disagrees (partial): Enforcement of approved authorizations for information flow is stated, but the information flow control policies are not actually specified; the value given is nonsensical (every 90 days). \u2013 review needed.",
+"reason": "The policy states approval, authorize. AI disagrees (partial): Enforcement is stated, but the policy value given is not a real policy. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1610,18 +1610,18 @@
 "confidence": "Low",
 "quote": "The organization ensures that notify account managers and as determined by the organization-defined time-period when users are terminated or transferred.",
 "location": "p. 1",
-"reason": "The policy states termination, develop doc. AI disagrees (partial): Policy states duties are defined but does not list the actual duties requiring separation. \u2013 review needed.",
+"reason": "The policy states termination, develop doc. AI disagrees (partial): States duties are defined but lists no specific duties. \u2013 review needed.",
 "needs": null
 },
 {
 "control_id": "ac-5",
 "requirement_id": "CCI-002220",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
+"status": "met",
+"source": "deterministic",
+"confidence": "High",
 "quote": "The organization ensures that define system access authorizations to support separation of duties.",
 "location": "p. 1",
-"reason": "The policy states authorize, termination, develop doc. AI disagrees (partial): States that access authorizations supporting separation of duties are defined, but gives no specific authorizations. \u2013 review needed.",
+"reason": "The policy states authorize, termination, develop doc.",
 "needs": null
 },
 {
@@ -1632,7 +1632,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that notify account managers and as determined by the organization-defined time-period when users are terminated or transferred.",
 "location": "p. 1",
-"reason": "The policy states termination, develop doc. AI disagrees (partial): Mentions identify and document, but the value (ISSO and ISSM) does not name duties requiring separation. \u2013 review needed.",
+"reason": "The policy states termination, develop doc. AI disagrees (partial): Identifies roles, not the duties requiring separation. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1643,7 +1643,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that disseminate the organization-level; mission/business process-level; and/or system-level access control policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance to as determined by th",
 "location": "p. 1",
-"reason": "A documented access control policy with 7 of 7 policy elements. AI disagrees (partial): States duties are identified and documented, but the value is deferred to 'as determined by the organization' with no specific duties. \u2013 review needed.",
+"reason": "A documented access control policy with 7 of 7 policy elements. AI disagrees (partial): Documentation is stated, but duties are not specified. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1687,7 +1687,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): Restates the requirement but gives no actual security functions; the definition is only echoed, not specified. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): States the definition exists but lists no security functions. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1698,7 +1698,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): Restates the requirement but names no specific security-relevant information. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): States the definition exists but lists no security-relevant information. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1709,7 +1709,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): Authorization is stated but individuals/roles and security functions are left as 'as determined by the organization', not defined. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): Authorization stated, but roles and functions are unspecified. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1720,7 +1720,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): Authorization is stated but roles and security-relevant information are not concretely defined. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): Authorization stated, but roles and information are unspecified. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1731,7 +1731,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): Roles are deferred to 'as determined by the organization' with no specific individuals or roles named. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): No concrete individuals or roles are defined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1742,7 +1742,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (missing): The only related text is garbled ('15 minutes-relevant information') and names no individuals or roles for security-relevant information. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): Garbled value; no real individuals or roles defined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1795,9 +1795,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that prevent non-privileged users from executing privileged functions.",
+"quote": "prevent non-privileged users from executing privileged functions.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states non-privileged users are prevented from executing privileged functions.",
+"reason": "AI-verified quote: Prevention of non-privileged execution explicitly stated.",
 "needs": null
 },
 {
@@ -1806,9 +1806,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that non-privileged users are prevented from executing privileged functions.",
+"quote": "non-privileged users are prevented from executing privileged functions.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states non-privileged users are prevented from executing privileged functions.",
+"reason": "AI-verified quote: Prevention explicitly stated.",
 "needs": null
 },
 {
@@ -1819,7 +1819,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that align account management processes with personnel termination and transfer processes.",
 "location": "p. 1",
-"reason": "The policy states account type, personnel, account, develop doc. AI disagrees (partial): Requirement to use non-privileged accounts is stated, but the security functions or information value is garbled (replaced by ISSO and ISSM). \u2013 review needed.",
+"reason": "The policy states account type, personnel, account, develop doc. AI disagrees (partial): Requirement stated, but the security functions or information scope is wrong. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1830,7 +1830,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that notify account managers and as determined by the organization-defined time-period when users are terminated or transferred.",
 "location": "p. 1",
-"reason": "The policy states personnel, account, develop doc. AI disagrees (partial): Policy says it defines these items but gives no actual security functions or security-relevant information. \u2013 review needed.",
+"reason": "The policy states personnel, account, develop doc. AI disagrees (partial): States definition exists but lists no functions or information. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1841,7 +1841,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that users of system accounts (or roles) with access to the ISSO and ISSM are required to use non-privileged accounts or roles when accessing non-security functions.",
 "location": "p. 1",
-"reason": "The policy states account type, personnel, account. AI disagrees (partial): Requirement is stated but the assigned security functions value is nonsensical (ISSO and ISSM). \u2013 review needed.",
+"reason": "The policy states account type, personnel, account. AI disagrees (partial): Requirement stated, but scope value is not security functions or information. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1852,18 +1852,18 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): Authorization of network access is stated, but compelling operational needs and privileged commands are not meaningfully defined. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): Authorization stated, but compelling operational needs are not actually defined. \u2013 review needed.",
 "needs": null
 },
 {
 "control_id": "ac-6.3",
 "requirement_id": "CCI-000042",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
+"status": "met",
+"source": "deterministic",
+"confidence": "Medium",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): Rationale documentation in the security plan is stated; the surrounding text is garbled but the requirement is largely stated. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc.",
 "needs": null
 },
 {
@@ -1874,7 +1874,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): Says privileged commands are defined, but no actual commands are listed. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): States definition exists but lists no privileged commands. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1885,7 +1885,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the attributes (as required) for authorizing access to the system.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): States compelling needs are defined but gives no actual needs; 'annually' is not a valid value. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (missing): Compelling operational needs are not actually defined; text is garbled. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1946,12 +1946,12 @@
 {
 "control_id": "ac-6.7",
 "requirement_id": "CCI-002228",
-"status": "met",
-"source": "deterministic",
-"confidence": "High",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
 "quote": "## AC-6(7) Review of User Privileges",
 "location": "p. 1",
-"reason": "The policy states review analyze, personnel, assign, develop doc.",
+"reason": "The policy states review analyze, personnel, assign, develop doc. AI disagrees (partial): Frequency of 90 days given, but roles/classes scope is garbled. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1962,7 +1962,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines a frequency for reviewing and updating the access control policy.",
 "location": "p. 1",
-"reason": "The policy states review analyze, personnel, develop doc. AI disagrees (missing): The AC-6(7) section never names the roles or classes of users whose privileges are reviewed; the values given are placeholders like 'as determined by the organization' and 'FIPS 140-3 validated crypto \u2013 review needed.",
+"reason": "The policy states review analyze, personnel, develop doc. AI disagrees (missing): No roles or classes of users are defined for review. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1973,7 +1973,7 @@
 "confidence": "Low",
 "quote": "## AC-6(7) Review of User Privileges",
 "location": "p. 1",
-"reason": "The policy states review analyze, personnel, assign, develop doc. AI disagrees (partial): A 90-day review frequency is stated, but the roles or classes of users are given only as 'as determined by the organization', and the text is garbled. \u2013 review needed.",
+"reason": "The policy states review analyze, personnel, assign, develop doc. AI disagrees (partial): Review stated but frequency and roles not defined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1982,9 +1982,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that reassign or remove privileges, if necessary, to correctly reflect organizational mission and business needs.",
+"quote": "reassign or remove privileges, if necessary, to correctly reflect organizational mission and business needs.",
 "location": "p. 1",
-"reason": "AI-verified quote: AC-6(7) explicitly states that privileges are reassigned or removed, if necessary, to reflect organizational mission and business needs.",
+"reason": "AI-verified quote: Reassignment or removal of privileges is explicitly stated.",
 "needs": null
 },
 {
@@ -1995,7 +1995,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the frequency on which it conducts reviews of the privileges assigned to every 90 days.",
 "location": "p. 1",
-"reason": "The policy states review analyze, assign, an organization-defined value. AI disagrees (partial): A review frequency of every 90 days is stated, but the roles and classes of privileges are garbled or undefined, so the required values are incomplete. \u2013 review needed.",
+"reason": "The policy states review analyze, assign, an organization-defined value. AI disagrees (partial): Frequency stated but roles and classes are invalid (FIPS cryptography). \u2013 review needed.",
 "needs": null
 },
 {
@@ -2004,9 +2004,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that privileges are reassigned or removed, if necessary, to correctly reflect organizational mission and business needs.",
+"quote": "privileges are reassigned or removed, if necessary, to correctly reflect organizational mission and business needs.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states that privileges are reassigned or removed as necessary to reflect mission and business needs.",
+"reason": "AI-verified quote: Reassignment or removal explicitly stated.",
 "needs": null
 },
 {
@@ -2015,9 +2015,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that log the execution of privileged functions.",
+"quote": "log the execution of privileged functions.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states that execution of privileged functions is logged.",
+"reason": "AI-verified quote: Logging of privileged function execution is stated.",
 "needs": null
 },
 {
@@ -2026,9 +2026,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that the execution of privileged functions is logged.",
+"quote": "the execution of privileged functions is logged.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states that the execution of privileged functions is logged.",
+"reason": "AI-verified quote: Logging of privileged functions explicitly stated.",
 "needs": null
 },
 {
@@ -2039,7 +2039,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the maximum number of consecutive invalid logon attempts to the information system by a user during an every 90 days.",
 "location": "p. 1",
-"reason": "The policy states logon attempts, personnel, develop doc. AI disagrees (partial): Mentions defining the max consecutive invalid attempts but gives no number, and the time period value is garbled ('every 90 days'). \u2013 review needed.",
+"reason": "The policy states logon attempts, personnel, develop doc. AI disagrees (partial): No maximum number given; time period garbled as every 90 days. \u2013 review needed.",
 "needs": null
 },
 {
@@ -2050,7 +2050,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the maximum number of consecutive invalid logon attempts to the information system by a user during an every 90 days.",
 "location": "p. 1",
-"reason": "The policy states logon attempts, personnel, develop doc. AI disagrees (missing): No section states enforcement of a specific limit of consecutive invalid logon attempts; only definitional wording with no values. \u2013 review needed.",
+"reason": "The policy states logon attempts, personnel, develop doc. AI disagrees (missing): No enforcement of a defined limit with values is stated. \u2013 review needed.",
 "needs": null
 },
 {
@@ -2061,7 +2061,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the maximum number of consecutive invalid logon attempts to the information system by a user during an every 90 days.",
 "location": "p. 1",
-"reason": "The policy states logon attempts, develop doc. AI disagrees (partial): Refers to defining the time period but the value is garbled and no actual time period is given. \u2013 review needed.",
+"reason": "The policy states logon attempts, develop doc. AI disagrees (missing): Time period value replaced by roles ISSO and ISSM; not valid. \u2013 review needed.",
 "needs": null
 },
 {
@@ -2072,7 +2072,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the time period the information system will automatically lock the account or node when the maximum number of unsuccessful logon attempts is exceeded.",
 "location": "p. 1",
-"reason": "The policy states logon attempts, lock, account, develop doc. AI disagrees (partial): States that a lock period is defined but provides no specific duration in that sentence. \u2013 review needed.",
+"reason": "The policy states logon attempts, lock, account, develop doc. AI disagrees (missing): Lock time period is not given in the definition. \u2013 review needed.",
 "needs": null
 },
 {
@@ -2083,7 +2083,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the maximum number of consecutive invalid logon attempts to the information system by a user during an every 90 days.",
 "location": "p. 1",
-"reason": "The policy states logon attempts, develop doc. AI disagrees (partial): Says a delay algorithm is defined but does not specify the algorithm. \u2013 review needed.",
+"reason": "The policy states logon attempts, develop doc. AI disagrees (missing): No delay algorithm is defined. \u2013 review needed.",
 "needs": null
 },
 {
@@ -2094,7 +2094,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the delay algorithm to delay the next logon prompt when the maximum number of unsuccessful logon attempts is exceeded.",
 "location": "p. 1",
-"reason": "The policy states logon attempts, lock, account, in accordance, develop doc. AI disagrees (partial): States automatic lock for 15 minutes or administrator release, but wording is garbled and the delay algorithm is not defined. \u2013 review needed.",
+"reason": "The policy states logon attempts, lock, account, in accordance, develop doc. AI disagrees (partial): Lock action with 15 minutes stated; delay algorithm value unclear. \u2013 review needed.",
 "needs": null
 },
 {
@@ -2105,7 +2105,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the maximum number of consecutive invalid logon attempts to the information system by a user during an every 90 days.",
 "location": "p. 1",
-"reason": "The policy states logon attempts, personnel, an organization-defined value, an organization-defined value. AI disagrees (partial): Limit is referenced but no number is given and the time period is garbled; enforcement is not clearly stated. \u2013 review needed.",
+"reason": "The policy states logon attempts, personnel, an organization-defined value, an organization-defined value. AI disagrees (missing): No limit number or valid time period is stated. \u2013 review needed.",
 "needs": null
 },
 {
@@ -2116,7 +2116,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that automatically every 90 days ; lock the account or node until released by an administrator; delay next logon prompt per every 90 days ; notify system administrator; take other every 90 days ] when the maximum number of unsuccessful attempts is exceeded.",
 "location": "p. 1",
-"reason": "The policy states logon attempts, lock, account, an organization-defined value. AI disagrees (partial): Automatic lock action with 15 minutes or administrator release is stated, but the delay algorithm and the selection are incomplete or garbled. \u2013 review needed.",
+"reason": "The policy states logon attempts, lock, account, an organization-defined value. AI disagrees (partial): Lock for 15 minutes or admin release stated; delay algorithm values garbled. \u2013 review needed.",
 "needs": null
 }
 ]

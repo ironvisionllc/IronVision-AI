@@ -1,0 +1,73 @@
+{
+"label": "v2_neg_unrel",
+"corpus": "neg_unrelated",
+"analyzer": "v2",
+"workers": 16,
+"policy_id": "59e0a420-2c64-4a29-81e0-e25fd3aa2f05",
+"started": "2026-10-27T13:51:30.800621+00:00",
+"wall_s": 3.5,
+"result": {
+"proposed_findings": 0,
+"ai": "AI anthropic/claude-sonnet-5.5"
+},
+"timing_s": {
+"ai": 0.0,
+"setup": 0.04,
+"controls": 0,
+"ai_workers": 4,
+"ai_controls": 0,
+"verify_write": 0.0,
+"ai_prefetched": 0,
+"deterministic": 0.0,
+"store_and_coverage": 0.01,
+"policy_audit_ai_concurrent": 3.23,
+"coverage_ai_prefetch_and_audit_join": 3.23
+},
+"v2": {
+"ai_s": 0.0,
+"calls": 0,
+"batches": 0,
+"reasked": 0,
+"retries": 0,
+"workers": 16,
+"examined": 0,
+"sections": 3,
+"truncated": 0,
+"cache_hits": 0,
+"screening_s": 0.0,
+"not_examined": 0,
+"requirements": 0,
+"invalid_items": 0,
+"failed_batches": 0,
+"rate_limit_wait_s": 0.0,
+"verification_found": 0,
+"reused_requirements": 0,
+"verification_sample": 0,
+"citation_section_fixed": 0
+},
+"ai_calls": {
+"policy.audit": {
+"n": 1,
+"p50_ms": 3200,
+"p95_ms": 3200,
+"input_tokens": 791,
+"output_tokens": 131,
+"status": {
+"completed": 1
+},
+"model": "anthropic/claude-sonnet-5.5"
+}
+},
+"db": {
+"queries": 32,
+"query_s": 0.02,
+"pool_checkouts": 8
+},
+"idle_in_transaction_before_after": [
+0,
+0
+],
+"coverage_rows": 0,
+"status_counts": {},
+"rows": []
+}

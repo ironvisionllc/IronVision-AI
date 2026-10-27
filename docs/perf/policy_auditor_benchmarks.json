@@ -1,20 +1,499 @@
 [
  {
+  "label": "final_v2_p284_first",
+  "corpus": "p284_broad",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 138.5,
+  "ai_calls": 104,
+  "coverage_calls": 103,
+  "p50_ms": 15053,
+  "p95_ms": 21020,
+  "input_tokens": 425601,
+  "output_tokens": 278368,
+  "cost_usd": 3.635,
+  "retries": 0,
+  "cache_hits": 0,
+  "batches": 103,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 284,
+   "ai_workers": 4,
+   "ai_controls": 266,
+   "verify_write": 12.13,
+   "ai_prefetched": 266,
+   "deterministic": 6.34,
+   "store_and_coverage": 19.08,
+   "policy_audit_ai_concurrent": 8.02,
+   "coverage_ai_prefetch_and_audit_join": 119.19
+  },
+  "db": {
+   "queries": 6819,
+   "query_s": 0.87,
+   "pool_checkouts": 355
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.802,
+  "recall": 0.998,
+  "fp": 589,
+  "fn": 4,
+  "control_coverage": "284/284",
+  "requirement_coverage": "2986/2986",
+  "citation_validity": 0.461,
+  "gap_guidance_readable": 0.986,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "ca-6 CCI-000272",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: authorization; that it is developed or documented; updating. AI disagrees (partial): Update stated, but frequency value is garbled. \u2013 review needed."
+   },
+   {
+    "req": "ca-6 CCI-000273",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: authorization; that it is developed or documented; updating. AI disagrees (partial): Says frequency is defined but gives no value. \u2013 review needed."
+   },
+   {
+    "req": "ca-6 CCI-003870",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cEnsure that the authorizing official for common controls authorizes the use of those controls for inheritance by organizational systems.\u201d. Closest policy sentence is quoted b"
+   },
+   {
+    "req": "ca-6 ca-6_obj.d",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cthe authorizing official for common controls authorizes the use of those controls for inheritance by organizational systems;\u201d. Closest policy sentence is quoted below; it use"
+   },
+   {
+    "req": "ca-6 ca-6_obj.e",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: authorization; updating; the organization-defined value. AI disagrees (partial): Updates stated but no specific frequency defined. \u2013 review needed."
+   },
+   {
+    "req": "ia-11 CCI-002036",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: re-establishing access; the personnel or roles involved; that it is developed or documented. AI disagrees (partial): Circumstances are not defined; only a vague 24-hour timeframe a"
+   },
+   {
+    "req": "ia-11 CCI-002038",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: re-establishing access; the personnel or roles involved; that it is developed or documented. AI disagrees (partial): Reauthentication required, but circumstances are unclear, only "
+   },
+   {
+    "req": "ia-11 ia-11_obj",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: re-establishing access; the personnel or roles involved. AI disagrees (partial): Requirement stated; circumstances are incomplete or garbled. \u2013 review needed."
+   },
+   {
+    "req": "mp-7 CCI-002581",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: prohibition; that it is developed or documented. AI disagrees (partial): Says types are defined but gives no actual media types. \u2013 review needed."
+   },
+   {
+    "req": "ac-2.2 CCI-001361",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: account type; the accounts concerned; termination; that it is developed or documented. AI disagrees (partial): Says a period is defined, but gives no value. \u2013 review needed."
+   }
+  ]
+ },
+ {
+  "label": "final_v2_p284_incr",
+  "corpus": "p284_broad",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 50.2,
+  "ai_calls": 4,
+  "coverage_calls": 3,
+  "p50_ms": 19228,
+  "p95_ms": 19242,
+  "input_tokens": 29652,
+  "output_tokens": 10953,
+  "cost_usd": 0.169,
+  "retries": 0,
+  "cache_hits": 100,
+  "batches": 103,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 284,
+   "ai_workers": 4,
+   "ai_controls": 266,
+   "verify_write": 11.99,
+   "ai_prefetched": 266,
+   "deterministic": 6.34,
+   "store_and_coverage": 19.01,
+   "policy_audit_ai_concurrent": 8.4,
+   "coverage_ai_prefetch_and_audit_join": 30.98
+  },
+  "db": {
+   "queries": 6722,
+   "query_s": 1.08,
+   "pool_checkouts": 154
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.802,
+  "recall": 0.998,
+  "fp": 589,
+  "fn": 4,
+  "control_coverage": "284/284",
+  "requirement_coverage": "2986/2986",
+  "citation_validity": 0.461,
+  "gap_guidance_readable": 0.986,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "mp-7 mp-7_obj.a",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cthe use of [Assignment: types of system media] is [Selection: restrict; prohibit] on [Assignment: systems or system components] using [Assignment: controls];\u201d. Closest policy"
+   },
+   {
+    "req": "mp-7 mp-7_obj.b",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cthe use of portable storage devices in organizational systems is prohibited when such devices have no identifiable owner.\u201d. Closest policy sentence is quoted below; it uses r"
+   },
+   {
+    "req": "sc-18 CCI-001160",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines acceptable and unacceptable mobile code and mobile code technologies.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cann"
+   },
+   {
+    "req": "sc-18 sc-18_obj.a-1",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cacceptable mobile code is defined;\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cannot tell whether it actually satisfies the r"
+   },
+   {
+    "req": "ac-11 ac-11_obj.a",
+    "status": "partial",
+    "guidance": "Related text found, but the policy does not state device lock."
+   },
+   {
+    "req": "au-8 CCI-001888",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: audit record; that it is developed or documented. AI disagrees (partial): States granularity is defined but gives no actual value. \u2013 review needed."
+   },
+   {
+    "req": "au-8 CCI-001889",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: audit record; that it is developed or documented. AI disagrees (partial): Time stamps recorded but no granularity value specified. \u2013 review needed."
+   },
+   {
+    "req": "au-8 CCI-001890",
+    "status": "missing",
+    "guidance": "Not found: no sentence in the policy addresses the requirement \u201cRecord time stamps for audit records that use Coordinated Universal Time, have a fixed local time offset from Coordinated Universal Time, or that include the local time offset "
+   },
+   {
+    "req": "sr-2 sr-2_obj.a-7",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cthe supply chain risk management plan addresses risks associated with the integration of [Assignment: systems, system components, or system services];\u201d. Closest policy senten"
+   },
+   {
+    "req": "au-8 au-8_obj.b",
+    "status": "partial",
+    "guidance": "One policy passage covers every element of the requirement: audit record; the organization-defined value. AI disagrees (partial): Granularity value and UTC/offset requirement are absent. \u2013 review needed."
+   }
+  ]
+ },
+ {
+  "label": "final_v2_p284_repeat",
+  "corpus": "p284_broad",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 31.3,
+  "ai_calls": 0,
+  "coverage_calls": 0,
+  "p50_ms": null,
+  "p95_ms": null,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cost_usd": 0.0,
+  "retries": 0,
+  "cache_hits": 103,
+  "batches": 103,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 284,
+   "ai_workers": 4,
+   "ai_controls": 266,
+   "verify_write": 11.94,
+   "ai_prefetched": 266,
+   "deterministic": 6.38,
+   "store_and_coverage": 19.03,
+   "policy_audit_ai_concurrent": 0.01,
+   "coverage_ai_prefetch_and_audit_join": 12.08
+  },
+  "db": {
+   "queries": 6717,
+   "query_s": 0.96,
+   "pool_checkouts": 146
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.802,
+  "recall": 0.998,
+  "fp": 589,
+  "fn": 4,
+  "control_coverage": "284/284",
+  "requirement_coverage": "2986/2986",
+  "citation_validity": 0.461,
+  "gap_guidance_readable": 0.986,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "si-10 CCI-001310",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cChecks the validity of organization-defined information inputs to the system.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cann"
+   },
+   {
+    "req": "mp-4 CCI-001015",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines types of digital and/or non-digital media to physically control and securely store within organization-defined controlled areas.\u201d. Closest policy sentence is quoted b"
+   },
+   {
+    "req": "mp-4 CCI-001016",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines controlled areas where organization-defined types of digital and/or non-digital media are physically controlled and securely stored.\u201d. Closest policy sentence is quot"
+   },
+   {
+    "req": "mp-4 CCI-004211",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cPhysically control and securely store organization-defined types of digital and/or non-digital media within organization-defined controlled areas.\u201d. Closest policy sentence i"
+   },
+   {
+    "req": "mp-4 CCI-004212",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cSecurely store organization-defined types of digital and/or non-digital media within organization-defined controlled areas.\u201d. Closest policy sentence is quoted below; it uses"
+   },
+   {
+    "req": "mp-4 mp-4_obj.a-1",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: types of digital media] are physically controlled;\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cannot tell whethe"
+   },
+   {
+    "req": "si-10 CCI-002744",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the inputs on which the system is to conduct validity checks.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cannot tell "
+   },
+   {
+    "req": "mp-4 mp-4_obj.a-2",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: types of non-digital media] are physically controlled;\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cannot tell wh"
+   },
+   {
+    "req": "mp-4 mp-4_obj.a-3",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: types of digital media] are securely stored within [Assignment: controlled areas];\u201d. Closest policy sentence is quoted below; it uses related wording but the rul"
+   },
+   {
+    "req": "mp-4 mp-4_obj.a-4",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: types of non-digital media] are securely stored within [Assignment: controlled areas];\u201d. Closest policy sentence is quoted below; it uses related wording but the"
+   }
+  ]
+ },
+ {
+  "label": "v2_neg_ra",
+  "corpus": "neg_ra",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 14.8,
+  "ai_calls": 5,
+  "coverage_calls": 4,
+  "p50_ms": 14208,
+  "p95_ms": 14323,
+  "input_tokens": 19573,
+  "output_tokens": 9420,
+  "cost_usd": 0.133,
+  "retries": 0,
+  "cache_hits": 0,
+  "batches": 4,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 10,
+   "ai_workers": 4,
+   "ai_controls": 9,
+   "verify_write": 0.02,
+   "ai_prefetched": 9,
+   "deterministic": 0.02,
+   "store_and_coverage": 0.09,
+   "policy_audit_ai_concurrent": 8.22,
+   "coverage_ai_prefetch_and_audit_join": 14.5
+  },
+  "db": {
+   "queries": 303,
+   "query_s": 0.07,
+   "pool_checkouts": 23
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.783,
+  "recall": 1.0,
+  "fp": 26,
+  "fn": 0,
+  "control_coverage": "10/10",
+  "requirement_coverage": "120/120",
+  "citation_validity": 0.808,
+  "gap_guidance_readable": 1.0,
+  "structured_complete": 1.0,
+  "ac17_rows": 0,
+  "samples": [
+   {
+    "req": "ra-1 CCI-001039",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it."
+   },
+   {
+    "req": "ra-1 CCI-001040",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it."
+   },
+   {
+    "req": "ra-1 CCI-001043",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review frequency is stated for it."
+   },
+   {
+    "req": "ra-1 CCI-001044",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review frequency is stated for it."
+   },
+   {
+    "req": "ra-1 CCI-004605",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ra-1 CCI-004606",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ra-1 CCI-004607",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ra-1 CCI-004608",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ra-1 CCI-004609",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ra-1 CCI-004612",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it. A value is stated for something else."
+   }
+  ]
+ },
+ {
+  "label": "v2_neg_unrel",
+  "corpus": "neg_unrelated",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 3.1,
+  "ai_calls": 1,
+  "coverage_calls": 0,
+  "p50_ms": null,
+  "p95_ms": null,
+  "input_tokens": 791,
+  "output_tokens": 103,
+  "cost_usd": 0.003,
+  "retries": 0,
+  "cache_hits": 0,
+  "batches": 0,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 0,
+   "ai_workers": 4,
+   "ai_controls": 0,
+   "verify_write": 0.0,
+   "ai_prefetched": 0,
+   "deterministic": 0.0,
+   "store_and_coverage": 0.01,
+   "policy_audit_ai_concurrent": 2.84,
+   "coverage_ai_prefetch_and_audit_join": 2.84
+  },
+  "db": {
+   "queries": 32,
+   "query_s": 0.02,
+   "pool_checkouts": 9
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": null,
+  "recall": null,
+  "fp": 0,
+  "fn": 0,
+  "control_coverage": "0/0",
+  "requirement_coverage": "0/0",
+  "citation_validity": null,
+  "gap_guidance_readable": null,
+  "structured_complete": 0.0,
+  "ac17_rows": 0,
+  "samples": []
+ },
+ {
   "label": "v2_p100_multi_first",
   "corpus": "p100_multi",
   "analyzer": "v2",
   "workers": 16,
-  "wall_s": 114.1,
-  "ai_calls": 188,
-  "coverage_calls": 187,
-  "p50_ms": 3201,
-  "p95_ms": 37753,
-  "input_tokens": 576904,
-  "output_tokens": 89569,
-  "cost_usd": 2.049,
-  "retries": 2,
+  "wall_s": 43.9,
+  "ai_calls": 33,
+  "coverage_calls": 32,
+  "p50_ms": 16840,
+  "p95_ms": 21910,
+  "input_tokens": 131508,
+  "output_tokens": 88910,
+  "cost_usd": 1.152,
+  "retries": 0,
   "cache_hits": 0,
-  "batches": 185,
+  "batches": 32,
   "rate_limit_wait_s": 0.0,
   "failed_batches": 0,
   "not_examined": 0,
@@ -28,19 +507,19 @@
    "ai_controls": 96,
    "verify_write": 1.07,
    "ai_prefetched": 96,
-   "deterministic": 0.67,
-   "store_and_coverage": 1.95,
-   "policy_audit_ai_concurrent": 7.97,
-   "coverage_ai_prefetch_and_audit_join": 111.96
+   "deterministic": 0.4,
+   "store_and_coverage": 1.71,
+   "policy_audit_ai_concurrent": 8.11,
+   "coverage_ai_prefetch_and_audit_join": 42.0
   },
   "db": {
-   "queries": 2742,
-   "query_s": 0.67,
-   "pool_checkouts": 627
+   "queries": 2179,
+   "query_s": 0.41,
+   "pool_checkouts": 116
   },
   "idle_in_txn_before_after": [
    0,
-   0
+   1
   ],
   "precision": 0.824,
   "recall": 1.0,
@@ -48,60 +527,60 @@
   "fn": 0,
   "control_coverage": "100/100",
   "requirement_coverage": "888/888",
-  "citation_validity": 0.595,
-  "gap_guidance_readable": 0.976,
+  "citation_validity": 0.594,
+  "gap_guidance_readable": 0.979,
   "structured_complete": 1.0,
   "ac17_rows": 28,
   "samples": [
    {
-    "req": "ac-2.5 CCI-001406",
+    "req": "au-2 CCI-000123",
     "status": "partial",
-    "guidance": "The policy states inactivity, personnel, develop doc. AI disagrees (partial): Says a time period is defined but gives no actual value. \u2013 review needed."
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cIdentify the organization-defined event types that the system is capable of logging in support of the audit function.\u201d. Closest policy sentence is quoted below; it uses relat"
    },
    {
-    "req": "ac-2.5 CCI-002133",
+    "req": "au-2 CCI-000126",
     "status": "partial",
-    "guidance": "The policy states personnel, develop doc. AI disagrees (partial): S8 restates the requirement to define other logout conditions but gives no actual conditions or organization-defined values. \u2013 review needed."
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Specification is garbled; no actual event types or logging frequency given. \u2013 review needed."
    },
    {
-    "req": "cm-3 CCI-000316",
+    "req": "au-2 CCI-001484",
     "status": "partial",
-    "guidance": "The policy states retain, change refresh, develop doc. AI disagrees (partial): Retention of records is stated, but no actual time period is given; the value is garbled (ISSO and ISSM, FIPS 140-3). \u2013 review needed."
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Frequency definition is asserted but no value is given. \u2013 review needed."
    },
    {
-    "req": "ac-2.5 ac-2.5_obj",
+    "req": "au-2 CCI-001485",
     "status": "partial",
-    "guidance": "The policy states personnel, an organization-defined value. AI disagrees (partial): States users must log out but the value given ('annually') is not a meaningful inactivity period or log-out condition, so the required value is not properly"
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the event types for logging within the system.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cannot tell whether it actu"
    },
    {
-    "req": "cm-3 CCI-001586",
+    "req": "au-2 CCI-001571",
     "status": "partial",
-    "guidance": "The policy states config control, change refresh, develop doc. AI disagrees (partial): Mentions an element responsible for oversight but does not name it; deferred to as determined by the organization. \u2013 review needed."
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the event types that the system is capable of logging in support of the audit function.\u201d. Closest policy sentence is quoted below; it uses related wording but the rul"
    },
    {
-    "req": "ac-20 CCI-000093",
+    "req": "au-2 au-2_obj.a",
     "status": "partial",
-    "guidance": "The policy states authorize, develop doc, maintain. AI disagrees (partial): Echoes the requirement but fills the terms/controls placeholder with 'every 90 days', so no actual terms and conditions or controls are specified. \u2013 review needed."
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: event types] that the system is capable of logging are identified in support of the audit logging function;\u201d. Closest policy sentence is quoted below; it uses re"
    },
    {
-    "req": "au-5 au-5_obj.b",
+    "req": "au-2 au-2_obj.c-1",
     "status": "partial",
-    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: additional actions] are taken in the event of an audit logging process failure.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-b"
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: event types (subset of AU-02_ODP[01])] are specified for logging within the system;\u201d. Closest policy sentence is quoted below; it uses related wording but the ru"
    },
    {
-    "req": "cm-3 CCI-002056",
+    "req": "au-2 au-2_obj.c-2",
     "status": "partial",
-    "guidance": "The policy states retain, change refresh, develop doc. AI disagrees (partial): States the retention period is defined but gives no actual value; the retention clause is garbled ('for FIPS 140-3 validated cryptography'). \u2013 review needed."
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Logging stated, but frequency is only 'as determined by the organization'. \u2013 review needed."
    },
    {
-    "req": "au-6 CCI-000148",
+    "req": "ia-5.1 CCI-004057",
     "status": "partial",
-    "guidance": "The policy states audit record, review analyze, indications, develop doc. AI disagrees (partial): A 90-day frequency is given, but the inappropriate or unusual activity is not actually defined. \u2013 review needed."
+    "guidance": "The policy states authenticator, develop doc, update. AI disagrees (partial): Says frequency is defined but gives no value in this statement. \u2013 review needed."
    },
    {
-    "req": "au-6 CCI-000149",
+    "req": "ia-5.1 CCI-004058",
     "status": "partial",
-    "guidance": "Related text found, but it does not state: personnel."
+    "guidance": "The policy states authenticator, develop doc, maintain. AI disagrees (partial): List maintenance stated, but frequency is replaced by garbled role text. \u2013 review needed."
    }
   ]
  },
@@ -110,17 +589,17 @@
   "corpus": "p100_multi",
   "analyzer": "v2",
   "workers": 16,
-  "wall_s": 12.9,
-  "ai_calls": 5,
-  "coverage_calls": 4,
-  "p50_ms": 5544,
-  "p95_ms": 6740,
-  "input_tokens": 16602,
-  "output_tokens": 3646,
-  "cost_usd": 0.07,
+  "wall_s": 16.6,
+  "ai_calls": 2,
+  "coverage_calls": 1,
+  "p50_ms": 12835,
+  "p95_ms": 12835,
+  "input_tokens": 7687,
+  "output_tokens": 3410,
+  "cost_usd": 0.049,
   "retries": 0,
-  "cache_hits": 181,
-  "batches": 185,
+  "cache_hits": 31,
+  "batches": 32,
   "rate_limit_wait_s": 0.0,
   "failed_batches": 0,
   "not_examined": 0,
@@ -128,21 +607,21 @@
   "verification_found": 0,
   "timing_s": {
    "ai": 0.0,
-   "setup": 0.04,
+   "setup": 0.03,
    "controls": 100,
    "ai_workers": 4,
    "ai_controls": 96,
-   "verify_write": 1.14,
+   "verify_write": 1.12,
    "ai_prefetched": 96,
-   "deterministic": 0.67,
-   "store_and_coverage": 2.03,
-   "policy_audit_ai_concurrent": 8.15,
-   "coverage_ai_prefetch_and_audit_join": 10.62
+   "deterministic": 0.4,
+   "store_and_coverage": 1.74,
+   "policy_audit_ai_concurrent": 6.83,
+   "coverage_ai_prefetch_and_audit_join": 14.64
   },
   "db": {
-   "queries": 2562,
-   "query_s": 0.82,
-   "pool_checkouts": 263
+   "queries": 2151,
+   "query_s": 0.38,
+   "pool_checkouts": 53
   },
   "idle_in_txn_before_after": [
    0,
@@ -154,45 +633,25 @@
   "fn": 0,
   "control_coverage": "100/100",
   "requirement_coverage": "888/888",
-  "citation_validity": 0.595,
-  "gap_guidance_readable": 0.976,
+  "citation_validity": 0.594,
+  "gap_guidance_readable": 0.979,
   "structured_complete": 1.0,
   "ac17_rows": 28,
   "samples": [
    {
-    "req": "ac-17.4 CCI-000070",
+    "req": "ac-12 CCI-002360",
     "status": "partial",
-    "guidance": "The policy states authorize, develop doc. AI disagrees (partial): Authorization only in assessable-evidence format is stated, but the defined needs value is nonsensical ('within 24 hours'), not a real need. \u2013 review needed."
+    "guidance": "The policy states personnel, termination, develop doc. AI disagrees (partial): States that conditions are defined, but no actual conditions are given. \u2013 review needed."
    },
    {
-    "req": "ac-17.4 CCI-002316",
+    "req": "ac-12 CCI-002361",
     "status": "partial",
-    "guidance": "The policy states authorize, develop doc. AI disagrees (partial): Format requirement stated, but the organization-defined needs value ('the ISSO and ISSM') is not a coherent need. \u2013 review needed."
+    "guidance": "The policy states personnel, termination, develop doc. AI disagrees (partial): Termination stated, but conditions or trigger events are garbled and unclear. \u2013 review needed."
    },
    {
-    "req": "ac-17.4 CCI-002317",
+    "req": "ac-12 ac-12_obj",
     "status": "partial",
-    "guidance": "The policy states authorize, develop doc. AI disagrees (partial): States needs are defined but only gives an unrelated value ('within 24 hours'), not actual needs. \u2013 review needed."
-   },
-   {
-    "req": "ac-17.4 ac-17.4_obj.a-3",
-    "status": "partial",
-    "guidance": "The policy states authorize, when required. AI disagrees (partial): Needs value given is 'within 24 hours', which is not a meaningful need requiring remote access. \u2013 review needed."
-   },
-   {
-    "req": "ac-17.4 ac-17.4_obj.a-4",
-    "status": "partial",
-    "guidance": "The policy states authorize, when required. AI disagrees (partial): Needs value given is 'the ISSO and ISSM', which names roles rather than needs requiring remote access. \u2013 review needed."
-   },
-   {
-    "req": "ac-2 CCI-003615",
-    "status": "partial",
-    "guidance": "The policy states membership, develop doc. AI disagrees (missing): No retrieved section defines prerequisites and criteria for group and role membership; IA-4 and IA-5 cover identifiers and authenticators, not AC-2 membership criteria. \u2013 re"
-   },
-   {
-    "req": "ac-2 CCI-003616",
-    "status": "partial",
-    "guidance": "The policy states account, develop doc, when required. AI disagrees (partial): Policy restates that attributes are defined for each account but gives no actual attributes or values. \u2013 review needed."
+    "guidance": "The policy states personnel, termination. AI disagrees (partial): Automatic termination stated, but trigger conditions are not coherently defined. \u2013 review needed."
    },
    {
     "req": "au-2 CCI-000123",
@@ -202,12 +661,32 @@
    {
     "req": "au-2 CCI-000126",
     "status": "partial",
-    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Specifying the event type subset is stated but garbled; no actual event types or per-type frequencies are listed. \u2013 review needed."
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Specification is garbled; no actual event types or logging frequency given. \u2013 review needed."
    },
    {
     "req": "au-2 CCI-001484",
     "status": "partial",
-    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Defining the logging frequency is stated but no actual frequency or situation is given. \u2013 review needed."
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Frequency definition is asserted but no value is given. \u2013 review needed."
+   },
+   {
+    "req": "au-2 CCI-001485",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the event types for logging within the system.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cannot tell whether it actu"
+   },
+   {
+    "req": "au-2 CCI-001571",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the event types that the system is capable of logging in support of the audit function.\u201d. Closest policy sentence is quoted below; it uses related wording but the rul"
+   },
+   {
+    "req": "au-2 au-2_obj.a",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: event types] that the system is capable of logging are identified in support of the audit logging function;\u201d. Closest policy sentence is quoted below; it uses re"
+   },
+   {
+    "req": "au-2 au-2_obj.c-1",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: event types (subset of AU-02_ODP[01])] are specified for logging within the system;\u201d. Closest policy sentence is quoted below; it uses related wording but the ru"
    }
   ]
  },
@@ -216,17 +695,17 @@
   "corpus": "p100_multi",
   "analyzer": "v2",
   "workers": 16,
-  "wall_s": 10.1,
+  "wall_s": 9.5,
   "ai_calls": 1,
   "coverage_calls": 0,
   "p50_ms": null,
   "p95_ms": null,
   "input_tokens": 3776,
-  "output_tokens": 950,
+  "output_tokens": 954,
   "cost_usd": 0.017,
   "retries": 0,
-  "cache_hits": 185,
-  "batches": 185,
+  "cache_hits": 32,
+  "batches": 32,
   "rate_limit_wait_s": 0.0,
   "failed_batches": 0,
   "not_examined": 0,
@@ -238,17 +717,17 @@
    "controls": 100,
    "ai_workers": 4,
    "ai_controls": 96,
-   "verify_write": 1.14,
+   "verify_write": 1.11,
    "ai_prefetched": 96,
-   "deterministic": 0.67,
-   "store_and_coverage": 2.02,
-   "policy_audit_ai_concurrent": 7.87,
-   "coverage_ai_prefetch_and_audit_join": 7.87
+   "deterministic": 0.4,
+   "store_and_coverage": 1.73,
+   "policy_audit_ai_concurrent": 7.59,
+   "coverage_ai_prefetch_and_audit_join": 7.59
   },
   "db": {
-   "queries": 2557,
-   "query_s": 0.77,
-   "pool_checkouts": 255
+   "queries": 2149,
+   "query_s": 0.36,
+   "pool_checkouts": 51
   },
   "idle_in_txn_before_after": [
    0,
@@ -260,60 +739,60 @@
   "fn": 0,
   "control_coverage": "100/100",
   "requirement_coverage": "888/888",
-  "citation_validity": 0.595,
-  "gap_guidance_readable": 0.976,
+  "citation_validity": 0.594,
+  "gap_guidance_readable": 0.979,
   "structured_complete": 1.0,
   "ac17_rows": 28,
   "samples": [
    {
-    "req": "ac-2 CCI-001547",
+    "req": "ac-22 CCI-001476",
     "status": "partial",
-    "guidance": "Related text found, but it does not state: account."
-   },
-   {
-    "req": "ac-2 CCI-002117",
-    "status": "partial",
-    "guidance": "The policy states personnel, authorize, membership. AI disagrees (missing): No retrieved section addresses AC-2 role membership or specifying authorized users of a role; AU-9(4) and IA-5 cover other controls. \u2013 review needed."
-   },
-   {
-    "req": "ac-2 CCI-003613",
-    "status": "partial",
-    "guidance": "Related text found, but it does not state: group membership."
-   },
-   {
-    "req": "ac-2 CCI-003625",
-    "status": "partial",
-    "guidance": "The policy states authorize, develop doc, when required. AI disagrees (partial): States attributes for authorizing access are defined but does not list them. \u2013 review needed."
-   },
-   {
-    "req": "ac-2.2 CCI-001365",
-    "status": "partial",
-    "guidance": "The policy states account type, account, termination, develop doc. AI disagrees (partial): Says a time period is defined but provides no value. \u2013 review needed."
-   },
-   {
-    "req": "cm-11 CCI-001804",
-    "status": "partial",
-    "guidance": "The policy states installed, personnel, develop doc. AI disagrees (partial): States that policies governing user software installation are defined, but gives no actual policy content or defined values. \u2013 review needed."
+    "guidance": "The policy states review analyze, develop doc. AI disagrees (partial): Review stated but frequency is replaced by roles, not a frequency. \u2013 review needed."
    },
    {
     "req": "ac-22 CCI-001477",
     "status": "partial",
-    "guidance": "The policy states review analyze, develop doc. AI disagrees (partial): States a frequency is defined but gives no actual frequency value. \u2013 review needed."
+    "guidance": "The policy states review analyze, develop doc. AI disagrees (partial): Says a frequency is defined but gives no value. \u2013 review needed."
    },
    {
-    "req": "cm-11 CCI-001805",
+    "req": "ac-22 ac-22_obj.d-1",
     "status": "partial",
-    "guidance": "The policy states installed, personnel, develop doc. AI disagrees (partial): Establishment is stated only as 'as determined by the organization'; no concrete policy is given. \u2013 review needed."
+    "guidance": "The policy states review analyze, an organization-defined value. AI disagrees (partial): Review stated but no frequency given. \u2013 review needed."
    },
    {
-    "req": "cm-11 CCI-001806",
+    "req": "ac-4 CCI-001368",
     "status": "partial",
-    "guidance": "The policy states installed, develop doc. AI disagrees (partial): States that enforcement methods are defined, but no specific methods are named. \u2013 review needed."
+    "guidance": "The policy states approval, authorize, develop doc. AI disagrees (partial): Enforcement stated, but the policy basis given is 'every 90 days', not a policy. \u2013 review needed."
    },
    {
-    "req": "cm-11 CCI-001807",
+    "req": "ac-4 CCI-001414",
     "status": "partial",
-    "guidance": "The policy states installed, develop doc. AI disagrees (partial): Enforcement is stated, but the method is left as 'as determined by the organization' without a concrete value. \u2013 review needed."
+    "guidance": "The policy states approval, authorize, develop doc. AI disagrees (partial): Enforcement stated, but the policy basis given is a nonsensical time value. \u2013 review needed."
+   },
+   {
+    "req": "ac-4 CCI-001548",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the information flow control policies for controlling the flow of information within the system.\u201d. Closest policy sentence is quoted below; it uses related wording bu"
+   },
+   {
+    "req": "ac-4 CCI-001549",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the information flow control policies for controlling the flow of information between interconnected systems.\u201d. Closest policy sentence is quoted below; it uses relat"
+   },
+   {
+    "req": "ac-4 ac-4_obj",
+    "status": "partial",
+    "guidance": "The policy states approval, authorize. AI disagrees (partial): Enforcement stated, but the basis is a nonsensical value, not named flow control policies. \u2013 review needed."
+   },
+   {
+    "req": "ac-5 CCI-002219",
+    "status": "partial",
+    "guidance": "The policy states termination, develop doc. AI disagrees (partial): States duties are defined but lists none. \u2013 review needed."
+   },
+   {
+    "req": "ac-5 CCI-003684",
+    "status": "partial",
+    "guidance": "The policy states termination, develop doc. AI disagrees (partial): Identify-and-document stated, but duties are not given, only roles ISSO and ISSM. \u2013 review needed."
    }
   ]
  },
@@ -322,17 +801,17 @@
   "corpus": "p20_ac",
   "analyzer": "v2",
   "workers": 16,
-  "wall_s": 11.3,
+  "wall_s": 22.8,
   "ai_calls": 7,
   "coverage_calls": 6,
-  "p50_ms": 7803,
-  "p95_ms": 8181,
-  "input_tokens": 26256,
-  "output_tokens": 7108,
-  "cost_usd": 0.124,
+  "p50_ms": 19086,
+  "p95_ms": 22239,
+  "input_tokens": 28887,
+  "output_tokens": 19205,
+  "cost_usd": 0.25,
   "retries": 0,
-  "cache_hits": 22,
-  "batches": 28,
+  "cache_hits": 0,
+  "batches": 6,
   "rate_limit_wait_s": 0.0,
   "failed_batches": 0,
   "not_examined": 0,
@@ -340,21 +819,21 @@
   "verification_found": 0,
   "timing_s": {
    "ai": 0.0,
-   "setup": 0.03,
+   "setup": 0.04,
    "controls": 20,
    "ai_workers": 4,
    "ai_controls": 19,
    "verify_write": 0.04,
    "ai_prefetched": 19,
-   "deterministic": 0.04,
-   "store_and_coverage": 0.14,
-   "policy_audit_ai_concurrent": 10.89,
-   "coverage_ai_prefetch_and_audit_join": 10.89
+   "deterministic": 0.03,
+   "store_and_coverage": 0.13,
+   "policy_audit_ai_concurrent": 7.68,
+   "coverage_ai_prefetch_and_audit_join": 22.5
   },
   "db": {
-   "queries": 537,
-   "query_s": 0.23,
-   "pool_checkouts": 58
+   "queries": 477,
+   "query_s": 0.1,
+   "pool_checkouts": 29
   },
   "idle_in_txn_before_after": [
    0,
@@ -367,7 +846,7 @@
   "control_coverage": "20/20",
   "requirement_coverage": "185/185",
   "citation_validity": 0.762,
-  "gap_guidance_readable": 0.962,
+  "gap_guidance_readable": 0.952,
   "structured_complete": 1.0,
   "ac17_rows": 0,
   "samples": [
@@ -428,17 +907,17 @@
   "corpus": "p20_ac",
   "analyzer": "v2",
   "workers": 16,
-  "wall_s": 13.4,
-  "ai_calls": 8,
-  "coverage_calls": 7,
-  "p50_ms": 4897,
-  "p95_ms": 12725,
-  "input_tokens": 29569,
-  "output_tokens": 7748,
-  "cost_usd": 0.137,
+  "wall_s": 21.4,
+  "ai_calls": 3,
+  "coverage_calls": 2,
+  "p50_ms": 20828,
+  "p95_ms": 20828,
+  "input_tokens": 11574,
+  "output_tokens": 7570,
+  "cost_usd": 0.099,
   "retries": 0,
-  "cache_hits": 21,
-  "batches": 28,
+  "cache_hits": 4,
+  "batches": 6,
   "rate_limit_wait_s": 0.0,
   "failed_batches": 0,
   "not_examined": 0,
@@ -452,15 +931,15 @@
    "ai_controls": 19,
    "verify_write": 0.04,
    "ai_prefetched": 19,
-   "deterministic": 0.04,
-   "store_and_coverage": 0.15,
-   "policy_audit_ai_concurrent": 7.21,
-   "coverage_ai_prefetch_and_audit_join": 13.03
+   "deterministic": 0.03,
+   "store_and_coverage": 0.13,
+   "policy_audit_ai_concurrent": 7.81,
+   "coverage_ai_prefetch_and_audit_join": 21.09
   },
   "db": {
-   "queries": 541,
-   "query_s": 0.21,
-   "pool_checkouts": 60
+   "queries": 476,
+   "query_s": 0.1,
+   "pool_checkouts": 20
   },
   "idle_in_txn_before_after": [
    0,
@@ -473,7 +952,7 @@
   "control_coverage": "20/20",
   "requirement_coverage": "185/185",
   "citation_validity": 0.762,
-  "gap_guidance_readable": 0.961,
+  "gap_guidance_readable": 0.953,
   "structured_complete": 1.0,
   "ac17_rows": 0,
   "samples": [
@@ -534,17 +1013,17 @@
   "corpus": "p20_ac",
   "analyzer": "v2",
   "workers": 16,
-  "wall_s": 8.9,
+  "wall_s": 7.9,
   "ai_calls": 1,
   "coverage_calls": 0,
   "p50_ms": null,
   "p95_ms": null,
   "input_tokens": 3778,
-  "output_tokens": 944,
+  "output_tokens": 899,
   "cost_usd": 0.017,
   "retries": 0,
-  "cache_hits": 28,
-  "batches": 28,
+  "cache_hits": 6,
+  "batches": 6,
   "rate_limit_wait_s": 0.0,
   "failed_batches": 0,
   "not_examined": 0,
@@ -552,21 +1031,21 @@
   "verification_found": 0,
   "timing_s": {
    "ai": 0.0,
-   "setup": 0.03,
+   "setup": 0.04,
    "controls": 20,
    "ai_workers": 4,
    "ai_controls": 19,
    "verify_write": 0.04,
    "ai_prefetched": 19,
-   "deterministic": 0.04,
-   "store_and_coverage": 0.15,
-   "policy_audit_ai_concurrent": 8.57,
-   "coverage_ai_prefetch_and_audit_join": 8.57
+   "deterministic": 0.03,
+   "store_and_coverage": 0.13,
+   "policy_audit_ai_concurrent": 7.58,
+   "coverage_ai_prefetch_and_audit_join": 7.58
   },
   "db": {
-   "queries": 533,
-   "query_s": 0.2,
-   "pool_checkouts": 46
+   "queries": 473,
+   "query_s": 0.1,
+   "pool_checkouts": 16
   },
   "idle_in_txn_before_after": [
    0,
@@ -579,7 +1058,7 @@
   "control_coverage": "20/20",
   "requirement_coverage": "185/185",
   "citation_validity": 0.762,
-  "gap_guidance_readable": 0.962,
+  "gap_guidance_readable": 0.952,
   "structured_complete": 1.0,
   "ac17_rows": 0,
   "samples": [
@@ -636,21 +1115,21 @@
   ]
  },
  {
-  "label": "v2_p20_w8",
-  "corpus": "p20_ac",
+  "label": "v2_p284_broad_first",
+  "corpus": "p284_broad",
   "analyzer": "v2",
-  "workers": 8,
-  "wall_s": 32.4,
-  "ai_calls": 32,
-  "coverage_calls": 31,
-  "p50_ms": 5227,
-  "p95_ms": 10429,
-  "input_tokens": 101972,
-  "output_tokens": 19054,
-  "cost_usd": 0.394,
+  "workers": 16,
+  "wall_s": 155.7,
+  "ai_calls": 110,
+  "coverage_calls": 109,
+  "p50_ms": 13962,
+  "p95_ms": 21976,
+  "input_tokens": 436611,
+  "output_tokens": 283175,
+  "cost_usd": 3.705,
   "retries": 0,
   "cache_hits": 0,
-  "batches": 30,
+  "batches": 103,
   "rate_limit_wait_s": 0.0,
   "failed_batches": 0,
   "not_examined": 0,
@@ -658,85 +1137,1040 @@
   "verification_found": 0,
   "timing_s": {
    "ai": 0.0,
-   "controls": 20,
+   "setup": 0.03,
+   "controls": 284,
    "ai_workers": 4,
-   "ai_controls": 19,
-   "verify_write": 0.04,
-   "ai_prefetched": 19,
-   "deterministic": 0.04,
-   "policy_audit_ai": 8.38,
-   "store_and_coverage": 0.15,
-   "coverage_ai_prefetch": 23.67
+   "ai_controls": 266,
+   "verify_write": 11.76,
+   "ai_prefetched": 266,
+   "deterministic": 5.38,
+   "store_and_coverage": 17.78,
+   "policy_audit_ai_concurrent": 9.65,
+   "coverage_ai_prefetch_and_audit_join": 137.73
   },
   "db": {
-   "queries": 569,
-   "query_s": 0.13,
-   "pool_checkouts": 111
+   "queries": 6834,
+   "query_s": 0.88,
+   "pool_checkouts": 368
   },
   "idle_in_txn_before_after": [
    0,
    0
   ],
-  "precision": 0.827,
-  "recall": 1.0,
-  "fp": 32,
-  "fn": 0,
-  "control_coverage": "20/20",
-  "requirement_coverage": "185/185",
-  "citation_validity": 0.762,
-  "gap_guidance_readable": 0.961,
+  "precision": 0.802,
+  "recall": 0.998,
+  "fp": 589,
+  "fn": 4,
+  "control_coverage": "284/284",
+  "requirement_coverage": "2986/2986",
+  "citation_validity": 0.461,
+  "gap_guidance_readable": 0.99,
   "structured_complete": 1.0,
-  "ac17_rows": 0,
+  "ac17_rows": 28,
   "samples": [
    {
-    "req": "ac-1 CCI-000003",
+    "req": "ac-2.3 ac-2.3_obj.b",
     "status": "partial",
-    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it. A value is stated for something else."
+    "guidance": "The policy states personnel, account, disable, an organization-defined value. AI disagrees (partial): Disabling stated, but 'three attempts' is not a time period. \u2013 review needed."
    },
    {
-    "req": "ac-1 CCI-001545",
+    "req": "ac-2.3 ac-2.3_obj.c",
     "status": "partial",
-    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it. A value is stated for something else."
+    "guidance": "The policy states account, disable, an organization-defined value. AI disagrees (partial): States disabling for policy violation, but time period given is nonsensical (every 90 days). \u2013 review needed."
    },
    {
-    "req": "ac-1 CCI-003605",
+    "req": "ac-2.3 ac-2.3_obj.d",
     "status": "partial",
-    "guidance": "An official is referred to, but no specific official or role is named."
+    "guidance": "The policy states inactivity, account, disable, an organization-defined value. AI disagrees (partial): Disabling for inactivity stated, but values are garbled and conflict with 90 days. \u2013 review needed."
    },
    {
-    "req": "ac-1 CCI-003606",
+    "req": "ac-2.5 CCI-000019",
     "status": "partial",
-    "guidance": "An official is referred to, but no specific official or role is named."
+    "guidance": "Related text found, but it does not state: in accordance."
    },
    {
-    "req": "ac-1 CCI-003607",
+    "req": "ac-2.5 CCI-001406",
     "status": "partial",
-    "guidance": "An official is referred to, but no specific official or role is named."
+    "guidance": "The policy states inactivity, personnel, develop doc. AI disagrees (partial): Says a period is defined but gives no value. \u2013 review needed."
    },
    {
-    "req": "ac-1 CCI-003608",
+    "req": "ac-2.5 CCI-002133",
     "status": "partial",
-    "guidance": "The policy is said to be reviewed, but no review-triggering events is stated for it."
+    "guidance": "The policy states personnel, develop doc. AI disagrees (partial): Says conditions are defined but none are specified. \u2013 review needed."
    },
    {
-    "req": "ac-1 CCI-003609",
+    "req": "ac-2.5 ac-2.5_obj",
     "status": "partial",
-    "guidance": "The policy is said to be reviewed, but no review-triggering events is stated for it."
+    "guidance": "The policy states personnel, an organization-defined value. AI disagrees (partial): Logout requirement stated, but value 'annually' is malformed and not inactivity-based. \u2013 review needed."
    },
    {
-    "req": "ac-1 CCI-003610",
+    "req": "at-3 at-3_obj.a.1-4",
     "status": "partial",
-    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it."
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Roles and frequency deferred to the organization, not specified. \u2013 review needed."
    },
    {
-    "req": "ac-1 CCI-003611",
+    "req": "at-2 CCI-000112",
     "status": "partial",
-    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it."
+    "guidance": "The policy states change refresh, personnel, develop doc, when required. AI disagrees (partial): Training on system changes is stated; events are only 'as determined by the organization'. \u2013 review needed."
    },
    {
-    "req": "ac-1 ac-1_obj.b",
+    "req": "at-2 CCI-003766",
     "status": "partial",
-    "guidance": "An official is referred to, but no specific official or role is named."
+    "guidance": "The policy states change refresh, personnel, develop doc, when required. AI disagrees (partial): Privacy training on system changes is stated; the events are garbled and undefined. \u2013 review needed."
+   }
+  ]
+ },
+ {
+  "label": "v2_p284_broad_incr",
+  "corpus": "p284_broad",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 69.5,
+  "ai_calls": 4,
+  "coverage_calls": 3,
+  "p50_ms": 14024,
+  "p95_ms": 25510,
+  "input_tokens": 18205,
+  "output_tokens": 10095,
+  "cost_usd": 0.137,
+  "retries": 0,
+  "cache_hits": 104,
+  "batches": 103,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 284,
+   "ai_workers": 4,
+   "ai_controls": 266,
+   "verify_write": 11.71,
+   "ai_prefetched": 266,
+   "deterministic": 5.4,
+   "store_and_coverage": 17.79,
+   "policy_audit_ai_concurrent": 7.82,
+   "coverage_ai_prefetch_and_audit_join": 51.49
+  },
+  "db": {
+   "queries": 6728,
+   "query_s": 1.06,
+   "pool_checkouts": 154
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.802,
+  "recall": 0.998,
+  "fp": 589,
+  "fn": 4,
+  "control_coverage": "284/284",
+  "requirement_coverage": "2986/2986",
+  "citation_validity": 0.461,
+  "gap_guidance_readable": 0.99,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "mp-4 CCI-001015",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines types of digital and/or non-digital media to physically control and securely store within organization-defined controlled areas.\u201d. Closest policy sentence is quoted b"
+   },
+   {
+    "req": "mp-4 CCI-001016",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines controlled areas where organization-defined types of digital and/or non-digital media are physically controlled and securely stored.\u201d. Closest policy sentence is quot"
+   },
+   {
+    "req": "cm-6 cm-6_obj.a",
+    "status": "partial",
+    "guidance": "A documented configuration management policy with 7 of 7 policy elements. AI disagrees (partial): Common secure configurations value is not actually specified. \u2013 review needed."
+   },
+   {
+    "req": "cm-6 cm-6_obj.b",
+    "status": "partial",
+    "guidance": "A documented configuration management policy with 7 of 7 policy elements. AI disagrees (partial): Implementation stated, but not tied to documented settings explicitly. \u2013 review needed."
+   },
+   {
+    "req": "cm-6 cm-6_obj.c-1",
+    "status": "partial",
+    "guidance": "A documented configuration management policy with 7 of 7 policy elements. AI disagrees (partial): Identification stated; components and operational requirements values are garbled. \u2013 review needed."
+   },
+   {
+    "req": "cm-6 cm-6_obj.c-2",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cany deviations from established configuration settings for [Assignment: system components] are approved;\u201d. Closest policy sentence is quoted below; it uses related wording bu"
+   },
+   {
+    "req": "cm-7 CCI-000380",
+    "status": "partial",
+    "guidance": "The policy states prohibit, develop doc. AI disagrees (partial): States they are defined but lists none. \u2013 review needed."
+   },
+   {
+    "req": "cp-6 CCI-002836",
+    "status": "missing",
+    "guidance": "Not found: no sentence in the policy addresses the requirement \u201cEnsure that the alternate storage site provides security controls equivalent to that of the primary site.\u201d."
+   },
+   {
+    "req": "cp-6 cp-6_obj.b",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cthe alternate storage site provides controls equivalent to that of the primary site.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based che"
+   },
+   {
+    "req": "cp-7 CCI-000510",
+    "status": "partial",
+    "guidance": "The policy states availability, transfer, develop doc. AI disagrees (partial): Time period defined but value is garbled and unclear. \u2013 review needed."
+   }
+  ]
+ },
+ {
+  "label": "v2_p284_broad_repeat",
+  "corpus": "p284_broad",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 71.6,
+  "ai_calls": 4,
+  "coverage_calls": 3,
+  "p50_ms": 20855,
+  "p95_ms": 25376,
+  "input_tokens": 19127,
+  "output_tokens": 11680,
+  "cost_usd": 0.155,
+  "retries": 0,
+  "cache_hits": 104,
+  "batches": 103,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 284,
+   "ai_workers": 4,
+   "ai_controls": 266,
+   "verify_write": 11.72,
+   "ai_prefetched": 266,
+   "deterministic": 5.44,
+   "store_and_coverage": 17.84,
+   "policy_audit_ai_concurrent": 9.04,
+   "coverage_ai_prefetch_and_audit_join": 53.5
+  },
+  "db": {
+   "queries": 6727,
+   "query_s": 1.02,
+   "pool_checkouts": 154
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.802,
+  "recall": 0.998,
+  "fp": 589,
+  "fn": 4,
+  "control_coverage": "284/284",
+  "requirement_coverage": "2986/2986",
+  "citation_validity": 0.461,
+  "gap_guidance_readable": 0.99,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "at-3 CCI-000108",
+    "status": "partial",
+    "guidance": "The policy states personnel, assign, authorize, develop doc. AI disagrees (partial): Roles are undefined and the before-access timing is garbled. \u2013 review needed."
+   },
+   {
+    "req": "at-3 CCI-003782",
+    "status": "partial",
+    "guidance": "The policy states personnel, develop doc. AI disagrees (partial): Restates the requirement but does not actually define any roles. \u2013 review needed."
+   },
+   {
+    "req": "at-3 CCI-003783",
+    "status": "partial",
+    "guidance": "The policy states personnel, assign, authorize, develop doc. AI disagrees (partial): Privacy training is stated but roles are undefined and timing is garbled. \u2013 review needed."
+   },
+   {
+    "req": "at-3 CCI-003785",
+    "status": "partial",
+    "guidance": "The policy states develop doc, update. AI disagrees (partial): Update stated but the frequency of 15 minutes is implausible. \u2013 review needed."
+   },
+   {
+    "req": "at-3 CCI-003786",
+    "status": "partial",
+    "guidance": "The policy states develop doc, update. AI disagrees (partial): Frequency definition is restated without a clear value. \u2013 review needed."
+   },
+   {
+    "req": "at-3 CCI-003787",
+    "status": "partial",
+    "guidance": "The policy states develop doc, update, when required. AI disagrees (partial): Update following events is stated but events are not specified. \u2013 review needed."
+   },
+   {
+    "req": "at-3 CCI-003788",
+    "status": "partial",
+    "guidance": "The policy states develop doc, update, when required. AI disagrees (partial): Events are deferred to the organization, not defined. \u2013 review needed."
+   },
+   {
+    "req": "ac-12 CCI-002360",
+    "status": "partial",
+    "guidance": "The policy states personnel, termination, develop doc. AI disagrees (partial): States defining conditions but gives no actual conditions or trigger events. \u2013 review needed."
+   },
+   {
+    "req": "ac-12 CCI-002361",
+    "status": "partial",
+    "guidance": "The policy states personnel, termination, develop doc. AI disagrees (partial): Mentions termination within 24 hours, but conditions are unclear and garbled. \u2013 review needed."
+   },
+   {
+    "req": "ac-12 ac-12_obj",
+    "status": "partial",
+    "guidance": "The policy states personnel, termination. AI disagrees (partial): Automatic termination stated, but trigger conditions are incoherent. \u2013 review needed."
+   }
+  ]
+ },
+ {
+  "label": "v2_p284_broad_repeat2",
+  "corpus": "p284_broad",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 71.7,
+  "ai_calls": 3,
+  "coverage_calls": 2,
+  "p50_ms": 26260,
+  "p95_ms": 26260,
+  "input_tokens": 14294,
+  "output_tokens": 7665,
+  "cost_usd": 0.105,
+  "retries": 0,
+  "cache_hits": 105,
+  "batches": 103,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 284,
+   "ai_workers": 4,
+   "ai_controls": 266,
+   "verify_write": 11.83,
+   "ai_prefetched": 266,
+   "deterministic": 5.37,
+   "store_and_coverage": 17.88,
+   "policy_audit_ai_concurrent": 8.13,
+   "coverage_ai_prefetch_and_audit_join": 53.62
+  },
+  "db": {
+   "queries": 6728,
+   "query_s": 1.03,
+   "pool_checkouts": 154
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.802,
+  "recall": 0.998,
+  "fp": 589,
+  "fn": 4,
+  "control_coverage": "284/284",
+  "requirement_coverage": "2986/2986",
+  "citation_validity": 0.461,
+  "gap_guidance_readable": 0.99,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "ia-4 CCI-001970",
+    "status": "partial",
+    "guidance": "The policy states personnel, assign, authorize, develop doc. AI disagrees (partial): States roles are defined but names none. \u2013 review needed."
+   },
+   {
+    "req": "ia-4 CCI-001971",
+    "status": "partial",
+    "guidance": "The policy states personnel, assign, authorize, develop doc. AI disagrees (partial): Authorization required, but personnel or roles not specified. \u2013 review needed."
+   },
+   {
+    "req": "ia-4 CCI-001973",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cManage system identifiers by assigning the identifier to the intended individual, group, role, or device.\u201d. Closest policy sentence is quoted below; it uses related wording b"
+   },
+   {
+    "req": "ia-4 CCI-001974",
+    "status": "partial",
+    "guidance": "The policy states prohibit, develop doc. AI disagrees (partial): States a time period is defined but gives no value. \u2013 review needed."
+   },
+   {
+    "req": "ia-4 CCI-001975",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cManage system identifiers by preventing reuse of identifiers for an organization-defined time period.\u201d. Closest policy sentence is quoted below; it uses related wording but t"
+   },
+   {
+    "req": "ia-4 ia-4_obj.a",
+    "status": "partial",
+    "guidance": "The policy states assign, authorize. AI disagrees (partial): Authorization stated; personnel or roles left undefined. \u2013 review needed."
+   },
+   {
+    "req": "ia-4 ia-4_obj.c",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201csystem identifiers are managed by assigning the identifier to the intended individual, group, role, service, or device;\u201d. Closest policy sentence is quoted below; it uses rel"
+   },
+   {
+    "req": "ia-4 ia-4_obj.d",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201csystem identifiers are managed by preventing reuse of identifiers for [Assignment: time period].\u201d. Closest policy sentence is quoted below; it uses related wording but the ru"
+   },
+   {
+    "req": "ia-4.4 CCI-000800",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines characteristics for identifying individual status.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cannot tell whether it "
+   },
+   {
+    "req": "ia-4.4 CCI-000801",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cManage individual identifiers by uniquely identifying each individual as organization-defined characteristics identifying individual status.\u201d. Closest policy sentence is quot"
+   }
+  ]
+ },
+ {
+  "label": "v2_p284_broad_repeat3",
+  "corpus": "p284_broad",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 30.2,
+  "ai_calls": 1,
+  "coverage_calls": 0,
+  "p50_ms": null,
+  "p95_ms": null,
+  "input_tokens": 3779,
+  "output_tokens": 944,
+  "cost_usd": 0.017,
+  "retries": 0,
+  "cache_hits": 103,
+  "batches": 103,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 284,
+   "ai_workers": 4,
+   "ai_controls": 266,
+   "verify_write": 11.94,
+   "ai_prefetched": 266,
+   "deterministic": 5.38,
+   "store_and_coverage": 18.0,
+   "policy_audit_ai_concurrent": 8.39,
+   "coverage_ai_prefetch_and_audit_join": 11.94
+  },
+  "db": {
+   "queries": 6718,
+   "query_s": 1.02,
+   "pool_checkouts": 146
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.802,
+  "recall": 0.998,
+  "fp": 589,
+  "fn": 4,
+  "control_coverage": "284/284",
+  "requirement_coverage": "2986/2986",
+  "citation_validity": 0.461,
+  "gap_guidance_readable": 0.99,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "cm-2.2 CCI-000302",
+    "status": "partial",
+    "guidance": "The policy states develop doc, maintain. AI disagrees (partial): Accuracy stated, but no automated mechanisms defined. \u2013 review needed."
+   },
+   {
+    "req": "cm-2.2 CCI-000303",
+    "status": "partial",
+    "guidance": "The policy states availability, develop doc, maintain. AI disagrees (partial): Availability stated, but no automated mechanisms defined. \u2013 review needed."
+   },
+   {
+    "req": "cm-2.2 CCI-003911",
+    "status": "partial",
+    "guidance": "The policy states baseline config, availability, develop doc, maintain. AI disagrees (partial): Says mechanisms are defined but none named. \u2013 review needed."
+   },
+   {
+    "req": "cm-2.2 cm-2.2_obj-1",
+    "status": "partial",
+    "guidance": "The policy states baseline config, maintain. AI disagrees (partial): Currency stated without actual automated mechanisms. \u2013 review needed."
+   },
+   {
+    "req": "cm-2.2 cm-2.2_obj-2",
+    "status": "partial",
+    "guidance": "The policy states baseline config, maintain. AI disagrees (partial): Completeness stated but mechanisms not specified. \u2013 review needed."
+   },
+   {
+    "req": "cm-2.2 cm-2.2_obj-3",
+    "status": "partial",
+    "guidance": "The policy states baseline config, maintain. AI disagrees (partial): Accuracy stated but mechanisms not specified. \u2013 review needed."
+   },
+   {
+    "req": "cm-2.2 cm-2.2_obj-4",
+    "status": "partial",
+    "guidance": "The policy states baseline config, availability, maintain. AI disagrees (partial): Availability stated but mechanisms not specified. \u2013 review needed."
+   },
+   {
+    "req": "cm-2.3 CCI-000304",
+    "status": "partial",
+    "guidance": "The policy states retain, baseline config, develop doc. AI disagrees (partial): Retention mentioned but number of previous versions not given. \u2013 review needed."
+   },
+   {
+    "req": "cm-2.3 CCI-001736",
+    "status": "partial",
+    "guidance": "The policy states baseline config, develop doc. AI disagrees (partial): Says number is defined but gives no value. \u2013 review needed."
+   },
+   {
+    "req": "cm-2.3 cm-2.3_obj",
+    "status": "partial",
+    "guidance": "The policy states retain, baseline config, an organization-defined value. AI disagrees (missing): No number of retained baseline versions for rollback is stated. \u2013 review needed."
+   }
+  ]
+ },
+ {
+  "label": "v2_sweep_p100_w16",
+  "corpus": "p100_multi",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 53.6,
+  "ai_calls": 43,
+  "coverage_calls": 42,
+  "p50_ms": 14060,
+  "p95_ms": 20140,
+  "input_tokens": 162562,
+  "output_tokens": 101124,
+  "cost_usd": 1.336,
+  "retries": 0,
+  "cache_hits": 0,
+  "batches": 32,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 100,
+   "ai_workers": 4,
+   "ai_controls": 96,
+   "verify_write": 1.08,
+   "ai_prefetched": 96,
+   "deterministic": 0.4,
+   "store_and_coverage": 1.73,
+   "policy_audit_ai_concurrent": 3.46,
+   "coverage_ai_prefetch_and_audit_join": 51.63
+  },
+  "db": {
+   "queries": 2125,
+   "query_s": 0.23,
+   "pool_checkouts": 61
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.824,
+  "recall": 1.0,
+  "fp": 156,
+  "fn": 0,
+  "control_coverage": "100/100",
+  "requirement_coverage": "888/888",
+  "citation_validity": 0.594,
+  "gap_guidance_readable": 0.976,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "ac-2 ac-2_obj.h.3",
+    "status": "partial",
+    "guidance": "Related text found, but it does not state: the organization-defined value."
+   },
+   {
+    "req": "ac-2 ac-2_obj.i.3",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201caccess to the system is authorized based on [Assignment: attributes (as required)];\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based chec"
+   },
+   {
+    "req": "ac-2 ac-2_obj.j",
+    "status": "partial",
+    "guidance": "Related text found, but it does not state: account."
+   },
+   {
+    "req": "ac-2 ac-2_obj.k-2",
+    "status": "partial",
+    "guidance": "The policy states account type, authenticator, change refresh, account, group role accounts. AI disagrees (partial): Only establishment is stated, not implementation. \u2013 review needed."
+   },
+   {
+    "req": "ac-2.1 CCI-000015",
+    "status": "partial",
+    "guidance": "The policy states account, develop doc. AI disagrees (partial): Support stated but no automated mechanisms named. \u2013 review needed."
+   },
+   {
+    "req": "au-9.2 CCI-001348",
+    "status": "partial",
+    "guidance": "The policy states audit record, develop doc. AI disagrees (partial): Separate repository stated but frequency value not given. \u2013 review needed."
+   },
+   {
+    "req": "ac-2.1 ac-2.1_obj",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cthe management of system accounts is supported using [Assignment: automated mechanisms].\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based"
+   },
+   {
+    "req": "ac-2.13 CCI-002150",
+    "status": "partial",
+    "guidance": "The policy states personnel, account, disable, develop doc. AI disagrees (partial): Says the period is defined but states no value. \u2013 review needed."
+   },
+   {
+    "req": "ac-2.13 CCI-002151",
+    "status": "partial",
+    "guidance": "The policy states account, disable, develop doc. AI disagrees (partial): Disabling is stated, but time and risk values are left undefined. \u2013 review needed."
+   },
+   {
+    "req": "ac-2.13 CCI-003637",
+    "status": "partial",
+    "guidance": "The policy states account, disable, develop doc. AI disagrees (partial): Says risks are defined but lists none. \u2013 review needed."
+   }
+  ]
+ },
+ {
+  "label": "v2_sweep_p100_w32",
+  "corpus": "p100_multi",
+  "analyzer": "v2",
+  "workers": 32,
+  "wall_s": 54.4,
+  "ai_calls": 43,
+  "coverage_calls": 42,
+  "p50_ms": 14674,
+  "p95_ms": 20640,
+  "input_tokens": 165544,
+  "output_tokens": 99777,
+  "cost_usd": 1.329,
+  "retries": 0,
+  "cache_hits": 0,
+  "batches": 32,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 100,
+   "ai_workers": 4,
+   "ai_controls": 96,
+   "verify_write": 1.14,
+   "ai_prefetched": 96,
+   "deterministic": 0.4,
+   "store_and_coverage": 1.74,
+   "policy_audit_ai_concurrent": 7.91,
+   "coverage_ai_prefetch_and_audit_join": 52.44
+  },
+  "db": {
+   "queries": 2125,
+   "query_s": 0.23,
+   "pool_checkouts": 61
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.824,
+  "recall": 1.0,
+  "fp": 156,
+  "fn": 0,
+  "control_coverage": "100/100",
+  "requirement_coverage": "888/888",
+  "citation_validity": 0.594,
+  "gap_guidance_readable": 0.977,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "ac-2.3 CCI-000217",
+    "status": "partial",
+    "guidance": "The policy states inactivity, account, disable, develop doc. AI disagrees (partial): States a period is defined, but gives no value. \u2013 review needed."
+   },
+   {
+    "req": "ac-20 CCI-003754",
+    "status": "partial",
+    "guidance": "The policy states prohibit, develop doc. AI disagrees (partial): Prohibition stated but no actual types of external systems named. \u2013 review needed."
+   },
+   {
+    "req": "ac-20 CCI-003755",
+    "status": "partial",
+    "guidance": "The policy states prohibit, develop doc. AI disagrees (partial): States types are defined but none are listed. \u2013 review needed."
+   },
+   {
+    "req": "ac-2.3 ac-2.3_obj.a",
+    "status": "partial",
+    "guidance": "Related text found, but it does not state: change refresh."
+   },
+   {
+    "req": "ac-20.2 CCI-000097",
+    "status": "partial",
+    "guidance": "The policy states authorize, develop doc. AI disagrees (partial): Restriction stated but the value given (every 90 days) is not a restriction. \u2013 review needed."
+   },
+   {
+    "req": "ac-22 CCI-001476",
+    "status": "partial",
+    "guidance": "The policy states review analyze, develop doc. AI disagrees (partial): Review stated but no frequency; ISSO and ISSM given instead. \u2013 review needed."
+   },
+   {
+    "req": "ac-22 CCI-001477",
+    "status": "partial",
+    "guidance": "The policy states review analyze, develop doc. AI disagrees (partial): Says a frequency is defined but gives no value. \u2013 review needed."
+   },
+   {
+    "req": "ac-22 ac-22_obj.d-1",
+    "status": "partial",
+    "guidance": "The policy states review analyze, an organization-defined value. AI disagrees (partial): Review stated but frequency value is missing. \u2013 review needed."
+   },
+   {
+    "req": "ac-5 ac-5_obj.b",
+    "status": "partial",
+    "guidance": "The policy states authorize, termination, develop doc. AI disagrees (partial): States authorizations are defined but gives no specifics. \u2013 review needed."
+   },
+   {
+    "req": "cm-2.2 CCI-000300",
+    "status": "partial",
+    "guidance": "The policy states develop doc, maintain. AI disagrees (partial): Mechanism is not actually specified, only deferred to the organization. \u2013 review needed."
+   }
+  ]
+ },
+ {
+  "label": "v2_sweep_p100_w4",
+  "corpus": "p100_multi",
+  "analyzer": "v2",
+  "workers": 4,
+  "wall_s": 151.2,
+  "ai_calls": 45,
+  "coverage_calls": 44,
+  "p50_ms": 12838,
+  "p95_ms": 19551,
+  "input_tokens": 171488,
+  "output_tokens": 102161,
+  "cost_usd": 1.365,
+  "retries": 0,
+  "cache_hits": 0,
+  "batches": 32,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 100,
+   "ai_workers": 4,
+   "ai_controls": 96,
+   "verify_write": 1.09,
+   "ai_prefetched": 96,
+   "deterministic": 0.41,
+   "store_and_coverage": 1.72,
+   "policy_audit_ai_concurrent": 8.64,
+   "coverage_ai_prefetch_and_audit_join": 149.25
+  },
+  "db": {
+   "queries": 2127,
+   "query_s": 0.24,
+   "pool_checkouts": 63
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.824,
+  "recall": 1.0,
+  "fp": 156,
+  "fn": 0,
+  "control_coverage": "100/100",
+  "requirement_coverage": "888/888",
+  "citation_validity": 0.594,
+  "gap_guidance_readable": 0.977,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "au-8 CCI-001888",
+    "status": "partial",
+    "guidance": "The policy states audit record, develop doc. AI disagrees (partial): Says granularity is defined but no value is given. \u2013 review needed."
+   },
+   {
+    "req": "au-8 CCI-001889",
+    "status": "partial",
+    "guidance": "The policy states audit record, develop doc. AI disagrees (partial): Time stamps recorded but no granularity value stated. \u2013 review needed."
+   },
+   {
+    "req": "au-8 CCI-001890",
+    "status": "missing",
+    "guidance": "Not found: no sentence in the policy addresses the requirement \u201cRecord time stamps for audit records that use Coordinated Universal Time, have a fixed local time offset from Coordinated Universal Time, or that include the local time offset "
+   },
+   {
+    "req": "au-8 au-8_obj.b",
+    "status": "partial",
+    "guidance": "The policy states audit record, an organization-defined value. AI disagrees (partial): Granularity value and UTC/offset requirement not stated. \u2013 review needed."
+   },
+   {
+    "req": "au-2 CCI-000123",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cIdentify the organization-defined event types that the system is capable of logging in support of the audit function.\u201d. Closest policy sentence is quoted below; it uses relat"
+   },
+   {
+    "req": "au-2 CCI-000126",
+    "status": "partial",
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Garbled; no specific event types or per-event frequency are given. \u2013 review needed."
+   },
+   {
+    "req": "au-2 CCI-001484",
+    "status": "partial",
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Restates the requirement but gives no actual frequency or situation. \u2013 review needed."
+   },
+   {
+    "req": "au-2 CCI-001485",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the event types for logging within the system.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cannot tell whether it actu"
+   },
+   {
+    "req": "au-2 CCI-001571",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the event types that the system is capable of logging in support of the audit function.\u201d. Closest policy sentence is quoted below; it uses related wording but the rul"
+   },
+   {
+    "req": "au-2 au-2_obj.a",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: event types] that the system is capable of logging are identified in support of the audit logging function;\u201d. Closest policy sentence is quoted below; it uses re"
+   }
+  ]
+ },
+ {
+  "label": "v2_sweep_p100_w8",
+  "corpus": "p100_multi",
+  "analyzer": "v2",
+  "workers": 8,
+  "wall_s": 74.9,
+  "ai_calls": 39,
+  "coverage_calls": 38,
+  "p50_ms": 13523,
+  "p95_ms": 19444,
+  "input_tokens": 152320,
+  "output_tokens": 95171,
+  "cost_usd": 1.256,
+  "retries": 0,
+  "cache_hits": 0,
+  "batches": 32,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 100,
+   "ai_workers": 4,
+   "ai_controls": 96,
+   "verify_write": 1.09,
+   "ai_prefetched": 96,
+   "deterministic": 0.4,
+   "store_and_coverage": 1.73,
+   "policy_audit_ai_concurrent": 8.27,
+   "coverage_ai_prefetch_and_audit_join": 73.01
+  },
+  "db": {
+   "queries": 2121,
+   "query_s": 0.22,
+   "pool_checkouts": 57
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.824,
+  "recall": 1.0,
+  "fp": 156,
+  "fn": 0,
+  "control_coverage": "100/100",
+  "requirement_coverage": "888/888",
+  "citation_validity": 0.594,
+  "gap_guidance_readable": 0.976,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "au-8 CCI-001888",
+    "status": "partial",
+    "guidance": "The policy states audit record, develop doc. AI disagrees (partial): Says granularity is defined but gives no value. \u2013 review needed."
+   },
+   {
+    "req": "au-8 CCI-001889",
+    "status": "partial",
+    "guidance": "The policy states audit record, develop doc. AI disagrees (partial): Time stamp recording stated but no granularity value given. \u2013 review needed."
+   },
+   {
+    "req": "au-8 CCI-001890",
+    "status": "missing",
+    "guidance": "Not found: no sentence in the policy addresses the requirement \u201cRecord time stamps for audit records that use Coordinated Universal Time, have a fixed local time offset from Coordinated Universal Time, or that include the local time offset "
+   },
+   {
+    "req": "au-8 au-8_obj.b",
+    "status": "partial",
+    "guidance": "The policy states audit record, an organization-defined value. AI disagrees (partial): Granularity value and UTC/offset requirement not stated. \u2013 review needed."
+   },
+   {
+    "req": "au-2 CCI-000123",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cIdentify the organization-defined event types that the system is capable of logging in support of the audit function.\u201d. Closest policy sentence is quoted below; it uses relat"
+   },
+   {
+    "req": "au-2 CCI-000126",
+    "status": "partial",
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Specification is stated but no event types or clear frequency are given. \u2013 review needed."
+   },
+   {
+    "req": "au-2 CCI-001484",
+    "status": "partial",
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Frequency definition is stated but no actual frequency or situation is given. \u2013 review needed."
+   },
+   {
+    "req": "au-2 CCI-001485",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the event types for logging within the system.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cannot tell whether it actu"
+   },
+   {
+    "req": "au-2 CCI-001571",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines the event types that the system is capable of logging in support of the audit function.\u201d. Closest policy sentence is quoted below; it uses related wording but the rul"
+   },
+   {
+    "req": "au-2 au-2_obj.a",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: event types] that the system is capable of logging are identified in support of the audit logging function;\u201d. Closest policy sentence is quoted below; it uses re"
+   }
+  ]
+ },
+ {
+  "label": "v2_sweep_p284_w32",
+  "corpus": "p284_broad",
+  "analyzer": "v2",
+  "workers": 32,
+  "wall_s": 121.4,
+  "ai_calls": 110,
+  "coverage_calls": 109,
+  "p50_ms": 15209,
+  "p95_ms": 21909,
+  "input_tokens": 436611,
+  "output_tokens": 282557,
+  "cost_usd": 3.699,
+  "retries": 0,
+  "cache_hits": 0,
+  "batches": 103,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 284,
+   "ai_workers": 4,
+   "ai_controls": 266,
+   "verify_write": 11.84,
+   "ai_prefetched": 266,
+   "deterministic": 5.5,
+   "store_and_coverage": 18.02,
+   "policy_audit_ai_concurrent": 3.42,
+   "coverage_ai_prefetch_and_audit_join": 103.16
+  },
+  "db": {
+   "queries": 6619,
+   "query_s": 0.7,
+   "pool_checkouts": 153
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.802,
+  "recall": 0.998,
+  "fp": 589,
+  "fn": 4,
+  "control_coverage": "284/284",
+  "requirement_coverage": "2986/2986",
+  "citation_validity": 0.461,
+  "gap_guidance_readable": 0.988,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "ac-2 CCI-003614",
+    "status": "partial",
+    "guidance": "The policy states membership, develop doc. AI disagrees (partial): Role membership criteria required, but left as 'determined by the organization'. \u2013 review needed."
+   },
+   {
+    "req": "ac-2 CCI-003615",
+    "status": "partial",
+    "guidance": "The policy states membership, develop doc. AI disagrees (partial): States prerequisites are defined, but none are listed. \u2013 review needed."
+   },
+   {
+    "req": "ac-2 CCI-003616",
+    "status": "partial",
+    "guidance": "The policy states account, develop doc, when required. AI disagrees (partial): States attributes are defined, but none are listed. \u2013 review needed."
+   },
+   {
+    "req": "ac-2.5 CCI-001406",
+    "status": "partial",
+    "guidance": "The policy states inactivity, personnel, develop doc. AI disagrees (partial): Says a period is defined but gives no actual value. \u2013 review needed."
+   },
+   {
+    "req": "ca-7 CCI-003874",
+    "status": "partial",
+    "guidance": "The policy states monitor, develop doc. AI disagrees (partial): States metrics are defined but lists no clear values. \u2013 review needed."
+   },
+   {
+    "req": "mp-4 CCI-001015",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines types of digital and/or non-digital media to physically control and securely store within organization-defined controlled areas.\u201d. Closest policy sentence is quoted b"
+   },
+   {
+    "req": "mp-4 CCI-001016",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cDefines controlled areas where organization-defined types of digital and/or non-digital media are physically controlled and securely stored.\u201d. Closest policy sentence is quot"
+   },
+   {
+    "req": "mp-4 CCI-004211",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cPhysically control and securely store organization-defined types of digital and/or non-digital media within organization-defined controlled areas.\u201d. Closest policy sentence i"
+   },
+   {
+    "req": "mp-4 CCI-004212",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cSecurely store organization-defined types of digital and/or non-digital media within organization-defined controlled areas.\u201d. Closest policy sentence is quoted below; it uses"
+   },
+   {
+    "req": "mp-4 CCI-004213",
+    "status": "partial",
+    "guidance": "The policy states approval, develop doc. AI disagrees (missing): Approved equipment appears only in the generic objective statement; not separately stated. \u2013 review needed."
    }
   ]
  }

@@ -3,9 +3,9 @@
 "corpus": "neg_ra",
 "analyzer": "v2",
 "workers": 16,
-"policy_id": "808082ad-c943-4bf0-bdc7-1e096739ea7f",
-"started": "2026-10-27T13:51:17.975415+00:00",
-"wall_s": 12.2,
+"policy_id": "bbc7910a-6197-4b1b-bd9c-c93a36db596b",
+"started": "2026-10-27T14:10:39.777434+00:00",
+"wall_s": 14.8,
 "result": {
 "proposed_findings": 0,
 "ai": "AI anthropic/claude-sonnet-5.5"
@@ -18,15 +18,15 @@
 "ai_controls": 9,
 "verify_write": 0.02,
 "ai_prefetched": 9,
-"deterministic": 0.03,
-"store_and_coverage": 0.11,
-"policy_audit_ai_concurrent": 8.27,
-"coverage_ai_prefetch_and_audit_join": 11.89
+"deterministic": 0.02,
+"store_and_coverage": 0.09,
+"policy_audit_ai_concurrent": 8.22,
+"coverage_ai_prefetch_and_audit_join": 14.5
 },
 "v2": {
-"ai_s": 11.71,
-"calls": 20,
-"batches": 20,
+"ai_s": 14.35,
+"calls": 4,
+"batches": 4,
 "reasked": 0,
 "retries": 0,
 "workers": 16,
@@ -34,7 +34,7 @@
 "sections": 11,
 "truncated": 0,
 "cache_hits": 0,
-"screening_s": 0.01,
+"screening_s": 0.0,
 "not_examined": 0,
 "requirements": 82,
 "invalid_items": 0,
@@ -43,26 +43,26 @@
 "verification_found": 0,
 "reused_requirements": 0,
 "verification_sample": 0,
-"citation_section_fixed": 1
+"citation_section_fixed": 0
 },
 "ai_calls": {
 "policy.coverage_refine": {
-"n": 20,
-"p50_ms": 4441,
-"p95_ms": 8567,
-"input_tokens": 69458,
-"output_tokens": 10379,
+"n": 4,
+"p50_ms": 14208,
+"p95_ms": 14323,
+"input_tokens": 15589,
+"output_tokens": 8395,
 "status": {
-"completed": 20
+"completed": 4
 },
 "model": "anthropic/claude-sonnet-5.5"
 },
 "policy.audit": {
 "n": 1,
-"p50_ms": 8239,
-"p95_ms": 8239,
+"p50_ms": 8187,
+"p95_ms": 8187,
 "input_tokens": 3984,
-"output_tokens": 1057,
+"output_tokens": 1025,
 "status": {
 "completed": 1
 },
@@ -70,9 +70,9 @@
 }
 },
 "db": {
-"queries": 361,
-"query_s": 0.3,
-"pool_checkouts": 75
+"queries": 303,
+"query_s": 0.07,
+"pool_checkouts": 23
 },
 "idle_in_transaction_before_after": [
 0,
@@ -80,109 +80,10 @@
 ],
 "coverage_rows": 120,
 "status_counts": {
-"partial": 55,
-"met": 65
+"partial": 53,
+"met": 67
 },
 "rows": [
-{
-"control_id": "ra-7",
-"requirement_id": "ra-7_obj-1",
-"status": "met",
-"source": "deterministic",
-"confidence": "High",
-"quote": "The organization ensures that findings from security assessments are responded to in accordance with organizational risk tolerance;.",
-"location": "p. 1",
-"reason": "The policy states findings, in accordance.",
-"needs": null
-},
-{
-"control_id": "ra-7",
-"requirement_id": "ra-7_obj-2",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
-"quote": "The organization ensures that findings from security assessments are responded to in accordance with organizational risk tolerance;.",
-"location": "p. 1",
-"reason": "The policy states findings, in accordance. AI disagrees (partial): Privacy assessment response is stated but without the risk tolerance qualifier. \u2013 review needed.",
-"needs": null
-},
-{
-"control_id": "ra-7",
-"requirement_id": "ra-7_obj-3",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
-"quote": "The organization ensures that respond to findings from monitoring.",
-"location": "p. 1",
-"reason": "The policy states findings, in accordance, monitor. AI disagrees (partial): Monitoring findings response is stated but without the organizational risk tolerance qualifier. \u2013 review needed.",
-"needs": null
-},
-{
-"control_id": "ra-7",
-"requirement_id": "ra-7_obj-4",
-"status": "met",
-"source": "deterministic",
-"confidence": "High",
-"quote": "The organization ensures that findings from security assessments are responded to in accordance with organizational risk tolerance;.",
-"location": "p. 1",
-"reason": "The policy states findings, in accordance.",
-"needs": null
-},
-{
-"control_id": "ra-9",
-"requirement_id": "CCI-004648",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
-"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
-"location": "p. 1",
-"reason": "The policy states review analyze, develop doc. AI disagrees (partial): Criticality analysis is stated, but the systems and SDLC decision points are garbled and not clearly defined. \u2013 review needed.",
-"needs": null
-},
-{
-"control_id": "ra-9",
-"requirement_id": "CCI-004649",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
-"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
-"location": "p. 1",
-"reason": "The policy states review analyze, develop doc. AI disagrees (partial): States that systems are defined but gives no actual systems or components. \u2013 review needed.",
-"needs": null
-},
-{
-"control_id": "ra-9",
-"requirement_id": "CCI-004650",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
-"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
-"location": "p. 1",
-"reason": "The policy states review analyze, develop doc. AI disagrees (partial): Mentions defining decision points, but no clear SDLC decision points are given; text is garbled. \u2013 review needed.",
-"needs": null
-},
-{
-"control_id": "ra-9",
-"requirement_id": "ra-9_obj",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
-"quote": "The organization ensures that develop and document an organization-level; mission/business process-level; system-level risk assessment policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance.",
-"location": "p. 1",
-"reason": "A documented risk assessment policy with 7 of 7 policy elements. AI disagrees (partial): Criticality analysis is stated, but systems and decision points are not meaningfully specified (only 'annually'). \u2013 review needed.",
-"needs": null
-},
-{
-"control_id": "ra-3",
-"requirement_id": "CCI-001050",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
-"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
-"location": "p. 1",
-"reason": "The policy states review analyze, develop doc. AI disagrees (partial): Review of results is stated but the frequency is left as 'as determined by the organization', not a concrete value. \u2013 review needed.",
-"needs": null
-},
 {
 "control_id": "ra-1",
 "requirement_id": "CCI-001037",
@@ -192,17 +93,6 @@
 "quote": "The organization ensures that develop and document an organization-level; mission/business process-level; system-level risk assessment policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance.",
 "location": "p. 1",
 "reason": "All 7 policy elements are addressed: purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, compliance.",
-"needs": null
-},
-{
-"control_id": "ra-1",
-"requirement_id": "ra-1_obj.c.1-2",
-"status": "met",
-"source": "deterministic",
-"confidence": "High",
-"quote": "The organization ensures that defines the events following reviewing and updating the current risk assessment policy.",
-"location": "p. 1",
-"reason": "The policy states its review-triggering events: \u201cfollowing reviewing and updating the current risk assessment\u201d.",
 "needs": null
 },
 {
@@ -283,17 +173,6 @@
 "needs": "Add: \u201cThe risk assessment procedures is reviewed and updated at least annually.\u201d"
 },
 {
-"control_id": "ra-3",
-"requirement_id": "CCI-001051",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
-"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
-"location": "p. 1",
-"reason": "The policy states review analyze, develop doc. AI disagrees (partial): Only a frequency for updating the assessment is mentioned, with no defined frequency for reviewing results. \u2013 review needed.",
-"needs": null
-},
-{
 "control_id": "ra-1",
 "requirement_id": "CCI-002368",
 "status": "met",
@@ -358,17 +237,6 @@
 "location": "p. 1",
 "reason": "An official is referred to, but no specific official or role is named.",
 "needs": "Name the official, e.g. \u201cThe ISSM is designated to manage the development, documentation and dissemination of the risk assessment policy and procedures.\u201d"
-},
-{
-"control_id": "ra-3",
-"requirement_id": "CCI-001052",
-"status": "partial",
-"source": "deterministic",
-"confidence": "Medium",
-"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
-"location": "p. 1",
-"reason": "Related text found, but it does not state: change refresh.",
-"needs": "Add a statement covering change refresh, develop doc, update."
 },
 {
 "control_id": "ra-1",
@@ -446,17 +314,6 @@
 "location": "p. 1",
 "reason": "The procedures is said to be reviewed, but no review-triggering events is stated for it. A value is stated for something else.",
 "needs": "Add: \u201cThe risk assessment procedures is reviewed and updated following significant changes, incidents or assessment findings.\u201d"
-},
-{
-"control_id": "ra-1",
-"requirement_id": "ra-1_obj.c.2-1",
-"status": "partial",
-"source": "deterministic",
-"confidence": "Medium",
-"quote": "The organization ensures that review and update the current risk assessment procedures in accordance with three attempts.",
-"location": "p. 1",
-"reason": "The procedures is said to be reviewed, but no review frequency is stated for it.",
-"needs": "Add: \u201cThe risk assessment procedures is reviewed and updated at least annually.\u201d"
 },
 {
 "control_id": "ra-1",
@@ -614,6 +471,28 @@
 },
 {
 "control_id": "ra-1",
+"requirement_id": "ra-1_obj.c.1-2",
+"status": "met",
+"source": "deterministic",
+"confidence": "High",
+"quote": "The organization ensures that defines the events following reviewing and updating the current risk assessment policy.",
+"location": "p. 1",
+"reason": "The policy states its review-triggering events: \u201cfollowing reviewing and updating the current risk assessment\u201d.",
+"needs": null
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.c.2-1",
+"status": "partial",
+"source": "deterministic",
+"confidence": "Medium",
+"quote": "The organization ensures that review and update the current risk assessment procedures in accordance with three attempts.",
+"location": "p. 1",
+"reason": "The procedures is said to be reviewed, but no review frequency is stated for it.",
+"needs": "Add: \u201cThe risk assessment procedures is reviewed and updated at least annually.\u201d"
+},
+{
+"control_id": "ra-1",
 "requirement_id": "ra-1_obj.c.2-2",
 "status": "partial",
 "source": "deterministic",
@@ -631,7 +510,7 @@
 "confidence": "Medium",
 "quote": "The organization ensures that the security categorization results, including supporting rationale, are documented in the security plan for the system;.",
 "location": "p. 1",
-"reason": "AI-verified quote: S3 explicitly states categorization results with supporting rationale are documented in the system security plan.",
+"reason": "AI-verified quote: Policy states categorization results and rationale are documented in the security plan.",
 "needs": null
 },
 {
@@ -651,9 +530,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that categorize the system and information it processes.",
+"quote": "categorize the system and information it processes.",
 "location": "p. 1",
-"reason": "AI-verified quote: S3 explicitly states the system and information it processes are categorized.",
+"reason": "AI-verified quote: Categorization of system and processed information is stated.",
 "needs": null
 },
 {
@@ -662,9 +541,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that categorize the system and information it stores.",
+"quote": "categorize the system and information it stores.",
 "location": "p. 1",
-"reason": "AI-verified quote: S3 explicitly states the system and information it stores are categorized.",
+"reason": "AI-verified quote: Categorization of system and stored information is stated.",
 "needs": null
 },
 {
@@ -673,9 +552,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that categorize the system and information it transmits.",
+"quote": "categorize the system and information it transmits.",
 "location": "p. 1",
-"reason": "AI-verified quote: S3 explicitly states the system and information it transmits are categorized.",
+"reason": "AI-verified quote: Categorization of system and transmitted information is stated.",
 "needs": null
 },
 {
@@ -684,9 +563,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that the system and the information it processes, stores, and transmits are categorized;.",
+"quote": "the system and the information it processes, stores, and transmits are categorized;",
 "location": "p. 1",
-"reason": "AI-verified quote: S3 states the system and information processed, stored, and transmitted are categorized.",
+"reason": "AI-verified quote: Categorization of system and its processed, stored, transmitted information is stated.",
 "needs": null
 },
 {
@@ -717,9 +596,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that a risk assessment is conducted to determine the likelihood and magnitude of harm from unauthorized access, use, disclosure, disruption, modification, or destruction of the system; the information it processes, stores, or transmits; and any related information;.",
+"quote": "a risk assessment is conducted to determine the likelihood and magnitude of harm from unauthorized access, use, disclosure, disruption, modification, or destruction of the system;",
 "location": "p. 1",
-"reason": "AI-verified quote: S4 explicitly states a risk assessment determines likelihood and magnitude of harm for the system and related information.",
+"reason": "AI-verified quote: Risk assessment determining likelihood and magnitude of harm is stated.",
 "needs": null
 },
 {
@@ -735,13 +614,46 @@
 },
 {
 "control_id": "ra-3",
+"requirement_id": "CCI-001050",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
+"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
+"location": "p. 1",
+"reason": "The policy states review analyze, develop doc. AI disagrees (partial): Review stated but frequency is not defined, only deferred. \u2013 review needed.",
+"needs": null
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-001051",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
+"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
+"location": "p. 1",
+"reason": "The policy states review analyze, develop doc. AI disagrees (partial): Frequency for review is deferred, not actually defined. \u2013 review needed.",
+"needs": null
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-001052",
+"status": "partial",
+"source": "deterministic",
+"confidence": "Medium",
+"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
+"location": "p. 1",
+"reason": "Related text found, but it does not state: change refresh.",
+"needs": "Add a statement covering change refresh, develop doc, update."
+},
+{
+"control_id": "ra-3",
 "requirement_id": "CCI-001053",
 "status": "partial",
 "source": "ai",
 "confidence": "Low",
 "quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
 "location": "p. 1",
-"reason": "The policy states develop doc, update. AI disagrees (partial): It says a frequency is defined but gives no actual value in that statement; only a garbled 'within 24 hours' appears elsewhere. \u2013 review needed.",
+"reason": "The policy states develop doc, update. AI disagrees (partial): Says a frequency is defined but gives no value. \u2013 review needed.",
 "needs": null
 },
 {
@@ -752,7 +664,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the organizational document in which risk assessment results are documented (e.",
 "location": "p. 1",
-"reason": "The policy states report, develop doc. AI disagrees (partial): States that a document is defined but names no specific document; the documentation location is given only as a garbled time value. \u2013 review needed.",
+"reason": "The policy states report, develop doc. AI disagrees (partial): Only examples are listed; no specific document is chosen. \u2013 review needed.",
 "needs": null
 },
 {
@@ -763,7 +675,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the personnel or roles to whom the organization-level; mission/business process-level; system-level risk assessment policy is disseminated.",
 "location": "p. 1",
-"reason": "The policy states personnel, develop doc. AI disagrees (partial): States that personnel or roles are defined but names none; dissemination is given only as 'every 90 days'. \u2013 review needed.",
+"reason": "The policy states personnel, develop doc. AI disagrees (partial): Dissemination stated but recipients missing; garbled value. \u2013 review needed.",
 "needs": null
 },
 {
@@ -774,7 +686,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the personnel or roles to whom the organization-level; mission/business process-level; system-level risk assessment policy is disseminated.",
 "location": "p. 1",
-"reason": "The policy states personnel, develop doc. AI disagrees (partial): Policy restates that roles are defined but names no actual personnel or roles; only a frequency of every 90 days appears. \u2013 review needed.",
+"reason": "The policy states personnel, develop doc. AI disagrees (partial): Says roles are defined but names none. \u2013 review needed.",
 "needs": null
 },
 {
@@ -783,9 +695,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that conduct a risk assessment, including identifying threats to the system.",
+"quote": "conduct a risk assessment, including identifying threats to the system.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states that risk assessment includes identifying threats to the system.",
+"reason": "AI-verified quote: Threat identification in risk assessment is stated.",
 "needs": null
 },
 {
@@ -794,9 +706,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that conduct a risk assessment, including identifying vulnerabilities in the system.",
+"quote": "conduct a risk assessment, including identifying vulnerabilities in the system.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states that risk assessment includes identifying vulnerabilities in the system.",
+"reason": "AI-verified quote: Vulnerability identification in risk assessment is stated.",
 "needs": null
 },
 {
@@ -805,9 +717,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that conduct a risk assessment, including determining the likelihood and impact of adverse effects on individuals arising from the processing of personally-identifiable information.",
+"quote": "conduct a risk assessment, including determining the likelihood and impact of adverse effects on individuals arising from the processing of personally-identifiable information.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states likelihood and impact of adverse effects on individuals from PII processing are determined in the risk assessment.",
+"reason": "AI-verified quote: PII adverse-effect likelihood and impact assessment is stated.",
 "needs": null
 },
 {
@@ -816,9 +728,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that integrate risk assessment results from the organization.",
+"quote": "integrate risk assessment results from the organization.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states integration of risk assessment results from the organization.",
+"reason": "AI-verified quote: Integration of organizational risk assessment results is stated.",
 "needs": null
 },
 {
@@ -827,9 +739,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that integrate risk management decisions from the organization.",
+"quote": "integrate risk management decisions from the organization.",
 "location": "p. 1",
-"reason": "AI-verified quote: RA-3 section explicitly states integrating risk management decisions from the organization, with no further organization-defined value requested.",
+"reason": "AI-verified quote: Integration of risk management decisions is stated.",
 "needs": null
 },
 {
@@ -838,9 +750,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that integrate mission or business process perspectives with system-level risk assessments.",
+"quote": "integrate mission or business process perspectives with system-level risk assessments.",
 "location": "p. 1",
-"reason": "AI-verified quote: Section explicitly states integrating mission or business process perspectives with system-level risk assessments.",
+"reason": "AI-verified quote: Integration of mission perspectives with system-level assessments is stated.",
 "needs": null
 },
 {
@@ -849,9 +761,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that a risk assessment is conducted to identify threats to and vulnerabilities in the system;.",
+"quote": "a risk assessment is conducted to identify threats to and vulnerabilities in the system;",
 "location": "p. 1",
-"reason": "AI-verified quote: Section explicitly states a risk assessment is conducted to identify threats to and vulnerabilities in the system.",
+"reason": "AI-verified quote: Risk assessment identifying threats and vulnerabilities is stated.",
 "needs": null
 },
 {
@@ -860,9 +772,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that a risk assessment is conducted to determine the likelihood and magnitude of harm from unauthorized access, use, disclosure, disruption, modification, or destruction of the system; the information it processes, stores, or transmits; and any related information;.",
+"quote": "a risk assessment is conducted to determine the likelihood and magnitude of harm from unauthorized access, use, disclosure, disruption, modification, or destruction of the system;",
 "location": "p. 1",
-"reason": "AI-verified quote: Section restates the objective verbatim: risk assessment determines likelihood and magnitude of harm from unauthorized access, use, and so on.",
+"reason": "AI-verified quote: Likelihood and magnitude of harm determination is stated.",
 "needs": null
 },
 {
@@ -871,9 +783,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that conduct a risk assessment, including determining the likelihood and impact of adverse effects on individuals arising from the processing of personally-identifiable information.",
+"quote": "conduct a risk assessment, including determining the likelihood and impact of adverse effects on individuals arising from the processing of personally-identifiable information.",
 "location": "p. 1",
-"reason": "AI-verified quote: Section states the risk assessment includes likelihood and impact of adverse effects on individuals from PII processing.",
+"reason": "AI-verified quote: Policy states the PII likelihood and impact assessment explicitly.",
 "needs": null
 },
 {
@@ -882,9 +794,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that risk assessment results and risk management decisions from the organization and mission or business process perspectives are integrated with system-level risk assessments;.",
+"quote": "risk assessment results and risk management decisions from the organization and mission or business process perspectives are integrated with system-level risk assessments;",
 "location": "p. 1",
-"reason": "AI-verified quote: Section S4 explicitly states that risk assessment results and risk management decisions from organization and mission/business perspectives are integrated with system-level risk assessments.",
+"reason": "AI-verified quote: Integration with system-level risk assessments is stated.",
 "needs": null
 },
 {
@@ -895,7 +807,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that develop and document an organization-level; mission/business process-level; system-level risk assessment policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance.",
 "location": "p. 1",
-"reason": "A documented risk assessment policy with 7 of 7 policy elements. AI disagrees (partial): States results are documented but the document value is garbled ('15 minutes'), not a security plan or risk assessment report. \u2013 review needed.",
+"reason": "A documented risk assessment policy with 7 of 7 policy elements. AI disagrees (partial): Documentation stated but the document value is garbled, not a document. \u2013 review needed.",
 "needs": null
 },
 {
@@ -906,7 +818,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that the current risk assessment policy is reviewed and updated following every 90 days;.",
 "location": "p. 1",
-"reason": "The policy states review analyze, an organization-defined value. AI disagrees (partial): States results are reviewed but the frequency is nonsensical ('three attempts'), not a valid review frequency. \u2013 review needed.",
+"reason": "The policy states review analyze, an organization-defined value. AI disagrees (partial): Review stated but frequency value is nonsensical (three attempts). \u2013 review needed.",
 "needs": null
 },
 {
@@ -917,7 +829,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that disseminate an organization-level; mission/business process-level; system-level risk assessment policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance to within 24 hours.",
 "location": "p. 1",
-"reason": "The policy is disseminated to organizational entities, and compliance to. AI disagrees (partial): Dissemination is stated but no personnel or roles are named; the value given is a frequency. \u2013 review needed.",
+"reason": "The policy is disseminated to organizational entities, and compliance to. AI disagrees (partial): Dissemination stated but no personnel or roles named. \u2013 review needed.",
 "needs": null
 },
 {
@@ -928,7 +840,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that assess supply chain risks associated with every 90 days, system components, and system services.",
 "location": "p. 1",
-"reason": "The policy states change refresh, update, an organization-defined value. AI disagrees (partial): Update on significant changes is stated, but the frequency 'within 24 hours' is not a plausible update frequency. \u2013 review needed.",
+"reason": "The policy states change refresh, update, an organization-defined value. AI disagrees (partial): Update triggers stated; the 24-hour frequency is implausible. \u2013 review needed.",
 "needs": null
 },
 {
@@ -972,7 +884,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
 "location": "p. 1",
-"reason": "The policy states develop doc, update. AI disagrees (missing): No clear update frequency for the supply chain risk assessment is defined; the text names the ISSO and ISSM instead of a frequency. \u2013 review needed.",
+"reason": "The policy states develop doc, update. AI disagrees (missing): No update frequency defined; only ISSO and ISSM named. \u2013 review needed.",
 "needs": null
 },
 {
@@ -994,18 +906,18 @@
 "confidence": "Low",
 "quote": "The organization ensures that assess supply chain risks associated with every 90 days, system components, and system services.",
 "location": "p. 1",
-"reason": "The policy states change refresh, update, an organization-defined value. AI disagrees (partial): Event-based update is stated, but no valid frequency is given and significant supply chain changes are not mentioned. \u2013 review needed.",
+"reason": "The policy states change refresh, update, an organization-defined value. AI disagrees (partial): Update stated but no frequency value given. \u2013 review needed.",
 "needs": null
 },
 {
 "control_id": "ra-5",
 "requirement_id": "CCI-001054",
-"status": "met",
-"source": "deterministic",
-"confidence": "High",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
 "quote": "## RA-5 Vulnerability Monitoring and Scanning",
 "location": "p. 1",
-"reason": "The policy states in accordance, monitor, develop doc.",
+"reason": "The policy states in accordance, monitor, develop doc. AI disagrees (partial): Monitoring frequency stated; random process not specified. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1016,7 +928,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines a frequency for scanning for vulnerabilities in the system and hosted applications, and/or randomly in accordance with as determined by the organization.",
 "location": "p. 1",
-"reason": "The policy states in accordance, develop doc. AI disagrees (partial): Restates that a frequency is defined, but the value is only 'as determined by the organization'. The actual frequency is found elsewhere (24 hours/90 days), conflictingly. \u2013 review needed.",
+"reason": "The policy states in accordance, develop doc. AI disagrees (partial): Frequency defined only as 'as determined by the organization'. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1036,9 +948,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that employ vulnerability monitoring tools and techniques that facilitate interoperability among tools and automate parts of the vulnerability management process by using standards for: enumerating platforms, software flaws, and improper configurations.",
+"quote": "employ vulnerability monitoring tools and techniques that facilitate interoperability among tools and automate parts of the vulnerability management process by using standards for: enumerating platforms, software flaws, and improper configurations.",
 "location": "p. 1",
-"reason": "AI-verified quote: S6 explicitly states employing interoperable, automating vulnerability monitoring tools using standards for enumerating platforms, software flaws, and improper configurations.",
+"reason": "AI-verified quote: Standards for enumeration explicitly stated.",
 "needs": null
 },
 {
@@ -1060,7 +972,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines a frequency for scanning for vulnerabilities in the system and hosted applications, and/or randomly in accordance with as determined by the organization.",
 "location": "p. 1",
-"reason": "The policy states in accordance, develop doc. AI disagrees (partial): States a 15-minute remediation time for legitimate vulnerabilities, but does not tie response times to an organizational risk assessment; the separate sentence only says response times are defined. \u2013 review needed.",
+"reason": "The policy states in accordance, develop doc. AI disagrees (partial): Remediation stated; 15-minute response time is implausible and not risk-based. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1071,7 +983,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines a frequency for scanning for vulnerabilities in the system and hosted applications, and/or randomly in accordance with as determined by the organization.",
 "location": "p. 1",
-"reason": "The policy states in accordance, develop doc. AI disagrees (partial): Policy restates the requirement to define response times, but the only concrete value given is a nonsensical 15 minutes, with no risk-based timeframes. \u2013 review needed.",
+"reason": "The policy states in accordance, develop doc. AI disagrees (partial): Says response times are defined but gives no actual values. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1082,7 +994,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the personnel or roles with whom the information obtained from the vulnerability monitoring process and control assessments will be shared.",
 "location": "p. 1",
-"reason": "The policy states personnel, monitor, develop doc. AI disagrees (partial): Sharing is stated, but the personnel or roles recipients are missing; the value given is a frequency, not roles. \u2013 review needed.",
+"reason": "The policy states personnel, monitor, develop doc. AI disagrees (partial): Sharing stated but no personnel or roles identified. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1104,7 +1016,7 @@
 "confidence": "Low",
 "quote": "## RA-5 Vulnerability Monitoring and Scanning",
 "location": "p. 1",
-"reason": "The policy states in accordance, monitor, develop doc. AI disagrees (partial): Scanning is stated, but the random-scan process is replaced by 'the ISSO and ISSM', which is not a defined process. \u2013 review needed.",
+"reason": "The policy states in accordance, monitor, develop doc. AI disagrees (partial): Scanning stated but random scan process replaced by roles. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1115,7 +1027,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the personnel or roles with whom the information obtained from the vulnerability monitoring process and control assessments will be shared.",
 "location": "p. 1",
-"reason": "The policy states personnel, monitor, develop doc. AI disagrees (partial): Policy restates the requirement to define personnel or roles for sharing but names no actual personnel or roles; the share statement only gives 'every 90 days'. \u2013 review needed.",
+"reason": "The policy states personnel, monitor, develop doc. AI disagrees (partial): States roles are defined but names none. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1124,9 +1036,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that employ vulnerability monitoring tools and techniques that facilitate interoperability among tools and automate parts of the vulnerability management process by using standards for: formatting checklists and test procedures.",
+"quote": "employ vulnerability monitoring tools and techniques that facilitate interoperability among tools and automate parts of the vulnerability management process by using standards for: formatting checklists and test procedures.",
 "location": "p. 1",
-"reason": "AI-verified quote: S6 explicitly states employing vulnerability monitoring tools that facilitate interoperability and automation using standards for formatting checklists and test procedures; no organization-defined value is required.",
+"reason": "AI-verified quote: Standards for checklists and test procedures explicitly stated.",
 "needs": null
 },
 {
@@ -1135,9 +1047,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that employ vulnerability monitoring tools and techniques that facilitate interoperability among tools and automate parts of the vulnerability management process by using standards for: measuring vulnerability impact.",
+"quote": "employ vulnerability monitoring tools and techniques that facilitate interoperability among tools and automate parts of the vulnerability management process by using standards for: measuring vulnerability impact.",
 "location": "p. 1",
-"reason": "AI-verified quote: RA-5 explicitly states tools use standards for measuring vulnerability impact to facilitate interoperability and automation.",
+"reason": "AI-verified quote: Standards for measuring vulnerability impact explicitly stated.",
 "needs": null
 },
 {
@@ -1163,17 +1075,6 @@
 "needs": null
 },
 {
-"control_id": "ra-5.11",
-"requirement_id": "ra-5.11_obj",
-"status": "met",
-"source": "ai",
-"confidence": "Medium",
-"quote": "The organization ensures that a public reporting channel is established for receiving reports of vulnerabilities in organizational systems and system components.",
-"location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states a public reporting channel is established for vulnerability reports.",
-"needs": null
-},
-{
 "control_id": "ra-5",
 "requirement_id": "ra-5_obj.a-2",
 "status": "met",
@@ -1192,7 +1093,7 @@
 "confidence": "Medium",
 "quote": "The organization ensures that vulnerability monitoring tools and techniques are employed to facilitate interoperability among tools;.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states monitoring tools and techniques are employed to facilitate interoperability among tools.",
+"reason": "AI-verified quote: Tool interoperability is explicitly stated.",
 "needs": null
 },
 {
@@ -1201,9 +1102,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that vulnerability monitoring tools and techniques are employed to automate parts of the vulnerability management process by using standards for enumerating platforms, software flaws, and improper configurations;.",
+"quote": "vulnerability monitoring tools and techniques are employed to automate parts of the vulnerability management process by using standards for enumerating platforms, software flaws, and improper configurations;",
 "location": "p. 1",
-"reason": "AI-verified quote: Section explicitly states tools are employed to automate vulnerability management using standards for enumerating platforms, software flaws, and improper configurations.",
+"reason": "AI-verified quote: Automation using enumeration standards is explicitly stated.",
 "needs": null
 },
 {
@@ -1212,9 +1113,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that vulnerability monitoring tools and techniques are employed to facilitate interoperability among tools and to automate parts of the vulnerability management process by using standards for formatting checklists and test procedures;.",
+"quote": "vulnerability monitoring tools and techniques are employed to facilitate interoperability among tools and to automate parts of the vulnerability management process by using standards for formatting checklists and test procedures;",
 "location": "p. 1",
-"reason": "AI-verified quote: Section explicitly states tools facilitate interoperability and automate vulnerability management using standards for formatting checklists and test procedures.",
+"reason": "AI-verified quote: Standards for formatting checklists and test procedures explicitly stated.",
 "needs": null
 },
 {
@@ -1223,9 +1124,9 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that vulnerability monitoring tools and techniques are employed to facilitate interoperability among tools and to automate parts of the vulnerability management process by using standards for measuring vulnerability impact;",
+"quote": "vulnerability monitoring tools and techniques are employed to facilitate interoperability among tools and to automate parts of the vulnerability management process by using standards for measuring vulnerability impact;",
 "location": "p. 1",
-"reason": "AI-verified quote: S6 explicitly states that tools are employed to facilitate interoperability and automate vulnerability management using standards for measuring vulnerability impact.",
+"reason": "AI-verified quote: Standards for measuring vulnerability impact explicitly stated.",
 "needs": null
 },
 {
@@ -1247,7 +1148,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that disseminate an organization-level; mission/business process-level; system-level risk assessment policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance to within 24 hours.",
 "location": "p. 1",
-"reason": "The policy states in accordance, an organization-defined value. AI disagrees (partial): States a remediation time of 15 minutes, but does not tie it to an organizational assessment of risk; the separate risk-based sentence defines no actual response times. \u2013 review needed.",
+"reason": "The policy states in accordance, an organization-defined value. AI disagrees (partial): Response time given, but risk-assessment linkage is stated only in a separate undefined sentence. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1278,9 +1179,20 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that establish a public reporting channel for receiving reports of vulnerabilities in organizational systems and system components.",
+"quote": "establish a public reporting channel for receiving reports of vulnerabilities in organizational systems and system components.",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states establishing a public reporting channel for vulnerability reports.",
+"reason": "AI-verified quote: Public reporting channel for vulnerability reports explicitly established.",
+"needs": null
+},
+{
+"control_id": "ra-5.11",
+"requirement_id": "ra-5.11_obj",
+"status": "met",
+"source": "ai",
+"confidence": "Medium",
+"quote": "a public reporting channel is established for receiving reports of vulnerabilities in organizational systems and system components.",
+"location": "p. 1",
+"reason": "AI-verified quote: Public reporting channel explicitly stated.",
 "needs": null
 },
 {
@@ -1297,23 +1209,23 @@
 {
 "control_id": "ra-5.2",
 "requirement_id": "CCI-001064",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
+"status": "met",
+"source": "deterministic",
+"confidence": "Medium",
 "quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
 "location": "p. 1",
-"reason": "The policy states develop doc, update. AI disagrees (partial): Defining a frequency is stated here; the 90-day value appears in an adjacent statement but this one does not give it. \u2013 review needed.",
+"reason": "The policy states develop doc, update.",
 "needs": null
 },
 {
 "control_id": "ra-5.2",
 "requirement_id": "ra-5.2_obj",
-"status": "partial",
-"source": "ai",
-"confidence": "Low",
+"status": "met",
+"source": "deterministic",
+"confidence": "Medium",
 "quote": "The organization ensures that the current risk assessment policy is reviewed and updated following every 90 days;.",
 "location": "p. 1",
-"reason": "The policy states update, an organization-defined value. AI disagrees (partial): Update triggers are stated, but the frequency slot is filled with 'the ISSO and ISSM', which is not a valid frequency. \u2013 review needed.",
+"reason": "The policy states update, an organization-defined value.",
 "needs": null
 },
 {
@@ -1324,7 +1236,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the vulnerability scanning activities in which the system implements privileged access authorization to organization-identified system components.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): Privileged access authorization is stated, but scanning activities are replaced by a frequency and components are not identified. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): Privileged access stated, but scanning activities value is a frequency, not defined activities. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1335,7 +1247,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the vulnerability scanning activities in which the system implements privileged access authorization to organization-identified system components.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): Identification of components is stated, but no specific components or scanning activities are given. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): Identification stated but components not actually named. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1346,7 +1258,7 @@
 "confidence": "Low",
 "quote": "The organization ensures that defines the vulnerability scanning activities in which the system implements privileged access authorization to organization-identified system components.",
 "location": "p. 1",
-"reason": "The policy states authorize, develop doc. AI disagrees (partial): The policy says activities are defined but does not list any specific vulnerability scanning activities. \u2013 review needed.",
+"reason": "The policy states authorize, develop doc. AI disagrees (partial): Says activities are defined but gives no actual activities. \u2013 review needed.",
 "needs": null
 },
 {
@@ -1366,21 +1278,21 @@
 "status": "met",
 "source": "ai",
 "confidence": "Medium",
-"quote": "The organization ensures that findings from security assessments are responded to in accordance with organizational risk tolerance;.",
+"quote": "findings from security assessments are responded to in accordance with organizational risk tolerance;",
 "location": "p. 1",
-"reason": "AI-verified quote: Policy explicitly states responding to security assessment findings per organizational risk tolerance.",
+"reason": "AI-verified quote: Response to security assessment findings is stated.",
 "needs": null
 },
 {
 "control_id": "ra-7",
 "requirement_id": "CCI-004642",
-"status": "partial",
-"source": "deterministic",
-"confidence": "Low",
+"status": "met",
+"source": "ai",
+"confidence": "Medium",
 "quote": "The organization ensures that respond to findings from privacy assessments.",
 "location": "p. 1",
-"reason": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cRespond to findings from privacy assessments.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-based check cannot tell whether it actually satisfies the requirement.",
-"needs": "Confirm the quoted sentence meets the requirement, or add a statement that does: \u201cRespond to findings from privacy assessments.\u201d."
+"reason": "AI-verified quote: Response to privacy assessment findings is stated.",
+"needs": null
 },
 {
 "control_id": "ra-7",
@@ -1402,6 +1314,94 @@
 "quote": "The organization ensures that findings from security assessments are responded to in accordance with organizational risk tolerance;.",
 "location": "p. 1",
 "reason": "The policy states findings, in accordance.",
+"needs": null
+},
+{
+"control_id": "ra-7",
+"requirement_id": "ra-7_obj-1",
+"status": "met",
+"source": "deterministic",
+"confidence": "High",
+"quote": "The organization ensures that findings from security assessments are responded to in accordance with organizational risk tolerance;.",
+"location": "p. 1",
+"reason": "The policy states findings, in accordance.",
+"needs": null
+},
+{
+"control_id": "ra-7",
+"requirement_id": "ra-7_obj-2",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
+"quote": "The organization ensures that findings from security assessments are responded to in accordance with organizational risk tolerance;.",
+"location": "p. 1",
+"reason": "The policy states findings, in accordance. AI disagrees (partial): Responding to privacy assessment findings stated, but no mention of organizational risk tolerance. \u2013 review needed.",
+"needs": null
+},
+{
+"control_id": "ra-7",
+"requirement_id": "ra-7_obj-3",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
+"quote": "The organization ensures that respond to findings from monitoring.",
+"location": "p. 1",
+"reason": "The policy states findings, in accordance, monitor. AI disagrees (partial): Responding to monitoring findings stated, but without reference to organizational risk tolerance. \u2013 review needed.",
+"needs": null
+},
+{
+"control_id": "ra-7",
+"requirement_id": "ra-7_obj-4",
+"status": "met",
+"source": "deterministic",
+"confidence": "High",
+"quote": "The organization ensures that findings from security assessments are responded to in accordance with organizational risk tolerance;.",
+"location": "p. 1",
+"reason": "The policy states findings, in accordance.",
+"needs": null
+},
+{
+"control_id": "ra-9",
+"requirement_id": "CCI-004648",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
+"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
+"location": "p. 1",
+"reason": "The policy states review analyze, develop doc. AI disagrees (partial): Criticality analysis stated, but systems and decision points are not meaningfully defined. \u2013 review needed.",
+"needs": null
+},
+{
+"control_id": "ra-9",
+"requirement_id": "CCI-004649",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
+"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
+"location": "p. 1",
+"reason": "The policy states review analyze, develop doc. AI disagrees (partial): Restates the requirement without naming specific systems or components. \u2013 review needed.",
+"needs": null
+},
+{
+"control_id": "ra-9",
+"requirement_id": "CCI-004650",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
+"quote": "The organization ensures that defines the frequency with which to review and update the current risk assessment policy.",
+"location": "p. 1",
+"reason": "The policy states review analyze, develop doc. AI disagrees (partial): Mentions decision points but gives no actual SDLC decision points; text garbled. \u2013 review needed.",
+"needs": null
+},
+{
+"control_id": "ra-9",
+"requirement_id": "ra-9_obj",
+"status": "partial",
+"source": "ai",
+"confidence": "Low",
+"quote": "The organization ensures that develop and document an organization-level; mission/business process-level; system-level risk assessment policy that addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance.",
+"location": "p. 1",
+"reason": "A documented risk assessment policy with 7 of 7 policy elements. AI disagrees (partial): Placeholder values 'annually' do not specify systems or SDLC decision points. \u2013 review needed.",
 "needs": null
 }
 ]

@@ -3,16 +3,16 @@
 "corpus": "neg_unrelated",
 "analyzer": "v2",
 "workers": 16,
-"policy_id": "59e0a420-2c64-4a29-81e0-e25fd3aa2f05",
-"started": "2026-10-27T13:51:30.800621+00:00",
-"wall_s": 3.5,
+"policy_id": "54cd1f25-bda0-4786-a275-b9eda665a60e",
+"started": "2026-10-27T14:10:55.187527+00:00",
+"wall_s": 3.1,
 "result": {
 "proposed_findings": 0,
 "ai": "AI anthropic/claude-sonnet-5.5"
 },
 "timing_s": {
 "ai": 0.0,
-"setup": 0.04,
+"setup": 0.03,
 "controls": 0,
 "ai_workers": 4,
 "ai_controls": 0,
@@ -20,8 +20,8 @@
 "ai_prefetched": 0,
 "deterministic": 0.0,
 "store_and_coverage": 0.01,
-"policy_audit_ai_concurrent": 3.23,
-"coverage_ai_prefetch_and_audit_join": 3.23
+"policy_audit_ai_concurrent": 2.84,
+"coverage_ai_prefetch_and_audit_join": 2.84
 },
 "v2": {
 "ai_s": 0.0,
@@ -48,10 +48,10 @@
 "ai_calls": {
 "policy.audit": {
 "n": 1,
-"p50_ms": 3200,
-"p95_ms": 3200,
+"p50_ms": 2815,
+"p95_ms": 2815,
 "input_tokens": 791,
-"output_tokens": 131,
+"output_tokens": 103,
 "status": {
 "completed": 1
 },
@@ -61,7 +61,7 @@
 "db": {
 "queries": 32,
 "query_s": 0.02,
-"pool_checkouts": 8
+"pool_checkouts": 9
 },
 "idle_in_transaction_before_after": [
 0,
