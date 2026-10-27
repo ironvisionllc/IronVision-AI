@@ -37,7 +37,9 @@ function StatusNotes({ notes }: { notes: string[] }) {
 export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, reviewNeeded = [], statusNotes = [] }: { sid: string; queue: Row[]; counts: Row; canMap: boolean; reload: () => void; setMsg: (m: string) => void; reviewNeeded?: Row[]; statusNotes?: string[] }) {
   const { can } = useAuth();
   const canApprove = (q: Row) => q.awaiting_sca ? can("assessment.perform") : canMap && (!["status", "policy_status"].includes(q.kind) || can("implementation.write"));
+  const approverFor = (q: Row) => q.awaiting_sca ? "SCA (assessor)" : APPROVER;
   const denyWhy = `Approving needs the ${APPROVER} role – your current role can view this item but not approve it.`;
+  const denyFor = (q: Row) => q.awaiting_sca ? "Waiting for the SCA (assessor) – only the assessor confirms Satisfied (separation of duties)." : denyWhy;
   const [sel, setSel] = useState<string[]>([]);
   const [sbs, setSbs] = useState<{ p: string; c: string } | null>(null);
   const [kind, setKind] = useState(() => new URLSearchParams(window.location.search).get("tab") || "");
@@ -100,7 +102,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
         {can("assessment.perform") ? " Select them and press Approve to set Assessment → Satisfied." : " Ask your SCA to open this tab, or switch role to SCA in a sandbox."}</div>}
       {all.length === 0 ? <div className="text-[13px] text-slate-600" data-testid="queue-empty">{kind === "sca" ? "Nothing is waiting for the assessor." : <>Nothing to review. New items appear here after you upload STIG/scan results or a policy. <Link className="text-blue-800 underline" to="/evidence-sources">Upload evidence →</Link></>}</div> : <>
         {job && <BulkJobProgress job={job} onDone={reload} onRetry={setJob} />}
-        {(canMap || (kind === "sca" && can("assessment.perform"))) && <div className="mb-3 rounded bg-slate-50 p-2" data-testid="queue-bulk-bar">
+        {(kind === "sca" ? can("assessment.perform") : canMap) && <div className="mb-3 rounded bg-slate-50 p-2" data-testid="queue-bulk-bar">
           <div className="flex flex-wrap items-center gap-2">
             <label className="text-[12px]"><input type="checkbox" checked={rows.length > 0 && rows.every((r) => sel.includes(r.key))} onChange={(e) => { setAllMatching(false); setSel(e.target.checked ? rows.map((r) => r.key) : []); }} data-testid="queue-select-all" /> Select all shown</label>
             {all.length > rows.length || all.length > 50 ? <button className={`rounded px-2 py-0.5 text-[12px] ${allMatching ? "bg-brand-700 text-white" : "bg-white underline"}`} onClick={() => { setAllMatching(!allMatching); setSel([]); }} data-testid="queue-select-all-matching"
@@ -116,7 +118,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
         </div>}
         <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-slate-500"><th /><th>Type</th><th>Control</th><th>What was found</th><th>Why it was suggested</th><th>Evidence</th><th /></tr></thead><tbody>
           {rows.map((q) => <tr key={q.key} className="border-t border-slate-100 align-top [content-visibility:auto]" data-testid={`queue-item-${q.key}`}>
-            <td className="py-1"><input type="checkbox" disabled={!canApprove(q)} checked={sel.includes(q.key)} onChange={() => toggle(q.key)} title={canApprove(q) ? "" : denyWhy} data-testid={`queue-check-${q.key}`} /></td>
+            <td className="py-1"><input type="checkbox" disabled={!canApprove(q)} checked={sel.includes(q.key)} onChange={() => toggle(q.key)} title={canApprove(q) ? "" : denyFor(q)} data-testid={`queue-check-${q.key}`} /></td>
             <td className="py-1 whitespace-nowrap">{KIND[q.kind]}{q.awaiting_sca && <div className="text-[10px] font-medium text-amber-800">awaiting SCA</div>}</td><td className="py-1 font-mono font-semibold">{fmt(q.control_id)}</td>
             <td className="py-1">{q.downgrade && <div className="text-[10px] font-semibold uppercase text-rose-700" data-testid={`queue-downgrade-${q.key}`}>Downgrade suggested – policy gap</div>}
               {q.policy_id ? <Link className="text-blue-800 underline" to={`/policy-auditor/${q.policy_id}`}>{q.title}</Link> : q.title}
@@ -127,8 +129,8 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
               {(q.tech_needed || []).length > 0 && <div className="text-[10px] text-amber-800" data-testid={`queue-tech-needed-${q.key}`}>Policy alone cannot prove these – technical evidence (scan/STIG/config) still needed: {q.tech_needed.slice(0, 4).join(", ")}{q.tech_needed.length > 4 ? "…" : ""}</div>}{q.coverage && <div className="text-[10px] text-slate-600" data-testid={`queue-coverage-${q.key}`}>{q.coverage.met} of {q.coverage.total} requirements met{q.coverage.gaps.length ? ` – missing: ${q.coverage.gaps.join("; ")}` : ""}</div>}{q.current && <div className="text-[10px] text-slate-500">now: {q.current.implementation.replace(/_/g, " ")} · {q.current.assessment.replace(/_/g, " ")}</div>}</td>
             <td className="max-w-[320px] py-1 text-[11px] text-slate-600">{q.source}: {q.reasoning}{(q.snippets || []).slice(0, 1).map((s: string) => <div key={s}>“{s}”</div>)}</td>
             <td className="py-1 text-[11px]">{(q.evidence || []).map((e: Row) => <div key={e.id}><Link className="text-blue-800 underline" to={`/evidence-ledger?evidence=${e.id}`}>{e.file_name}</Link></div>)}</td>
-            <td className="py-1"><button className="btn-primary px-2 py-0.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-50" disabled={busy || !canApprove(q)} title={canApprove(q) ? "" : denyWhy} onClick={() => decide("approve", [q.key])} data-testid={`queue-approve-${q.key}`}>Approve</button>
-              {!canApprove(q) && <div className="mt-0.5 max-w-[140px] text-[10px] text-slate-600" data-testid={`queue-approve-denied-${q.key}`}>Needs {APPROVER}</div>}</td></tr>)}
+            <td className="py-1"><button className="btn-primary px-2 py-0.5 text-[11px] disabled:cursor-not-allowed disabled:opacity-50" disabled={busy || !canApprove(q)} title={canApprove(q) ? "" : denyFor(q)} onClick={() => decide("approve", [q.key])} data-testid={`queue-approve-${q.key}`}>Approve</button>
+              {!canApprove(q) && <div className="mt-0.5 max-w-[140px] text-[10px] text-slate-600" data-testid={`queue-approve-denied-${q.key}`}>Needs {approverFor(q)}</div>}</td></tr>)}
         </tbody></table></TableScroll>
         <div className="mt-2 flex justify-end"><Pager size={size} page={page} total={all.length} setPage={setPage} testId="queue-pager" /></div></>}
     </Panel></>);

@@ -45,7 +45,24 @@
   - Upload needs a write permission.
   - Cancel and register are audited.
 
+- 2026-10-27: Test Plan discoverability + validation, ISCM/SLCM strategy (0032), guided Select flow (0033). Commits d1e33cf, 0a052f9.
+- 2026-10-27: UAT remediation, nothing deployed:
+  - P1:
+    - Server-side bulk review jobs, plus root cause of "still listed" (9fd8be4, 0a62ee0).
+    - SCA separation of duties (SoD) lifecycle.
+  - P2: Requirement-count rule, single privacy state, one policy-link source (95a9d2e).
+  - P3 / P4 / P6 (53e6960):
+    - Grounded policy fallback.
+    - Draft states.
+    - SSP/SAR/RAR as DOCX and PDF.
+    - POA&M eMASS risk fields (0034).
+  - P5: STIG source-vs-app viewer and TR XLSX warnings (e9832a4).
+  - Iteration-21 fixes (latest commit).
+
 ## Backlog
+- P7: Resume the remaining SLCM/ISCM and guided Select polish.
+- P1: Confirm which commit the Droplet runs (`git log -1`), then redeploy current HEAD.
+- P1: Pre-existing failure: `test_root_deploy::test_existing_env_with_unquoted_scopes_is_fixed_then_deployed` fails at HEAD before these changes.
 - P1: Verify each type against real eMASS exports (SME), then adjust the header aliases.
 - P1: Look into the flaky test `test_tr.py::test_prepopulated_mode_leaves_a_to_l_untouched` (fails sometimes under xdist).
 - P2: Apply Categorization and Roles proposals through the Categorize and Key roles steps.

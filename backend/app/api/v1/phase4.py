@@ -150,6 +150,10 @@ def mapping_review(system_id: uuid.UUID, request: Request, db: Session = Depends
     review_needed: list = []
     status_notes: list = []
     queue = rq.status_suggestions(db, sysobj) + pc.suggestions(db, sysobj, review_needed, status_notes) + rq.policy_proposals(db, sysobj) + rq.automated_maps(db, system_id)
+    for q in queue:
+        q.setdefault("next_actor", {"policy_status": "ISSO / ISSM approve the implementation status (SCA confirms the assessment afterwards)",
+                                    "policy_map": "ISSO / ISSM approve or reject the policy → control mapping",
+                                    "finding_map": "ISSO / ISSM approve or reject the STIG rule → control mapping"}.get(q["kind"], "ISSO / ISSM"))
     return {"queue": queue, "review_needed": review_needed, "status_notes": status_notes, "queue_counts": {k: sum(1 for q in queue if q["kind"] == k) for k in ("status", "policy_status", "policy_map", "finding_map")},
             "pending": [{**to_dict(m), "finding_title": f.title, "vuln_id": f.vuln_id or f.plugin_id} for m, f in rows],
             "unmapped": [{**g, "host_count": len(set(g["hosts"])), "pending_disposition": next((pend[i] for i in g["finding_ids"] if i in pend), None)}
@@ -294,6 +298,12 @@ def decide_item(db: Session, system: System, it, action: str, just: str, edit: l
             else:
                 result["partial"].append(a.control_id)
             ev = [e["id"] for e in next((s for s in rq.status_suggestions(db, system) if s["control_id"] == a.control_id), {"evidence": []})["evidence"]]
+            if can_assess:  # the SCA's confirmation is a real assessment record (feeds the SAR), not only a status flag
+                from app.models import Assessment
+                db.add(Assessment(system_id=system.id, assignment_id=a.id, control_id=a.control_id, assessor_id=current.user.id, objectives=[],
+                                  methods=["examine"], result="satisfied", evidence_ids=ev,
+                                  findings_text=f"SCA confirmed Satisfied from the evidence-based status suggestion in Mapping Review ({len(ev)} evidence item(s))."
+                                                + (f" Note: {just}" if just else "")))
             audit.record(db, action="control.status_suggestion_approved", actor_user_id=current.user.id, actor_email=current.user.email,
                          entity_type="control_assignment", entity_id=str(a.id), before=before,
                          after={"implementation_status": a.implementation_status, "assessment_status": a.assessment_status, "evidence_ids": ev,
@@ -420,7 +430,8 @@ def mapping_review_bulk_retry(job_id: uuid.UUID, request: Request, db: Session =
     if job is None or job.job_type != rb.JOB:
         raise HTTPException(404, "Bulk job not found")
     sid = uuid.UUID(job.payload["system_id"])
-    enforce(request, current, "finding.map", sid)
+    can_assess = has_permission(current.assignments, "assessment.perform", current.user.org_id, sid)
+    check_sod(db, current, sid, job.payload["action"], [(i["kind"], i["ids"]) for i in job.payload["items"]], can_assess, request)
     if job.status not in ("succeeded", "failed"):
         raise HTTPException(409, "The bulk job is still running")
     failed = {f["key"] for f in (job.result or {}).get("failed", [])}

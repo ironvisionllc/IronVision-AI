@@ -259,7 +259,8 @@ def package(db: Session, system: System) -> dict:
     return {"system": {"id": str(system.id), "name": system.name, "acronym": system.acronym, "authorization_status": system.authorization_status,
                        "authorization_expiration": system.authorization_expiration},
             "ssp": {"assigned": len(ac), "with_any_narrative": db.scalar(select(func.count(func.distinct(Implementation.assignment_id)))
-                    .join(ControlAssignment, ControlAssignment.id == Implementation.assignment_id).where(ControlAssignment.system_id == system.id)),
+                    .join(ControlAssignment, ControlAssignment.id == Implementation.assignment_id).where(ControlAssignment.system_id == system.id,
+                                                                                         func.length(func.trim(Implementation.narrative)) > 0)),
                     "approved_narratives": approved},
             "assessment": by_res,
             "open_poams": [{"id": str(p.id), "human_id": p.human_id, "weakness": p.weakness, "severity": p.severity, "due_date": p.due_date}

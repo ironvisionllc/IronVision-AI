@@ -280,7 +280,7 @@ def update(poam_id: str, body: PoamIn, request: Request, db: Session = Depends(g
     before = {k: str(getattr(p, k)) for k in changes}
     for k, v in changes.items():
         setattr(p, k, [c.lower() for c in v] if k == "control_ids" else v)
-    if risk := [k for k in changes if k in RISK_FIELDS]:
+    if risk := [k for k in changes if k in (*RISK_FIELDS, "comments")]:
         p.risk_source = {**(p.risk_source or {}), **{k: "manual" for k in risk}}
     if "owner_id" in changes and p.owner_id:
         wf.notify(db, p.owner_id, f"{p.human_id} assigned to you", f"/poams/{p.id}", "assignment", p.weakness[:200])

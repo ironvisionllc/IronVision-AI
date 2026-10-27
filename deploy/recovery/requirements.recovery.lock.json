@@ -165,6 +165,10 @@
    ],
    "version": "1.45.1"
   },
+  "pillow": {
+   "requires": [],
+   "version": "12.3.0"
+  },
   "prometheus-client": {
    "requires": [],
    "version": "0.26.0"
@@ -249,6 +253,13 @@
    "requires": [],
    "version": "2026.9.29"
   },
+  "reportlab": {
+   "requires": [
+    "charset-normalizer",
+    "pillow"
+   ],
+   "version": "5.0.1"
+  },
   "requests": {
    "requires": [
     "certifi",
@@ -302,8 +313,11 @@
  },
  "generated_by": "python3 -m venv --clear /tmp/lock-recovery && /tmp/lock-recovery/bin/pip install --no-deps --index-url https://pypi.org/simple -r deploy/recovery/requirements.recovery.txt && /tmp/lock-recovery/bin/python scripts/check_requirements.py --write-lock --target recovery",
  "manifest": "deploy/recovery/requirements.recovery.txt",
- "manifest_sha256": "fb85439c5434a2a3966fe03e07b6f128d2cccd4752fe6de7885201be19b33d2c",
+ "manifest_sha256": "6bd37ec1979f32f05b174b3addc2a206dc38336553c0555c9552319ad0d2d89d",
  "modules": {
+  "PIL": [
+   "pillow"
+  ],
   "_cffi_backend": [
    "cffi"
   ],
@@ -441,6 +455,9 @@
   ],
   "regex": [
    "regex"
+  ],
+  "reportlab": [
+   "reportlab"
   ],
   "requests": [
    "requests"

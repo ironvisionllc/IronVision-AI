@@ -59,6 +59,9 @@ def test_full_sca_lifecycle_with_personas(client, ws):
         assert (a.implementation_status, a.assessment_status) == ("implemented", "satisfied")
         ev = db.scalars(select(AuditEvent.action).where(AuditEvent.entity_id == str(a.id), AuditEvent.action == "control.status_suggestion_approved")).all()
         assert len(ev) == 2, "implementation approval and assessment confirmation are two audited decisions"
+        from app.models import Assessment
+        asm = db.scalar(select(Assessment).where(Assessment.assignment_id == a.id))
+        assert asm is not None and asm.result == "satisfied"  # the SCA confirmation feeds the SAR
     assert not [i for i in _q(client, ws) if i["control_id"] == cid and i["kind"] == "status"]
 
 

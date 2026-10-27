@@ -448,3 +448,10 @@ The Control Information import above is now the first type of one shared import 
 - for removals, how many implementation statements and evidence links would be deleted.
 
 Baseline, overlay and tailoring records stay separate (`origin`, `overlay_keys`, `tailoring_decisions`). Counts come only from `counts.system_counts`. Existing configurations show as "already applied". No IL4/5/6 assumptions are made.
+
+## Requirement counting (UAT P2, 2026-10-27)
+- One rule (`policy_coverage.requirement_counts`, endpoint `GET /systems/{id}/workbench/controls/{cid}/requirement-counts`): **base control only** = unique DISA CCIs (Rev 5 list) + SP 800-53A Rev 5 assessment objectives of the control itself; **including assigned enhancements** adds only enhancements assigned to the system; **met** = best result across applicable current policies with an *approved* mapping (never summed per policy; proposed mappings are shown but not counted).
+- Policy-level summaries are labelled "policy-wide, across N mapped controls/enhancements" – they are not a per-control count. Example: the RA-5 base control is 14 CCIs + 10 objectives = 24; "224 requirements (126 CCIs, 98 objectives)" was a policy-wide total across all RA controls mapped to the policy.
+
+## POA&M risk scale vs technical severity (UAT P6)
+- Technical severity / CAT (scanner, checklist) and the eMASS Raw Severity / Relevance of Threat / Likelihood / Impact / Residual Risk Level (Very Low–Very High) are separate fields. Nothing converts one into the other; eMASS imports keep Raw Severity on the eMASS scale and CAT values as CAT. Values can be defaulted from the control's Risk Assessment (Implement step) without overwriting manual entries; every change is audited.

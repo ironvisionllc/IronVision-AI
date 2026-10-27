@@ -1,0 +1,49 @@
+{
+  "summary": "Iteration 21: UAT remediation P1-P6 tested end-to-end against the preview URL using the demo login and personas. Backend: new live pytest test_iter21_uat_live.py (21 tests, 20 pass) plus test_iter21_skipped_live.py (1/1 pass). These cover the bulk-jobs API (202 response, idempotency key returns the same job, progress counts, 409 on retry when nothing failed, 404 on an unknown job, 422 when a reject reason is under 10 chars, 403 for the viewer), the SCA lifecycle (ISSO approve -> awaiting_sca; ISSO and system_owner get 403 separation_of_duties; SCA cannot approve an open implementation; an SCA bulk approve sets implemented+satisfied and the item leaves the queue), SSP/SAR/RAR check and DOCX/PDF download (PK and %PDF signatures, DRAFT-INCOMPLETE filenames), POA&M risk (Very Low-Very High scale, 422 on 'Critical', source 'manual', viewer 403, from-control 422 when the control has no values), RA-5 requirement counts (14/10/24), and re-deciding a decided map (reported as skipped). Frontend checks that passed: Mapping Review tabs, row approval, items moving to the Awaiting SCA tab after reload, the persona switch to SCA and SCA approve, RA-5 Requirement counts with drilldown, Template draft and AI Generate draft (about 11s, AI label, message), Package documents (status, missing list, 4 downloads, SSP summary '0 with statements'), the POA&M P-0030 risk panel (save persists, 'entered manually', Fill from CP-4 fills 4 fields and keeps 2 manual ones), and the STIG rule expand view (original vs current record). Failures and gaps are listed under issues.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/v1/mapping-review/bulk-jobs/{id}/retry", "issue": "Calls enforce(..., 'finding.map'). The SCA role has assessment.perform and no finding.map, so the SCA gets 403 when retrying failed items of its own 'Awaiting assessor (SCA)' bulk job. Reproduced live: the SCA retry returned 403 where 409 (nothing to retry) was expected. Fix: allow finding.map OR assessment.perform when every item in the job is an awaiting-SCA status item, or reuse check_sod."},
+      {"endpoint": "GET /api/v1/systems/{id}/documents/sar[/check]", "issue": "The SAR reads only Assessment records. An SCA approval from the review queue sets ControlAssignment.assessment_status='satisfied' but creates no Assessment row. Result: the Authorization page shows 'Assessment results (SCA): Satisfied 2' while the SAR check says '291 of 291 controls have no SCA assessment record'. The SCA-confirmed results are missing from the SAR. Either the SCA queue approval should write an Assessment record (with the evidence ids), or the SAR should include those results."},
+      {"endpoint": "GET /api/v1/mapping-review (queue items)", "issue": "next_actor is only set for kind=status. policy_map, finding_map and policy_status rows have no 'Next:' hint, so only 12 of 22 rows showed queue-next-actor-*. The spec says every row shows the next actor."},
+      {"endpoint": "PATCH /api/v1/poams/{id}", "issue": "'comments' is not in RISK_FIELDS, so a manual Comments edit does not set risk_source['comments']='manual' and the source label is never shown for Comments (minor)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ReviewQueue – Awaiting assessor (SCA) tab as ISSO", "issue": "Awaiting-SCA rows show the denied hint 'Needs ISSO or ISSM', and the tooltip denyWhy uses the same text, even though the current user IS the ISSO. The missing role is the SCA. The hardcoded APPROVER constant should become 'SCA (assessor)' when q.awaiting_sca.", "selector": "[data-testid^='queue-approve-denied-st:']", "priority": "MEDIUM"},
+      {"component": "ReviewQueue – SCA tab as ISSO", "issue": "queue-bulk-bar (Approve/Reject/Edit selected) is shown to the ISSO on the SCA tab although every row checkbox is disabled. Hide the bar or explain why it cannot be used.", "selector": "[data-testid='queue-bulk-bar']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "POA&M detail – Weakness panel", "issues": ["The label 'Technical severity / CAT' runs into its value ('CATmedium') because the label column is too narrow."]}
+    ]
+  },
+  "not_verified": [
+    "Select step select-privacy-state positive state: none of the 4 demo systems has privacy applied (include_privacy=false, processes_pii=null), so only the absence of the 'apply the privacy baseline' warning was checked. The code path (privacy_state.applied -> label) looks correct.",
+    "BulkJobProgress UI (bulk-job, bulk-job-bar, bulk-job-retry) and queue-select-all-matching: the minimum page size is 50 and the demo queue has fewer than 50 items per tab, so the UI always used /decide. The bulk path was tested only through the API.",
+    "The 'Building template…' state was not seen at 150 ms (the template returns very fast). The code renders it when busy === 'template'.",
+    "The 'skipped' message was verified through the API only, not seen in the UI."
+  ],
+  "test_report_links": ["/app/backend/tests/test_iter21_uat_live.py", "/app/backend/tests/test_iter21_skipped_live.py", "/app/test_reports/pytest/iter21_live.xml"],
+  "action_items": [
+    "Allow the SCA (assessment.perform) to retry failed items of awaiting-SCA bulk jobs (retry endpoint currently requires finding.map)",
+    "Make the SAR include SCA-confirmed results from the review queue (create an Assessment record on SCA approval, or read assignment.assessment_status)",
+    "Fix the ReviewQueue denied hint and tooltip for awaiting-SCA rows ('Needs SCA (assessor)' instead of 'Needs ISSO or ISSM')",
+    "Add next_actor to policy_map, finding_map and policy_status queue items",
+    "Track a 'manual' source for POA&M comments (optional)",
+    "Fix the label/value spacing for 'Technical severity / CAT' in the POA&M Weakness panel"
+  ],
+  "critical_code_review_comments": [
+    "phase4.check_sod awaiting(): returns False for policy_status items (a=None). This is fine today because policy_status items are never awaiting_sca, but it is fragile if that changes.",
+    "review_bulk.run per-item permission check allows assessment.perform only for kind=='status'. This matches the current queue, but keep it in sync with check_sod.",
+    "mapping_review_decide: status and policy_status items are never 'skipped' when already decided. Re-approval is blocked only by the SoD 403, not by the skip logic. Consider making them idempotent (skip) like the map items.",
+    "Retry idempotency key 'rb-retry:{job}:{n_failed}': a second retry of the same original job returns the first retry job, even after that job finished with new failures. Users have to retry the retry job instead."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter21_uat_live.py", "/app/backend/tests/test_iter21_skipped_live.py"],
+  "success_rate": {"backend": "95% (21/22 live tests)", "frontend": "92% (all requested flows work; 1 wrong-hint UI bug, 1 SAR/assessment inconsistency)"},
+  "seed_data_creation": "Demo data was changed by the tests (no reset was done, to keep system IDs stable): on LTP, ISSO approved status suggestions PS-3, AC-2(3), IR-3, AC-2 and 1-2 more (now awaiting SCA; PS-3 and one more confirmed Satisfied by the SCA). All finding_map items were approved. P-0030 risk fields were set (raw High, residual Moderate, plus 4 fields from CP-4). One POA&M has likelihood High and impact Moderate. AI and template drafts were loaded but not saved. POST /api/v1/sandbox/reset restores the data but changes the system IDs.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run the live tests with REACT_APP_BACKEND_URL set and the -n0 flag (pytest.ini adds xdist). test_iter21_uat_live.py needs at least 3 open status suggestions on LTP and finds the LTP id dynamically. Personas are reached via POST /sandbox/act-as. The bulk-job UI progress path needs more than 50 items in a tab. Seed more items or reset before checking BulkJobProgress in the UI."
+}
