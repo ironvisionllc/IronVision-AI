@@ -42,7 +42,8 @@ def test_repro_both_paths(client, ctx):
         print("SUMMARY", s, {k: len(j["report"][k]) for k in ("warnings", "info", "status_not_applied", "required_issues", "invalid", "blocked")})
         assert s["rows_read"] == 423 and s["rows_to_apply"] == 287 and s["rows_with_errors"] == 0
         assert s["rows_not_in_system"] == 136 and s["placeholders_ignored"] == 287
-        assert len(j["report"]["warnings"]) == 287, "Common Control Provider on non-inherited rows → warning, not applied"
+        assert sum(1 for w in j["report"]["warnings"] if w["field"] == "Common Control Provider") == 287, "CCP on non-inherited rows → warning, not applied"
+        assert sum(1 for w in j["report"]["warnings"] if w["field"] == "Implementation Status") == len(j["report"]["status_not_applied"]) > 0
         assert all("common_control_provider" not in i["fields"] and "na_justification" not in i["fields"] for i in j["items"])
     ctx["p1"] = p1
 

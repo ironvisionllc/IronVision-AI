@@ -1,4 +1,5 @@
 """RMF 7-step API: step status + next action, Prepare roles, Categorize (FIPS 199 / CNSSI 1253), Select (baseline/overlays/tailoring)."""
+import re
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -176,11 +177,13 @@ class PiiIn(BaseModel):
 
 
 @router.get("/privacy/preview")
-def privacy_preview(mode: str = "fips199", level: str | None = None, baseline_key: str | None = None, db: Session = Depends(get_db),
-                    _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+def privacy_preview(mode: str = "fips199", level: str | None = None, baseline_key: str | None = None, trigraph: str | None = None,
+                    db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
     """Registration note: what "Yes" adds for this framework / impact level ("Yes adds the Privacy Overlay (N controls)…")."""
     from app.services import pii
-    return pii.preview(db, mode, level, baseline_key)
+    if trigraph and not re.fullmatch(r"[LMH]-[LMH]-[LMH]", trigraph.upper()):
+        raise HTTPException(422, "trigraph must look like M-H-L")
+    return pii.preview(db, mode, level, baseline_key, trigraph=trigraph.upper() if trigraph else None)
 
 
 @router.get("/systems/{system_id}/pii")

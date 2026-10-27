@@ -114,7 +114,7 @@ export function RegisterSystemPage() {
           </div>
           <div className="mt-4"><RolesEditor meta={ref} value={roles} onChange={setRoles} registration /></div>
         </Panel>
-        <div><h2 className="mb-2 font-heading text-[15px] font-semibold text-slate-900">2 · Categorize</h2><CategorizeForm v={cat} onChange={setCat} /></div>
+        <div><h2 className="mb-2 font-heading text-[15px] font-semibold text-slate-900">2 · Categorize</h2><CategorizeForm v={cat} onChange={setCat} baseline={chosen || undefined} /></div>
         <Panel title="Baseline" eyebrow="Chosen automatically from the categorization">
           <div className="flex flex-wrap items-end gap-3 text-[12px]">
             <div>From categorization: <b className="capitalize" data-testid="reg-auto-baseline">{auto || "— pick information types first"}</b></div>

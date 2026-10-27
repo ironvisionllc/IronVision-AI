@@ -305,6 +305,7 @@ def _row_rules(fields: dict, cur: dict, row: int, ctl: str, rep: dict) -> None:
             how = "add them to the file" + (", or set the SLCM fields via the system's Continuous Monitoring Strategy" if set(miss) & set(ef.SLCM) else "")
             sf["blocked"] = f"{sf['imported']} not applied – missing: {', '.join(labs)} ({how}). The other values of this row are still imported."
             rep["status_not_applied"].append({"row": row, "control": ctl, "status": sf["imported"], "missing": labs})
+            rep["warnings"].append({"row": row, "control": ctl, "field": "Implementation Status", "value": sf["imported"], "reason": sf["blocked"]})
 
 
 def _ok(f: dict) -> bool:

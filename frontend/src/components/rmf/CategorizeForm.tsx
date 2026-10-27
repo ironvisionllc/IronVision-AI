@@ -107,7 +107,7 @@ function Choice({ label, help, value, options, onChange, testId }: { label: stri
     {cur?.help && <span className="mt-1 block text-[11px] font-normal text-slate-500">{cur.help}</span>}</label>;
 }
 
-export function CategorizeForm({ v, onChange, sid }: { v: Row; onChange: (v: Row) => void; sid?: string }) {
+export function CategorizeForm({ v, onChange, sid, baseline }: { v: Row; onChange: (v: Row) => void; sid?: string; baseline?: string }) {
   const { data: cat } = useApi<Row>("/reference/info-types");
   const { data: ref } = useApi<Row>("/reference/rmf");
   const calc = useCategorization(v);
@@ -157,15 +157,17 @@ export function CategorizeForm({ v, onChange, sid }: { v: Row; onChange: (v: Row
             onChange={(e) => set("environment_detail", { ...det, other: e.target.value })} data-testid="cat-env-other" /></label>}
         </div>
       </Panel>
-      <PiiQuestion v={v} onChange={onChange} level={String(calc?.baseline ?? calc?.categorization ?? "")} sid={sid} />
+      <PiiQuestion v={v} onChange={onChange} level={String(calc?.baseline ?? calc?.categorization ?? "")} sid={sid} baseline={baseline}
+        trigraph={calc?.c && calc?.i && calc?.a ? `${calc.c[0]}-${calc.i[0]}-${calc.a[0]}` : undefined} />
     </div>);
 }
 
 /** One question. Yes adds the privacy controls (FIPS: SP 800-53B privacy baseline; NSS: CNSSI 1253 Privacy Overlay variant for the
  * impact level); No adds nothing. On an existing system a change is confirmed with the controls affected. */
-function PiiQuestion({ v, onChange, level, sid }: { v: Row; onChange: (v: Row) => void; level: string; sid?: string }) {
+function PiiQuestion({ v, onChange, level, sid, baseline, trigraph }: { v: Row; onChange: (v: Row) => void; level: string; sid?: string; baseline?: string; trigraph?: string }) {
   const mode = v.mode || "fips199";
-  const { data: pre } = useApi<Row>(sid ? null : "/privacy/preview", { mode, level: level.toLowerCase() || undefined, baseline_key: v.baseline_key || undefined });
+  const { data: pre } = useApi<Row>(sid ? null : "/privacy/preview", { mode, level: level.toLowerCase() || undefined,
+    baseline_key: mode === "cnssi1253" ? undefined : baseline || undefined, trigraph: mode === "cnssi1253" ? trigraph : undefined });
   const { data: cur } = useApi<Row>(sid ? `/systems/${sid}/pii` : null);
   const n = sid ? cur?.yes?.count : pre?.count;
   const pick = (b: boolean) => {
@@ -180,7 +182,8 @@ function PiiQuestion({ v, onChange, level, sid }: { v: Row; onChange: (v: Row) =
       <div className="mt-1 flex flex-wrap gap-4" role="radiogroup" aria-label="Does this system contain PII?">{([["Yes", "yes", true], ["No", "no", false]] as const).map(([l, k, b]) => (
         <label key={k} className="flex min-h-[32px] items-center gap-1.5"><input type="radio" name="pii" checked={v.processes_pii === b} onChange={() => pick(b)} data-testid={`pii-${k}`} />{l}</label>))}
         {v.processes_pii == null && <span className="text-[11px] text-amber-800" data-testid="pii-unanswered">Not answered – choose Yes or No</span>}</div>
-      <p className="mt-1 text-[11px] text-slate-600" data-testid="pii-note">{`Yes adds the Privacy Overlay${mode === "cnssi1253" ? "" : " (SP 800-53B privacy baseline)"}${n != null ? ` (${n} controls)` : ""} to this system.`}
+      <p className="mt-1 text-[11px] text-slate-600" data-testid="pii-note">{n != null ? `Yes adds the Privacy Overlay${mode === "cnssi1253" ? "" : " (SP 800-53B privacy baseline)"} (${n} controls) to this system.`
+        : sid ? "Yes adds the Privacy Overlay to this system." : `Yes adds the Privacy Overlay to this system – ${mode === "cnssi1253" ? "set all three impact values" : "select a baseline"} to see the count.`}
         {sid && cur?.applied && v.processes_pii === true && <span className="ml-1 text-violet-800" data-testid="pii-applied">Applied {cur.source === "registration" ? "from registration" : "from the PII answer"}.</span>}</p>
     </div>
   </Panel>;
