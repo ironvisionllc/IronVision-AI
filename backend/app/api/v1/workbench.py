@@ -186,6 +186,17 @@ def work_queue(system_id: uuid.UUID, mine: bool = False, db: Session = Depends(g
     return wq(db, s, current.user, roles, mine)
 
 
+@router.get("/systems/{system_id}/workbench/controls/{control_id}/requirement-counts")
+def requirement_counts(system_id: uuid.UUID, control_id: str, db: Session = Depends(get_db),
+                       _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    from app.services import policy_coverage as pc
+
+    s = db.get(System, system_id)
+    if s is None:
+        raise HTTPException(404, "System not found")
+    return pc.requirement_counts(db, s, control_id.lower())
+
+
 @router.get("/systems/{system_id}/workbench/controls/{control_id}")
 def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(get_db),
                    _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
@@ -312,11 +323,14 @@ def _policy_parameters(db, system_id, control_id) -> list[dict]:
 
 
 def _policies_for(db, system_id, control_id) -> list[str]:
-    from app.models import Policy, PolicyFinding
+    """Same source of truth as coverage/filters (pc.index over PolicyControlMap): approved mappings listed, proposed ones flagged."""
+    from app.models import Policy
+    from app.services import policy_coverage as pc
 
-    rows = db.execute(select(Policy.title, Policy.version, Policy.approval_date).join(PolicyFinding, PolicyFinding.policy_id == Policy.id)
-                      .where(PolicyFinding.system_id == system_id, PolicyFinding.control_id == control_id, Policy.status == "current").distinct()).all()
-    return [f"{t} v{v}" + (f" (approved {d})" if d else "") for t, v, d in rows]
+    e = pc.index(db, db.get(System, system_id)).get(control_id) or {}
+    pols = {str(p.id): p for p in db.scalars(select(Policy).where(Policy.id.in_([uuid.UUID(i) for i in e.get("mapped", set()) | e.get("proposed", set())])))} if e else {}
+    out = [f"{p.title} v{p.version}" + (f" (approved {p.approval_date})" if p.approval_date else "") for i, p in pols.items() if i in e["mapped"]]
+    return out + [f"{p.title} v{p.version} (mapping proposed – not yet approved)" for i, p in pols.items() if i not in e["mapped"]]
 
 
 def _control_poams(db, system_id, control_id) -> list[dict]:

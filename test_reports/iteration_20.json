@@ -1,0 +1,49 @@
+{
+  "summary": "Tested the three UAT items end to end on the public preview URL (API and UI) and ran the regression suite. Regression: 108 tests, 107 passed, 1 skipped, 0 failed (test_test_plan, test_iscm, test_select_flow, test_emass_fields, test_emass_import, test_emass_reports, test_tr_export_modes, test_tr, test_sod, test_route_authz). test_tr_export_modes.py is unchanged by HEAD. New live suite tests/test_iter20_uat_live.py: 15 passed, 1 skipped. The skip is expected: the CSV import on LTP is all duplicates. #2 Import Test Plan: the Assess card assess-go-test-plan links to /test-results#test-plan. Preview behaves as specified: xlsx/csv recognised, AP/CCI preserved, nothing saved. INVALID rows file rejects rows 3-8, each with a reason. Missing-columns file names the missing and found columns. .docx and corrupt files are rejected. leadership_viewer gets 403 with the ingest.upload message in both API and UI. Importing on TRS created 'SYNTHETIC_TestPlan_valid (from CSV).xlsx v1 - mapped'; it appears in the selector and is not approved. #3 Select 5-step flow: stepper, categorization summary, baseline preview with cancel (no change), overlay search and overlay-preview with cancel, tailoring preview (CM-6 shows 15 evidence links lost), compensating-control validation, apply removal then re-add (AU-6), history shows applicability, ODP comparison and export, review step, submit creating R-0001 selection_review assigned to issm, second submit returns 409. All work. #1 ISCM: approved strategy shown, Save draft -> Draft v3 while controls still use v2, Submit -> Pending, ISSO sees no approve button and gets 403 from the API, ISSM approves -> Approved. Promote list shown. Workbench au-2 source chips and Reset to strategy work and persist. The bulk 'Follow Continuous Monitoring Strategy' option works. Monitor slcm-due counts, filters, row links and the edit-strategy link work.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/v1/systems/{id}/tr/test-plan/preview", "issue": "The duplicate-against-existing message names an arbitrary earlier version, not the latest. The `existing` dict in test_plan.preview is overwritten in whatever order the query returns rows. Seen on LTP: it reports 'SYNTHETIC_TRExport.xlsx v1, row 63' while v4 is current. Also, the shipped SYNTHETIC_TestPlan_valid fixtures are 100% duplicates on LTP, the system UAT testers will use, because the seeded TR workbook already contains AC-2.1/AC-2.2/AC-3.1/AU-2.1. On LTP the 'valid' file therefore shows 0 accepted and Import is disabled. It works on MPP and TRS."},
+      {"endpoint": "GET /api/v1/systems/{id}/select/review", "issue": "The review counts disagree with the reconciliation line after a control is removed and re-added. The review is a set diff and reports Added +4 (0 tailored in) and Removed -0 (0 tailored out). system_counts reconciliation reports '- 1 tailored out + 1 tailored in = 291'. The final count (291) matches, but the component counts shown side by side in select-review-diff are inconsistent."},
+      {"endpoint": "select_flow.losses", "issue": "Counts Implementation rows with narrative != '' across all versions (no is_current filter), so 'statements that would be deleted' can be overcounted for controls with several versions. It cannot be verified on LTP because all 291 implementations there have empty narratives."},
+      {"endpoint": "PUT /iscm and POST /iscm/promote", "issue": "Saving or promoting while the strategy is pending_approval silently resets it to draft, which withdraws the ISSM submission without telling the user."},
+      {"endpoint": "POST /iscm/decision", "issue": "No system-scoped enforce(): the role check is `'issm' in actor.roles` only, so an ISSM scoped to another system in the same org could approve. SoD still applies."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Select step 3 (Overlays) / Admin: overlay data", "issue": "Admin overlay import is unreachable in the UI. Step 3 renders <Overlays> only when can('system.write'), but admin.content.load (required for 'Admin: overlay data') belongs only to platform_admin, and platform_admin lacks system.write. As platform_admin, select-overlays and overlay-admin both have count 0. The admin import that was 'moved to Admin: overlay data' therefore cannot be used by any role.", "selector": "[data-testid=overlay-admin]", "priority": "HIGH"},
+      {"component": "Hash anchors /rmf/select#iscm (slcm-edit-strategy link)", "issue": "The page does not scroll to the ISCM panel (scrollY stays 0). The panel renders after async data load and below the step content, and nothing handles location.hash. The user lands at the top of Select.", "selector": "#iscm", "priority": "MEDIUM"},
+      {"component": "BulkEmass modal", "issue": "After Apply, the title changes to 'Bulk set eMASS Implementation Plan fields - 0 control(s)', because onDone clears the selection while the result is still shown. The 'Updated 1: AU-2' text and the Close button are cramped together.", "selector": "[data-testid=emass-bulk-result]", "priority": "LOW"},
+      {"component": "TestPlanImport", "issue": "After a successful Import, the panel shows no persistent success confirmation in the panel (only the workbook selector changes). The chosen file name stays and Preview is disabled, which is confusing.", "selector": "[data-testid=tp-import]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Select step 1 Categorization summary", "issues": ["Overall (high-water mark) shows lowercase 'moderate' while C/I/A show 'Moderate'"]},
+      {"screen": "Select page", "issues": ["The ISCM panel is rendered under every step, which makes the step pages very long. Consider collapsing it or anchoring it as its own section."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter20_uat_live.py", "/app/test_reports/pytest/iter20.xml", "/app/test_reports/pytest/iter20_live.xml"],
+  "action_items": [
+    "Render the 'Admin: overlay data' section, or the whole Overlays panel in read-only mode, for users with admin.content.load even without system.write (platform_admin currently cannot reach it)",
+    "Scroll to location.hash (#iscm, #test-plan) after data loads on the Select and Test Results pages",
+    "Make the select/review Added/Removed breakdown consistent with the reconciliation tailored-in/out counts, or explain the difference in the UI",
+    "Duplicate-against-existing: report the latest workbook version. Consider a fixture or note so the valid Test Plan demo works on LTP (currently all rows are duplicates there)",
+    "losses(): count only current implementation versions",
+    "Warn or block when saving or promoting a pending_approval ISCM strategy; add system-scoped authorization to /iscm/decision",
+    "Keep the BulkEmass result title count after apply"
+  ],
+  "critical_code_review_comments": [
+    "rmf_steps.py step gating: Overlays is gated on system.write, which hides the admin.content.load UI",
+    "iscm.decide: role check via actor.roles without system scope; merge_equal_overrides runs on every approval (fine, audited)",
+    "test_plan.preview: the `existing` dict loses all but one (workbook, row) per key; non-deterministic version reported",
+    "select_flow.dry_run relies on the wrapped services never calling commit(); currently true for apply_baseline, set_overlay and tailor, but it is fragile, so consider asserting it or adding a guard"
+  ],
+  "updated_files": ["/app/backend/tests/test_iter20_uat_live.py"],
+  "success_rate": {"backend": "100% (108 regression tests: 107 passed, 1 skipped; 15/15 live tests passed + 1 expected skip)", "frontend": "~90% (all requested flows work; admin overlay data unreachable, #iscm anchor does not scroll)"},
+  "seed_data_creation": "TRS: imported 'SYNTHETIC_TestPlan_valid (from CSV).xlsx' v1 as a TR workbook. LTP: AU-6 was tailored out and back in (history shows both). Selection review R-0001 (pending, ISSM) created. ISCM strategy went through approvals up to v6; defaults were restored to the original (no slcm_comments default). au-2 SLCM Frequency was reset to the strategy and SLCM Method set to follow the strategy via bulk.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "test_credentials": "demo@ironvision.ai / IronVisionDemo!2026 (from /app/memory/test_credentials.md); personas via POST /api/v1/sandbox/act-as",
+  "context_for_next_testing_agent": "Live suite: REACT_APP_BACKEND_URL=... pytest tests/test_iter20_uat_live.py -o addopts='' --noconftest (it restores the ISCM defaults itself). The persona switcher is data-testid=acting-as-select and the system switcher is [data-testid=system-selector] select. On LTP all Test Plan fixture rows are duplicates, so use TRS or MPP for import. A selection_review is already pending on LTP, so a further submit returns 409 until it is decided. Retest: overlay-admin visible as platform_admin; #iscm scroll; review counts vs reconciliation."
+}

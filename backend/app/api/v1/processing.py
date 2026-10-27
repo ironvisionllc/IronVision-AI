@@ -47,9 +47,11 @@ def _policy_item(db: Session, p: Policy) -> dict:
         rows = list(db.scalars(select(PRC).where(PRC.policy_id == p.id)))
         s = pc.summarize(rows)
         n = len((p.text_content or "").strip())
+        ctl = sorted({c.control_id for c in rows})
         summary = {"mappings": len(maps), "proposed": sum(m.status == "proposed" for m in maps), "requirements": s["total"], "met": s["met"],
+                   "scope": f"policy-wide: all {len(ctl)} mapped controls and enhancements together", "controls": ctl,
                    "text": (f"{len(maps)} control mappings ({sum(m.status == 'proposed' for m in maps)} sent to Mapping Review), "
-                            f"{s['met']} of {s['total']} CCI/objective requirements met") if maps else
+                            f"{s['met']} of {s['total']} CCI/objective requirements met across all {len(ctl)} mapped controls/enhancements (policy-wide, not per control)") if maps else
                            f"No controls found: the extracted text ({n} characters) names no NIST control, family or requirement – check that the right file was uploaded"}
     return {"kind": "policy", "id": str(p.id), "file_name": p.file_name, "title": f"{p.title} v{p.version}", "state": st, "raw_status": p.analysis_status,
             "reason": (p.analysis or {}).get("error") if st == "failed" else None, "summary": summary,

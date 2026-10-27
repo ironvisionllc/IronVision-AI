@@ -161,9 +161,20 @@ def categorization_save(system_id: uuid.UUID, body: CategorizationIn, db: Sessio
     needs = []
     if calc["baseline"] and rs.LEVEL.get(calc["baseline"], 0) > rs.LEVEL.get(s.baseline_key or "", 0):
         needs.append(f"raise the baseline from {s.baseline_key} to {calc['baseline']}")
-    if s.processes_pii and not s.include_privacy:
-        needs.append("apply the privacy baseline")
+    if s.processes_pii and not privacy_state(s)["applied"]:
+        needs.append("apply the privacy overlay" if s.categorization_mode == "cnssi1253" else "apply the privacy baseline")
     return {"calculation": calc, "select_actions": needs}
+
+
+def privacy_state(s) -> dict:
+    """ONE privacy state for every Select screen: FIPS 199 path = SP 800-53B privacy baseline (include_privacy);
+    CNSSI 1253 path = an applied CNSSI 1253F Att. 6 Privacy Overlay variant (overlay_keys)."""
+    if s.categorization_mode == "cnssi1253":
+        key = next((k for k in (s.overlay_keys or []) if k.startswith("cnssi-privacy")), None)
+        return {"applied": bool(key), "source": "privacy_overlay" if key else None, "overlay_key": key,
+                "label": "Privacy Overlay applied" if key else "Privacy Overlay not applied"}
+    return {"applied": bool(s.include_privacy), "source": "privacy_baseline" if s.include_privacy else None, "overlay_key": None,
+            "label": "Privacy baseline applied" if s.include_privacy else "Privacy baseline not applied"}
 
 
 @router.get("/systems/{system_id}/select")
@@ -192,7 +203,7 @@ def select_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentU
 
     return {"baseline_key": s.baseline_key, "framework": s.categorization_mode, "review_flags": review_flags(s),
             "cnssi": _cnssi_view(db, s), "privacy_prompt": _privacy_prompt(db, s),
-            "classified_information": (s.applicability_flags or {}).get("classified_information"), "recommended_baseline": (s.categorization or "").lower() or None, "include_privacy": s.include_privacy,
+            "classified_information": (s.applicability_flags or {}).get("classified_information"), "recommended_baseline": (s.categorization or "").lower() or None, "include_privacy": s.include_privacy, "privacy_state": privacy_state(s),
             "processes_pii": s.processes_pii, "overlay_keys": s.overlay_keys or [], "counts": system_counts(db, s),
             "overlay_groups": groups,
             "overlays": [{"key": o.overlay_key, "title": o.title, "version": o.version, "structure_only": o.structure_only, "description": o.description,

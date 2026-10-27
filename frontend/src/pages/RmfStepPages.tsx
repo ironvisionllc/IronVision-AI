@@ -134,7 +134,8 @@ function Baseline({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
         <label className="mt-5 flex items-center gap-2"><input type="checkbox" checked={priv} onChange={(e) => setPriv(e.target.checked)} data-testid="select-privacy" />
           Privacy baseline <Help text="800-53B privacy baseline – required when the system processes PII (answered in Categorize)." /></label>
       </div>
-      {d.processes_pii && !d.include_privacy && <p className="mt-2 text-[12px] text-amber-800">The system processes PII – apply the privacy baseline.</p>}
+      {d.processes_pii && !d.privacy_state?.applied && d.framework !== "cnssi1253" && <p className="mt-2 text-[12px] text-amber-800" data-testid="select-privacy-needed">The system processes PII – apply the privacy baseline.</p>}
+      {d.privacy_state?.applied && <p className="mt-2 text-[12px] text-emerald-800" data-testid="select-privacy-state">{d.privacy_state.label}</p>}
       {d.baseline_key && <p className="mt-2 text-[12px] text-emerald-800" data-testid="select-baseline-applied">Already applied: {d.counts.labels.baseline}</p>}
       <button className="btn-primary mt-3" onClick={preview} data-testid="select-apply-baseline">Preview baseline</button>
       {pv && <PreviewBox p={pv} label="Apply baseline" onConfirm={apply} onCancel={() => setPv(null)} testId="select-baseline-preview" />}

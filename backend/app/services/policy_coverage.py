@@ -381,7 +381,38 @@ def summarize(rows: list[PolicyRequirementCoverage]) -> dict:
 def summary_line(control_id: str, s: dict) -> str:
     cid = control_id.upper().replace(".", "(") + (")" if "." in control_id else "")
     tail = f" – missing: {'; '.join(s['gaps'][:4])}" if s["gaps"] else ""
-    return f"{cid}: {s['met']} of {s['total']} requirements met ({s['ccis']} CCIs, {s['objectives']} objectives){tail}"
+    scope = "this enhancement only" if "." in control_id else "base control only, enhancements counted separately"
+    return f"{cid} ({scope}): {s['met']} of {s['total']} requirements met ({s['ccis']} CCIs, {s['objectives']} objectives){tail}"
+
+
+def requirement_counts(db: Session, system: System, control_id: str) -> dict:
+    """ONE documented counting rule for a control's requirements (docs/RMF_INTERPRETATION_DECISIONS.md "Requirement counting"):
+    base = DISA CCIs (Rev 5 list, unique) + 800-53A assessment objectives of the control itself; "including enhancements" adds the
+    enhancements ASSIGNED to this system; "met" = best result across the system's applicable current policies (combine()) – never summed per policy."""
+    base = control_id.split(".")[0]
+    assigned = sorted(c for c in db.scalars(select(ControlAssignment.control_id).where(ControlAssignment.system_id == system.id,
+                                                                                         ControlAssignment.control_id.like(f"{base}%")))
+                      if c == base or c.startswith(base + "."))
+    idx = index(db, system)
+
+    def one(cid: str) -> dict:
+        reqs = requirements(db, cid)
+        e = idx.get(cid) or {}
+        rows = combine([c for c in e.get("rows", []) if str(c.policy_id) in e.get("mapped", set())])  # approved mappings only
+        met = {c.requirement_id for c in rows if effective(c) == "met"}
+        return {"control_id": cid, "ccis": sorted({r["id"] for r in reqs if r["type"] == "cci"}), "objectives": [r["id"] for r in reqs if r["type"] == "objective"],
+                "requirements": len(reqs), "met": sorted(met), "policies": sorted(e.get("mapped", set())),
+                "proposed_policies": sorted(e.get("proposed", set()) - e.get("mapped", set()))}
+    rows = [one(c) for c in assigned or [base]]
+    b = next((r for r in rows if r["control_id"] == base), one(base))
+    uniq = sorted({x for r in rows for x in r["ccis"]})
+    return {"control_id": base, "rules": "CCIs are unique per control (Rev 5 DISA list); objectives are SP 800-53A Rev 5; 'met' is the best result across "
+                                         "applicable current policies for the same requirement, never a sum over policies",
+            "base_only": {"ccis": len(b["ccis"]), "objectives": len(b["objectives"]), "requirements": b["requirements"], "met": len(b["met"])},
+            "including_assigned_enhancements": {"controls": [r["control_id"] for r in rows], "ccis_unique": len(uniq),
+                                                "objectives": sum(len(r["objectives"]) for r in rows), "requirements": sum(r["requirements"] for r in rows),
+                                                "met": sum(len(r["met"]) for r in rows)},
+            "per_control": rows}
 
 
 RANK = {"met": 0, "partial": 1, "missing": 2}
