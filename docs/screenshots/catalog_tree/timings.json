@@ -1,0 +1,24 @@
+{
+ "initial_render_ms": [
+  1256,
+  1287,
+  1184
+ ],
+ "api_load_ms": [
+  459,
+  459,
+  445
+ ],
+ "expand_all_ms": [
+  1161,
+  748,
+  535
+ ],
+ "nodes_rendered_after_expand_all": 1216,
+ "state_preserved_after_close": true,
+ "state_restored_after_reload": true,
+ "mobile_doc_scroll_width": 390,
+ "initial_render_ms_median": 1256,
+ "api_load_ms_median": 459,
+ "expand_all_ms_median": 748
+}

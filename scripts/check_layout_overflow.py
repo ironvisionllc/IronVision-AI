@@ -18,7 +18,10 @@ EMAIL, PW = os.environ["SHOT_EMAIL"], os.environ["SHOT_PASSWORD"]
 OUT = "/app/docs/screenshots/layout-overflow"
 SIZES = [(1280, 800), (1440, 900), (1920, 1080)]
 MOBILE = (390, 844)
-MOBILE_PAGES = {"select", "admin", "workbench", "parameter-comparison", "mapping-review", "policy-detail", "test-results", "audit-log"}
+if os.environ.get("SHOT_SIZES"):  # e.g. SHOT_SIZES=768x1024,1280x800,1440x900 (390 = MOBILE, always run for MOBILE_PAGES)
+    SIZES = [tuple(int(x) for x in s.split("x")) for s in os.environ["SHOT_SIZES"].split(",")]
+ONLY = set(filter(None, os.environ.get("SHOT_PAGES", "").split(",")))  # optional subset of page names
+MOBILE_PAGES = {"catalog", "catalog-tree", "catalog-tree-system", "select", "admin", "workbench", "parameter-comparison", "mapping-review", "policy-detail", "test-results", "audit-log"}
 SHOTS = {"select", "admin"}
 
 MEASURE = """() => {
@@ -62,7 +65,8 @@ def routes(ids: dict) -> list[tuple[str, str, str, str | None]]:
     r = [("rmf-workflow", "/rmf-workflow", f, None), ("systems", "/systems", f, None), ("system-detail", f"/systems/{n}", n, None),
          ("portfolio", "/portfolio", f, None), ("prepare", "/rmf/prepare", n, None), ("categorize", "/rmf/categorize", n, None),
          ("categorize-fips", "/rmf/categorize", f, None), ("select", "/rmf/select", n, "overlays"), ("select-fips", "/rmf/select", f, "overlays"),
-         ("parameter-comparison", "/rmf/select", n, "params"), ("catalog", "/catalog", n, None), ("implement", "/rmf/implement", n, None),
+         ("parameter-comparison", "/rmf/select", n, "params"), ("catalog", "/catalog", n, None), ("catalog-tree", "/catalog?control=ac-2.1", n, "close-drawer"),
+         ("catalog-tree-system", f"/catalog?system={n}", n, "tree-expand"), ("implement", "/rmf/implement", n, None),
          ("workbench", "/controls", n, None), ("control-detail", f"/systems/{n}/controls/ac-2", n, None), ("control-detail-fips", f"/systems/{f}/controls/ac-2", f, None),
          ("inheritance", "/inheritance", f, None), ("inventory", "/inventory", f, None), ("ccis", "/ccis", f, None),
          ("policy-auditor", "/policy-auditor", f, None), ("evidence-sources", "/evidence-sources", f, None), ("assess", "/rmf/assess", f, None),
@@ -77,7 +81,13 @@ def routes(ids: dict) -> list[tuple[str, str, str, str | None]]:
 
 
 async def act(page, how: str | None) -> None:
-    if how == "overlays":
+    if how == "close-drawer":
+        await page.wait_for_selector("[data-testid=tree-enhancement-ac-2\\.1]", timeout=20000)
+        await page.keyboard.press("Escape")
+    elif how == "tree-expand":
+        await page.click("[data-testid=catalog-tree-expand-all]")
+        await page.wait_for_selector("[data-testid=tree-enhancement-ac-2\\.1]", timeout=20000)
+    elif how == "overlays":
         for b in await page.locator("[data-testid$=-details]").all():
             await b.click()
     elif how == "params":
@@ -107,7 +117,7 @@ async def main(tag: str) -> None:
         for w, h in SIZES + [MOBILE]:
             await page.set_viewport_size({"width": w, "height": h})
             for name, path, sid, how in rs:
-                if (w, h) == MOBILE and name not in MOBILE_PAGES:
+                if ((w, h) == MOBILE and name not in MOBILE_PAGES) or (ONLY and name not in ONLY):
                     continue
                 await page.evaluate(f"localStorage.setItem('aegis.selected_system', '{sid}')")
                 await page.goto(BASE + path)

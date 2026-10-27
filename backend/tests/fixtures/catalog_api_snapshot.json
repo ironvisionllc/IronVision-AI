@@ -1,0 +1,105 @@
+{
+ "detail_sha256": {
+  "ac-1": "f6cbbeba550a7dde83d6a133fd0ae6a0f387bee2aa374ae0ff18fe93b9495f57",
+  "ac-17": "dfbec51557a117810869145684e6be7c3ff5d575ea35008e255aa4e0a67c5a69",
+  "ac-2": "eef4f6f1f17b1e3842e13485b45b9e664851c7d64bade3b7fd7e860dfaa90e42",
+  "ac-2.1": "32e299b136f82b4695799b75c53674b0db557811acadb7309ea902639cb00191",
+  "ac-2.10": "b6d09e0be37489eae9d79bc510d59ea76d7c56799dc777feb856ac9081a9b7c0",
+  "au-2": "bdab1921da99b796903c52785ff3f1e87ee660b9bca7088e5fa8bcfecf55e1aa",
+  "cm-6": "2021f510970e8d709aef44bc2665862e6d710deeeb8b2a95e5221a1217a927ce",
+  "ia-2.1": "5d75f7298bc8dc08020a995913eac7d6c0592ea2b5589360103080add4d85ae1",
+  "ir-4": "3b181404050f9b81574104b5049d6325d1d8098598f2e799de68e0f31dcf4bfa",
+  "ra-5": "cae5d679289284b90f3fde734b4ac82e1c70f3a56512c55b082d06372d590974",
+  "sc-7": "fcaf2080ec5de66075b64b79487fc404ca1a3f920d802e5c8fd37a399ac4aac9",
+  "sc-7.5": "69f4edca8b96dab227a3097bcb032617a3051b11c537368ec9e29bfcaa67c753",
+  "si-4": "bcc2ad0c56d22e8ffb394dab7bb21d57a66313742020b7dbcda6b26ee863612c",
+  "sr-3": "9a83418077a69eeb089e72be9890cb634dcba19bd17793fab0a15cb90ba57c58"
+ },
+ "enhancements": 872,
+ "families": {
+  "ac": [
+   "Access Control",
+   131
+  ],
+  "at": [
+   "Awareness and Training",
+   15
+  ],
+  "au": [
+   "Audit and Accountability",
+   56
+  ],
+  "ca": [
+   "Assessment, Authorization, and Monitoring",
+   25
+  ],
+  "cm": [
+   "Configuration Management",
+   56
+  ],
+  "cp": [
+   "Contingency Planning",
+   49
+  ],
+  "ia": [
+   "Identification and Authentication",
+   59
+  ],
+  "ir": [
+   "Incident Response",
+   40
+  ],
+  "ma": [
+   "Maintenance",
+   28
+  ],
+  "mp": [
+   "Media Protection",
+   20
+  ],
+  "pe": [
+   "Physical and Environmental Protection",
+   51
+  ],
+  "pl": [
+   "Planning",
+   11
+  ],
+  "pm": [
+   "Program Management",
+   37
+  ],
+  "ps": [
+   "Personnel Security",
+   17
+  ],
+  "pt": [
+   "Personally Identifiable Information Processing and Transparency",
+   21
+  ],
+  "ra": [
+   "Risk Assessment",
+   22
+  ],
+  "sa": [
+   "System and Services Acquisition",
+   108
+  ],
+  "sc": [
+   "System and Communications Protection",
+   139
+  ],
+  "si": [
+   "System and Information Integrity",
+   102
+  ],
+  "sr": [
+   "Supply Chain Risk Management",
+   27
+  ]
+ },
+ "items_sha256": "b0e42f5faa019227779130fdf07354e01132bf82176889df529f47a9826fc3ec",
+ "total_incl_withdrawn": 1196,
+ "total_selectable": 1014,
+ "withdrawn": 182
+}

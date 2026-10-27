@@ -78,6 +78,17 @@ def families(db: Session = Depends(get_db)) -> list[FamilyOut]:
     return [FamilyOut(family_id=f, family_title=t, count=c) for f, t, c in rows]
 
 
+@router.get("/cci-index")
+def cci_index(db: Session = Depends(get_db)) -> dict:
+    """Read-only CCI → control ids of the active catalog (catalog tree search by CCI); fetched lazily, no per-control details."""
+    cat_id = active_catalog_id(db)
+    out: dict[str, list[str]] = {}
+    for cci, cid in db.execute(select(CciControlMap.cci_id, Control.control_id).join(Control, Control.id == CciControlMap.control_uuid)
+                               .where(Control.catalog_version_id == cat_id).distinct()):
+        out.setdefault(cci, []).append(cid)
+    return out
+
+
 @router.get("/{control_id}", response_model=ControlDetail)
 def get_control(control_id: str, db: Session = Depends(get_db)) -> ControlDetail:
     cat_id = active_catalog_id(db)

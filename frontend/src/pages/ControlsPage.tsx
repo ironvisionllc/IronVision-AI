@@ -5,8 +5,9 @@ import { PageHeader } from "@/components/common/Panel";
 import { cn } from "@/lib/format";
 import { StatsStrip } from "@/components/controls/StatsStrip";
 import { ControlsTable } from "@/components/controls/ControlsTable";
+import { CatalogTree } from "@/components/controls/CatalogTree";
 import { ContentVersionsPanel } from "@/components/controls/ContentVersionsPanel";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useSystems } from "@/context/SystemContext";
 
 function NoSystemHint() {
@@ -20,13 +21,15 @@ function NoSystemHint() {
 }
 
 const TABS = [
-  { id: "catalog", label: "Catalog" },
+  { id: "catalog", label: "Catalog tree" },
+  { id: "table", label: "Flat list" },
   { id: "versions", label: "Content versions" },
 ] as const;
 
 export default function ControlsPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("catalog");
   const [stats, setStats] = useState<ContentStats | null>(null);
+  const [params] = useSearchParams();
 
   useEffect(() => {
     api.get<ContentStats>("/content/stats").then((r) => setStats(r.data)).catch(() => setStats(null));
@@ -46,7 +49,7 @@ export default function ControlsPage() {
           </button>
         ))}
       </div>
-      {tab === "catalog" ? <ControlsTable /> : <ContentVersionsPanel />}
+      {tab === "catalog" ? <CatalogTree key={params.get("system") || "catalog"} /> : tab === "table" ? <ControlsTable /> : <ContentVersionsPanel />}
     </div>
   );
 }
