@@ -309,3 +309,14 @@ def test_large_slcm_build_is_fast(client, ctx):
     t = time.perf_counter()
     imp = _import(client, ctx, "big.xlsx", _wb(rows))
     assert time.perf_counter() - t < 20 and imp["items"]
+
+
+def test_migration_report_coverage_steps_and_deferred(client, ctx, other):
+    r = client.get(f"/api/v1/systems/{ctx['sid']}/migration-report", headers=ctx["isso"])
+    assert r.status_code == 200
+    d = r.json()
+    cov = {c["type"]: c for c in d["coverage"]}
+    assert cov["slcm"]["status"] == "applied" and any(s["to"] == "/rmf/monitor" for s in cov["slcm"]["steps"])
+    assert {x["type"] for x in d["deferred"]} == {"control_information", "poam"} and "poam" not in cov
+    assert any(s["exception_total"] for s in d["sessions"] if s["report_type"] == "slcm")
+    assert client.get(f"/api/v1/systems/{ctx['sid']}/migration-report", headers=other["h"]).status_code in (403, 404)

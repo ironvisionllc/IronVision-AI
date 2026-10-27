@@ -387,3 +387,36 @@ def copy_setup(system_id: uuid.UUID, body: CopyIn, request: Request, db: Session
     out = em.copy_setup(db, src, dst, current.user)
     db.commit()
     return out
+
+
+def _steps(t: str, sid) -> list[dict]:
+    m = {"system_details": [("Prepare", "/rmf/prepare"), ("Categorize", "/rmf/categorize")],
+         "categorization": [("Categorize", "/rmf/categorize"), ("Select", "/rmf/select")],
+         "slcm": [("Select – S-5 monitoring strategy", "/rmf/select"), ("Monitor", "/rmf/monitor")],
+         "test_results": [("Assess", "/rmf/assess"), ("Test Results", "/test-results")],
+         "hwsw": [("Inventory", "/inventory"), ("Prepare – boundary", "/rmf/prepare")],
+         "ppsm": [("PPSM boundary table", f"/systems/{sid}/emass-import#ppsm"), ("Prepare – boundary", "/rmf/prepare")]}
+    return [{"label": a, "to": b} for a, b in m.get(t, [])]
+
+
+@router.get("/systems/{system_id}/migration-report")
+def migration_report(system_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    """Completion report of an eMASS migration: every import session of the system, what was applied, what is left in the exception queue."""
+    enforce(request, current, "system.read", system_id)
+    s = get_system(db, system_id)
+    rows = list(db.scalars(select(EmassImport).where(EmassImport.system_id == system_id).order_by(EmassImport.created_at.desc())))
+    sessions = []
+    for i in rows:
+        r = i.report or {}
+        exc = {k: len(r.get(k) or []) for k in ("not_in_system", "invalid", "duplicates", "exceptions", "required_issues")}
+        sessions.append({**ei.out(i), "exceptions": exc, "exception_total": sum(exc.values()),
+                         "failed": sum(1 for x in r.get("apply_results") or [] if x.get("failed")), "reverted": len(r.get("reverted_keys") or []),
+                         "deferred": i.report_type in em.DEFERRED, "steps": _steps(i.report_type, system_id)})
+    cover = []
+    for t in er.MIGRATION_TYPES:
+        mine = [x for x in sessions if x["report_type"] == t]
+        st = "applied" if any(x["status"] == "applied" for x in mine) else ("in review" if any(x["status"] == "review" for x in mine) else "not imported")
+        cover.append({"type": t, "label": er.TYPES[t], "status": st, "steps": _steps(t, system_id),
+                      "applied_fields": sum((x["counts"] or {}).get("applied_fields") or 0 for x in mine if x["status"] == "applied")})
+    return {"system": {"id": str(s.id), "name": s.name, "acronym": s.acronym}, "coverage": cover, "sessions": sessions,
+            "deferred": [{"type": k, "label": v, "note": "Deferred – existing parser kept working; not part of the migration wizard yet"} for k, v in em.DEFERRED.items()]}

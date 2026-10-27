@@ -8,6 +8,9 @@ import { downloadFile } from "@/lib/download";
 import { ImportReview } from "@/components/workbench/emass/ImportReview";
 import { ImportPrompt, TYPES } from "@/components/workbench/emass/ImportPrompt";
 import { useSystems } from "@/context/SystemContext";
+import { AiSettingsPanel, BatchUpload, ExportLinks, PpsmPanel } from "@/components/workbench/emass/ImportCenter";
+
+const REVERTIBLE = ["slcm", "categorization", "ppsm"];
 
 const LABEL = "eMASS report import – compatibility pending verification against a real eMASS export";
 const List = ({ title, rows, render, testId }: { title: string; rows: Row[]; render: (r: Row) => string; testId: string }) => rows?.length ? (
@@ -32,7 +35,11 @@ function Report({ imp }: { imp: Row }) {
         <List title="Required-field problems" rows={r.required_issues} render={(x) => `Row ${x.row} ${x.control}: ${x.issue}`} testId="import-required" />
         <List title="Duplicate rows (first occurrence used)" rows={r.duplicates} render={(x) => `${x.control} row ${x.row} (first at row ${x.first_row})`} testId="import-duplicates" />
         <List title="System controls missing from the file" rows={(r.missing_from_file || []).map((x: string) => ({ x }))} render={(x) => x.x} testId="import-missing" />
-        <List title="Apply results" rows={r.apply_results} render={(x) => `${x.control}: ${x.applied.length} field(s) applied${x.failed ? ` – ${x.failed}` : ""}`} testId="import-apply-results" />
+        <List title="Exception queue" rows={r.exceptions} render={(x) => `${x.row ? `Row ${x.row} ` : ""}${x.control}: ${x.issue}`} testId="import-exceptions" />
+        <List title="Not imported" rows={(r.not_imported || []).map((x: string) => ({ x }))} render={(x) => x.x} testId="import-not-imported" />
+        {r.duplicate_of && <p className="text-[12px] text-amber-800" data-testid="import-duplicate-of">This exact file (same SHA-256) was already applied to this system – values that already match propose no change.</p>}
+        {r.ai?.used && <p className="text-[12px] text-violet-800" data-testid="import-ai-used">Columns were mapped with AI suggestions (sheet “{r.ai.sheet}”) – every value needs your review; nothing is preselected.</p>}
+        <List title="Apply results" rows={r.apply_results} render={(x) => `${x.control}: ${x.applied.length} field(s) applied${x.failed ? ` – ${x.failed}` : ""}${(r.reverted_keys || []).includes(x.key) ? " – reverted" : ""}`} testId="import-apply-results" />
       </div>
     </Panel>);
 }
@@ -45,13 +52,13 @@ export default function EmassImportPage() {
   const base = id ? `/systems/${id}/emass-import` : "/emass-import";
   const { data: hist, reload } = useApi<Row>(`/emass-imports${id ? `?system_id=${id}` : ""}`);
   const [imp, setImp] = useState<Row | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [sample, setSample] = useState("control_information");
+  const [sample, setSample] = useState("slcm");
   const [busy, setBusy] = useState("");
   useEffect(() => { setImp(null); if (importId) api.get<Row>(`/emass-imports/${importId}`).then((r) => setImp(r.data)).catch((e) => toast.error(errorMessage(e))); }, [importId]);
-  const upload = async () => {
-    setBusy("upload");
-    try { const fd = new FormData(); fd.append("file", file!); if (id) fd.append("system_id", id); const r = await api.post<Row>("/emass-imports", fd); reload(); nav(`${base}/${r.data.id}`); }
+  const revert = async () => {
+    if (!window.confirm("Revert every change this import applied? The values from before the import are restored; each step is audited.")) return;
+    setBusy("revert");
+    try { const r = await api.post<Row>(`/emass-imports/${importId}/revert`, {}); setImp(r.data); reload(); toast.success(`Reverted ${r.data.reverted.length} item(s)`); }
     catch (e) { toast.error(errorMessage(e)); } finally { setBusy(""); }
   };
   const finish = async (what: "apply" | "discard") => {
@@ -62,18 +69,19 @@ export default function EmassImportPage() {
   };
   return (
     <div data-testid="emass-import-page">
-      <PageHeader title="Import from eMASS" subtitle={LABEL}>{id && <Link to={`/systems/${id}/controls`} className="btn-secondary" data-testid="import-back-workbench">Back to Control Workbench</Link>}</PageHeader>
+      <PageHeader title="eMASS Import Center" subtitle={LABEL}>{id && <Link to={`/systems/${id}/controls`} className="btn-secondary" data-testid="import-back-workbench">Back to Control Workbench</Link>}</PageHeader>
       {!importId && <div className="space-y-5">
-        <Panel title="Upload an eMASS export" testId="emass-import-upload">
-          <p className="mb-2 text-[12px] text-slate-600">System Details, Control Information, Test Results, POA&M or Hardware/Software List – the report type is detected from sheet names and headers. .xlsx, .xlsm or .csv, max 10 MB / 10,000 rows; macros are never run. Nothing is saved until you review and apply.</p>
-          <div className="flex flex-wrap items-center gap-3">
-            <input type="file" accept=".xlsx,.xlsm,.csv" onChange={(e) => setFile(e.target.files?.[0] || null)} data-testid="import-file-input" />
-            <button className="btn-primary" disabled={!file || !!busy} onClick={upload} data-testid="import-upload-btn">{busy === "upload" ? "Detecting…" : "Upload and detect"}</button>
-          </div>
+        <Panel title="Upload eMASS exports" testId="emass-import-upload">
+          <p className="mb-2 text-[12px] text-slate-600">System Details, Categorization, Test Results, SLCM worksheet, Hardware/Software List or PPSM Boundaries – one file or several at once; the type is detected from sheet names and headers (you can override it). .xlsx, .xlsm or .csv, max 10 MB / 10,000 rows; macros and formulas are never run. Imported values are preselected, but nothing is saved until you review and apply.</p>
+          <p className="mb-3 text-[11px] text-slate-500" data-testid="import-deferred-note">Control Information and POA&M imports are deferred for the migration – their existing importers still work but are not part of this flow yet.</p>
+          <div className="mb-3"><AiSettingsPanel /></div>
+          <BatchUpload systemId={id} base={base} onDone={reload} />
           <div className="mt-3 flex items-center gap-2 text-[12px]">SYNTHETIC samples:
             <select className="input" value={sample} onChange={(e) => setSample(e.target.value)} data-testid="import-sample-type">{Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{String(v)}</option>)}</select>
             <button className="text-blue-800 underline" onClick={() => downloadFile(`/emass-imports/samples/${sample}${id ? `?system_id=${id}` : ""}`, `SYNTHETIC_eMASS_${sample}_sample.${sample === "hwsw" ? "xlsm" : "xlsx"}`, "Synthetic sample")} data-testid="import-sample-download">Download sample</button></div>
         </Panel>
+        {id && <ExportLinks systemId={id} />}
+        {id && <PpsmPanel systemId={id} />}
         <Panel title="Import history" testId="emass-import-history">
           <table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>When</th><th>Type</th><th>File</th><th>System</th><th>Who</th><th>Status</th><th>Accepted / rejected / applied</th><th /></tr></thead>
             <tbody>{(hist?.items || []).map((h: Row) => <tr key={h.id} className="border-t border-slate-100" data-testid={`import-history-${h.id}`}>
@@ -89,7 +97,10 @@ export default function EmassImportPage() {
           <span>{imp.file_name} · uploaded by {imp.uploaded_by}</span>
           {imp.can_apply && imp.status === "review" && <span className="ml-auto flex gap-2">
             <button className="btn-secondary" disabled={!!busy} onClick={() => finish("discard")} data-testid="import-discard-btn">Discard import</button>
-            <button className="btn-primary" disabled={!!busy || !imp.counts?.accepted} onClick={() => finish("apply")} data-testid="import-apply-btn">Apply {imp.counts?.accepted ?? 0} accepted field(s)</button></span>}</div>
+            <button className="btn-primary" disabled={!!busy || !imp.counts?.accepted} onClick={() => finish("apply")} data-testid="import-apply-btn">Apply {imp.counts?.accepted ?? 0} accepted field(s)</button></span>}
+          {imp.status !== "review" && imp.system_id && <span className="ml-auto flex gap-2">
+            <Link className="btn-secondary" to={`/systems/${imp.system_id}/migration-report`} data-testid="import-completion-report">Completion report</Link>
+            {imp.status === "applied" && REVERTIBLE.includes(imp.report_type) && imp.can_apply && <button className="btn-secondary" disabled={!!busy} onClick={revert} data-testid="import-revert-btn">Revert this import</button>}</span>}</div>
         <Report imp={imp} />
         <ImportReview imp={{ ...imp, labels: LABELS }} onChange={setImp} />
       </div>}
