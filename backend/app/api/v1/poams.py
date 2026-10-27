@@ -52,7 +52,8 @@ def summary(db, system_ids) -> dict:
     from app.services.metrics import poam_summary
 
     out = poam_summary(db, system_ids)
-    out["emass_note"] = emass.status(db, db.get(System, system_ids[0]).org_id)["mode_label"] if system_ids else None
+    first = db.get(System, system_ids[0]) if system_ids else None
+    out["emass_note"] = emass.status(db, first.org_id)["mode_label"] if first else None
     return out
 
 

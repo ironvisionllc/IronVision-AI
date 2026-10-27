@@ -300,6 +300,7 @@ def demo_set_collected(evidence_id: uuid.UUID, body: DemoDate, request: Request,
     ev = db.get(Evidence, evidence_id)
     if ev is None or not ev.is_synthetic:
         raise HTTPException(404, "Synthetic evidence not found")
+    enforce(request, current, "demo.tools", ev.system_id)  # tenant check on the owning system (404 cross-tenant)
     before = ev.collected_at.isoformat()
     ev.collected_at = datetime.now(timezone.utc) - timedelta(days=body.days_ago)
     audit.record(db, action="demo.evidence_collected_at_adjusted", actor_user_id=current.user.id, actor_email=current.user.email,

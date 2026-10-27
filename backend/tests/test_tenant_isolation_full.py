@@ -78,9 +78,9 @@ def _collect(org_id: uuid.UUID) -> dict:
     return a
 
 
-def fingerprint(a: dict) -> str:
-    """Hash of every tenant-A row (all columns) in every tenant-owned table."""
-    h = hashlib.sha256()
+def fingerprint(a: dict) -> dict:
+    """Per-table hash of every tenant-A row (all columns) in every tenant-owned table."""
+    out = {}
     with SessionLocal() as db:
         for mapper in sorted(M.Base.registry.mappers, key=lambda m: m.class_.__name__):
             Mdl = mapper.class_
@@ -91,9 +91,21 @@ def fingerprint(a: dict) -> str:
             if cl is None:
                 continue
             cols = [c.key for c in sa_inspect(Mdl).column_attrs]
+            h = hashlib.sha256()
             for row in db.execute(select(*[getattr(Mdl, k) for k in cols]).where(cl).order_by(*[getattr(Mdl, k) for k in cols[:1]])):
-                h.update((Mdl.__name__ + json.dumps(list(row), default=str, sort_keys=True)).encode())
-    return h.hexdigest()
+                h.update(json.dumps(list(row), default=str, sort_keys=True).encode())
+            out[Mdl.__name__] = h.hexdigest()
+    return out
+
+
+def _quiesce(a: dict) -> None:
+    """Wait until no tenant-A background job is queued/running (demo-data analysis) so fingerprint diffs are caused by the sweep."""
+    import time
+    for _ in range(600):
+        with SessionLocal() as db:
+            if not db.scalar(select(M.Job.id).where(M.Job.requested_by.in_(a["User"]), M.Job.status.in_(("queued", "running"))).limit(1)):
+                return
+        time.sleep(1)
 
 
 def _resolve(schema: dict, comps: dict, depth=0):
@@ -144,6 +156,7 @@ def world(client, signup_on):  # noqa: F811
     mark = f"ZZFULL{uuid.uuid4().hex[:8]}"
     ta = _signup(client, f"{mark.lower()}@example.com", f"{mark} Org")
     ha = auth(ta["access_token"])
+    assert client.post("/api/v1/sandbox/demo-data", headers=ha).status_code in (200, 201, 202)
     isso_a = auth(client.post("/api/v1/sandbox/act-as", json={"role": "isso"}, headers=ha).json()["access_token"])
     with SessionLocal() as db:
         org = db.scalar(select(M.User.org_id).where(M.User.email == f"{mark.lower()}@example.com"))
@@ -165,6 +178,8 @@ def test_whole_api_cross_tenant(client, world):
     a_ids = {str(x) for k, v in a.items() if isinstance(v, list) and k not in ("emails",) for x in v}
     identity = [world["mark"].lower(), *[e.lower() for e in a["emails"]]]
     missing_real = sorted({p for _, path, _, _ in _ops() for p in re.findall(r"{(\w+)}", path) if PARAM_MODEL.get(p) and not a.get(PARAM_MODEL[p])})
+    print("A-ROWS", {k: len(v) for k, v in a.items() if isinstance(v, list)})
+    _quiesce(a)
     fp0 = fingerprint(a)
     ops = requests = 0
     leaks, writes_changed, unauth = [], [], []
@@ -199,6 +214,10 @@ def test_whole_api_cross_tenant(client, world):
             if files is not None:
                 kw["files"], kw["data"] = files, data
             r = client.request(method, url, **kw)
+            if a["System"]:
+                with SessionLocal() as db:
+                    if db.get(M.System, a["System"][0]) is None:
+                        pytest.fail(f"tenant A's system disappeared after {method} {path} as {role}: {r.status_code} {r.text[:200]}")
             if r.status_code == 401:  # e.g. a route revoked this persona's session – re-mint once and retry
                 b[role] = world["mint"](role)
                 kw["headers"] = b[role]
@@ -215,7 +234,7 @@ def test_whole_api_cross_tenant(client, world):
         if method != "GET":
             fp = fingerprint(a)
             if fp != fp0:
-                writes_changed.append((method, path))
+                writes_changed.append((method, path, sorted(k for k in fp if fp[k] != fp0.get(k))))
                 fp0 = fp
     all_ops = {(m, p) for m, p, _, _ in _ops()}
     print(f"\nSWEEP ops={ops} of {len(all_ops)} (skipped {len(SKIP)} with justification), requests={requests}, roles={len(ROLES)}, "

@@ -302,9 +302,12 @@ class BackdateIn(BaseModel):
 
 
 @router.post("/demo/attestations/{att_id}/expire")
-def demo_expire(att_id: uuid.UUID, body: BackdateIn, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("demo.tools"))) -> dict:
+def demo_expire(att_id: uuid.UUID, body: BackdateIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("demo.tools"))) -> dict:
     a = db.get(Attestation, att_id)
-    if a is None or a.status != "signed":
+    if a is None:
+        raise HTTPException(404, "Attestation not found")
+    enforce(request, current, "demo.tools", a.system_id)  # tenant check on the owning system (404 cross-tenant)
+    if a.status != "signed":
         raise HTTPException(409, "Only signed attestations can be back-dated")
     a.expires_at = date.today() - timedelta(days=body.days_ago)
     audit.record(db, action="demo.attestation_backdated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="attestation",
@@ -908,7 +911,10 @@ def users(db: Session = Depends(get_db), current: CurrentUser = Depends(require_
 
 
 @router.get("/admin/users/{user_id}/access-history")
-def access_history(user_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("admin.users.manage"))) -> list[dict]:
+def access_history(user_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("admin.users.manage"))) -> list[dict]:
+    u = db.get(User, user_id)
+    if u is None or u.org_id != current.user.org_id:  # tenant-scoped: an org admin sees only users of their own org
+        raise HTTPException(404, "User not found")
     q = select(AuditEvent).where(or_(AuditEvent.actor_user_id == user_id, AuditEvent.entity_id == str(user_id))).order_by(AuditEvent.seq.desc()).limit(100)
     return [to_dict(e) for e in db.scalars(q)]
 
