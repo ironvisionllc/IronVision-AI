@@ -137,3 +137,16 @@ def test_table_rows_and_id_prose_are_not_section_headings():
     rt = v2.Retriever(secs)
     top = secs[rt.scores("Public Disclosure Program Establish a public reporting channel for receiving reports of vulnerabilities", "ra-5.11")[0][1]]
     assert top["heading"].startswith("8.3 ")  # the real policy section, not the traceability-matrix row
+
+
+def test_progress_from_the_start_with_correct_count_labels(fake, monkeypatch):
+    events = []
+    monkeypatch.setattr(v2, "_progress", lambda pid, d: events.append(d))
+    with SessionLocal() as db:
+        org = _org(db, "V2 progress – SYNTHETIC")
+    v2.analyze_ai(DOC, uuid.uuid4(), org, TODO, {"ac-2": "Account Management", "ac-17": "Remote Access"}, "cat-1")
+    assert events[0]["phase"] == "screen" and events[0]["pct"] == 10 and events[0]["batches_done"] == 0  # before any AI batch finishes
+    ai = [e for e in events if e["phase"] == "AI review"]
+    assert len(ai) == events[0]["batches_total"]  # one update per batch
+    assert ai[-1]["requirements_analyzed"] <= ai[-1]["requirements_total"] and "findings_so_far" not in ai[-1]
+    assert "requirement_gaps_so_far" in ai[-1] and all(e["stage"] for e in events)

@@ -68,8 +68,9 @@ def outcome(m: PolicyControlMap, cov: list[PolicyRequirementCoverage], ev: dict)
 
 
 def gaps(db: Session, m: PolicyControlMap, cov: list[PolicyRequirementCoverage], ev: dict, ctrl: Control | None, policy) -> list[dict]:
-    out = [{"type": "Missing requirement", "text": f"{c.label}: {c.text[:200]}"} for c in cov if c.status == "missing"]
-    out += [{"type": "Incomplete statement", "text": f"{c.label}: {c.reason[:200]}"} for c in cov if c.status == "partial"]
+    from app.services.policy_coverage import gap_name  # complete sentences, never cut (the UI clips at a word boundary for display)
+    out = [{"type": "Missing requirement", "text": gap_name(c)} for c in cov if c.status == "missing"]
+    out += [{"type": "Incomplete statement", "text": f"{c.label}: {' '.join((c.reason or '').split())}"} for c in cov if c.status == "partial"]
     out += [{"type": "Unsupported claim", "text": f"Excerpt not found verbatim in the stored policy text: “{t[:120]}”"} for t in ev["unverified_excerpts"]]
     vals = {v.get("parameter") for v in (policy.analysis or {}).get("values", []) if v.get("control_id") == m.control_id}
     for p in (ctrl.parameters or []) if ctrl else []:

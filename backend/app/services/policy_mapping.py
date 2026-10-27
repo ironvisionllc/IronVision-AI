@@ -143,11 +143,14 @@ def current(db: Session, policy_id) -> list[PolicyControlMap]:
 def store_proposals(db: Session, policy, mappings: list[dict]) -> None:
     """Re-analysis replaces parser proposals; human decisions (mapped/rejected) are kept and never re-proposed."""
     cur = {m.control_id: m for m in current(db, policy.id)}
-    for m in cur.values():
-        if m.status == "proposed":
+    found = {m["control_id"] for m in mappings}
+    for m in cur.values():  # a reviewer-promoted "possible related" proposal stays open until a human decides (unless the parser now proposes it)
+        if m.status == "proposed" and (m.source != RELATED_SRC or m.control_id in found):
             m.valid_to = now()
     for m in mappings:
         prev = cur.get(m["control_id"])
+        if prev is not None and prev.status == "proposed":
+            prev = None
         if prev is not None and prev.status != "proposed":  # never overwrite a human decision – keep a proposal that "differs from approved"
             if prev.confidence != m["confidence"] or sorted(prev.snippets or []) != sorted(m["snippets"]):
                 prev.reanalysis = {"label": "differs from approved", "confidence": m["confidence"], "snippets": m["snippets"],
@@ -157,6 +160,27 @@ def store_proposals(db: Session, policy, mappings: list[dict]) -> None:
                                 source="+".join(m["sources"]), confidence=m["confidence"], basis="; ".join(m["basis"]),
                                 snippets=m["snippets"], parts=m["parts"], review_flag=bool(m.get("not_selected"))))
     db.flush()
+
+
+RELATED_SRC = "related_promoted"
+
+
+def propose_related(db: Session, policy, control_id: str, actor) -> PolicyControlMap:
+    """'Send to Mapping Review' for a possible related control: an OPEN proposal (no decision, decided_by empty) with the matched text
+    as basis; it stays undecided until an authorized reviewer decides in Mapping Review."""
+    if any(m.control_id == control_id for m in current(db, policy.id)):
+        raise ValueError(f"{control_id} already has a mapping or proposal on this policy")
+    det: dict = {}
+    extract_mappings(db, policy.text_content or "", det)
+    rel = next((r for r in det.get("possible_related", []) if r["control_id"] == control_id), None)
+    if rel is None:
+        raise LookupError(f"{control_id} is not a possible related control of this policy")
+    row = PolicyControlMap(id=uuid.uuid4(), policy_id=policy.id, org_id=policy.org_id, control_id=control_id, status="proposed", source=RELATED_SRC,
+                           confidence="Low", basis=f"possible related control sent to Mapping Review by {actor.email}; {rel['basis']}",
+                           snippets=rel["matched_text"], parts=[], review_flag=True)
+    db.add(row)
+    db.flush()
+    return row
 
 
 def decide(db: Session, policy, control_id: str, status: str, actor, justification: str | None) -> PolicyControlMap:

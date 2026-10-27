@@ -649,6 +649,24 @@ def map_policy_controls(policy_id: uuid.UUID, body: MapIn, request: Request, db:
     return {"mapped": [r.control_id for r in rows]}
 
 
+@router.post("/policies/{policy_id}/possible-related/{control_id}/propose")
+def propose_related_control(policy_id: uuid.UUID, control_id: str, request: Request, db: Session = Depends(get_db),
+                            current: CurrentUser = Depends(require_permission("finding.map"))) -> dict:
+    from app.services import policy_mapping as pm
+    p = _own_policy(db, policy_id, current)
+    cid = control_id.strip().lower().replace("(", ".").replace(")", "")
+    try:
+        row = pm.propose_related(db, p, cid, current.user)
+    except LookupError as e:
+        raise HTTPException(404, str(e))
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+    audit.record(db, action="policy.related_control_proposed", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="policy",
+                 entity_id=str(p.id), after={"control_id": cid, "status": "proposed", "map_id": str(row.id)}, **audit.request_meta(request))
+    db.commit()
+    return {"proposed": cid, "status": "proposed", "map_id": str(row.id)}
+
+
 @router.post("/policies/{policy_id}/control-mappings/reject")
 def reject_policy_control(policy_id: uuid.UUID, body: RejectIn, request: Request, db: Session = Depends(get_db),
                           current: CurrentUser = Depends(require_permission("finding.map"))) -> dict:

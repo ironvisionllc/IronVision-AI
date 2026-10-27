@@ -1,3 +1,4 @@
+import re
 """CCI-level Policy Auditor: requirement coverage (DISA CCIs + 800-53A objectives) → MET/PARTIAL/MISSING with snippets,
 status suggestions in Mapping Review (never auto-applied), approval links CCIs + audit, gap actions, policy filters and the CCI view."""
 import uuid
@@ -141,7 +142,8 @@ def test_missing_frequency_suggests_partial_with_gap_named_and_reject_needs_reas
     assert freq and all(r["status"] != "met" and "annually" in r["needs"] for r in freq)
     q = [i for i in _queue(client, ws, ws["sid2"]) if i["kind"] == "policy_status" and i["policy_id"] == ws["p"]["nofreq"]]
     assert len(q) == 1 and q[0]["target"] == "partially_implemented"
-    assert "review frequency for the procedures" in q[0]["title"] and "review frequency for the policy" in q[0]["title"]
+    assert re.search(r"No review and update frequency is stated for the [A-Z]{2} procedures\.", q[0]["title"]) \
+        and re.search(r"No review and update frequency is stated for the [A-Z]{2} policy\.", q[0]["title"])  # complete sentences, not fragments
     body = {"system_id": ws["sid2"], "action": "reject", "justification": "", "items": [{k: q[0][k] for k in ("kind", "ids", "control_id", "evidence_fp")}]}
     assert client.post("/api/v1/mapping-review/decide", headers=ws["h"], json=body).status_code == 422
     body["justification"] = "Procedures are reviewed under the CM plan"

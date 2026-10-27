@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { Modal } from "@/components/common/Modal";
+import { clip } from "@/lib/format";
 
 const fmtId = (c?: string) => (c ?? "").toUpperCase().replace(/\.(\d+)$/, "($1)");
 const CONF_CLS: Record<string, string> = { High: "bg-emerald-100 text-emerald-800", Medium: "bg-amber-100 text-amber-800", Low: "bg-slate-100 text-slate-700",
@@ -52,7 +53,7 @@ export function SideBySideReview({ policyId, controlId, canDecide, onClose, onCh
           <div className="mt-3"><b>Coverage:</b> <span data-testid="sbs-coverage">{data.coverage.outcome}</span>{data.coverage.model_status && <span className="text-slate-500"> ({data.coverage.model_status})</span>}
             {data.coverage.overridden && <span className="text-[11px] text-slate-600"> – reviewer override by {data.coverage.by}: {data.coverage.justification}</span>}</div>
           {data.coverage.note && <div className="text-[10px] text-slate-500">{data.coverage.note}</div>}
-          <div className="mt-2"><b>Gap analysis</b>{data.gaps.length ? data.gaps.map((g: Row, i: number) => <div key={i} className="text-[11px]" data-testid={`sbs-gap-${i}`}><span className="font-semibold">{g.type}:</span> {g.text}</div>) : <div className="text-[11px]">No gaps found.</div>}</div>
+          <div className="mt-2"><b>Gap analysis</b>{data.gaps.length ? data.gaps.map((g: Row, i: number) => <div key={i} className="text-[11px]" data-testid={`sbs-gap-${i}`} title={g.text}><span className="font-semibold">{g.type}:</span> {clip(g.text, 400)}</div>) : <div className="text-[11px]">No gaps found.</div>}</div>
           <details className="mt-2 text-[11px]"><summary className="cursor-pointer text-blue-800" data-testid="sbs-legend">Confidence legend</summary>{Object.entries(data.legend).map(([k, v]) => <div key={k}><b>{k}:</b> {String(v)}</div>)}</details>
           {canDecide && <div className="mt-3 grid gap-1.5 rounded border border-slate-200 p-2" data-testid="sbs-actions">
             <textarea className="input" rows={2} placeholder="Comment (required for reject, edit, flag and coverage override)" value={comment} onChange={(e) => setComment(e.target.value)} data-testid="sbs-comment" />

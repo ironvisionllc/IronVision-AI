@@ -2,6 +2,16 @@ export function cn(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
 }
 
+/** Display-only clip at a word boundary with "…"; callers keep the full text in a title/tooltip. */
+export function clip(s: string | null | undefined, n = 160): string {
+  const t = (s ?? "").replace(/\s+/g, " ").trim();
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n - 1);
+  const i = cut.lastIndexOf(" ");
+  return (i > n * 0.6 ? cut.slice(0, i) : cut).replace(/[\s,;:–-]+$/, "") + "…";
+}
+
+
 export function shortHash(h: string | null | undefined, n = 12): string {
   return h ? `${h.slice(0, n)}…` : "—";
 }

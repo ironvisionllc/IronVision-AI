@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { api, errorMessage } from "@/lib/api";
 import { Row } from "@/lib/useApi";
 import { showNextStep } from "@/components/common/NextStep";
+import { clip } from "@/lib/format";
 
 export const CCI_TIP = "A CCI (Control Correlation Identifier) is DISA's ID for one testable requirement inside a NIST control – e.g. RA-1 is split into 21 CCIs such as “define the review frequency”. Assessment objectives (SP 800-53A) are NIST's own per-requirement checks.";
 export const TECH_TIP = "Policy vs implementation: a policy can show that this requirement is defined and documented, but not that the system does it. Implemented is only suggested when current, passing technical evidence (scan, STIG checklist or configuration) is also linked.";
@@ -65,7 +66,7 @@ export function CoverageChecklist({ policyId, data, systemId, canMap, canPoam, r
       {rows.map((c: Row) => (
         <div key={c.control_id} className="border-t border-slate-100 py-2" data-testid={`coverage-${c.control_id}`}>
           <button className="flex w-full items-center gap-2 text-left text-[12px]" onClick={() => setOpen(open === c.control_id ? null : c.control_id)} data-testid={`coverage-toggle-${c.control_id}`}>
-            <CovBadge s={c.summary.state === "gaps" ? "missing" : c.summary.state || "missing"} /><b className="font-mono">{fmt(c.control_id)}</b><span>{c.line}</span>
+            <CovBadge s={c.summary.state === "gaps" ? "missing" : c.summary.state || "missing"} /><b className="font-mono">{fmt(c.control_id)}</b><span title={c.line} data-testid={`coverage-line-${c.control_id}`}>{clip(c.line, 260)}</span>
             <span className="ml-auto text-[11px] text-slate-500">{status[c.control_id] || ""} · {open === c.control_id ? "hide" : "show"} checklist</span></button>
           {open === c.control_id && <TableScroll><table className="mt-2 w-full"><thead><tr className="text-left text-[10px] text-slate-500"><th>Status</th><th>ID</th><th>Requirement</th><th>Evidence in the policy</th><th /></tr></thead><tbody>
             {c.requirements.map((r: Row) => <RequirementRow key={r.id} r={r} actions={r.effective !== "met" ? <div className="flex flex-col gap-1">

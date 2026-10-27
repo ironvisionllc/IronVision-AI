@@ -183,6 +183,8 @@ def handle_policy_analyze(db: Session, payload: dict) -> dict:
 
     pol = db.get(Policy, uuid.UUID(payload["policy_id"]))
     pol.analysis_status = "processing"  # visible as "Processing…" while the job runs
+    pol.analysis = {**(pol.analysis or {}), "progress": {"phase": "extract", "stage": "1/4 reading the policy and identifying controls", "pct": 2,
+                                                         "label": "analysis in progress", "elapsed_s": 0}}
     db.commit()
     try:
         return _policy_analyze(db, pol)
@@ -247,9 +249,15 @@ def _policy_analyze(db: Session, pol) -> dict:
         cids |= set(db.scalars(_sel(PolicyControlMap.control_id).where(PolicyControlMap.policy_id == pol.id, PolicyControlMap.valid_to.is_(None),
                                                                         PolicyControlMap.status == "mapped")))
         pre = pc.prefetch_ai(db, pol, cids)
+    from app.services.policy_analyzer_v2 import _progress
     audit_s = 0.0
     if fut is not None:
+        _progress(pol.id, {"phase": "audit", "stage": "4/4 waiting for the policy audit", "pct": 88, "label": "analysis in progress",
+                           "elapsed_s": round(_t.perf_counter() - t_start, 1)})
         ai_out, iid, ai_note, audit_s = fut.result()
+    _progress(pol.id, {"phase": "validate", "stage": "4/4 validating quotes and writing results", "pct": 92, "label": "analysis in progress",
+                       "audit_findings": len((ai_out or {}).get("findings") or []), "elapsed_s": round(_t.perf_counter() - t_start, 1)})
+    db.expire(pol)
     ex.shutdown()
     t_pre = _t.perf_counter()
     found = analyze_policy(db, pol, ai_out, iid, use_ai=bool(use_ai), ai_prefetched=pre)

@@ -8,7 +8,7 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, "/app/backend")
-GOLD = json.loads(Path("/app/docs/perf/corpus/ra_raven.gold.json").read_text())
+GOLD = json.loads(Path(__import__("os").environ.get("GOLD") or "/app/docs/perf/corpus/ra_raven.gold.json").read_text())
 RUNS = Path("/app/docs/perf/runs")
 
 
@@ -25,7 +25,12 @@ def score(label: str) -> dict:
         maps = {m.control_id: m.status for m in db.scalars(select(PolicyControlMap).where(PolicyControlMap.policy_id == pid, PolicyControlMap.valid_to.is_(None)))}
         finds = [(f.control_id, f.description) for f in db.scalars(select(PolicyFinding).where(PolicyFinding.policy_id == pid))]
     rows = {(r["control_id"], r["requirement_id"]): r for r in run["rows"]}
-    tp = fp = fn = exact = false_gap = true_gap = n = cited = valid = 0
+    from app.models import Control, PolicyRequirementCoverage
+    from app.services.policy_coverage import relevant
+    with SessionLocal() as db:
+        req_text = {(c.control_id, c.requirement_id): c.text for c in db.scalars(select(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id == pid))}
+        titles = dict(db.execute(select(Control.control_id, Control.title).where(Control.control_id.in_({c for c, _ in req_text}))).all())
+    tp = fp = fn = exact = false_gap = true_gap = n = cited = valid = off = 0
     for g in GOLD["requirements"]:
         r = rows.get((g["control_id"], g["requirement_id"]))
         n += 1
@@ -42,6 +47,8 @@ def score(label: str) -> dict:
         if r.get("quote") and pred_pos:
             cited += 1
             valid += r["quote"] in text
+        if r["status"] == "met" and r.get("quote") and not re.fullmatch(r"[a-z]{2}-1", g["control_id"]) and not relevant(r["quote"], req_text.get((g["control_id"], g["requirement_id"]), ""), titles.get(g["control_id"], "")):
+            off += 1
     neg = set(GOLD["negative_controls"])
     rowctl = {c for c, _ in rows}
     violations = {
@@ -58,7 +65,7 @@ def score(label: str) -> dict:
     return {"label": label, "analyzer": run["analyzer"], "wall_s": run["wall_s"], "requirements": n,
             "precision_addressed": round(tp / max(tp + fp, 1), 3), "recall_addressed": round(tp / max(tp + fn, 1), 3),
             "exact_label_agreement": round(exact / n, 3), "false_gaps_on_met": false_gap, "gold_gaps_flagged": f"{true_gap}/{gaps}",
-            "citation_validity": round(valid / max(cited, 1), 3), "review_items": sum(1 for s in maps.values() if s == "proposed"),
+            "citation_validity": round(valid / max(cited, 1), 3), "met_quotes_off_subject": off, "review_items": sum(1 for s in maps.values() if s == "proposed"),
             "possible_related_not_proposed": len(analysis.get("possible_related_controls") or []), "violations": violations,
             "violation_free": not any(v for v in violations.values())}
 

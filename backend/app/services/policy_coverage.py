@@ -31,10 +31,13 @@ DISSEM = r"\b(disseminat\w*|distribut\w*|communicat\w*|published|made available|
 RECIP = r"\b(?:to|among|with)\s+((?:all |the )?[A-Za-z][A-Za-z ,/&()-]{2,90}?)(?=[.;]|$| via | through | within | by | upon | at )"
 ROLE = (r"\b(ISSM|CISO|CIO|ISSO|CPO|SAOP|Chief [A-Z][a-z]+(?: [A-Z][a-z]+){0,3}|Authorizing Official|Senior Agency Official[a-zA-Z ]*|Risk Executive"
         r"|Information System Security Manager|Information System Security Officer|Privacy Officer|Director of [A-Z][a-z]+(?: [A-Z][a-z]+)?)\b")
-LABEL = {"develop": "policy developed and documented", "develop_elements": "policy addresses purpose, scope, roles, responsibilities, management commitment, coordination and compliance",
-         "element": "policy addresses {elem}", "laws": "consistent with applicable laws, directives and standards", "disseminate": "{target} disseminated",
-         "recipients": "personnel/roles the {target} is disseminated to", "official": "designated official", "frequency": "review frequency for the {target}",
-         "events": "events that trigger review of the {target}", "generic": "requirement text"}
+LABEL = {  # complete plain sentences (were fragments like "policy disseminated")
+    "develop": "The {fam} policy is not stated to be developed and documented.",
+    "develop_elements": "The {fam} policy does not address purpose, scope, roles, responsibilities, management commitment, coordination and compliance.",
+    "element": "The {fam} policy does not address {elem}.", "laws": "The {fam} policy does not state that it is consistent with applicable laws, directives, regulations and standards.",
+    "disseminate": "The {fam} {target} is not stated to be disseminated.", "recipients": "The personnel or roles the {fam} {target} is disseminated to are not named.",
+    "official": "No official is designated to manage the {fam} policy and procedures.", "frequency": "No review and update frequency is stated for the {fam} {target}.",
+    "events": "No events that trigger a review and update of the {fam} {target} are stated.", "generic": "The {fam} policy does not address this requirement."}
 
 
 def now() -> datetime:
@@ -229,6 +232,63 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
     return r
 
 
+SUBJ_STOP = set("""organization organizational defined define defines defining assignment selection frequency system systems information policy
+policies procedures procedure process processes accordance personnel roles control controls required requirement requirements ensure ensures
+including within shall other their these those which where based determine determines document documented documents documenting each that this
+with from into used using also such have been when than more must will should able level""".split())
+
+
+def _stems(t: str | None) -> set:
+    return {w[:4] for w in re.findall(r"[a-z]{4,}", (t or "").lower()) if w not in SUBJ_STOP}
+
+
+def relevant(quote: str | None, req_text: str, title: str = "") -> bool:
+    """Does a quote address the requirement's SUBJECT (not merely share boilerplate like "in accordance with")? ≥2 shared subject stems
+    (requirement + control title), or ≥1 when the requirement itself has ≤2. Generic – no family-specific word lists."""
+    if not quote:
+        return False
+    req, ttl = _stems(req_text), _stems(title)
+    hit = _stems(quote) & (req | ttl)
+    return len(hit) >= 2 or (len(req) <= 2 and len(hit) >= 1)
+
+
+PART_RX = re.compile(r"([A-Za-z]{2})-0*(\d+)\s*([a-z])\b")
+
+
+def part_tag(control_id: str, req: dict) -> re.Pattern | None:
+    """Explicit part tag in the policy text for this requirement, e.g. "(RA-2a)" / "AC-17b" for ref "RA-2 a" or label "RA-02a."."""
+    if "." in control_id:
+        return None
+    m = PART_RX.match(str(req.get("ref") or req.get("label") or ""))
+    if not m or f"{m.group(1).lower()}-{int(m.group(2))}" != control_id:
+        return None
+    return re.compile(rf"\b{m.group(1)}-0?{int(m.group(2))}{m.group(3)}(?![a-z])", re.I)
+
+
+def _guard(text: str, sents: list, control_id: str, req: dict, title: str, r: dict) -> dict:
+    """Evidence-quality guard (both analyzers): a MET quote must address the requirement's subject, else partial + manual review;
+    a MISSING requirement whose part the policy explicitly tags (e.g. "(RA-2a)") becomes partial with the tagged text for review."""
+    q = (r.get("snippets") or [{}])[0].get("text") if r.get("snippets") else None
+    if r["status"] == "met" and q and not relevant(q, req["text"], title):
+        r.update(status="partial", confidence="Low", manual_review=True,
+                 reason="Manual review: the quoted text does not clearly address this requirement's subject, so it is not counted as met. "
+                        + (r.get("reason") or ""),
+                 needs=r.get("needs") or f"Confirm the quote meets the requirement, or add a statement that does: “{_short(req['text'])}”.")
+    elif r["status"] == "missing" and (rx := part_tag(control_id, req)):
+        tagged = [h for h in sents if rx.search(h[2])]
+        if tagged:
+            r.update(status="partial", confidence="Low", manual_review=True, snippets=_snip(text, tagged[:2]),
+                     reason=f"The policy explicitly tags this text “{rx.search(tagged[0][2]).group(0)}” for this requirement's part; "
+                            "the automatic check could not confirm it fully meets the requirement – manual review.",
+                     needs=f"Confirm the tagged text meets the requirement, or add a statement that does: “{_short(req['text'])}”.")
+    return r
+
+
+def _short(t: str, n: int = 220) -> str:
+    t = re.sub(r"\s+", " ", t or "").strip()
+    return t if len(t) <= n else t[:n - 1].rsplit(" ", 1)[0] + "…"
+
+
 def requirements(db: Session, control_id: str) -> list[dict]:
     from app.services.content.loader import active_catalog_id
 
@@ -321,6 +381,10 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
     out = []
     t0 = time.perf_counter()
     prepared = [(m, *_stage1(db, text, sents, m.control_id)) for m in maps]  # stage 1: deterministic evaluation (DB + regex)
+    from app.models import Control
+    from app.services.content.loader import active_catalog_id
+    titles = dict(db.execute(select(Control.control_id, Control.title).where(Control.catalog_version_id == active_catalog_id(db),
+                                                                             Control.control_id.in_([m.control_id for m in maps]))).all()) if maps else {}
     t1 = time.perf_counter()
     pre = dict(ai_prefetched or {})
     v2_stats = pre.pop(V2_STATS, None)
@@ -334,11 +398,15 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
         db.delete(c)
     db.flush()
     for m, reqs, results in prepared:  # stage 3: verify AI quotes against the text (apply_ai) and write rows
+        ttl = titles.get(m.control_id, "")
         if m.control_id in ai_by_ctl and not is_xx1(m.control_id):
             ai = ai_by_ctl[m.control_id]
-            merged = [(c, pp.apply_ai(text, r, ai.get(req["id"]))) for req, (c, r) in zip(reqs, results)]
+            merged = [(c, pp.apply_ai(text, {**r, "_req": (req["text"], ttl)}, ai.get(req["id"]))) for req, (c, r) in zip(reqs, results)]
             results = [("profile-ai" if r.get("basis") == "ai" else c, r) for c, r in merged]
         for req, (concept, r) in zip(reqs, results):
+            r.pop("_req", None)
+            if not is_xx1(m.control_id):
+                r = _guard(text, sents, m.control_id, req, ttl, r)
             if f"{m.control_id}|{req['id']}" in not_examined and r["status"] != "met":
                 r["reason"] = ("Not examined by AI: no policy section was retrieved for this requirement, so it is not addressed by the retrieved "
                                "content (not a pass, fail or N/A). " + (r.get("reason") or ""))[:2000]
@@ -466,10 +534,12 @@ def kind_label(c: PolicyRequirementCoverage) -> str:
 
 
 def gap_name(c: PolicyRequirementCoverage) -> str:
+    """One complete sentence per gap, never cut (the UI truncates for display at a word boundary and keeps the full text)."""
     if not is_xx1(c.control_id):
-        return f"{c.label}: {(c.needs or c.text)[:90]}"
+        g = " ".join((c.needs or f"Add a statement that addresses: “{c.text}”.").split())
+        return f"{c.label}: {g}" if g.endswith((".", "”", "?", "!")) else f"{c.label}: {g}."
     concept, target, elem = classify(c.text)
-    return LABEL.get(concept, "requirement").format(target=target, elem=elem or "")
+    return LABEL.get(concept, LABEL["generic"]).format(target=target, elem=elem or "", fam=c.control_id.split("-")[0].upper())
 
 
 def summarize(rows: list[PolicyRequirementCoverage]) -> dict:

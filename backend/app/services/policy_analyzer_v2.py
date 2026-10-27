@@ -310,6 +310,10 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog) 
     out: dict = {}
     done = Counter()
     started = time.perf_counter()
+    base = {"analyzer": ANALYZER, "controls_screened": len(todo), "requirements_total": st["requirements"], "batches_total": len(batches),
+            "label": "analysis in progress"}
+    _progress(policy_id, {**base, "phase": "screen", "stage": "2/4 relevance screening done – AI review starting", "pct": 10, "batches_done": 0,
+                          "requirements_analyzed": 0, "requirement_gaps_so_far": 0, "elapsed_s": round(time.perf_counter() - t0, 1)})
 
     def one(b):
         items, sidx = b
@@ -317,14 +321,13 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog) 
         with run.lock:
             done["batches"] += 1
             done["requirements"] += len(items)
-            done["met_partial"] += sum(1 for v in res.values() if v["status"] in ("met", "partial"))
+            done["gaps"] += sum(1 for v in res.values() if v["status"] in ("missing", "partial"))
             el = time.perf_counter() - started
-            if done["batches"] % 3 == 0 or done["batches"] == len(batches):
-                _progress(policy_id, {"phase": "AI review", "analyzer": ANALYZER, "pct": round(100 * done["batches"] / max(1, len(batches))),
-                                      "controls_screened": len(todo), "requirements_total": st["requirements"], "requirements_analyzed": done["requirements"],
-                                      "findings_so_far": done["met_partial"], "batches_done": done["batches"], "batches_total": len(batches),
-                                      "failed_batches": st["failed_batches"], "retries": st["retries"], "elapsed_s": round(el, 1),
-                                      "eta_s": round(el / done["batches"] * (len(batches) - done["batches"]), 1), "label": "analysis in progress"})
+            _progress(policy_id, {**base, "phase": "AI review", "stage": f"3/4 AI review – batch {done['batches']} of {len(batches)}",
+                                  "pct": 10 + round(75 * done["batches"] / max(1, len(batches))), "requirements_analyzed": done["requirements"],
+                                  "requirement_gaps_so_far": done["gaps"], "batches_done": done["batches"], "failed_batches": st["failed_batches"],
+                                  "retries": st["retries"], "elapsed_s": round(time.perf_counter() - t0, 1),
+                                  "eta_s": round(el / done["batches"] * (len(batches) - done["batches"]), 1)})
         return res
 
     workers = env_int("POLICY_AI_WORKERS", 16)

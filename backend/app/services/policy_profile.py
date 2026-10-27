@@ -225,10 +225,20 @@ def apply_ai(text: str, row: dict, ai: dict | None) -> dict:
             row["reason"] = (row.get("reason") or "") + " AI suggested MET but its quote is not in the policy text – AI result discarded."
             row["ai_discarded"] = True
             return row
+        if row["status"] == "met":  # both say met: keep the quote that actually addresses the requirement's subject
+            from app.services.policy_coverage import relevant
+            cur = (row.get("snippets") or [{}])[0].get("text") if row.get("snippets") else None
+            if row.get("_req") and not relevant(cur, *row["_req"]) and relevant(ai.get("quote"), *row["_req"]):
+                row.update(basis="ai", snippets=[{"text": ai["quote"][:300], "location": ""}], reason=f"AI-verified quote: {ai.get('rationale', '')[:300]}")
+            return row
         if row["status"] != "met":
             row.update(status="met" if row["status"] == "partial" else "partial", confidence="Medium" if row["status"] == "partial" else "Low",
                        basis="ai", snippets=[{"text": ai["quote"][:300], "location": row.get("snippets", [{}])[0].get("location", "") if row.get("snippets") else ""}],
                        reason=f"AI-verified quote: {ai.get('rationale', '')[:300]}", needs=None if row["status"] == "partial" else row.get("needs"))
+        return row
+    if row["status"] == "missing" and ai.get("status") == "partial" and verify_quote(text, ai.get("quote")):  # evidence exists → manual review, not "missing"
+        row.update(status="partial", confidence="Low", basis="ai", snippets=[{"text": ai["quote"][:300], "location": ""}],
+                   reason=f"AI found related text, but it does not fully meet the requirement: {ai.get('rationale', '')[:300]} – manual review.")
         return row
     if row["status"] == "met" and ai.get("status") in ("partial", "missing"):
         row.update(status="partial", confidence="Low", basis="ai", reason=row["reason"] + f" AI disagrees ({ai['status']}): {ai.get('rationale', '')[:200]} – review needed.")

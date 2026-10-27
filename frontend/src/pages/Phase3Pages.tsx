@@ -164,6 +164,8 @@ export function PolicyDetailPage() {
   const [msg, setMsg] = useState("");
   const [mapFor, setMapFor] = useState<string[] | null>(null);
   const active = useActiveSystemId();
+  const analysing = ["queued", "processing"].includes(data?.policy?.analysis_status);
+  usePollWhile(analysing, reload);
   if (!data) return null;
   const p = data.policy;
   const act = async (pf: Row, action: string) => {
@@ -178,6 +180,8 @@ export function PolicyDetailPage() {
         <button className="btn-secondary" onClick={() => downloadFile(`/policies/${id}/parameters.csv`, "policy-parameters.csv", "Parameter comparison")} data-testid="export-params-btn">Export parameter comparison (CSV)</button>
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="policy-msg">{msg}</div>}
+      {analysing && <div className="panel mb-4 p-3" data-testid="policy-detail-progress"><div className="text-[12px] font-semibold">Analysis {p.analysis_status === "queued" ? "queued" : "in progress"}</div>
+        <AnalysisProgress p={p.analysis?.progress ?? { pct: 0, stage: "queued – waiting for the analysis worker" }} testId="policy-detail-progress-bar" /></div>}
       {p.analysis?.text_refreshed && <div className="mb-3 text-[12px] text-slate-600" data-testid="policy-text-refreshed">Re-analysed with improved table extraction on {new Date(p.analysis.text_refreshed.at).toLocaleDateString()}{["queued", "processing"].includes(p.analysis_status) ? " (re-analysis in progress)" : ""}. Your earlier decisions are kept; differences show as “Re-analysis differs from approved”.</div>}
       <Panel title="Mapped controls (confidence · basis · matched text)" className="mb-5" testId="policy-control-mappings">
         <PolicyMappingsPanel policyId={id} data={data} canMap={can("finding.map")} reload={reload} setMsg={setMsg} />
