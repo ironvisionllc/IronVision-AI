@@ -201,6 +201,8 @@ def _policy_analyze(db: Session, pol) -> dict:
     from app.services.ai.service import get_ai_service
     from app.services.rmf import analyze_policy, get_setting, AI_DEFAULTS
 
+    import time as _t
+    t_start = _t.perf_counter()
     ai_out, iid, ai_note = None, None, "AI not configured – deterministic extractor only"
     svc = get_ai_service()
     if svc.configured and get_setting(db, pol.org_id, "ai", AI_DEFAULTS)["use_cases"].get("policy.audit"):
@@ -212,6 +214,7 @@ def _policy_analyze(db: Session, pol) -> dict:
             ai_note = f"AI step failed: {exc}"[:300]
     import os
 
+    t_audit = _t.perf_counter()
     use_ai = svc.configured and get_setting(db, pol.org_id, "ai", AI_DEFAULTS)["use_cases"].get("policy.audit") and not os.environ.get("PYTEST_CURRENT_TEST")
     pre = None
     if use_ai:  # coverage AI runs BEFORE any analysis write, with no open transaction (was: minutes "idle in transaction" holding row locks)
@@ -224,8 +227,11 @@ def _policy_analyze(db: Session, pol) -> dict:
         cids |= set(db.scalars(_sel(PolicyControlMap.control_id).where(PolicyControlMap.policy_id == pol.id, PolicyControlMap.valid_to.is_(None),
                                                                         PolicyControlMap.status == "mapped")))
         pre = pc.prefetch_ai(db, pol, cids)
+    t_pre = _t.perf_counter()
     found = analyze_policy(db, pol, ai_out, iid, use_ai=bool(use_ai), ai_prefetched=pre)
-    pol.analysis = {**(pol.analysis or {}), "ai_note": ai_note}
+    tm = {**((pol.analysis or {}).get("timing_s") or {}), "policy_audit_ai": round(t_audit - t_start, 2), "coverage_ai_prefetch": round(t_pre - t_audit, 2),
+          "store_and_coverage": round(_t.perf_counter() - t_pre, 2)}
+    pol.analysis = {**(pol.analysis or {}), "ai_note": ai_note, "timing_s": tm}
     from app.services import audit
     audit.record(db, action="policy.analyzed", actor_email="worker", entity_type="policy", entity_id=str(pol.id),
                  details={"proposed_findings": len(found), "ai": ai_note})
