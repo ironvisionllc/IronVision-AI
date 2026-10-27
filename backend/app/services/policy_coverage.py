@@ -5,6 +5,7 @@ Each result keeps the matched snippet(s) with page/section, a confidence, the re
 import hashlib
 import logging
 import re
+import time
 import uuid
 from datetime import datetime, timezone
 
@@ -245,12 +246,24 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False) -> list[PolicyReq
     text = policy.text_content or ""
     sents = _sentences(text)
     out = []
-    for m in maps:
+    t0 = time.perf_counter()
+    prepared = []
+    for m in maps:  # stage 1: deterministic evaluation (DB + regex, main thread)
         fam = db.scalar(select(Control.family_title).where(Control.control_id == m.control_id).limit(1)) or m.control_id.split("-")[0].upper()
         reqs = requirements(db, m.control_id)
-        results = [evaluate_req(text, sents, m.control_id, req, fam) for req in reqs]
-        if use_ai and not is_xx1(m.control_id):
-            ai = ai_refine(text, m.control_id, reqs, results, policy.org_id)
+        prepared.append((m, reqs, [evaluate_req(text, sents, m.control_id, req, fam) for req in reqs]))
+    t1 = time.perf_counter()
+    ai_by_ctl: dict = {}
+    todo = [(m.control_id, reqs, results) for m, reqs, results in prepared if use_ai and not is_xx1(m.control_id)]
+    if todo:  # stage 2: AI refinement – independent per control, so run AI_WORKERS calls concurrently (same prompt, same quote verification)
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=AI_WORKERS) as ex:
+            futs = {cid: ex.submit(ai_refine, text, cid, reqs, results, policy.org_id) for cid, reqs, results in todo}
+            ai_by_ctl = {cid: f.result() for cid, f in futs.items()}
+    t2 = time.perf_counter()
+    for m, reqs, results in prepared:  # stage 3: verify AI quotes against the text (apply_ai) and write rows
+        if m.control_id in ai_by_ctl:
+            ai = ai_by_ctl[m.control_id]
             merged = [(c, pp.apply_ai(text, r, ai.get(req["id"]))) for req, (c, r) in zip(reqs, results)]
             results = [("profile-ai" if r.get("basis") == "ai" else c, r) for c, r in merged]
         for req, (concept, r) in zip(reqs, results):
@@ -266,8 +279,11 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False) -> list[PolicyReq
             db.add(row)
             out.append(row)
     policy.analysis = {**(policy.analysis or {}), "coverage_version": ANALYZER_VERSION,
-                       "values": _merge_values((policy.analysis or {}).get("values", []), out)}
+                       "values": _merge_values((policy.analysis or {}).get("values", []), out),
+                       "timing_s": {"controls": len(prepared), "ai_controls": len(todo), "deterministic": round(t1 - t0, 2),
+                                    "ai": round(t2 - t1, 2), "verify_write": round(time.perf_counter() - t2, 2), "ai_workers": AI_WORKERS}}
     db.flush()
+    log.info("coverage analysis timing %s", policy.analysis["timing_s"])
     return out
 
 
@@ -305,6 +321,7 @@ def ensure_current(db: Session, policies) -> int:
 
 AI_PROMPT = "policy.coverage_refine"
 AI_BATCH = 8
+AI_WORKERS = 4  # concurrent AI calls per policy analysis (each control is an independent request)
 log = logging.getLogger(__name__)
 
 

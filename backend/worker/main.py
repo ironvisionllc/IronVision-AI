@@ -3,6 +3,7 @@ import logging
 import os
 import signal
 import socket
+import threading
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
@@ -22,11 +23,13 @@ log = logging.getLogger("aegis.worker")
 WORKER_ID = os.environ.get("WORKER_ID") or f"{socket.gethostname()}:{os.getpid()}"
 _running = True
 
+# Interactive lane: user-facing bulk decisions never wait behind long AI/policy analysis jobs (own thread, own claim query).
+FAST_LANE = ["review.bulk"]
 CLAIM_SQL = text("""
 UPDATE jobs SET status='running', locked_by=:worker, locked_at=now(), started_at=now(),
        attempts=attempts+1, updated_at=now()
 WHERE id = (
-  SELECT id FROM jobs WHERE status='queued' AND run_after <= now()
+  SELECT id FROM jobs WHERE status='queued' AND run_after <= now() AND ((job_type = ANY(:fast)) = :fast_lane)
   ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1
 ) RETURNING id
 """)
@@ -47,9 +50,9 @@ def heartbeat() -> None:
         db.commit()
 
 
-def run_once() -> bool:
+def run_once(fast_lane: bool = False) -> bool:
     with SessionLocal() as db:
-        job_id = db.scalar(CLAIM_SQL, {"worker": WORKER_ID})
+        job_id = db.scalar(CLAIM_SQL, {"worker": WORKER_ID + (":fast" if fast_lane else ""), "fast": FAST_LANE, "fast_lane": fast_lane})
         db.commit()
     if job_id is None:
         return False
@@ -87,12 +90,23 @@ def run_once() -> bool:
     return True
 
 
+def fast_lane_loop(poll: float) -> None:
+    while _running:
+        try:
+            if not run_once(fast_lane=True):
+                time.sleep(min(poll, 0.5))
+        except Exception:
+            log.exception("Fast-lane loop error")
+            time.sleep(poll)
+
+
 def main() -> None:
     s = get_settings()
     configure_logging(s.log_level)
     signal.signal(signal.SIGTERM, _stop)
     signal.signal(signal.SIGINT, _stop)
     log.info("Worker starting", extra={"worker_id": WORKER_ID, "handlers": sorted(HANDLERS)})
+    threading.Thread(target=fast_lane_loop, args=(s.worker_poll_seconds,), name="fast-lane", daemon=True).start()
     try:  # analyzer_version check: policies analysed by an older worker build are re-run once (idempotent)
         from sqlalchemy import select as _sel
 

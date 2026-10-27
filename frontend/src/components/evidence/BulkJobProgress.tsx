@@ -27,6 +27,7 @@ export function BulkJobProgress({ job, onDone, onRetry }: { job: Row; onDone: ()
     <div className="mt-1" data-testid="bulk-job-summary">{j.processed} of {j.total} processed · <span className="text-emerald-800">{j.succeeded} succeeded</span> · <span className="text-rose-800">{j.failed.length} failed</span> · <span className="text-slate-600">{j.skipped.length} skipped (already decided)</span></div>
     {fin && j.failed.length > 0 && <><ul className="mt-1 max-h-32 overflow-auto text-rose-900" data-testid="bulk-job-failed">{j.failed.slice(0, 50).map((f: Row) => <li key={f.key}>{f.control_id?.toUpperCase()}: {f.reason}</li>)}</ul>
       <button className="btn-secondary mt-1 px-2 py-0.5" onClick={retry} data-testid="bulk-job-retry">Retry {j.failed.length} failed item(s)</button></>}
+    {j.status === "queued" && <div className="mt-1 text-amber-800" data-testid="bulk-job-queued">Queued{j.queued_behind ? ` behind ${j.queued_behind} other bulk decision job(s)` : " – starting"} · {j.lane}</div>}
     {j.error && <div className="text-rose-800">{j.error}</div>}{err && <div className="text-rose-800" role="alert">{err}</div>}
   </div>;
 }

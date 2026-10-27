@@ -417,7 +417,7 @@ def mapping_review_bulk(body: BulkJobIn, request: Request, db: Session = Depends
         raise HTTPException(422, "Choose the control(s) the mapping should point to instead")
     job = rb.start(db, system, current, body.action, body.justification.strip(), edit, items, f"rb:{current.user.id}:{body.idempotency_key}")
     db.commit()
-    return rb.view(job)
+    return rb.view(job, db)
 
 
 @router.get("/mapping-review/bulk-jobs/{job_id}")
@@ -429,7 +429,7 @@ def mapping_review_bulk_status(job_id: uuid.UUID, request: Request, db: Session 
     if job is None or job.job_type != rb.JOB:
         raise HTTPException(404, "Bulk job not found")
     enforce(request, current, "system.read", uuid.UUID(job.payload["system_id"]))
-    return rb.view(job)
+    return rb.view(job, db)
 
 
 @router.post("/mapping-review/bulk-jobs/{job_id}/retry", status_code=202)

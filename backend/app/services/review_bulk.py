@@ -33,12 +33,18 @@ def select_items(db: Session, system: System, keys: list[str] | None, kind: str,
     return [_item(x) for x in q if (bool(x.get("awaiting_sca")) == sca) and (sca or not kind or x["kind"] == kind)]
 
 
-def view(job: Job) -> dict:
+def view(job: Job, db: Session | None = None) -> dict:
     r = job.result or {}
+    ahead = None
+    if db is not None and job.status == "queued":
+        from sqlalchemy import func
+        ahead = db.scalar(select(func.count()).select_from(Job).where(Job.job_type == JOB, Job.status.in_(("queued", "running")),
+                                                                     Job.created_at < job.created_at, Job.id != job.id))
     return {"id": str(job.id), "status": job.status, "total": job.payload.get("total", 0), "processed": r.get("processed", 0),
             "succeeded": r.get("succeeded", 0), "failed": r.get("failed", []), "skipped": r.get("skipped", []), "batches": r.get("batches", 0),
             "action": job.payload.get("action"), "retry_of": job.payload.get("retry_of"), "error": (job.error or "")[:300] or None,
-            "finished_at": job.finished_at.isoformat() if job.finished_at else None}
+            "finished_at": job.finished_at.isoformat() if job.finished_at else None, "queued_behind": ahead,
+            "lane": "interactive (separate from policy/AI analysis)"}
 
 
 def start(db: Session, system: System, current, action: str, just: str, edit: list[str], items: list[dict], idem: str, retry_of: str | None = None) -> Job:
