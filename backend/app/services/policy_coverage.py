@@ -300,6 +300,16 @@ def part_tag(control_id: str, req: dict) -> re.Pattern | None:
     return re.compile(rf"\b{m.group(1)}-0?{int(m.group(2))}{m.group(3)}(?![a-z])", re.I)
 
 
+def _table_only(text: str, q: str) -> bool:
+    i = text.find(q.strip()[:80])
+    if "|" in q:
+        return True
+    if i < 0:
+        return False
+    e = text.find("\n", i)
+    return " | " in text[text.rfind("\n", 0, i) + 1:len(text) if e < 0 else e]
+
+
 def _guard(text: str, sents: list, control_id: str, req: dict, title: str, r: dict) -> dict:
     """Evidence-quality guard (both analyzers): a MET quote must address the requirement's subject, else partial + manual review;
     a MISSING requirement whose part the policy explicitly tags (e.g. "(RA-2a)") becomes partial with the tagged text for review."""
@@ -309,6 +319,14 @@ def _guard(text: str, sents: list, control_id: str, req: dict, title: str, r: di
                  reason="Manual review: the quoted text does not clearly address this requirement's subject, so it is not counted as met. "
                         + (r.get("reason") or ""),
                  needs=pp.fix_text(req, "partial"))
+    if r["status"] == "met" and q and _table_only(text, q):  # a single table cell (role/responsibility row) is not enough on its own
+        prose = [h for h in sents if "|" not in text[text.rfind("\n", 0, h[0]) + 1:max(text.find("\n", h[1]), h[1])] and _states(h[2], req["text"], title)]
+        if prose:
+            r.update(snippets=_snip(text, [prose[0]]) + r["snippets"][:1], reason=(r.get("reason") or "") + " A prose sentence also states it.")
+        else:
+            r.update(status="partial", confidence="Low", manual_review=True,
+                     reason="Manual review: the only supporting text is a single table cell (for example a role/responsibility row); a table cell "
+                            "alone does not establish the requirement. " + (r.get("reason") or ""), needs=pp.fix_text(req, "partial", "table row"))
     if r["status"] in ("missing", "partial"):
         rx = part_tag(control_id, req)
         tagged = []

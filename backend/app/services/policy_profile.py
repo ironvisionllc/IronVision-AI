@@ -164,16 +164,20 @@ LABEL = {  # readable wording for gap/met reasons (was the raw concept key: "doe
 VOWEL_OK = ("use", "user", "usage", "uniform", "unique", "unit", "univers", "one", "once", "eu", "ur")
 
 
+STOP = {"if", "when", "where", "as", "for", "to", "in", "on", "of", "with", "before", "after", "by", "and/or", "that", "which", "from", "are", "is",
+        "be", "during", "within", "upon", "under", "at", "prior", "so", "based", "according", "against", "per", "through", "and", "or", "the"}
+
+
 def render_req(text: str) -> tuple[str, list[str]]:
     """The authoritative requirement, quoted VERBATIM except for ODP plumbing: "[Assignment: time period]" → "[organization-defined
     time period]", "[Selection …: a; b]" → "[organization-selected …: a; b]", "(defined in SC-13_ODP[01])" removed. Returns
-    (text, values to define)."""
+    (text, bracketed values to define)."""
     vals: list[str] = []
 
     def asg(m):
         v = " ".join(m.group(1).split()).strip(" ;")
         v = v if v.lower().startswith("organization-defined") else f"organization-defined {v}"
-        vals.append(v)
+        vals.append(f"[{v}]")
         return f"[{v}]"
     t = re.sub(r"\s*\(defined in [A-Z]{2}-\d+(?:\(\d+\))?_ODP\[\d+\]\)", "", text or "")
     t = re.sub(r"\b([A-Z]{2}-\d+(?:\(\d+\))?)_ODP\[0*(\d+)\]", r"\1 (organization-defined parameter \2)", t)  # "AU-02_ODP[01]" never leaks
@@ -181,12 +185,19 @@ def render_req(text: str) -> tuple[str, list[str]]:
     t = re.sub(r"\[Assignment:\s*([^\[\]]+)\]", asg, t)
 
     def sel(m):
-        vals.append("the selected option(s)")
-        return f"[organization-selected{(' ' + m.group(1).strip()) if m.group(1) else ''}: {' '.join(m.group(2).split()).strip(' ;')}]"
+        opts = re.sub(r"\s+;", ";", " ".join(m.group(2).split())).strip(" ;")
+        v = f"[organization-selected{(' ' + m.group(1).strip()) if m.group(1) else ''}: {opts}]"
+        vals.append(v)
+        return v
     t = re.sub(r"\[Selection(\s*\([^)]*\))?:\s*((?:[^\[\]]|\[[^\[\]]*\])+)\]", sel, t)
-    for m in re.finditer(r"\borganization-defined ([a-z/ -]+?)(?= (?:for|to|in|on|of|with|when|before|after|by|and/or|that|which|from|are|is)\b|[,.;)]|$)", t):
-        if not t[max(0, m.start() - 1):m.start()] == "[":
-            vals.append(f"organization-defined {m.group(1).strip()}")
+    for m in re.finditer(r"(?<!\[)\borganization-defined ", t):  # CCI style, unbracketed: the noun phrase up to a stop word (max 4 words)
+        words = []
+        for w in re.findall(r"[A-Za-z/-]+|[^\sA-Za-z/-]", t[m.end():m.end() + 120]):
+            if not re.match(r"[A-Za-z]", w) or w.lower() in STOP or len(words) == 4:
+                break
+            words.append(w)
+        if words:
+            vals.append(f"[organization-defined {' '.join(words)}]")
     t = " ".join(t.split()).rstrip(";, ")
     return (t if t.endswith((".", "?")) else t + "."), list(dict.fromkeys(vals))
 
@@ -201,12 +212,19 @@ def req_source(req: dict, control_id: str | None = None) -> str:
     return ""
 
 
-def fluent(s: str | None) -> bool:
-    """Grammar/fluency gate for AI-suggested corrective language; anything that fails falls back to the verbatim-quote format."""
+def fluent(s: str | None, req_text: str | None = None) -> bool:
+    """Grammar/fluency gate for AI-suggested corrective language; anything that fails falls back to the verbatim-quote format.
+    With req_text: every placeholder in the suggestion must match an ODP type the requirement has (Assignment ↔ organization-defined,
+    Selection ↔ organization-selected)."""
     s = " ".join((s or "").split())
+    if req_text is not None:
+        has_asg = bool(re.search(r"\[Assignment|organization-defined|\{\{", req_text, re.I))
+        has_sel = "[Selection" in req_text
+        if ("[organization-defined" in s and not has_asg) or ("[organization-selected" in s and not has_sel):
+            return False
     if not (20 <= len(s) <= 400) or not s[0].isupper() or not s.endswith("."):
         return False
-    if re.search(r"\[(?!organization-defined [^\[\]]+\])|_ODP|\{\{|Assignment:|Selection", s) or re.search(r"\b(\w+) \1\b", s, re.I):
+    if re.search(r"\[(?!organization-defined [^\[\]]+\]|organization-selected[^\[\]]*:[^\[\]]+\])|_ODP|\{\{|Assignment:|Selection", s) or re.search(r"\b(\w+) \1\b", s, re.I):
         return False
     if any(not m.group(1).lower().startswith(VOWEL_OK) for m in re.finditer(r"\ba ([aeiou]\w*)", s, re.I)):
         return False
@@ -226,7 +244,7 @@ def fix_text(req: dict, status: str, where: str = "quoted policy text", control_
         f", including the organization-defined value(s): {'; '.join(vals)}" if vals else "") + "."
     fix = ("Fix: " + fix[0].upper() + fix[1:]) if status == "missing" else f"Fix: confirm that the {where} meets it; if it does not, {fix}"
     known = (" This system has already defined: " + "; ".join(f"{p.replace('_', ' ')} = {v} (organization-defined: {v})" for p, v in odp) + ".") if odp else ""
-    sug = f" The AI suggests this language (validated): “{' '.join(suggestion.split())}”" if fluent(suggestion) else ""
+    sug = f" The AI suggests this language (validated): “{' '.join(suggestion.split())}”" if fluent(suggestion, req.get("text") or "") else ""
     src = req_source(req, control_id)
     return f"{head} Requirement{f' ({src})' if src else ''}: “{text}” {fix}{known}{sug}"
 

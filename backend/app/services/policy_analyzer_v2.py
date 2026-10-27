@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 log = logging.getLogger(__name__)
 ANALYZER = "v2.0"
-PROMPT = ("policy.coverage_refine", "2.2.0")
+PROMPT = ("policy.coverage_refine", "2.3.0")
 STOP = set("the and for with that this shall must are any all its from into each such has have been being which when where or of to in on by be is as an at it not".split())
 PAGE = re.compile(r"^\s*(?:-{2,}\s*)?page\s+(\d+)(?:\s*-{2,})?\s*$|\f", re.I | re.M)
 HEAD = re.compile(r"^\s*(?:#{1,4}\s+.+|(?:\d+(?:\.\d+)*\.?\s+)[A-Z][^\n]{2,90}|[A-Z]{2}-\d+(?:\(\d+\))?\s[^\n]{2,90})\s*$", re.M)

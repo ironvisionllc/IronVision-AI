@@ -228,6 +228,20 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
         "\"quote\": str, \"section\": str, \"rationale\": str, \"suggestion\": str}]}.",
         "Requirements (JSON, with the deterministic result):\n{requirements}\n\nRetrieved policy sections:\n<<<\n{sections}\n>>>",
         CoverageBatchOutput, 6000),
+    ("policy.coverage_refine", "2.3.0"): PromptTemplate(
+        "policy.coverage_refine", "2.3.0",
+        "You assess whether an organizational policy addresses each listed NIST SP 800-53A assessment objective / DISA CCI. "
+        "You see only the policy SECTIONS retrieved for these requirements, each labelled [S<n> | heading | page]. "
+        "A requirement is MET only if a section explicitly states it, including any organization-defined value it asks for; PARTIAL if it is "
+        "stated without the required value/scope; otherwise MISSING. Policy text cannot prove technical implementation. "
+        "For MET or PARTIAL copy an exact, contiguous quote of at most 40 words (no paraphrase) and give its section label (e.g. S3); for MISSING leave quote empty. If unsure, answer missing. "
+        "Answer EVERY listed requirement exactly once. rationale: one plain sentence, max 15 words, naming what is stated or missing. "
+        "suggestion: for PARTIAL or MISSING only, ONE complete grammatical policy sentence (max 35 words, using 'shall') that would meet the "
+        "requirement, in the policy's own terms; write a value the requirement leaves to an [Assignment: x] as [organization-defined x] and a [Selection: a; b] as [organization-selected: a; b] (never swap the two); empty for MET. "
+        "Return ONLY JSON: {\"items\": [{\"control_id\": str, \"requirement_id\": str, \"status\": \"met\"|\"partial\"|\"missing\", "
+        "\"quote\": str, \"section\": str, \"rationale\": str, \"suggestion\": str}]}.",
+        "Requirements (JSON, with the deterministic result):\n{requirements}\n\nRetrieved policy sections:\n<<<\n{sections}\n>>>",
+        CoverageBatchOutput, 6000),
     ("mapping.suggest", "1.0.0"): PromptTemplate(
         prompt_id="mapping.suggest", version="1.0.0",
         system=("You map security findings to NIST SP 800-53 Rev 5 controls. Respond ONLY with one JSON object, no markdown. "

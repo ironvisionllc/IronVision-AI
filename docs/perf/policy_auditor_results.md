@@ -171,3 +171,17 @@ Catalog sweep (`tests/test_tester_round5.py`): 1,579 CCIs and 1,030 objectives i
 Notes:
 - Wall time rose by 3–7 s because the model now also writes suggestion text: output tokens went up roughly 15–25%.
 - AC 23/24: AC-8 CCI-002248 was met in r10 through a table-cell quote. It was partial in r9 because the AI disagreed then. This is model variance, not a wording change.
+
+## Round 5 follow-ups: values list, selection placeholders, single table-cell quotes (r11)
+
+- Values are listed bracketed. The unbracketed CCI phrase stops at a stop word, max 4 words ("[organization-defined corrective actions]"). Selections list their actual options.
+- AI suggestions (prompt `coverage_refine@2.3.0`) must use the same ODP types as the requirement: Assignment ↔ `[organization-defined …]`, Selection ↔ `[organization-selected: …]`.
+- A quote that is only a single table cell can't make a row met unless a prose sentence also states it.
+
+| policy | wall | precision | recall | exact | false gaps | gold gaps flagged | citation validity | violations |
+|---|---|---|---|---|---|---|---|---|
+| RA | 21.0 s | 0.987 | 0.994 | 0.724 | 0 | 4/4 | 1.0 | none |
+| AC | 23.3 s | 0.909 | 1.000 | 0.747 | 0 | 24/24 | 1.0 | none |
+| SC | 21.6 s | 0.917 | 1.000 | 0.848 | 0 | 18/18 | 1.0 | none |
+
+AC-8 CCI-002248 is now partial with manual review, so the AC gold gaps flagged are back to 24/24. There were 4 table-cell downgrades in AC.

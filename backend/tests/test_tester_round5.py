@@ -71,7 +71,7 @@ def test_tester_examples_are_quoted_not_rewritten():
                     "missing", control_id="ac-7")
     assert "[organization-defined time period]" in t and "[organization-selected (one or more):" in t and not LEAK.search(t)
     assert t.startswith("The policy does not clearly address this requirement. Requirement (NIST SP 800-53A Rev 5 assessment objective AC-07b): “")
-    assert "including the organization-defined value(s): organization-defined time period; the selected option(s)." in t
+    assert "including the organization-defined value(s): [organization-defined time period]; [organization-selected (one or more): lock the account or node for [organization-defined time period]; lock the account or node until released by an administrator]." in t
     t = pp.fix_text({"type": "objective", "id": "ra-3.3_obj", "label": "RA-03(03)", "text": "the current cyber threat environment is determined on an ongoing basis using [Assignment: means]."}, "partial")
     assert "using [organization-defined means]" in t and "using means." not in t
     t = pp.fix_text({"type": "cci", "id": "CCI-001384", "text": "For publicly accessible systems, display system use information with organization-defined conditions before granting further access."}, "missing", control_id="ac-8")
@@ -96,6 +96,29 @@ def test_ai_suggestion_only_after_fluency_gate():
                    "Lock accounts quickly and also everywhere."):
         assert not pp.fluent(broken), broken
         assert "The AI suggests" not in pp.fix_text(req, "missing", suggestion=broken)
+
+
+def test_values_are_bracketed_clean_phrases():
+    _, vals = pp.render_req("Take organization-defined corrective actions if information about the system is found.")
+    assert vals == ["[organization-defined corrective actions]"]
+    _, vals = pp.render_req("Separate subnetworks [Selection: physically; logically] from internal networks.")
+    assert vals == ["[organization-selected: physically; logically]"]
+
+
+def test_suggestion_placeholders_match_requirement_odp_types():
+    req = "Implement subnetworks for publicly accessible system components that are [Selection: physically; logically] separated from internal organizational networks."
+    assert not pp.fluent("Public components shall be [organization-defined separation] separated from internal networks.", req)
+    assert pp.fluent("Public components shall be [organization-selected: physically; logically] separated from internal networks.", req)
+    assert not pp.fluent("Accounts shall be reviewed [organization-selected: monthly; weekly].", "Review accounts [Assignment: frequency].")
+
+
+def test_single_table_cell_quote_is_not_met_alone():
+    text = ("1 Roles\nSystem Owner | Defines authorized users and access authorizations\n2 Use\nThe banner is displayed at logon.\n")
+    sents = pc._sentences(text)
+    req = {"id": "CCI-002248", "type": "cci", "text": "Define authorized users of the system."}
+    r = {"status": "met", "confidence": "High", "snippets": [{"text": "System Owner | Defines authorized users and access authorizations"}], "reason": "AI agrees."}
+    out = pc._guard(text, sents, "ac-2", req, "Account Management", r)
+    assert out["status"] == "partial" and out["manual_review"] and "table cell" in out["reason"]
 
 
 def test_policy_only_evidence_caps_at_partially_implemented():
