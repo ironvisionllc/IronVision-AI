@@ -274,11 +274,12 @@ def freshness_now(system_id: uuid.UUID, db: Session = Depends(get_db), _: Curren
 
 
 @router.get("/jobs/{job_id}")
-def job_status(job_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(get_current_user)) -> dict:
-    from app.models import Job
+def job_status(job_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    from app.models import Job, User
 
     j = db.get(Job, job_id)
-    if j is None:
+    req = db.get(User, j.requested_by) if j is not None and j.requested_by else None
+    if j is None or req is None or req.org_id != current.user.org_id:  # tenant-scoped; system jobs are not exposed here
         raise HTTPException(404, "Job not found")
     return to_dict(j)
 

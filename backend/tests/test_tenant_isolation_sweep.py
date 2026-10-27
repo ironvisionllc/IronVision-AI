@@ -1,0 +1,91 @@
+"""Cross-tenant isolation sweep: tenant B calls EVERY parameterless GET route and every {system_id}/{poam_id} GET route with tenant A's ids;
+no response may contain tenant A's marker, email or ids (regression for the /audit-events leak)."""
+import re
+import uuid
+
+import pytest
+
+from app.main import app
+from tests.conftest import auth
+from tests.test_sandbox import _signup, signup_on  # noqa: F401
+
+SKIP = {"/api/v1/health", "/api/v1/auth/oidc/login", "/api/v1/auth/oidc/callback", "/api/v1/auth/logout"}
+
+
+@pytest.fixture(scope="module")
+def tenants(client, signup_on):  # noqa: F811
+    mark = f"ZZMARK{uuid.uuid4().hex[:8]}"
+    ea = f"{mark.lower()}@example.com"
+    ta = _signup(client, ea, f"{mark} Org")
+    ha = auth(ta["access_token"])
+    sid = client.post("/api/v1/systems", json={"name": f"{mark} System", "acronym": f"Z{uuid.uuid4().hex[:4]}", "baseline_key": "low",
+                                                "categorization_mode": "fips199", "information_types": [{"id": "D.16.3"}]}, headers=ha).json()["id"]
+    isso_a = auth(client.post("/api/v1/sandbox/act-as", json={"role": "isso"}, headers=ha).json()["access_token"])
+    pid = client.post("/api/v1/poams", json={"system_id": sid, "weakness": f"{mark} weakness", "control_ids": ["ac-2"]}, headers=isso_a).json()["id"]
+    tb = _signup(client, f"iso-b-{uuid.uuid4().hex[:6]}@example.com", "Isolation B Org")
+    hb = auth(tb["access_token"])
+    personas = {r: auth(client.post("/api/v1/sandbox/act-as", json={"role": r}, headers=hb).json()["access_token"])
+                for r in ("isso", "issm", "sca", "ao", "platform_admin")}
+    return {"mark": mark, "email": ea, "sid": sid, "pid": pid, "b": personas}
+
+
+def _routes():
+    for path, ops in app.openapi()["paths"].items():
+        if "get" in ops and path.startswith("/api/v1") and path not in SKIP and not path.endswith(("/download", "/export")):
+            yield path
+
+
+def _leaks(text: str, t: dict) -> list[str]:
+    return [k for k in ("mark", "email", "sid", "pid") if t[k].lower() in text.lower()]
+
+
+def test_parameterless_get_routes_do_not_leak(client, tenants):
+    checked, leaks = [], []
+    for path in _routes():
+        if "{" in path:
+            continue
+        for role, h in tenants["b"].items():
+            r = client.get(path, headers=h)
+            checked.append(path)
+            if r.status_code == 200 and (found := _leaks(r.text, tenants)):
+                leaks.append((path, role, found))
+    print(f"checked {len(set(checked))} parameterless GET routes × {len(tenants['b'])} personas")
+    assert not leaks, leaks
+
+
+def test_other_tenant_ids_are_refused(client, tenants):
+    leaks = []
+    n = 0
+    for path in _routes():
+        params = re.findall(r"{(\w+)}", path)
+        if not params or set(params) - {"system_id", "poam_id", "id", "control_id"}:
+            continue
+        url = path.replace("{system_id}", tenants["sid"]).replace("{poam_id}", tenants["pid"]).replace("{id}", tenants["sid"]).replace("{control_id}", "ac-2")
+        for role, h in tenants["b"].items():
+            n += 1
+            r = client.get(url, headers=h)
+            if r.status_code == 200 and _leaks(r.text, tenants):
+                leaks.append((path, role, r.status_code))
+    print(f"checked {n} id-route calls")
+    assert n > 50 and not leaks, leaks
+
+
+def test_audit_events_scoped(client, tenants):
+    r = client.get("/api/v1/audit-events?limit=500", headers=tenants["b"]["isso"])
+    # B's own authz.denied events legitimately echo the A ids B itself tried (earlier test) – A's identity/content must never appear
+    assert r.status_code == 200 and not [k for k in _leaks(r.text, tenants) if k in ("mark", "email")]
+    assert all(e.get("actor_email") is None or "zzmark" not in (e.get("actor_email") or "") for e in r.json())
+
+
+def test_job_status_and_jobs_list_scoped(client, tenants):
+    from app.db import SessionLocal
+    from app.models import Job, User
+    from sqlalchemy import select
+    with SessionLocal() as db:
+        ua = db.scalar(select(User).where(User.email == tenants["email"]))
+        j = Job(job_type="noop.test", payload={"system_id": tenants["sid"]}, status="succeeded", requested_by=ua.id)
+        db.add(j)
+        db.commit()
+        jid = str(j.id)
+    assert client.get(f"/api/v1/jobs/{jid}", headers=tenants["b"]["isso"]).status_code == 404
+    assert jid not in client.get("/api/v1/jobs?limit=100", headers=tenants["b"]["issm"]).text

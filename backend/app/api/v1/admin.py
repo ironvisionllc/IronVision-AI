@@ -24,15 +24,18 @@ def trigger_content_load(body: ContentLoadRequest, request: Request, db: Session
 
 @router.get("/jobs", response_model=list[JobOut])
 def list_jobs(db: Session = Depends(get_db), limit: int = Query(20, ge=1, le=100),
-              _: CurrentUser = Depends(require_permission("admin.health.read"))) -> list[JobOut]:
-    return [JobOut.model_validate(j) for j in db.scalars(select(Job).order_by(Job.created_at.desc()).limit(limit))]
+              current: CurrentUser = Depends(require_permission("admin.health.read"))) -> list[JobOut]:
+    from app.models import User
+    mine = select(User.id).where(User.org_id == current.user.org_id)  # tenant-scoped: only jobs requested by this org's users
+    return [JobOut.model_validate(j) for j in db.scalars(select(Job).where(Job.requested_by.in_(mine)).order_by(Job.created_at.desc()).limit(limit))]
 
 
 @router.get("/audit-events", response_model=list[AuditEventOut])
 def list_audit(db: Session = Depends(get_db), limit: int = Query(50, ge=1, le=500),
                action: str | None = Query(None, max_length=100), outcome: str | None = Query(None, max_length=30),
-               _: CurrentUser = Depends(require_permission("audit.read"))) -> list[AuditEventOut]:
-    stmt = select(AuditEvent).order_by(AuditEvent.seq.desc()).limit(limit)
+               current: CurrentUser = Depends(require_permission("audit.read"))) -> list[AuditEventOut]:
+    from app.api.v1.phase3 import tenant_audit_scope
+    stmt = select(AuditEvent).where(tenant_audit_scope(db, current.user.org_id)).order_by(AuditEvent.seq.desc()).limit(limit)
     if action:
         stmt = stmt.where(AuditEvent.action == action)
     if outcome:

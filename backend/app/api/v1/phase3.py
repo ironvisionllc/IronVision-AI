@@ -813,18 +813,24 @@ def _audit_q(db, actor, action, entity_type, outcome, date_from, date_to):
     return q
 
 
+def tenant_audit_scope(db, org_id):
+    """The ONE tenant filter for audit reads: events by this org's users, plus system (actor-less) events about this org's systems/org
+    (sandbox) or – on a dedicated deployment – all actor-less events."""
+    from app.models import Organization
+    org = db.get(Organization, org_id)
+    tenant_users = select(User.id).where(User.org_id == org.id)
+    tenant_entities = select(System.id.cast(String)).where(System.org_id == org.id).union(select(literal(str(org.id))))
+    mine = AuditEvent.actor_user_id.in_(tenant_users)
+    sys_ev = AuditEvent.actor_user_id.is_(None) & (AuditEvent.entity_id.in_(tenant_entities) if org.is_sandbox else true())
+    return mine | sys_ev
+
+
 @router.get("/audit-log")
 def audit_log(actor: str | None = None, action: str | None = None, entity_type: str | None = None, outcome: str | None = None,
               date_from: date | None = None, date_to: date | None = None, page: int = 1, page_size: int = 50, fmt: str | None = None,
               include_system: bool = False,
               db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("audit.read"))):
-    from app.models import Organization
-    org = db.get(Organization, current.user.org_id)
-    tenant_users = select(User.id).where(User.org_id == org.id)
-    tenant_entities = select(System.id.cast(String)).where(System.org_id == org.id).union(select(literal(str(org.id))))
-    mine = AuditEvent.actor_user_id.in_(tenant_users)
-    sys_ev = AuditEvent.actor_user_id.is_(None) & (AuditEvent.entity_id.in_(tenant_entities) if org.is_sandbox else true())
-    q = _audit_q(db, actor, action, entity_type, outcome, date_from, date_to).where(mine | sys_ev)  # tenant-scoped
+    q = _audit_q(db, actor, action, entity_type, outcome, date_from, date_to).where(tenant_audit_scope(db, current.user.org_id))  # tenant-scoped
     if fmt in ("csv", "json"):
         rows = [to_dict(e) for e in db.scalars(q.order_by(AuditEvent.seq.desc()).limit(10000))]
         if fmt == "json":
