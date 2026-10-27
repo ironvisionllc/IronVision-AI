@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ControlAssignment, Evidence, EvidenceControl, EvidenceVersion, TrAnalysis, TrRow
 from app.services.storage import get_storage
+from app.services.storage.base import safe_key_part  # noqa: E402
 
 CHANGED = "Evidence changed – re-review"
 
@@ -49,7 +50,7 @@ def new_version(db: Session, ev: Evidence, file_name: str, data: bytes, reason: 
         raise ValueError("This evidence was removed – it can't get a new version")
     versions(db, ev)  # make sure the current file is in the history before replacing it
     sha = hashlib.sha256(data).hexdigest()
-    key = f"evidence/{ev.system_id}/{sha}/v{ev.version + 1}/{file_name}"
+    key = f"evidence/{ev.system_id}/{sha}/v{ev.version + 1}/{safe_key_part(file_name)}"
     store = get_storage()
     if not store.exists(key):
         store.put(key, data, "application/octet-stream")

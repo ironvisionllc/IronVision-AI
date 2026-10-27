@@ -21,6 +21,7 @@ from app.services import rmf
 from app.services import workflow as wf
 from app.services.evaluation import evaluate_system, take_snapshots
 from app.services.people import attach, user_labels
+from app.services.storage.base import safe_key_part  # noqa: E402
 
 router = APIRouter(tags=["phase3"])
 
@@ -486,7 +487,7 @@ async def upload_policy(request: Request, file: UploadFile = File(...), title: s
         import hashlib
         from app.services.storage import get_storage
         sha = hashlib.sha256(data).hexdigest()
-        lib_key = f"policies/{current.user.org_id}/{sha}/{file.filename}"
+        lib_key = f"policies/{current.user.org_id}/{sha}/{safe_key_part(file.filename)}"
         get_storage().put(lib_key, data, "application/octet-stream")
     p = Policy(org_id=current.user.org_id, policy_key=key, title=title, version=(prev.version + 1) if prev else 1, owner=owner or None,
                system_ids=sids, file_name=file.filename, storage_key=evs[0].storage_key if evs else lib_key, sha256=evs[0].sha256 if evs else sha,

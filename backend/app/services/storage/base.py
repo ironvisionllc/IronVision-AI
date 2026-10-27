@@ -1,4 +1,6 @@
 import hashlib
+import posixpath
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import lru_cache
@@ -12,6 +14,20 @@ class StoredObject:
     size: int
     sha256: str
     content_type: str
+
+
+def safe_key_part(name: str | None, default: str = "file") -> str:
+    """A user-supplied file name as ONE storage-key segment: no '/', '\\' or '..' – a name like '../../<other system>/x' can never move an
+    object into another tenant's/system's prefix (the original name stays on the record for display)."""
+    base = posixpath.basename((name or "").replace("\\", "/"))
+    base = re.sub(r"[^A-Za-z0-9._ -]", "_", base).strip()[:200]
+    return default if base in ("", ".", "..") else base
+
+
+def check_key(key: str) -> str:
+    if not key or key.startswith("/") or ".." in key.replace("\\", "/").split("/"):
+        raise ValueError("Invalid storage key")
+    return key
 
 
 class StorageService(ABC):

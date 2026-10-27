@@ -2,7 +2,7 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from app.services.storage.base import StorageService, StoredObject
+from app.services.storage.base import StorageService, StoredObject, check_key
 
 
 def s3_client(endpoint_url: str | None = None, region: str | None = None, access_key_id: str | None = None,
@@ -38,18 +38,18 @@ class S3Storage(StorageService):
         self.client = s3_client(endpoint_url, region, access_key_id, secret_access_key, addressing_style)
 
     def put(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> StoredObject:
-        self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type)
+        self.client.put_object(Bucket=self.bucket, Key=check_key(key), Body=data, ContentType=content_type)
         return self._meta(key, data, content_type)
 
     def get(self, key: str) -> bytes:
-        return self.client.get_object(Bucket=self.bucket, Key=key)["Body"].read()
+        return self.client.get_object(Bucket=self.bucket, Key=check_key(key))["Body"].read()
 
     def exists(self, key: str) -> bool:
         try:
-            self.client.head_object(Bucket=self.bucket, Key=key)
+            self.client.head_object(Bucket=self.bucket, Key=check_key(key))
             return True
         except ClientError:
             return False
 
     def delete(self, key: str) -> None:
-        self.client.delete_object(Bucket=self.bucket, Key=key)
+        self.client.delete_object(Bucket=self.bucket, Key=check_key(key))

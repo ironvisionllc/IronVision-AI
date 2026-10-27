@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.models import (Assessment, Cci, CciControlMap, Control, ControlAssignment, Evidence, EvidenceControl, Finding, FindingControlMap, Poam,
                         PolicyRequirementCoverage, System, TrExport, TrRow, TrTemplate, TrWorkbook, User)
 from app.services.tr import xlsx
+from app.services.storage.base import safe_key_part  # noqa: E402
 
 AP_RX = re.compile(r"^\s*([A-Za-z]{2})-(\d+)\s*(?:\((\d+)\))?(?:\.(\d+))?\s*$")
 RESULT_MAP = {"satisfied": "Compliant", "other_than_satisfied": "Non-Compliant", "not_satisfied": "Non-Compliant", "not_applicable": "Not Applicable"}
@@ -84,7 +85,7 @@ def import_workbook(db: Session, system: System, file_name: str, data: bytes, ac
 
     sha = hashlib.sha256(data).hexdigest()
     ver = (db.scalar(select(func.max(TrWorkbook.version)).where(TrWorkbook.system_id == system.id, TrWorkbook.file_name == file_name)) or 0) + 1
-    key = f"tr/{system.org_id}/{system.id}/originals/{sha}/v{ver}/{file_name}"
+    key = f"tr/{system.org_id}/{system.id}/originals/{sha}/v{ver}/{safe_key_part(file_name)}"
     get_storage().put(key, data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     wb = TrWorkbook(org_id=system.org_id, system_id=system.id, file_name=file_name, sha256=sha, storage_key=key, version=ver, status="queued",
                     uploaded_by=actor.email)
@@ -312,7 +313,7 @@ def approve(db: Session, wb: TrWorkbook, rows: list[TrRow], actor, justification
                    **({"ai_assisted": p["ai_assisted"]} if p.get("ai_assisted") else {})}
         r.state, r.decided_by, r.decided_at, r.justification = "approved", actor.email, now(), justification
         done.append(r.row_number)
-    return {"approved": done, "skipped": skipped}
+    return {"approved": sorted(done), "skipped": skipped}  # stable order (was query order → flaky test_prepopulated_mode)
 
 
 def actor_user(db: Session, actor):

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.services.storage.base import StorageService, StoredObject
+from app.services.storage.base import StorageService, StoredObject, check_key
 
 
 class LocalStorage(StorageService):
@@ -11,7 +11,7 @@ class LocalStorage(StorageService):
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, key: str) -> Path:
-        path = (self.root / key).resolve()
+        path = (self.root / check_key(key)).resolve()
         if self.root not in path.parents:
             raise ValueError("Invalid storage key")
         return path

@@ -18,6 +18,7 @@ from app.config import get_settings
 from app.models import Baseline, BaselineControl, Cci, CciControlMap, ContentVersion, Control, ControlObjective
 from app.services.content.oscal import assessment_methods, flatten_objectives, prop, render_prose, render_statement
 from app.services.storage import get_storage
+from app.services.storage.base import safe_key_part  # noqa: E402
 
 log = logging.getLogger("aegis.content")
 CCI_NS = {"c": "http://iase.disa.mil/cci"}
@@ -72,7 +73,7 @@ def _new_version(db: Session, *, content_type: str, key: str, title: str, raw: b
                  version: str | None, effective: date | None, release_tag: str | None = None,
                  commit: str | None = None, meta: dict | None = None) -> ContentVersion:
     sha = _sha256(raw)
-    storage_key = f"reference-content/{content_type}/{sha}/{file_name}"
+    storage_key = f"reference-content/{content_type}/{sha}/{safe_key_part(file_name)}"
     get_storage().put(storage_key, raw, "application/xml" if file_name.endswith(".xml") else "application/json")
     db.execute(update(ContentVersion).where(ContentVersion.content_type == content_type,
                                             ContentVersion.content_key == key).values(is_active=False))

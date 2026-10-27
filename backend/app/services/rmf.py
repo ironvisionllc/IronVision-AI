@@ -16,6 +16,7 @@ from app.models import (AppSetting, ApprovalRequest, Assessment, Attestation, Co
                         NotificationPref, ObservedConfigValue, OdpValue, Poam, Policy, PolicyFinding, RoleAssignment, System, User)
 from app.services import audit
 from app.services.storage import get_storage
+from app.services.storage.base import safe_key_part  # noqa: E402
 
 SIGNATURE = "Simulated signature – not CAC/PIV"
 NOTIFICATION_KINDS = {
@@ -120,7 +121,7 @@ def store_evidence(db: Session, system_id, file_name: str, data: bytes, evidence
     from app.services.evaluation import apply_freshness
 
     sha = hashlib.sha256(data).hexdigest()
-    key = f"evidence/{system_id}/{sha}/{file_name}"
+    key = f"evidence/{system_id}/{sha}/{safe_key_part(file_name)}"
     store = get_storage()
     if not store.exists(key):
         store.put(key, data, "application/octet-stream")

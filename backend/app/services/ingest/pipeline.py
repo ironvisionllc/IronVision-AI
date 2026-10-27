@@ -17,6 +17,7 @@ from app.services.evaluation import apply_freshness
 from app.services.kev import is_kev
 from app.services.workflow import on_remediation_observed
 from app.services.storage import get_storage
+from app.services.storage.base import safe_key_part  # noqa: E402
 
 EVIDENCE_TYPE = {"ckl": "stig_checklist", "cklb": "stig_checklist", "xccdf": "stig_checklist", "nessus_xml": "vulnerability_scan",
                  "nessus_csv": "vulnerability_scan", "sarif": "pipeline"}
@@ -50,7 +51,7 @@ def receive_upload(db: Session, *, system_id: uuid.UUID, source_id: uuid.UUID | 
                      entity_type="ingest_run", entity_id=str(run.id), details={"sha256": sha, "duplicate_of": str(prior.id)})
         db.flush()
         return run
-    key = f"evidence/{system_id}/{sha}/{file_name}"
+    key = f"evidence/{system_id}/{sha}/{safe_key_part(file_name)}"
     store = get_storage()
     if not store.exists(key):
         store.put(key, data, "application/octet-stream")
