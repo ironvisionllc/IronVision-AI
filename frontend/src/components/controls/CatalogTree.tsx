@@ -62,7 +62,7 @@ export function CatalogTree() {
   }, []);
   useEffect(() => {
     if (!sysId) { setSys(null); return; }
-    api.get<SysRow[]>(`/systems/${sysId}/workbench/controls`).then((r) => setSys(new Map(r.data.map((x) => [x.control_id, x])))).catch((e) => setError(errorMessage(e)));
+    api.get<SysRow[]>(`/systems/${sysId}/workbench/controls`, { params: { limit: 5000 } }).then((r) => setSys(new Map(r.data.map((x) => [x.control_id, x])))).catch((e) => setError(errorMessage(e)));
   }, [sysId]);
   const norm = dq.trim().toLowerCase();
   useEffect(() => {
@@ -74,6 +74,8 @@ export function CatalogTree() {
   const match = useMemo(() => matcher(dq, cci), [dq, cci]);
   const found = useMemo(() => (match ? searchTree(filtered, match) : null), [filtered, match]);
   const shown: FamilyNode[] = useMemo(() => (found ? filterTree(filtered, (c) => found.matches.has(c.control_id)) : filtered), [filtered, found]);
+  const filtering = Object.values(filters).some(Boolean);
+  const fit = (c: ControlSummary) => !filtering || passes(c, filters, sys);  // parents shown only as context for a matching enhancement are dimmed
   const words = match && !/^(cci|[a-z]{2}[-\s]?\d)/.test(norm) ? norm.split(/\s+/).filter(Boolean) : [];
 
   useEffect(() => {  // search expands matching branches; clearing it restores the expansion from before the search
@@ -191,15 +193,15 @@ export function CatalogTree() {
                 return (
                   <li key={n.c.control_id} role="treeitem" aria-level={2} aria-expanded={n.enh.length ? cOpen : undefined} aria-selected={false} ref={reg(`n:${n.c.control_id}`)}
                     tabIndex={active === `n:${n.c.control_id}` ? 0 : -1} onFocus={(e) => e.target === e.currentTarget && setFocusKey(`n:${n.c.control_id}`)}
-                    className="outline-none focus-visible:ring-2 focus-visible:ring-blue-600" data-testid={`tree-control-${n.c.control_id}`}>
-                    <Row c={n.c} level={2} words={words} hit={!!found?.matches.has(n.c.control_id)} sys={sys} openId={openId} onOpen={open}
+                    className="outline-none focus-visible:ring-2 focus-visible:ring-blue-600" data-filter-match={fit(n.c)} data-testid={`tree-control-${n.c.control_id}`}>
+                    <Row c={n.c} level={2} dim={!fit(n.c)} words={words} hit={!!found?.matches.has(n.c.control_id)} sys={sys} openId={openId} onOpen={open}
                       toggle={n.enh.length ? <button tabIndex={-1} onClick={() => toggle(ck)} aria-label={`${cOpen ? "Collapse" : "Expand"} enhancements of ${idLabel(n.c)}`}
                         className="flex h-8 w-8 shrink-0 items-center justify-center rounded hover:bg-slate-200" data-testid={`tree-control-toggle-${n.c.control_id}`}>
                         {cOpen ? <ChevronDown className="h-4 w-4" aria-hidden /> : <ChevronRight className="h-4 w-4" aria-hidden />}</button> : <span className="w-8 shrink-0" />}
                       extra={n.enh.length ? <span className="text-[11px] text-slate-500">{n.enh.length} enh.</span> : null} />
                     {cOpen && <ul role="group" className="ml-[52px] border-l-2 border-slate-200 sm:ml-[60px]">{n.enh.map((e) => (
                       <li key={e.control_id} role="treeitem" aria-level={3} aria-selected={false} ref={reg(`n:${e.control_id}`)} tabIndex={active === `n:${e.control_id}` ? 0 : -1}
-                        onFocus={(ev) => ev.target === ev.currentTarget && setFocusKey(`n:${e.control_id}`)} className="outline-none focus-visible:ring-2 focus-visible:ring-blue-600" data-testid={`tree-enhancement-${e.control_id}`}>
+                        onFocus={(ev) => ev.target === ev.currentTarget && setFocusKey(`n:${e.control_id}`)} className="outline-none focus-visible:ring-2 focus-visible:ring-blue-600" data-filter-match={fit(e)} data-testid={`tree-enhancement-${e.control_id}`}>
                         <Row c={e} level={3} words={words} hit={!!found?.matches.has(e.control_id)} sys={sys} openId={openId} onOpen={open} />
                       </li>))}</ul>}
                   </li>);
@@ -212,18 +214,19 @@ export function CatalogTree() {
   );
 }
 
-function Row({ c, level, words, hit, sys, openId, onOpen, toggle, extra }: { c: ControlSummary; level: number; words: string[]; hit: boolean; sys: Map<string, SysRow> | null;
+function Row({ c, level, words, hit, sys, openId, onOpen, toggle, extra, dim }: { c: ControlSummary; level: number; words: string[]; hit: boolean; dim?: boolean; sys: Map<string, SysRow> | null;
   openId: string | null; onOpen: (id: string) => void; toggle?: React.ReactNode; extra?: React.ReactNode }) {
   const r = sys?.get(c.control_id), ap = sys ? applicability(r) : null;
   return (
     <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 py-1.5 pr-3 [content-visibility:auto] [contain-intrinsic-size:auto_40px]", level === 2 ? "pl-6 sm:pl-8" : "pl-3",
-      hit && "bg-amber-50", openId === c.control_id && "bg-blue-50")}>
+      hit && "bg-amber-50", openId === c.control_id && "bg-blue-50", dim && "opacity-60")}>
       {toggle}
       <button tabIndex={-1} onClick={() => onOpen(c.control_id)} className="flex min-h-[36px] min-w-0 flex-1 basis-[75%] flex-wrap items-center gap-x-2 text-left hover:underline sm:basis-auto" data-testid={`tree-open-${c.control_id}`}>
         <span className={cn("font-mono font-semibold", level === 2 ? "text-[13px] text-blue-900" : "text-[12px] text-blue-700")}>{idLabel(c)}</span>
         <span className={cn("min-w-0 break-words", c.is_withdrawn ? "text-slate-400 line-through" : level === 2 ? "text-slate-900" : "text-slate-700")}><Hl text={c.title} words={words} /></span>
       </button>
       {extra}
+      {dim && <span className="text-[11px] italic text-slate-500" data-testid={`tree-context-${c.control_id}`}>shown for its enhancements – does not match the filter</span>}
       {level === 3 && <StatusPill tone="info">Enhancement</StatusPill>}
       {c.is_withdrawn && <span data-testid={`tree-withdrawn-${c.control_id}`}><StatusPill tone="neutral">Withdrawn</StatusPill></span>}
       {c.baselines.map((b) => <BaselinePill key={b} baseline={b} />)}

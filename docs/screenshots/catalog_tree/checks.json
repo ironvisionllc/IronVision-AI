@@ -1,0 +1,86 @@
+{
+ "filters": {
+  "baseline=baseline": {
+   "tree": 286,
+   "workbench_api": 286,
+   "equal": true,
+   "only_tree": [],
+   "only_api": []
+  },
+  "baseline=overlay": {
+   "tree": 4,
+   "workbench_api": 4,
+   "equal": true,
+   "only_tree": [],
+   "only_api": []
+  },
+  "assessment_status=satisfied": {
+   "tree": 5,
+   "workbench_api": 5,
+   "equal": true,
+   "only_tree": [],
+   "only_api": []
+  },
+  "assessment_status=not_assessed": {
+   "tree": 286,
+   "workbench_api": 286,
+   "equal": true,
+   "only_tree": [],
+   "only_api": []
+  },
+  "assessment_status=other_than_satisfied": {
+   "tree": 0,
+   "workbench_api": 0,
+   "equal": true,
+   "only_tree": [],
+   "only_api": []
+  },
+  "implementation_status=implemented": {
+   "tree": 6,
+   "workbench_api": 6,
+   "equal": true,
+   "only_tree": [],
+   "only_api": []
+  },
+  "applicability=not_applicable": {
+   "tree": 0,
+   "workbench_api": 0,
+   "equal": true,
+   "only_tree": [],
+   "only_api": []
+  },
+  "applicability=inherited": {
+   "tree": 61,
+   "workbench_api": 61,
+   "equal": true,
+   "only_tree": [],
+   "only_api": []
+  },
+  "applicability=applicable": {
+   "tree": 230,
+   "workbench_api": 230,
+   "equal": true,
+   "only_tree": [],
+   "only_api": []
+  }
+ },
+ "search_restore": {
+  "sc_open": true,
+  "sc7_open": true,
+  "ac_closed": true
+ },
+ "keyboard": {
+  "tab_lands_on": "tree-family-sc",
+  "arrow_right_expands": true,
+  "arrow_down_to_child": "tree-control-sc-1",
+  "arrow_left_to_parent": "tree-family-sc",
+  "arrow_left_collapses": true
+ },
+ "mobile_tap": {
+  "family_expands": true,
+  "control_expands": true,
+  "family_collapses": true,
+  "doc_width": 390
+ },
+ "all_pass": true
+}
