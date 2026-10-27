@@ -78,9 +78,11 @@ def _system_org(system_id: uuid.UUID):
 
 def enforce(request: Request, current: CurrentUser, permission: str, system_id: uuid.UUID | None) -> None:
     if system_id is not None and _system_org(system_id) not in (None, current.user.org_id):
+        # Only echo IDs the caller itself sent: a system derived from an addressed object (e.g. /sources/{id}) belongs to the other tenant
+        asked = str(system_id) in request.url.path or str(system_id) in str(request.url.query)
         audit.record_now(action="authz.denied", outcome="denied", actor_user_id=current.user.id, actor_email=current.user.email,
-                         entity_type="system", entity_id=str(system_id), details={"reason": "cross_tenant", "path": request.url.path},
-                         **audit.request_meta(request))
+                         entity_type="system" if asked else "request", entity_id=str(system_id) if asked else None,
+                         details={"reason": "cross_tenant", "path": request.url.path}, **audit.request_meta(request))
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Not found")
     if not has_permission(current.assignments, permission, current.user.org_id, system_id):
         audit.record_now(

@@ -94,10 +94,27 @@ def fingerprint(a: dict) -> dict:
                 continue
             cols = [c.key for c in sa_inspect(Mdl).column_attrs]
             h = hashlib.sha256()
-            for row in db.execute(select(*[getattr(Mdl, k) for k in cols]).where(cl).order_by(*[getattr(Mdl, k) for k in cols[:1]])):
-                h.update(json.dumps(list(row), default=str, sort_keys=True).encode())
+            rows = sorted(json.dumps(list(row), default=str, sort_keys=True) for row in db.execute(select(*[getattr(Mdl, k) for k in cols]).where(cl)))
+            for j in rows:  # sorted rows: the old ORDER BY first column had ties → row order (and hash) flipped without any change
+                h.update(j.encode())
+                d = dict(zip(cols, json.loads(j)))
+                ROWS.setdefault(Mdl.__name__, {})[str(d.get("id", j))] = d
             out[Mdl.__name__] = h.hexdigest()
     return out
+
+
+ROWS: dict = {}
+
+
+def _row_diff(before: dict, tables: list) -> list:
+    """Which rows/columns changed (diagnoses a fingerprint change: request vs. background activity)."""
+    out = []
+    for t in tables:
+        for rid, row in ROWS.get(t, {}).items():
+            old = before.get(t, {}).get(rid)
+            if old != row:
+                out.append((t, rid[:8], "NEW" if old is None else {k: (old.get(k), row[k]) for k in row if old.get(k) != row[k]}))
+    return out[:12]
 
 
 def _quiesce(a: dict) -> None:
@@ -208,6 +225,7 @@ def test_whole_api_cross_tenant(client, world):
     ops = requests = 0
     leaks, writes_changed, unauth = [], [], []
     swept = set()
+    sent_all: set = set()
     k, n = (int(x) for x in os.environ.get("SWEEP_SHARD", "0/1").split("/"))  # optional op shard k/n to fit a foreground run
     for idx, (method, path, op, comps) in enumerate(_ops()):
         if (method, path) in SKIP:
@@ -233,6 +251,7 @@ def test_whole_api_cross_tenant(client, world):
             data = {k: _value(k, v, comps, a) for k, v in sch.get("properties", {}).items() if k not in files}
             data = {k: (json.dumps(v) if isinstance(v, (list, dict)) else str(v)) for k, v in data.items()}
         sent = set(UUID_RX.findall(url + json.dumps(query) + json.dumps(body) + json.dumps(data)))
+        sent_all |= sent
         for role in ROLES:
             if role == "platform_admin" and (method, path) in GLOBAL_ADMIN:
                 continue
@@ -260,9 +279,12 @@ def test_whole_api_cross_tenant(client, world):
                 if got := (set(UUID_RX.findall(txt)) & a_ids) - sent:
                     leaks.append((method, path, role, r.status_code, sorted(got)[:3]))
         if method != "GET":
+            snap = {t: dict(v) for t, v in ROWS.items()}
+            ROWS.clear()
             fp = fingerprint(a)
             if fp != fp0:
-                writes_changed.append((method, path, sorted(k for k in fp if fp[k] != fp0.get(k))))
+                changed = sorted(k for k in fp if fp[k] != fp0.get(k))
+                writes_changed.append((method, path, changed, _row_diff(snap, changed)))
                 fp0 = fp
     all_ops = {(m, p) for m, p, _, _ in _ops()}
     print(f"\nSWEEP ops={ops} of {len(all_ops)} (skipped {len(SKIP)} with justification), requests={requests}, roles={len(ROLES)}, "
@@ -272,3 +294,17 @@ def test_whole_api_cross_tenant(client, world):
     print("UNAUTHORIZED-AFTER-REMINT", unauth[:10])
     assert all_ops - swept == set(SKIP) & all_ops  # every operation is swept unless explicitly justified
     assert not leaks and not writes_changed
+    # B's own audit trail (authz.denied etc.): may echo the IDs B itself requested, never any other tenant-A data
+    org_b = uuid.UUID(client.get("/api/v1/auth/me", headers=world["hb"]).json()["org_id"])
+    with SessionLocal() as db:
+        ub = list(db.scalars(select(M.User.id).where(M.User.org_id == org_b)))
+        evs = db.scalars(select(M.AuditEvent).where(M.AuditEvent.actor_user_id.in_(ub))).all()
+        bad = []
+        for e in evs:
+            txt = json.dumps({k: getattr(e, k) for k in ("details", "before", "after", "entity_id", "actor_email")}, default=str).lower()
+            extra = (set(UUID_RX.findall(txt)) & a_ids) - {x.lower() for x in sent_all}
+            if any(i in txt for i in identity) or extra:
+                bad.append((e.action, e.entity_type, e.entity_id, json.dumps(e.details, default=str)[:300], sorted(extra)[:2]))
+    denied = sum(1 for e in evs if e.action == "authz.denied")
+    print(f"B audit events={len(evs)} (authz.denied={denied}); with non-requested A data: {bad[:10]}")
+    assert not bad
