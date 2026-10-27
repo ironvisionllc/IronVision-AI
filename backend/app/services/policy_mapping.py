@@ -129,5 +129,14 @@ def decide(db: Session, policy, control_id: str, status: str, actor, justificati
     db.flush()
     from app.services import policy_coverage as pc
 
-    pc.analyze(db, policy)
+    pending = DEFER_ANALYZE.get()
+    if pending is not None:  # bulk job: analyse each policy once per batch instead of once per decision
+        pending[policy.id] = policy
+    else:
+        pc.analyze(db, policy)
     return row
+
+
+import contextvars  # noqa: E402
+
+DEFER_ANALYZE: contextvars.ContextVar[dict | None] = contextvars.ContextVar("defer_policy_analyze", default=None)

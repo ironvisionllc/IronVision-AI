@@ -30,6 +30,15 @@ def automated_maps(db: Session, system_id) -> list[dict]:
                                                     "evidence": [], "open": 0})
         g["ids"].append(str(m.id))
         g["open"] += f.current_state == "open"
+    if groups:  # legitimately new: the same rule → control was approved before for other findings (new host / new checklist)
+        appr = {}
+        for m, f in db.execute(select(FindingControlMap, Finding).join(Finding, Finding.id == FindingControlMap.finding_id)
+                               .where(Finding.system_id == system_id, FindingControlMap.review_status == "human_approved")):
+            appr[(f.vuln_id or f.rule_id or f.plugin_id, m.control_id)] = m.reviewed_at
+        for k, g in groups.items():
+            if k in appr:
+                g["why_new"] = (f"New review: this rule → control was approved{' on ' + appr[k].date().isoformat() if appr[k] else ''}; "
+                                f"{len(g['ids'])} new finding mapping(s) from a later checklist/host need their own decision")
     return list(groups.values())
 
 
@@ -37,8 +46,15 @@ def policy_proposals(db: Session, system: System) -> list[dict]:
     rows = db.execute(select(PolicyControlMap, Policy).join(Policy, Policy.id == PolicyControlMap.policy_id)
                       .where(PolicyControlMap.org_id == system.org_id, PolicyControlMap.valid_to.is_(None), PolicyControlMap.status == "proposed",
                              Policy.status == "current")).all()
+    # why a proposal is legitimately new although the same control was approved before (e.g. a new policy version re-proposes it)
+    prior = {}
+    for m, p in db.execute(select(PolicyControlMap, Policy).join(Policy, Policy.id == PolicyControlMap.policy_id)
+                           .where(PolicyControlMap.org_id == system.org_id, PolicyControlMap.status == "mapped")):
+        prior.setdefault((p.title, m.control_id), p.version)
     return [{"kind": "policy_map", "key": f"pm:{m.id}", "ids": [str(m.id)], "control_id": m.control_id, "title": f"Policy “{p.title}” v{p.version}",
-             "policy_id": str(p.id), "source": "Policy Auditor", "confidence": m.confidence, "reasoning": m.basis, "snippets": m.snippets or [], "evidence": []}
+             "policy_id": str(p.id), "source": "Policy Auditor", "confidence": m.confidence, "reasoning": m.basis, "snippets": m.snippets or [], "evidence": [],
+             **({"why_new": f"New review: approved for v{prior[(p.title, m.control_id)]}; policy version v{p.version} must be reviewed on its own"}
+                if (p.title, m.control_id) in prior else {})}
             for m, p in rows if not p.system_ids or str(system.id) in p.system_ids]
 
 
@@ -63,6 +79,7 @@ def status_suggestions(db: Session, system: System) -> list[dict]:
             continue
         sca_only = a.implementation_status == "implemented"
         out.append({"kind": "status", "key": f"st:{a.control_id}", "ids": [str(a.id)], "control_id": a.control_id, "awaiting_sca": sca_only,
+                    "next_actor": "SCA (assessor) confirms Satisfied" if sca_only else "ISSO / ISSM approve the implementation",
                     "title": (f"{a.control_id.upper()}: implementation approved – waiting for the SCA to confirm Satisfied" if sca_only
                               else f"Set {a.control_id.upper()} to Implemented + Satisfied"), "source": "Evidence-based status suggestion",
                     "confidence": "Suggestion", "current": {"implementation": a.implementation_status, "assessment": a.assessment_status},

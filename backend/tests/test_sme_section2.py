@@ -69,7 +69,8 @@ def _post(client, ws, items, action, just="", edit=None):
 
 
 def _items(q, kind, n):
-    return [{"kind": i["kind"], "ids": i["ids"], "control_id": i["control_id"], "evidence_fp": i.get("evidence_fp")} for i in q["queue"] if i["kind"] == kind][:n]
+    return [{"kind": i["kind"], "ids": i["ids"], "control_id": i["control_id"], "evidence_fp": i.get("evidence_fp")} for i in q["queue"]
+            if i["kind"] == kind and not i.get("awaiting_sca")][:n]  # awaiting-SCA items belong to the assessor (403 for the ISSO since P1.3)
 
 
 def test_bulk_approve_reject_edit_with_justification(client, ws):
