@@ -118,8 +118,15 @@ def test_excerpts_cite_section_and_page_and_old_policies_are_reprocessed(client,
         assert pc.ensure_current(db, [db.get(Policy, uuid.UUID(pid))]) == 1
         db.commit()
         p = db.get(Policy, uuid.UUID(pid))
-        assert "\f" in p.text_content and p.analysis["text_version"] == "text-2"
+        from app.services.rmf import TEXT_VERSION
+        assert "\f" in p.text_content and p.analysis["text_version"] == TEXT_VERSION
+        assert p.analysis_status == "queued", "re-analysis is a queued background job, never inline"
         assert pc.ensure_current(db, [p]) == 0, "idempotent"
+        db.commit()
+    from worker.handlers import handle_policy_analyze
+    with SessionLocal() as db:  # what the worker does with the queued policy.analyze job
+        handle_policy_analyze(db, {"policy_id": pid})
+        db.commit()
     ex = client.get(f"/api/v1/policies/{pid}/mappings/ac-2/review", headers=org["h"]).json()["mapping"]["excerpts"][0]
     assert ex["page"] == 2 and ex["section"] == "AC-2 Account Management"
 
