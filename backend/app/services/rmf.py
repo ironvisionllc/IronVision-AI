@@ -400,7 +400,8 @@ def rule_extract(text: str, families: set[str] | None = None, top_policy_control
     return {"values": vals, "missing_sections": missing, "outdated_references": outdated}
 
 
-def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, ai_interaction_id=None, use_ai: bool = False) -> list[PolicyFinding]:
+def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, ai_interaction_id=None, use_ai: bool = False,
+                   ai_prefetched: dict | None = None) -> list[PolicyFinding]:
     """Deterministic extractor + optional AIService suggestions; every finding is 'proposed' until a human confirms/dismisses."""
     from app.models import Control
     from app.services import policy_mapping as pm
@@ -448,7 +449,7 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
                                                                                                  if (s.get("control_id") or "").lower().replace("(", ".").replace(")", "") not in known]}
     from app.services import policy_coverage as pc
 
-    pc.analyze(db, policy, use_ai=use_ai)  # after policy.analysis is set, so requirement-level values reach the top-level list
+    pc.analyze(db, policy, use_ai=use_ai, ai_prefetched=ai_prefetched)  # after policy.analysis is set, so requirement-level values reach the top-level list
     db.flush()
     return out
 

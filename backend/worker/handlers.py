@@ -204,6 +204,7 @@ def _policy_analyze(db: Session, pol) -> dict:
     ai_out, iid, ai_note = None, None, "AI not configured – deterministic extractor only"
     svc = get_ai_service()
     if svc.configured and get_setting(db, pol.org_id, "ai", AI_DEFAULTS)["use_cases"].get("policy.audit"):
+        db.commit()  # read-only so far: never hold a transaction open across an external AI call
         try:
             r = asyncio.run(svc.run("policy.audit", "1.0.0", {"text": (pol.text_content or "")[:12000]}))
             ai_out, iid, ai_note = r.output.model_dump(), r.interaction_id, f"AI {r.model}"
@@ -212,7 +213,18 @@ def _policy_analyze(db: Session, pol) -> dict:
     import os
 
     use_ai = svc.configured and get_setting(db, pol.org_id, "ai", AI_DEFAULTS)["use_cases"].get("policy.audit") and not os.environ.get("PYTEST_CURRENT_TEST")
-    found = analyze_policy(db, pol, ai_out, iid, use_ai=bool(use_ai))
+    pre = None
+    if use_ai:  # coverage AI runs BEFORE any analysis write, with no open transaction (was: minutes "idle in transaction" holding row locks)
+        from sqlalchemy import select as _sel
+
+        from app.models import PolicyControlMap
+        from app.services import policy_coverage as pc
+        from app.services import policy_mapping as pm
+        cids = {m["control_id"] for m in pm.extract_mappings(db, pol.text_content or "") if m["confidence"] in ("High", "Medium")}
+        cids |= set(db.scalars(_sel(PolicyControlMap.control_id).where(PolicyControlMap.policy_id == pol.id, PolicyControlMap.valid_to.is_(None),
+                                                                        PolicyControlMap.status == "mapped")))
+        pre = pc.prefetch_ai(db, pol, cids)
+    found = analyze_policy(db, pol, ai_out, iid, use_ai=bool(use_ai), ai_prefetched=pre)
     pol.analysis = {**(pol.analysis or {}), "ai_note": ai_note}
     from app.services import audit
     audit.record(db, action="policy.analyzed", actor_email="worker", entity_type="policy", entity_id=str(pol.id),

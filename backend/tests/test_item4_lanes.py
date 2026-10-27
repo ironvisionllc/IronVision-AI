@@ -69,3 +69,40 @@ def test_policy_analysis_ai_stage_concurrent_and_timing_recorded(client, signup_
     assert len(calls) == len(ac) == tm["ai_controls"] == 8 and tm["ai_workers"] == pc.AI_WORKERS
     assert tm["ai"] < 8 * 0.3 * 0.6, f"AI calls ran concurrently ({tm})"
     print("analysis timing", tm)
+
+
+def test_policy_ai_runs_without_open_transaction_and_analyze_uses_prefetch(client, signup_on, monkeypatch):  # noqa: F811
+    """'idle in transaction' trace: the worker held the analysis transaction (with deleted/stored rows locked) open across minutes of AI
+    calls. Now the coverage AI is prefetched after ending the read-only transaction; analyze() then makes no AI call of its own."""
+    from pathlib import Path
+
+    from sqlalchemy import select
+
+    from app.models import ControlAssignment, Policy, PolicyControlMap, System
+    from app.services import policy_coverage as pc
+    from tests.conftest import auth
+    from tests.test_sandbox import _signup
+    t = _signup(client, f"it-{uuid.uuid4().hex[:6]}@example.com", "Idle Txn Org")
+    sid = client.post("/api/v1/systems", json={"name": "Idle", "acronym": f"IT{uuid.uuid4().hex[:3]}", "baseline_key": "moderate",
+                                                "categorization_mode": "fips199", "information_types": [{"id": "D.16.3"}]},
+                      headers=auth(t["access_token"])).json()["id"]
+    seen = []
+    text = (Path(__file__).resolve().parents[2] / "samples/policies/access_control_policy.txt").read_text()
+    with SessionLocal() as db:
+        s = db.get(System, uuid.UUID(sid))
+        ac = sorted(c for c in db.scalars(select(ControlAssignment.control_id).where(ControlAssignment.system_id == s.id))
+                    if c.startswith("ac-") and not pc.is_xx1(c))[:4]
+        p = Policy(org_id=s.org_id, policy_key="SYN-IT", title="SYNTHETIC", version=1, status="current", text_content=text, analysis_status="analyzed")
+        db.add(p)
+        db.flush()
+        for c in ac:
+            db.add(PolicyControlMap(policy_id=p.id, org_id=s.org_id, control_id=c, status="mapped", source="statement_language",
+                                    confidence="High", basis="SYNTHETIC", snippets=["SYNTHETIC"]))
+        db.commit()
+        monkeypatch.setattr(pc, "ai_refine", lambda text, cid, reqs, results, org_id: seen.append((cid, db.in_transaction())) or {})
+        pre = pc.prefetch_ai(db, p, ac)
+        assert sorted(c for c, _ in seen) == ac and not any(open_ for _, open_ in seen), "AI calls ran while a transaction was open"
+        monkeypatch.setattr(pc, "ai_refine", lambda *a, **k: (_ for _ in ()).throw(AssertionError("analyze() made a live AI call")))
+        pc.analyze(db, p, use_ai=True, ai_prefetched=pre)
+        assert p.analysis["timing_s"]["ai_prefetched"] == 4
+        db.rollback()

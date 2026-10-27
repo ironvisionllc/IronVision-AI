@@ -235,34 +235,53 @@ def evaluate_req(text: str, sents: list, control_id: str, req: dict, fam: str) -
     return concept, evaluate(text, concept, target, elem, fam, req["text"])
 
 
-def analyze(db: Session, policy: Policy, use_ai: bool = False) -> list[PolicyRequirementCoverage]:
+def _stage1(db: Session, text: str, sents: list, control_id: str) -> tuple[list, list]:
+    fam = db.scalar(select(Control.family_title).where(Control.control_id == control_id).limit(1)) or control_id.split("-")[0].upper()
+    reqs = requirements(db, control_id)
+    return reqs, [evaluate_req(text, sents, control_id, req, fam) for req in reqs]
+
+
+def _ai_many(text: str, todo: list, org_id) -> dict:
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=AI_WORKERS) as ex:
+        futs = {cid: ex.submit(ai_refine, text, cid, reqs, results, org_id) for cid, reqs, results in todo}
+        return {cid: f.result() for cid, f in futs.items()}
+
+
+def prefetch_ai(db: Session, policy: Policy, control_ids) -> dict:
+    """AI refinement BEFORE the analysis writes anything: inputs are read, the read-only transaction is ended, then the slow AI calls
+    run with no open transaction (no "idle in transaction" connection holding locks for minutes). Only call with no pending writes."""
+    if db.new or db.dirty or db.deleted:
+        raise RuntimeError("prefetch_ai needs a session without pending writes")
+    text, org_id = policy.text_content or "", policy.org_id
+    sents = _sentences(text)
+    todo = [(cid, *_stage1(db, text, sents, cid)) for cid in sorted(set(control_ids)) if not is_xx1(cid)]
+    db.commit()  # read-only: ends the transaction before the external calls
+    return _ai_many(text, todo, org_id)
+
+
+def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: dict | None = None) -> list[PolicyRequirementCoverage]:
     """Recompute coverage for every current proposed/mapped control of this policy; covered-elsewhere overrides are kept."""
     maps = [m for m in db.scalars(select(PolicyControlMap).where(PolicyControlMap.policy_id == policy.id, PolicyControlMap.valid_to.is_(None)))
             if m.status == "mapped" or (m.status == "proposed" and m.confidence in ("High", "Medium"))]
     old = {(c.control_id, c.requirement_id): c for c in db.scalars(select(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id == policy.id))}
-    for c in old.values():
-        db.delete(c)
-    db.flush()
     text = policy.text_content or ""
     sents = _sentences(text)
     out = []
     t0 = time.perf_counter()
-    prepared = []
-    for m in maps:  # stage 1: deterministic evaluation (DB + regex, main thread)
-        fam = db.scalar(select(Control.family_title).where(Control.control_id == m.control_id).limit(1)) or m.control_id.split("-")[0].upper()
-        reqs = requirements(db, m.control_id)
-        prepared.append((m, reqs, [evaluate_req(text, sents, m.control_id, req, fam) for req in reqs]))
+    prepared = [(m, *_stage1(db, text, sents, m.control_id)) for m in maps]  # stage 1: deterministic evaluation (DB + regex)
     t1 = time.perf_counter()
-    ai_by_ctl: dict = {}
-    todo = [(m.control_id, reqs, results) for m, reqs, results in prepared if use_ai and not is_xx1(m.control_id)]
-    if todo:  # stage 2: AI refinement – independent per control, so run AI_WORKERS calls concurrently (same prompt, same quote verification)
-        from concurrent.futures import ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=AI_WORKERS) as ex:
-            futs = {cid: ex.submit(ai_refine, text, cid, reqs, results, policy.org_id) for cid, reqs, results in todo}
-            ai_by_ctl = {cid: f.result() for cid, f in futs.items()}
+    pre = ai_prefetched or {}
+    ai_by_ctl: dict = {cid: v for cid, v in pre.items() if use_ai}
+    todo = [(m.control_id, reqs, results) for m, reqs, results in prepared if use_ai and not is_xx1(m.control_id) and m.control_id not in ai_by_ctl]
+    if todo:  # stage 2: AI refinement not prefetched (e.g. API-triggered re-analysis) – AI_WORKERS concurrent calls, same prompt + quote verification
+        ai_by_ctl.update(_ai_many(text, todo, policy.org_id))
     t2 = time.perf_counter()
+    for c in old.values():  # old rows are deleted only now, so no row lock is held during the AI stage
+        db.delete(c)
+    db.flush()
     for m, reqs, results in prepared:  # stage 3: verify AI quotes against the text (apply_ai) and write rows
-        if m.control_id in ai_by_ctl:
+        if m.control_id in ai_by_ctl and not is_xx1(m.control_id):
             ai = ai_by_ctl[m.control_id]
             merged = [(c, pp.apply_ai(text, r, ai.get(req["id"]))) for req, (c, r) in zip(reqs, results)]
             results = [("profile-ai" if r.get("basis") == "ai" else c, r) for c, r in merged]
@@ -280,7 +299,8 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False) -> list[PolicyReq
             out.append(row)
     policy.analysis = {**(policy.analysis or {}), "coverage_version": ANALYZER_VERSION,
                        "values": _merge_values((policy.analysis or {}).get("values", []), out),
-                       "timing_s": {"controls": len(prepared), "ai_controls": len(todo), "deterministic": round(t1 - t0, 2),
+                       "timing_s": {"controls": len(prepared), "ai_controls": len(todo) + len([c for c in pre if use_ai]), "ai_prefetched": len(pre) if use_ai else 0,
+                                    "deterministic": round(t1 - t0, 2),
                                     "ai": round(t2 - t1, 2), "verify_write": round(time.perf_counter() - t2, 2), "ai_workers": AI_WORKERS}}
     db.flush()
     log.info("coverage analysis timing %s", policy.analysis["timing_s"])

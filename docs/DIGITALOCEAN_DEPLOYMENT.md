@@ -642,6 +642,7 @@ $SCOMPOSE up -d --build
 1. Create a PG 16 cluster in the same region/VPC and add the Droplet as a trusted source. Download the CA certificate to `/opt/ironvision/certs/do-ca.crt` and mount it read-only into backend, worker and migrate.
 2. Set `DATABASE_URL=postgresql+psycopg://user:pass@<host>:25060/ironvision?sslmode=verify-full&sslrootcert=/certs/do-ca.crt`. `sslmode=require` is the minimum; `verify-full` is preferred. The DO overlay passes `DATABASE_URL` through.
 3. Size connections: (uvicorn workers × SQLAlchemy pool 10 + overflow 10, see `app/db.py`) + worker (≈5) + migrate. Use DO's PgBouncer pool in **session** mode. Transaction mode breaks the worker's `SELECT … FOR UPDATE SKIP LOCKED` sessions, so test it before using it.
+   - **Guard against stuck transactions (recommended):** `ALTER DATABASE ironvision SET idle_in_transaction_session_timeout = '15min';` (managed or Droplet Postgres). The app no longer holds a transaction open across AI calls; policy coverage AI is prefetched with no open transaction. A connection left "idle in transaction" longer than 15 min is therefore a bug: Postgres ends it and releases its locks. Check with `SELECT pid, application_name, now()-state_change FROM pg_stat_activity WHERE state LIKE 'idle in transaction%';`.
 4. Cutover:
    - Back up with `backup.sh`, then `$COMPOSE stop backend worker`.
    - `pg_restore --no-owner --no-privileges -d "$MANAGED_URL" db.dump`.
