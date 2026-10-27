@@ -98,9 +98,28 @@ def move(state: str, to_key: str) -> None:
     print(f"SYN-FAIL policy owner → {to_key}")
 
 
+def topup(state: str, n: int) -> None:
+    """Extra SYNTHETIC proposed mappings so the injected-failure run goes through the server bulk job (>50 items)."""
+    st = json.load(open(state))
+    with SessionLocal() as db:
+        s = db.get(System, uuid.UUID(st["system_id"]))
+        ctl = sorted(db.scalars(select(ControlAssignment.control_id).where(ControlAssignment.system_id == s.id)))
+        p = Policy(org_id=s.org_id, policy_key=f"SYN-TOPUP-{uuid.uuid4().hex[:4]}", title="SYNTHETIC UAT retry-run policy", version=1, status="current",
+                   text_content="SYNTHETIC", analysis_status="analyzed")
+        db.add(p)
+        db.flush()
+        for cid in ctl[:n]:
+            db.add(PolicyControlMap(policy_id=p.id, org_id=s.org_id, control_id=cid, status="proposed", source="statement_language",
+                                    confidence="High", basis="SYNTHETIC UAT retry-run fixture", snippets=["SYNTHETIC"]))
+        db.commit()
+    print(f"added {n} proposed mappings")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1]
-    if cmd == "seed":
+    if cmd == "topup":
+        topup(sys.argv[2], int(sys.argv[3]))
+    elif cmd == "seed":
         seed(int(sys.argv[2]) if len(sys.argv) > 2 else 942)
     else:
         move(sys.argv[2], "org_b" if cmd == "inject" else "org_a")

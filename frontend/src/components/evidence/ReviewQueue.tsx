@@ -81,7 +81,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
       setMsg(`${n} item(s) ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "edited"}.${part}${also}${skip}`);
       if (also) toast.success(`Also approved: ${r.data.also_approved.join("; ")}`, { duration: 10000 });
       if (r.data.partial.length) showNextStep({ message: `${SCA_MSG}.`, label: "SCA: confirm the assessment result in “Awaiting assessor (SCA)”", to: `/mapping-review?tab=sca` });
-      else showNextStep({ message: `${n} review item(s) ${action}d.`, label: "review the updated controls in the Workbench", to: `/systems/${sid}/controls` });
+      else showNextStep({ message: `${n} review item(s) ${action === "edit" ? "edited" : `${action}${action.endsWith("e") ? "d" : "ed"}`}.`, label: "review the updated controls in the Workbench", to: `/systems/${sid}/controls` });
       setSel([]); setJust(""); setEditTo(""); reload();
     } catch (e) { setErr(`Nothing was changed: ${errorMessage(e)}`); } finally { setBusy(false); }
   };
