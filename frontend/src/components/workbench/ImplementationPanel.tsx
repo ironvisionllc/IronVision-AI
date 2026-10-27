@@ -20,7 +20,7 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
   const [narr, setNarr] = useState("");
   const [ai, setAi] = useState<Row | null>(null);
   const impl = d.assignment.implementation_status;  // status is saved in the separate Status section
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | false>(false);
   const [msg, setMsg] = useState("");
   const [diff, setDiff] = useState<Row | null>(null);
   // reset only when the control or its latest saved version changes – quiet background refreshes must not discard an unsaved draft
@@ -31,9 +31,13 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
   const approved = d.approved_implementation;
   const evName = (id: string) => d.evidence.find((e: Row) => e.id === id)?.name ?? id.slice(0, 8);
   const generate = async (mode = "auto") => {
-    setBusy(true); setMsg("");
-    try { const r = await api.post<Row>(`/systems/${systemId}/workbench/controls/${controlId}/ai-draft`, null, { params: { mode } }); setAi(r.data); setNarr(r.data.draft.narrative); }
-    catch (e) { setMsg(errorMessage(e)); } finally { setBusy(false); }
+    setBusy(mode); setMsg("");
+    try {
+      const r = await api.post<Row>(`/systems/${systemId}/workbench/controls/${controlId}/ai-draft`, null, { params: { mode } });
+      if (!(r.data.draft?.narrative || "").trim()) { setMsg("The draft came back empty – nothing was changed in the editor. Try Template draft or write the statement manually."); return; }
+      setAi(r.data); setNarr(r.data.draft.narrative); setMsg(`${r.data.template ? "Template" : "AI"} draft loaded into the editor – not saved yet. Review it, then Save draft version.`);
+    }
+    catch (e) { setMsg(`Draft generation failed – the editor was not changed. ${errorMessage(e)}`); } finally { setBusy(false); }
   };
   const save = async () => {
     try {
@@ -67,8 +71,8 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
       {ai && <div className="mt-1 text-[11px] text-slate-500">Grounded on {ai.grounding.evidence_count} current evidence item(s). Policies: {ai.grounding.policies}</div>}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Gated perm="implementation.write"><>
-          <button className="btn-secondary" onClick={() => generate("auto")} disabled={busy} data-testid="ai-generate-btn">{busy ? "Generating…" : "Generate draft"}</button>
-          <button className="btn-secondary" onClick={() => generate("template")} disabled={busy} data-testid="template-generate-btn">Template draft</button>
+          <button className="btn-secondary" onClick={() => generate("auto")} disabled={!!busy} data-testid="ai-generate-btn">{busy === "auto" ? "Generating…" : "Generate draft"}</button>
+          <button className="btn-secondary" onClick={() => generate("template")} disabled={!!busy} data-testid="template-generate-btn">{busy === "template" ? "Building template…" : "Template draft"}</button>
           <button className="btn-primary" onClick={save} disabled={!narr.trim()} data-testid="wb-narrative-save">Save draft version</button>
           <button className="btn-secondary" onClick={requestReview} disabled={!latest || latest.review_status !== "draft" || !!ai} data-testid="wb-request-review">Request review</button>
         </></Gated>

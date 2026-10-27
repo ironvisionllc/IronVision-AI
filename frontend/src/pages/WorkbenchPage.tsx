@@ -19,6 +19,7 @@ import { PageSizeSelect, Pager, usePageSize } from "@/components/common/PageSize
 import { downloadFile } from "@/lib/download";
 import { ControlPolicyCoverage } from "@/components/policy/Coverage";
 import { EmassPanels } from "@/components/workbench/emass/EmassPanels";
+import { RequirementCounts } from "@/components/workbench/RequirementCounts";
 import { BulkEmass } from "@/components/workbench/emass/BulkEmass";
 
 const REASON: Record<string, string> = { failed_technical_checks: "Failed checks", kev: "KEV", cat1_open: "CAT I", expired_evidence: "Expired evidence",
@@ -244,6 +245,7 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
         </Table>
       </Panel>}
       <StatusSection systemId={systemId} controlId={controlId} d={d} reload={() => { reload(); onChange(); }} />
+      <RequirementCounts systemId={systemId} controlId={controlId} />
       <MappedPoliciesPanel d={d} />
       {d.cnssi_parameters && <CnssiParams sid={systemId} cid={controlId} p={d.cnssi_parameters} reload={reload} />}
       <ImplementationPanel systemId={systemId} controlId={controlId} d={d} reload={() => { reload(); onChange(); }} />

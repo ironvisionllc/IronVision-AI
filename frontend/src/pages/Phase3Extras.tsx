@@ -1,3 +1,4 @@
+import { PackageDocuments } from "@/components/rmf/PackageDocuments";
 import { PageSizeSelect, usePageSize } from "@/components/common/PageSize";
 import { SimulatedSignatureNote } from "@/components/shell/Sandbox";
 import { OscalPanel } from "@/pages/Phase4Pages";
@@ -55,6 +56,7 @@ export function AuthorizationPage() {
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="authz-msg">{msg}</div>}
       <div className="mb-5"><OscalPanel systemId={id} /></div>
+      <div className="mb-5"><PackageDocuments systemId={id} acronym={pk.system.acronym} /></div>
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel title="SSP summary" testId="package-ssp"><div className="text-[13px]">{pk.ssp.assigned} controls · {pk.ssp.with_any_narrative} with statements · {pk.ssp.approved_narratives} approved</div></Panel>
         <Panel title="Assessment results (SCA)" testId="package-assessment"><div className="flex flex-wrap gap-2">{Object.entries(pk.assessment).map(([k, v]) => <S key={k} v={k} label={`${k.replace(/_/g, " ")}: ${v}`} />)}</div></Panel>

@@ -276,7 +276,7 @@ PARAMS = [
     ("ac-7", "lockout_minutes", r"lock\w*\s+(?:the\s+)?(?:account|node|user)?[^.\n]{0,30}?\bfor\s+(?:a\s+(?:period\s+of\s+)?)?(\d+)\s*minutes?", "minutes"),
     ("ac-11", "session_lock_minutes", r"(?:session|screen)\s+lock[^.\n]{0,60}?(\d+)\s*minutes|(\d+)\s*minutes[^.\n]{0,60}(?:session|screen)\s+lock", "minutes"),
 ]
-REQUIRED_SECTIONS = [("ac-17", "remote access", "Remote access section"), ("ac-1", "official", "Named official / policy owner designation")]
+REQUIRED_SECTIONS = [("ac-17", r"remote[\s-]+access|teleworking|telework", "Remote access section"), ("ac-1", "official", "Named official / policy owner designation")]
 
 
 def extract_text(file_name: str, data: bytes) -> str:
@@ -394,7 +394,7 @@ def rule_extract(text: str, families: set[str] | None = None, top_policy_control
     low = text.lower()
     missing = [{"control_id": c if c != "ac-1" else (top_policy_control or "ac-1"), "section": label} for c, kw, label in REQUIRED_SECTIONS
                if (c == "ac-17" and "ac" in fam or c == "ac-1" and top_policy_control)
-               and ((kw not in low) or (kw == "official" and re.search(r"official:\s*(tbd|\[?name\]?|_+)?\s*$", low, re.M) and "named official" not in low))]
+               and ((not re.search(kw, low)) or (kw == "official" and re.search(r"official:\s*(tbd|\[?name\]?|_+)?\s*$", low, re.M) and "named official" not in low))]
     outdated = [{"quote": text[slice(*sentence_at(text, m.start(), m.end()))]} for m in re.finditer(r"(?:NIST\s+)?SP\s*800-53\s*(?:Rev(?:ision)?\.?\s*4|r4)", text, re.IGNORECASE)][:3]
     return {"values": vals, "missing_sections": missing, "outdated_references": outdated}
 

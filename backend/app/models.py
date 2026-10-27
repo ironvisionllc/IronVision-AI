@@ -723,6 +723,14 @@ class Poam(CoreMixin, Base):
     is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     emass_remote_id: Mapped[str | None] = mapped_column(String(50))
     content_impact: Mapped[dict | None] = mapped_column(JSONB)
+    raw_severity: Mapped[str | None] = mapped_column(String(20))  # eMASS Raw Severity (Very Low–Very High); not the technical severity/CAT
+    relevance_of_threat: Mapped[str | None] = mapped_column(String(20))
+    likelihood: Mapped[str | None] = mapped_column(String(20))
+    impact: Mapped[str | None] = mapped_column(String(20))
+    residual_risk_level: Mapped[str | None] = mapped_column(String(20))
+    mitigations: Mapped[str | None] = mapped_column(Text)
+    comments: Mapped[str | None] = mapped_column(Text)
+    risk_source: Mapped[dict | None] = mapped_column(JSONB)
 
 
 class PoamFinding(CoreMixin, Base):

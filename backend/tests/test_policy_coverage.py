@@ -81,7 +81,7 @@ def test_requirements_are_the_reference_ccis_and_objectives_all_met(client, ws):
     assert c["summary"]["objectives"] >= 15 and any(r["label"] == "RA-01c.02[01]" for r in c["requirements"])
     bad = [(r["label"], r["status"], r["reason"]) for r in c["requirements"] if r["status"] != "met"]
     assert not bad, bad
-    assert c["summary"]["state"] == "met" and c["line"].startswith(f"RA-1: {c['summary']['total']} of {c['summary']['total']} requirements met")
+    assert c["summary"]["state"] == "met" and c["line"].startswith(f"RA-1 (base control only, enhancements counted separately): {c['summary']['total']} of {c['summary']['total']} requirements met")
     r = next(r for r in c["requirements"] if r["requirement_id"] == "CCI-001040")
     assert r["parameter_value"] == "at least annually" and r["snippets"][0]["location"].startswith("p. 1")
     rec = next(r for r in c["requirements"] if r["requirement_id"] == "CCI-002368")

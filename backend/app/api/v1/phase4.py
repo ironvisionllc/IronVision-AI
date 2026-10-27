@@ -551,6 +551,33 @@ def oscal_export(system_id: uuid.UUID, model: str, request: Request, db: Session
     return res
 
 
+@router.get("/systems/{system_id}/documents/{kind}/check")
+def document_check(system_id: uuid.UUID, kind: str, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    from app.services import documents as docs
+
+    if kind not in docs.KINDS:
+        raise HTTPException(422, f"Unknown document {kind}. Supported: {', '.join(docs.KINDS)}")
+    d = docs.build(db, get_system(db, system_id), kind)
+    return {k: d[k] for k in ("kind", "title", "status", "missing", "oscal_model")} | {"sections": [t for t, _ in d["sections"]]}
+
+
+@router.get("/systems/{system_id}/documents/{kind}")
+def document_download(system_id: uuid.UUID, kind: str, request: Request, format: str = "docx", db: Session = Depends(get_db),
+                      current: CurrentUser = Depends(require_permission("system.read"))) -> Response:
+    from app.services import documents as docs
+
+    if kind not in docs.KINDS or format not in ("docx", "pdf"):
+        raise HTTPException(422, "Supported: ssp|sar|rar as docx|pdf")
+    s = get_system(db, system_id)
+    d = docs.build(db, s, kind)
+    data = docs.docx_bytes(d) if format == "docx" else docs.pdf_bytes(d)
+    audit.record_now(action=f"document.{kind}_generated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
+                     entity_id=str(s.id), details={"format": format, "status": d["status"], "missing": d["missing"]})
+    mt = "application/vnd.openxmlformats-officedocument.wordprocessingml.document" if format == "docx" else "application/pdf"
+    tag = "DRAFT-INCOMPLETE" if d["missing"] else "DRAFT"
+    return Response(data, media_type=mt, headers={"Content-Disposition": f'attachment; filename="{s.acronym}_{kind.upper()}_{tag}.{format}"'})
+
+
 @router.get("/oscal-exports/{evidence_id}/download")
 def oscal_download(evidence_id: uuid.UUID, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> Response:
     e = db.get(Evidence, evidence_id)

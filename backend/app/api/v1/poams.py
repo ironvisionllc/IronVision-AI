@@ -92,6 +92,10 @@ def list_poams(request: Request, system_id: uuid.UUID | None = None, q: str | No
     return {"items": [_row(db, p) for p in items], "total": total, "page": page, "page_size": page_size, "summary": summary(db, ids), "sort": sort}
 
 
+RISK_RX = "^(Very Low|Low|Moderate|High|Very High)$"  # eMASS risk scale; never derived from technical severity/CAT
+RISK_FIELDS = ("raw_severity", "relevance_of_threat", "likelihood", "impact", "residual_risk_level", "mitigations")
+
+
 class PoamIn(BaseModel):
     weakness: str | None = Field(None, min_length=5, max_length=5000)
     security_impact: str | None = Field(None, max_length=5000)
@@ -105,6 +109,13 @@ class PoamIn(BaseModel):
     owner_id: uuid.UUID | None = None
     due_date: date | None = None
     status: str | None = Field(None, pattern="^(new|in_progress)$")
+    raw_severity: str | None = Field(None, pattern=RISK_RX)
+    relevance_of_threat: str | None = Field(None, pattern=RISK_RX)
+    likelihood: str | None = Field(None, pattern=RISK_RX)
+    impact: str | None = Field(None, pattern=RISK_RX)
+    residual_risk_level: str | None = Field(None, pattern=RISK_RX)
+    mitigations: str | None = Field(None, max_length=5000)
+    comments: str | None = Field(None, max_length=5000)
 
 
 class PoamCreate(PoamIn):
@@ -206,6 +217,56 @@ def detail(poam_id: str, request: Request, db: Session = Depends(get_db), curren
                                 for e in db.scalars(select(Evidence).where(Evidence.system_id == p.system_id).order_by(Evidence.collected_at.desc()).limit(50))]}
 
 
+def _control_risk(db, p: Poam) -> list[dict]:
+    from app.models import EmassControlFields
+
+    out = []
+    for cid in p.control_ids or []:
+        f = db.scalar(select(EmassControlFields).where(EmassControlFields.system_id == p.system_id, EmassControlFields.control_id == cid))
+        vals = {"raw_severity": f.severity, "relevance_of_threat": f.relevance_of_threat, "likelihood": f.likelihood, "impact": f.impact,
+                "residual_risk_level": f.residual_risk_level, "mitigations": f.mitigations} if f else {}
+        out.append({"control_id": cid, "values": {k: v for k, v in vals.items() if v}})
+    return out
+
+
+@router.get("/poams/{poam_id}/risk")
+def risk_view(poam_id: str, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    p = _poam(db, request, current, poam_id)
+    return {"technical": {"severity": p.severity, "cat": p.cat, "note": "Technical severity / CAT from the scan or checklist – not the eMASS risk scale"},
+            "emass": {k: getattr(p, k) for k in (*RISK_FIELDS, "comments")}, "source": p.risk_source or {},
+            "control_risk_assessments": _control_risk(db, p),
+            "scale": ["Very Low", "Low", "Moderate", "High", "Very High"]}
+
+
+class FromControlIn(BaseModel):
+    control_id: str
+    overwrite: bool = False
+
+
+@router.post("/poams/{poam_id}/risk/from-control")
+def risk_from_control(poam_id: str, body: FromControlIn, request: Request, db: Session = Depends(get_db),
+                      current: CurrentUser = Depends(require_object_permission("poam.manage", "Poam", "poam_id"))) -> dict:
+    """Default the POA&M risk fields from the control's eMASS Risk Assessment (Implement step); manual values are kept unless overwrite."""
+    p = _poam(db, request, current, poam_id, "poam.manage")
+    if p.status in ("closed", "risk_accepted"):
+        raise HTTPException(409, f"POA&M is {p.status}")
+    src = next((c for c in _control_risk(db, p) if c["control_id"] == body.control_id.lower()), None)
+    if src is None:
+        raise HTTPException(422, f"{body.control_id} is not one of this POA&M's controls")
+    if not src["values"]:
+        raise HTTPException(422, f"{body.control_id.upper()} has no Risk Assessment values recorded (Control Information → Risk Assessment)")
+    changed = {k: v for k, v in src["values"].items() if body.overwrite or not getattr(p, k)}
+    before = {k: getattr(p, k) for k in changed}
+    for k, v in changed.items():
+        setattr(p, k, v)
+    p.risk_source = {**(p.risk_source or {}), **{k: f"control:{body.control_id.lower()}" for k in changed}}
+    wf.history(db, p, current.user, "risk_defaulted_from_control", before=before, after=changed)
+    audit.record(db, action="poam.risk_from_control", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="poam",
+                 entity_id=str(p.id), before=before, after={**changed, "control_id": body.control_id.lower()})
+    db.commit()
+    return {"applied": changed, "kept": [k for k in src["values"] if k not in changed]}
+
+
 @router.patch("/poams/{poam_id}")
 def update(poam_id: str, body: PoamIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_object_permission("poam.manage", "Poam", "poam_id"))) -> dict:
     p = _poam(db, request, current, poam_id, "poam.manage")
@@ -219,6 +280,8 @@ def update(poam_id: str, body: PoamIn, request: Request, db: Session = Depends(g
     before = {k: str(getattr(p, k)) for k in changes}
     for k, v in changes.items():
         setattr(p, k, [c.lower() for c in v] if k == "control_ids" else v)
+    if risk := [k for k in changes if k in RISK_FIELDS]:
+        p.risk_source = {**(p.risk_source or {}), **{k: "manual" for k in risk}}
     if "owner_id" in changes and p.owner_id:
         wf.notify(db, p.owner_id, f"{p.human_id} assigned to you", f"/poams/{p.id}", "assignment", p.weakness[:200])
     wf.history(db, p, current.user, "updated", before=before, after={k: str(v) for k, v in changes.items()})

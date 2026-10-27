@@ -1,3 +1,4 @@
+import { PoamRisk } from "@/components/poam/PoamRisk";
 import { PageSizeSelect, usePageSize } from "@/components/common/PageSize";
 import { PoamImpactBanner } from "@/pages/Phase4Pages";
 import { useState } from "react";
@@ -110,12 +111,13 @@ export function PoamDetailPage() {
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel title="Weakness" testId="poam-weakness">
           <dl className="grid grid-cols-[150px_1fr] gap-y-1.5 text-[13px]">
-            {[["Security impact", p.security_impact], ["Severity", `${p.severity ?? "—"} ${p.cat ?? ""}`], ["Source", p.source_label], ["Vuln IDs (CVE/STIG)", (p.vuln_ids || []).join(", ")],
+            {[["Security impact", p.security_impact], ["Technical severity / CAT", `${p.severity ?? "—"} ${p.cat ?? ""}`], ["Raw Severity (eMASS)", p.raw_severity], ["Source", p.source_label], ["Vuln IDs (CVE/STIG)", (p.vuln_ids || []).join(", ")],
               ["Affected assets", p.asset_names.join(", ") || "—"], ["Root cause", p.root_cause], ["Remediation plan", p.remediation_plan], ["Owner", p.owner_name], ["Resources", p.resources],
               ["Target completion", p.due_date], ["Actual completion", p.actual_completion], ["Risk acceptance", p.risk_acceptance_ref ? `${p.risk_acceptance_ref} (expires ${p.risk_acceptance_expiration})` : "—"]].map(([k, v]) => (
               <><dt key={`k${k}`} className="text-slate-500">{k}</dt><dd key={`v${k}`} data-testid={`poam-field-${String(k).toLowerCase().replace(/[^a-z]+/g, "-")}`}>{v || "—"}</dd></>))}
           </dl>
         </Panel>
+        <PoamRisk poamId={p.id} editable={can("poam.manage") && !terminal} />
         <Panel title="Related control requirements" testId="poam-controls">
           {data.controls.map((c: Row) => <div key={c.control_id} className="mb-2 text-[12px]"><ControlLink systemId={p.system_id} controlId={c.control_id} /> <b>{c.title}</b><div className="line-clamp-3 text-slate-600">{c.statement}</div></div>)}
         </Panel>

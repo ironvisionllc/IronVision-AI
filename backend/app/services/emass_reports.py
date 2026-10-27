@@ -70,6 +70,8 @@ POAM_FIELDS = {
 }
 SEV = {"veryhigh": "critical", "critical": "critical", "high": "high", "cati": "high", "moderate": "medium", "medium": "medium", "catii": "medium",
        "low": "low", "verylow": "low", "catiii": "low"}
+RAW = {"verylow": "Very Low", "low": "Low", "moderate": "Moderate", "medium": "Moderate", "high": "High", "veryhigh": "Very High"}
+CATS = {"cati": "CAT I", "catii": "CAT II", "catiii": "CAT III"}
 SIGS = {
     "system_details": (["system name", "system acronym", "system id", "authorization status", "ato date", "confidentiality", "integrity", "availability",
                         "system type", "registration type", "national security system", "authorization termination date", "system description"], r"system|registration"),
@@ -251,9 +253,12 @@ def build_poam(db: Session, s: System, sheets) -> tuple[list[dict], dict]:
                     rep["not_in_system"].append({"row": n, "control": ", ".join(ei.fmt_acronym(c) for c in bad)})
             elif f == "due_date":
                 v, err = ei._date(raw)
-            elif f == "severity":
-                v = SEV.get(_n(raw))
-                err = None if v else f"'{raw}' is not a severity (Very High … Very Low / CAT I–III)"
+            elif f == "severity":  # eMASS Raw Severity stays on the eMASS scale; CAT I–III stays a CAT – never converted to technical severity
+                v = RAW.get(_n(raw)) or CATS.get(_n(raw))
+                err = None if v else f"'{raw}' is not a Raw Severity (Very Low … Very High) or CAT I–III"
+            elif f == "residual_risk":
+                v = RAW.get(_n(raw))
+                err = None if v else f"'{raw}' is not a Residual Risk Level (Very Low … Very High)"
             elif f == "status":
                 blocked = ("Closing or risk-accepting a POA&M goes through the closure / risk-acceptance workflow"
                            if _n(raw) in ("completed", "closed", "riskaccepted") else None)
@@ -265,8 +270,8 @@ def build_poam(db: Session, s: System, sheets) -> tuple[list[dict], dict]:
                 v = v[:50]
             cur = None
             if p is not None:
-                cur = {"control": [ei.fmt_acronym(c) for c in sorted(p.control_ids or [])], "residual_risk": None, "comments": None, "mitigations": None}.get(f, getattr(p, f, None)) \
-                    if f not in ("residual_risk", "comments", "mitigations", "poc") else None
+                cur = {"control": [ei.fmt_acronym(c) for c in sorted(p.control_ids or [])], "residual_risk": p.residual_risk_level,
+                       "severity": p.raw_severity if not str(v).startswith("CAT") else p.cat}.get(f, getattr(p, f, None)) if f != "poc" else None
             fs[f] = _field(cur, v, err, blocked, lab)
             if err:
                 rep["invalid"].append({"row": n, "control": ", ".join(ei.fmt_acronym(c) for c in cids), "field": lab, "value": str(raw)[:100], "error": err})
@@ -339,13 +344,17 @@ def apply_other(db: Session, imp: EmassImport, s: System, current, meta: dict, s
             results.append({"control": "System details", "applied": sorted(acc), "failed": None})
         elif i["section"] == "POA&M":
             vals = {k: f["imported"] for k, f in acc.items()}
-            extra = "; ".join(f"{POAM_FIELDS[k][0]}: {vals.pop(k)}" for k in ("residual_risk", "mitigations", "comments") if k in vals)
+            if "severity" in vals:
+                sv = vals.pop("severity")
+                vals["cat" if sv.startswith("CAT") else "raw_severity"] = sv
+            if "residual_risk" in vals:
+                vals["residual_risk_level"] = vals.pop("residual_risk")
             if "control" in vals:
                 vals["control_ids"] = [ei.norm_acronym(c) for c in vals.pop("control")]
             if "due_date" in vals:
                 vals["due_date"] = date.fromisoformat(vals["due_date"])
-            if extra:
-                vals["security_impact"] = f"eMASS: {extra}"[:4000]
+            if risk := [k for k in ("raw_severity", "residual_risk_level", "mitigations", "comments") if k in vals]:
+                vals["risk_source"] = {k: f"emass_import:{imp.id}" for k in risk}
             if i["create"]:
                 if i["required_issue"] or not {"weakness", "control_ids"} <= set(vals):
                     results.append({"control": i["label"], "applied": [], "failed": i["required_issue"] or "Accept the weakness and controls to create a POA&M"})

@@ -190,9 +190,16 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
     words = {w for w in re.findall(r"[a-z]{5,}", req_text.lower())} - {"organization", "defined", "assignment", "selection", "system", "policy", "controls"}
     best = max(sents, key=lambda h: len(words & set(re.findall(r"[a-z]{5,}", h[2].lower()))), default=None)
     score = len(words & set(re.findall(r"[a-z]{5,}", best[2].lower()))) / max(len(words), 1) if best else 0
-    if best and score >= 0.5:
-        return found([best], f"Similar wording found ({score:.0%} of the requirement's key words).", "Low", status="partial")
-    r.update(confidence="Low", reason="No sentence with the requirement's key words was found.", needs="Add text that addresses this requirement directly.")
+    req = re.sub(r"\s+", " ", req_text).strip()
+    short = req if len(req) <= 220 else req[:217].rsplit(" ", 1)[0] + "…"
+    if best and score >= 0.5:  # no keyword lists in the output: requirement, verbatim sentence, and an explicit manual-review ask
+        r.update(status="partial", confidence="Low", snippets=_snip(text, [best]), manual_review=True,
+                 reason=f"Manual review needed – not confirmed automatically. Requirement: “{short}”. Closest policy sentence is quoted below; "
+                        "it uses related wording but the rule-based check cannot tell whether it actually satisfies the requirement.",
+                 needs=f"Confirm the quoted sentence meets the requirement, or add a statement that does: “{short}”.")
+        return r
+    r.update(confidence="Low", reason=f"Not found: no sentence in the policy addresses the requirement “{short}”.",
+             needs=f"Add a statement to the {fam} policy that addresses: “{short}”.")
     return r
 
 
@@ -353,7 +360,7 @@ def effective(c: PolicyRequirementCoverage) -> str:
 
 def basis_label(c: PolicyRequirementCoverage) -> str:
     return {"profile-id": "explicit control ID + concepts", "profile-concept": "concept match", "profile-ai": "AI-verified quote"}.get(
-        c.concept, "policy-element rule" if is_xx1(c.control_id) else "keyword similarity")
+        c.concept, "policy-element rule" if is_xx1(c.control_id) else "rule-based check – manual review")
 
 
 def kind_label(c: PolicyRequirementCoverage) -> str:
