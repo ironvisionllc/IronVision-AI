@@ -74,3 +74,15 @@
 - P7: selection_review approval freezes approved control list + drift; SLCM due in-app notifications.
 - Serial suite: 872 tests, 755 passed, 0 failed, 117 skipped (live-only).
 - Remaining: browser verification of document panels and 942-item UI workflow (awaiting root go-ahead); raw storage-key probe; time a real 284-control analysis; trace idle-in-transaction app connection.
+
+## 2026-10 eMASS pass-B fixes (commit eea0382)
+- SLCM import builds ISCM strategy DRAFT (defaults, family + shared-value profiles, per-control exceptions only); takes effect on ISSM approval; optional per-control mode; revert restores/removes draft.
+- Categorization import creates AO categorization proposal (draft / pending_reapproval); never writes C/I/A.
+- One type dispatcher on per-system, global+target and Import Center uploads; detection returns sheets + record_count.
+- /pii count fixed (53 FIPS); migration report xlsx export links.
+- Pending: root tester pass C.
+
+## 2026-10 pass-C items (commit b7559ce)
+- .txt/.md classified as policy only with policy-like content (score >= 3); otherwise 'Not recognised' + 'Import as policy anyway' override.
+- Select shows 'Categorization changed – review baseline' notice/review flag after AO approval; baseline never auto-changed (FIPS); CNSSI keeps its proposal flow.
+- Full serial suite (8 sequential shards, -n 0): 876 passed, 117 skipped, 0 failed. Tenant suites: sweep 4/4, full 1/1.
