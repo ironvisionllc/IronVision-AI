@@ -1441,7 +1441,9 @@ class EmassImport(CoreMixin, Base):
     """eMASS Control Information import session: parsed proposals + per-field decisions; nothing is applied until apply()."""
     __tablename__ = "emass_imports"
     org_id: Mapped[uuid.UUID] = _fk("organizations.id")
-    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    system_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("systems.id", ondelete="CASCADE"), index=True)
+    report_type: Mapped[str] = mapped_column(String(30), nullable=False, server_default="control_information")
+    detected: Mapped[dict | None] = mapped_column(JSONB)
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)

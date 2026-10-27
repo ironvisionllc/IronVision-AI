@@ -4503,6 +4503,402 @@
     }
    }
   },
+  "/api/v1/emass-imports": {
+   "post": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Generic Upload",
+    "description": "Upload any eMASS export: detect the report type + system identity and return the context prompt. Nothing is built or saved yet.",
+    "operationId": "generic_upload_api_v1_emass_imports_post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_generic_upload_api_v1_emass_imports_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Generic Upload Api V1 Emass Imports Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Generic History",
+    "operationId": "generic_history_api_v1_emass_imports_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Generic History Api V1 Emass Imports Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/emass-imports/{import_id}/target": {
+   "post": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Generic Target",
+    "operationId": "generic_target_api_v1_emass_imports__import_id__target_post",
+    "parameters": [
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/TargetIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Generic Target Api V1 Emass Imports  Import Id  Target Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/emass-imports/samples/{report_type}": {
+   "get": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Generic Sample",
+    "operationId": "generic_sample_api_v1_emass_imports_samples__report_type__get",
+    "parameters": [
+     {
+      "name": "report_type",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Report Type"
+      }
+     },
+     {
+      "name": "system_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string",
+         "format": "uuid"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/emass-imports/{import_id}": {
+   "get": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Generic Detail",
+    "operationId": "generic_detail_api_v1_emass_imports__import_id__get",
+    "parameters": [
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Generic Detail Api V1 Emass Imports  Import Id  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/emass-imports/{import_id}/decisions": {
+   "put": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Generic Decisions",
+    "operationId": "generic_decisions_api_v1_emass_imports__import_id__decisions_put",
+    "parameters": [
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/app__api__v1__emass_import__DecideIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Generic Decisions Api V1 Emass Imports  Import Id  Decisions Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/emass-imports/{import_id}/apply": {
+   "post": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Generic Apply",
+    "operationId": "generic_apply_api_v1_emass_imports__import_id__apply_post",
+    "parameters": [
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Generic Apply Api V1 Emass Imports  Import Id  Apply Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/emass-imports/{import_id}/discard": {
+   "post": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Generic Discard",
+    "operationId": "generic_discard_api_v1_emass_imports__import_id__discard_post",
+    "parameters": [
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Generic Discard Api V1 Emass Imports  Import Id  Discard Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/poams": {
    "get": {
     "tags": [
@@ -13224,13 +13620,13 @@
    }
   },
   "/api/v1/public/whitepaper.{ext}": {
-   "head": {
+   "get": {
     "tags": [
      "public"
     ],
     "summary": "Whitepaper",
     "description": "Public (no auth) download of the product whitepaper. PDF inline (opens in iOS Safari's viewer), DOCX as attachment.",
-    "operationId": "whitepaper_api_v1_public_whitepaper__ext__head",
+    "operationId": "whitepaper_api_v1_public_whitepaper__ext__get",
     "parameters": [
      {
       "name": "ext",
@@ -13263,13 +13659,13 @@
      }
     }
    },
-   "get": {
+   "head": {
     "tags": [
      "public"
     ],
     "summary": "Whitepaper",
     "description": "Public (no auth) download of the product whitepaper. PDF inline (opens in iOS Safari's viewer), DOCX as attachment.",
-    "operationId": "whitepaper_api_v1_public_whitepaper__ext__head",
+    "operationId": "whitepaper_api_v1_public_whitepaper__ext__get",
     "parameters": [
      {
       "name": "ext",
@@ -13304,13 +13700,13 @@
    }
   },
   "/api/v1/public/demo/{name}": {
-   "head": {
+   "get": {
     "tags": [
      "public"
     ],
     "summary": "Demo File",
     "description": "Public (no auth) product demo video and its narration/caption/timeline/validation files. Range requests supported (MP4 seeking).",
-    "operationId": "demo_file_api_v1_public_demo__name__head",
+    "operationId": "demo_file_api_v1_public_demo__name__get",
     "parameters": [
      {
       "name": "name",
@@ -13343,13 +13739,13 @@
      }
     }
    },
-   "get": {
+   "head": {
     "tags": [
      "public"
     ],
     "summary": "Demo File",
     "description": "Public (no auth) product demo video and its narration/caption/timeline/validation files. Range requests supported (MP4 seeking).",
-    "operationId": "demo_file_api_v1_public_demo__name__head",
+    "operationId": "demo_file_api_v1_public_demo__name__get",
     "parameters": [
      {
       "name": "name",
@@ -14417,6 +14813,32 @@
      "file"
     ],
     "title": "Body_evidence_new_version_api_v1_evidence__evidence_id__versions_post"
+   },
+   "Body_generic_upload_api_v1_emass_imports_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     },
+     "system_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "System Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_generic_upload_api_v1_emass_imports_post"
    },
    "Body_import_crm_api_v1_providers__provider_id__responsibility_matrix_post": {
     "properties": {
@@ -15555,9 +15977,28 @@
    "Decision": {
     "properties": {
      "control_id": {
-      "type": "string",
-      "maxLength": 50,
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 50
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Control Id"
+     },
+     "key": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 60
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key"
      },
      "field": {
       "anyOf": [
@@ -15585,9 +16026,6 @@
      }
     },
     "type": "object",
-    "required": [
-     "control_id"
-    ],
     "title": "Decision"
    },
    "DecisionIn": {
@@ -18604,6 +19042,44 @@
      "control_ids"
     ],
     "title": "TailorIn"
+   },
+   "TargetIn": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "pattern": "^(update|register|cancel)$",
+      "title": "Action"
+     },
+     "system_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "uuid"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "System Id"
+     },
+     "report_type": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(system_details|control_information|test_results|poam|hwsw)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Report Type"
+     }
+    },
+    "type": "object",
+    "required": [
+     "action"
+    ],
+    "title": "TargetIn"
    },
    "TemplateIn": {
     "properties": {

@@ -67,6 +67,8 @@ function Shell() {
           <Route path="/systems/:id/controls/:controlId" element={<WorkbenchPage />} />
           <Route path="/systems/:id/emass-import" element={<EmassImportPage />} />
           <Route path="/systems/:id/emass-import/:importId" element={<EmassImportPage />} />
+          <Route path="/emass-import" element={<EmassImportPage />} />
+          <Route path="/emass-import/:importId" element={<EmassImportPage />} />
           <Route path="/evidence-sources" element={<SourcesPage />} />
           <Route path="/ingest-runs/:id" element={<IngestRunPage />} />
           <Route path="/evidence-ledger" element={<LedgerPage />} />

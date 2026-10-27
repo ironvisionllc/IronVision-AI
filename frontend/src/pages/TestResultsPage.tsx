@@ -204,7 +204,7 @@ export default function TestResultsPage() {
   if (!sid) return <div className="p-6" data-testid="tr-no-system">Select a system first (top bar) – Test Results belong to one system.</div>;
   const w = wb.data;
   return (<div className="space-y-4 p-6" data-testid="tr-page">
-    <div><div className="text-[11px] uppercase text-slate-500">5 · Assess → Templates → Test Results</div><h1 className="text-2xl font-semibold">eMASS Test Results</h1>
+    <div><div className="text-[11px] uppercase text-slate-500">5 · Assess → Templates → Test Results</div><h1 className="text-2xl font-semibold">eMASS Test Results</h1><Link className="btn-secondary mt-2 inline-block text-[12px]" to={`/systems/${sid}/emass-import`} data-testid="emass-import-entry">Import from eMASS</Link>
       <p className="text-sm text-slate-600">Import the eMASS Test Result template, map it, generate proposals from real data, have the SCA approve the determinations, and export into the same workbook.</p></div>
     <Upload sid={sid} onDone={(id) => { setWid(id); setTimeout(reload, 3000); }} />
     {!!list.data?.length && <select className="input" value={cur || ""} onChange={(e) => setWid(e.target.value)} data-testid="tr-workbook-select">{list.data.map((x) => <option key={x.id} value={x.id}>{`${x.file_name} v${x.version} – ${x.status}`}</option>)}</select>}

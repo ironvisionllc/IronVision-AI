@@ -128,7 +128,7 @@ export default function InventoryPage() {
   useEffect(() => { if (!busy) return; const t = setInterval(o.reload, 2000); return () => clearInterval(t); }, [busy]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!sid) return <div className="p-6" data-testid="inv-no-system">Select a system first (top bar).</div>;
   return (<div className="space-y-4 p-6" data-testid="inventory-page">
-    <div><div className="text-[11px] uppercase text-slate-500">System boundary → HW/SW Inventory</div><h1 className="text-2xl font-semibold">Hardware &amp; software inventory</h1>
+    <div><div className="text-[11px] uppercase text-slate-500">System boundary → HW/SW Inventory</div><h1 className="text-2xl font-semibold">Hardware &amp; software inventory</h1><Link className="btn-secondary mt-2 inline-block text-[12px]" to={`/systems/${sid}/emass-import`} data-testid="emass-import-entry">Import from eMASS</Link>
       <p className="text-sm text-slate-600">Import the eMASS HW/SW List, correlate STIG checklists and ACAS scans to assets, resolve discrepancies by proposal and approval, and export back into the same template.</p></div>
     {o.data && <><Imports sid={sid} o={o.data} reload={o.reload} /><Correlations sid={sid} reload={o.reload} /><Discrepancies sid={sid} canWrite={o.data.can_write} reload={o.reload} /><Tables o={o.data} /></>}
   </div>);

@@ -116,7 +116,7 @@ def test_no_autosave_accept_reject_per_field_and_apply_audited(client, ctx):
         aid = str(db.scalar(select(ControlAssignment.id).where(ControlAssignment.system_id == uuid.UUID(ctx["sid"]), ControlAssignment.control_id == "ac-2")))
         ev = db.scalar(select(AuditEvent).where(AuditEvent.entity_id == aid, AuditEvent.action == "emass.plan_updated").order_by(AuditEvent.occurred_at.desc()))
         assert ev.before["slcm_frequency"] == "Monthly" and ev.after["slcm_frequency"] == "Weekly"
-        assert ev.details["source"].startswith("eMASS import SYNTHETIC_ControlInfoExport.xlsx (sha256 ") and ev.details["import_id"] == iid
+        assert ev.details["source"].startswith("eMASS import Control Information SYNTHETIC_ControlInfoExport.xlsx (sha256 ") and ev.details["import_id"] == iid
         assert db.scalar(select(AuditEvent.id).where(AuditEvent.entity_id == iid, AuditEvent.action == "emass.import_applied"))
     assert client.post(f"{ctx['url']}/{iid}/apply", headers=ctx["h"]).status_code == 409
     h = client.get(ctx["url"], headers=ctx["h"]).json()["items"]

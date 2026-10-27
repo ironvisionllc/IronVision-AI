@@ -255,3 +255,98 @@ Known eMASS columns that are not imported (System Name, Control Title, Control I
 - Sessions are system-scoped and can be resumed until applied or discarded.
 
 **SME review required:** compare these headers with a current real eMASS Control Information export before relying on the import.
+
+## eMASS report import (shared intake) – every type: compatibility pending verification against a real eMASS export
+
+The Control Information import above is now the first type of one shared import (`services/emass_reports.py`, routes `/api/v1/emass-imports…`). There is one intake: upload, detect, prompt, review and apply. Each type is labelled "eMASS <type> import – compatibility pending verification against a real eMASS export". We never claim official compatibility. **All samples and fixtures are SYNTHETIC.**
+
+**Detection:**
+- Detection looks at header cells in the first 30 rows of every sheet. Matching is case-, whitespace- and punctuation-insensitive. Score = recognised signature headers, +2 when the sheet name fits the type, and +3 for HW/SW when there are both Hardware and Software sheets.
+- Confidence:
+  - high: score ≥ 5 and a lead of at least 3 over the next type;
+  - medium: score ≥ 3 and a lead of at least 1;
+  - otherwise low.
+- "Ambiguous" means the top two types are within 1 point. In that case the UI asks the user to confirm the type.
+- The user can always override the detected type, even when detection fails. Columns are always found by header name, never by position.
+
+| Type | Signature headers (any order) | Sheet-name hint |
+|---|---|---|
+| System Details | System Name, System Acronym, System ID, Authorization Status, ATO Date, Confidentiality, Integrity, Availability, System Type / Registration Type, National Security System, Authorization Termination Date, System Description | system, registration |
+| Control Information | see the table above | control |
+| Test Results | AP Acronym, CCI, CCI Definition, Compliance Status, Date Tested, Tested By, Test Results, Assessment Procedure | test, template |
+| POA&M | POA&M ID, Weakness / Vulnerability Description, Scheduled Completion Date, Milestone with Completion Dates, Source Identifying Weakness, Raw Severity, Resources Required, Point of Contact, Severity, Status | poam / poa&m |
+| HW/SW List | Machine/Asset Name, Manufacturer, Model Number, Serial Number, Software Vendor/Name/Version, IP Address, Operating System | Hardware, Software |
+
+**Context prompts:**
+- **Import from a system page** (Workbench, Test Results, Inventory): the user can update this system, register a new system from the file, or cancel.
+  - The file's System Name, Acronym or eMASS ID is compared with the current system.
+  - If none of them match, a mismatch warning is shown before the user picks.
+- **Global import** (Systems page and POA&M page "Import from eMASS"): the user can register a new system, pick an existing system to update, or cancel.
+  - Until the user chooses, the session is **unassigned**: it has `system_id NULL`, is org-scoped and resumable.
+- **"Register a new system"** only pre-fills the existing registration form (name, acronym, eMASS ID, description, organization, mission owner). It shows the file's C/I/A as a hint.
+  - Nothing is created by the import.
+  - Registration validation, role rules and AO approval of the categorization still apply.
+
+**System Details mapping:**
+
+| Field | Headers / labels (header row or "Label | Value" layout) | Apply |
+|---|---|---|
+| name | System Name, Name, Information System Name | yes (system.write) |
+| acronym | System Acronym, Acronym | yes |
+| emass_id | System ID, eMASS System ID, eMASS ID | yes |
+| description | System Description, Description, Purpose | yes |
+| organization_name | Organization, Component, Owning Organization, DoD Component | yes |
+| system_type | System Type, Registration Type, Type | yes |
+| mission_owner | Mission Owner, Program Office | yes |
+| authorization status / date / termination date | Authorization Status, ATO Status; Authorization Date, ATO Date; Authorization Termination Date, ATO Expiration | read-only: set only by the AO decision workflow |
+| NSS | National Security System, NSS | read-only: change it in Prepare/Categorize |
+| C / I / A / Security Categorization | Confidentiality, Integrity, Availability, Security Categorization | read-only proposal: Categorize step + AO approval |
+| ISSO / ISSM / System Owner / AO | ISSO, ISSM, System Owner, PM/ISO, Authorizing Official, AO | read-only: never creates users or role assignments |
+
+**POA&M mapping:**
+- POA&M ID / POA&M Item ID / displayPoamId → `emass_remote_id`.
+- Control Acronym / Security Control Number → `control_ids`. Values are normalised and must be assigned to the system.
+- Weakness / Vulnerability Description → `weakness`.
+- Source Identifying Weakness → `source_label`.
+- Raw Severity / Severity → `severity`:
+  - Very High → critical;
+  - High or CAT I → high;
+  - Moderate or CAT II → medium;
+  - Low, Very Low or CAT III → low.
+- Scheduled Completion Date → `due_date`.
+- Milestone(s) with Completion Dates → `remediation_plan`.
+- Resources Required → `resources`.
+- Residual Risk Level, Mitigations and Comments → appended to `security_impact` with the prefix "eMASS:".
+- **Matching:** first by eMASS POA&M ID, then by the same weakness text plus an overlapping control. Rows that match neither are shown as "will be created". To create one, the user must accept the weakness and a control that is assigned to the system. New POA&Ms are created through `workflow.create_poam` with status `new`.
+- **Status:**
+  - Completed, Closed or Risk Accepted is shown as blocked: closure and risk acceptance keep their ISSM/AO workflows.
+  - Ongoing is not imported. The app derives its own status.
+- **Point of Contact** is blocked: owners are assigned in the app.
+
+**Test Results and HW/SW List:**
+- The review shows one "will be created" item. On apply, the stored original goes to the existing importer:
+  - `tr.service.import_workbook` for Test Results;
+  - `inventory.hwsw.upload` for HW/SW.
+- Test Result values stay proposals pending SCA approval. Export modes and `test_tr_export_modes.py` are unchanged.
+- HW/SW macros are never run. Differences stay proposals for a second approver.
+- These two types need the .xlsx/.xlsm template. CSV is rejected for them.
+
+**Review, apply and audit:**
+- The review is one screen, grouped by section: System details, Categorization, Roles, Controls, Test Results, POA&M, Inventory.
+- Users accept or reject per field, per item or per section, or use "accept all conflict-free".
+- Unchanged fields are hidden by default.
+- Nothing saves before Apply.
+- Section permissions:
+  - System details: `system.write`;
+  - Controls: `implementation.write`;
+  - Test Results: `ingest.upload`;
+  - POA&M: `poam.manage`;
+  - Inventory: `system.write`.
+  - A section the user cannot change is shown read-only with the reason, and the API returns 403 for it.
+- Every applied change is audited with before/after and `source = "eMASS <type> import <file> (sha256 …)"`.
+
+**Safety:**
+- Only .xlsx, .xlsm and .csv files are accepted, up to 10 MB and 10,000 rows. The zip-bomb, encryption and legacy-OLE guards are the same as above. Macros are never loaded.
+- The original file is stored in object storage under a tenant-scoped key, with its SHA-256.
+
+**SME review required:** compare each type's headers with real eMASS exports before relying on the import.

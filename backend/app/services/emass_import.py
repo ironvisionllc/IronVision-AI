@@ -109,42 +109,42 @@ def _safe_open(data: bytes):
         raise HTTPException(422, f"Could not read the workbook ({type(exc).__name__})") from exc
 
 
-def parse(data: bytes) -> dict:
-    wb = _safe_open(data)
-    try:
-        if len(wb.sheetnames) > MAX_SHEETS:
-            raise HTTPException(422, "Too many worksheets")
-        best = None
-        for ws in wb.worksheets:
-            for i, row in enumerate(ws.iter_rows(min_row=1, max_row=HEADER_SCAN_ROWS, values_only=True), start=1):
-                hits = {c: ALIASES[_n(v)] for c, v in enumerate(row) if v is not None and _n(v) in ALIASES}
-                if "acronym" in hits.values() and len(hits) >= 2 and (best is None or len(hits) > len(best[2])):
-                    best = (ws, i, hits, row)
-        if best is None:
-            raise HTTPException(422, "No header row with a Control Acronym column and at least one eMASS field was found in the first "
-                                     f"{HEADER_SCAN_ROWS} rows of any sheet")
-        ws, hrow, hits, header = best
-        cols: dict[str, int] = {}
-        dup_cols = []
-        for c, f in hits.items():
-            if f in cols:
-                dup_cols.append(str(header[c]))
-            else:
-                cols[f] = c
-        unknown = [str(v) for c, v in enumerate(header) if v is not None and c not in hits and _n(v) not in {_n(x) for x in IGNORED}]
-        ignored = [str(v) for c, v in enumerate(header) if v is not None and c not in hits and _n(v) in {_n(x) for x in IGNORED}]
-        rows = []
-        for n, row in enumerate(ws.iter_rows(min_row=hrow + 1, values_only=True), start=hrow + 1):
-            if n - hrow > MAX_ROWS:
-                raise HTTPException(422, f"More than {MAX_ROWS:,} data rows – rejected")
-            if not any(v not in (None, "") for v in row):
-                continue
-            vals = {f: (row[c] if c < len(row) else None) for f, c in cols.items()}
-            rows.append({"row": n, "acronym": vals.pop("acronym"), "values": vals})
-        return {"sheet": ws.title, "header_row": hrow, "columns": {f: {"header": str(header[c]), "col": _col(c)} for f, c in cols.items()},
-                "unknown_headers": unknown, "ignored_headers": ignored, "duplicate_headers": dup_cols, "rows": rows}
-    finally:
-        wb.close()
+def parse(data: bytes, file_name: str = "upload.xlsx") -> dict:
+    from app.services.emass_reports import read_sheets
+    return parse_sheets(read_sheets(data, file_name))
+
+
+def parse_sheets(sheets: list) -> dict:
+    best = None
+    for title, rows in sheets:
+        for i, row in enumerate(rows[:HEADER_SCAN_ROWS], start=1):
+            hits = {c: ALIASES[_n(v)] for c, v in enumerate(row) if v is not None and _n(v) in ALIASES}
+            if "acronym" in hits.values() and len(hits) >= 2 and (best is None or len(hits) > len(best[3])):
+                best = (title, rows, i, hits, row)
+    if best is None:
+        raise HTTPException(422, "No header row with a Control Acronym column and at least one eMASS field was found in the first "
+                                 f"{HEADER_SCAN_ROWS} rows of any sheet")
+    title, all_rows, hrow, hits, header = best
+    cols: dict[str, int] = {}
+    dup_cols = []
+    for c, f in hits.items():
+        if f in cols:
+            dup_cols.append(str(header[c]))
+        else:
+            cols[f] = c
+    ign = {_n(x) for x in IGNORED}
+    unknown = [str(v) for c, v in enumerate(header) if v is not None and c not in hits and _n(v) not in ign]
+    ignored = [str(v) for c, v in enumerate(header) if v is not None and c not in hits and _n(v) in ign]
+    if len(all_rows) - hrow > MAX_ROWS:
+        raise HTTPException(422, f"More than {MAX_ROWS:,} data rows – rejected")
+    rows = []
+    for n, row in enumerate(all_rows[hrow:], start=hrow + 1):
+        if not any(v not in (None, "") for v in row):
+            continue
+        vals = {f: (row[c] if c < len(row) else None) for f, c in cols.items()}
+        rows.append({"row": n, "acronym": vals.pop("acronym"), "values": vals})
+    return {"sheet": title, "header_row": hrow, "columns": {f: {"header": str(header[c]), "col": _col(c)} for f, c in cols.items()},
+            "unknown_headers": unknown, "ignored_headers": ignored, "duplicate_headers": dup_cols, "rows": rows}
 
 
 def _col(i: int) -> str:
@@ -281,22 +281,39 @@ def required_issue(item: dict, cur: dict, only_accepted: bool = False) -> str | 
     return f"Implementation Status {st} would be missing: {', '.join(ef.FIELD_META[k][0] for k in miss)}" if miss else None
 
 
-def create(db: Session, s: System, file_name: str, data: bytes, user) -> EmassImport:
+def store(db: Session, org_id, system: System | None, file_name: str, data: bytes, user, report_type: str, detected: dict) -> EmassImport:
     from app.services.storage.base import get_storage
-    if not file_name.lower().endswith((".xlsx", ".xlsm")):
-        raise HTTPException(422, "Upload the eMASS Control Information export as .xlsx or .xlsm")
-    parsed = parse(data)
-    items, rep = build(db, s, parsed)
     sha = hashlib.sha256(data).hexdigest()
     safe = re.sub(r"[^A-Za-z0-9._ -]", "_", file_name)[:200]
-    key = f"emass-import/{s.org_id}/{s.id}/{sha}/{safe}"
-    get_storage().put(key, data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    rows = parsed.pop("rows")
-    imp = EmassImport(org_id=s.org_id, system_id=s.id, file_name=safe, sha256=sha, size_bytes=len(data), storage_key=key, status="review",
-                      uploaded_by=user.id, uploaded_by_email=user.email, detection={**parsed, "data_rows": len(rows), "label": LABEL}, report=rep, items=items,
-                      counts=tally(items))
+    key = f"emass-import/{org_id}/{system.id if system else 'unassigned'}/{sha}/{safe}"
+    get_storage().put(key, data, "text/csv" if safe.lower().endswith(".csv") else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    imp = EmassImport(org_id=org_id, system_id=system.id if system else None, file_name=safe, sha256=sha, size_bytes=len(data), storage_key=key,
+                      status="detected", uploaded_by=user.id, uploaded_by_email=user.email, report_type=report_type or "control_information",
+                      detected=detected, items=[], counts=tally([]))
     db.add(imp)
     db.flush()
+    return imp
+
+
+def target(db: Session, imp: EmassImport, s: System, report_type: str, data: bytes) -> None:
+    """Build the review items for one system (nothing is saved to the system)."""
+    from app.services import emass_reports as er
+    items, rep = er.build(db, s, report_type, data, imp.file_name)
+    det = {"label": er.label(report_type)}
+    if report_type == "control_information":
+        parsed = parse(data, imp.file_name)
+        rows = parsed.pop("rows")
+        det.update(parsed, data_rows=len(rows))
+    imp.system_id, imp.report_type, imp.status = s.id, report_type, "review"
+    imp.detection, imp.report, imp.items, imp.counts = det, rep, items, tally(items)
+
+
+def create(db: Session, s: System, file_name: str, data: bytes, user) -> EmassImport:
+    """Per-system upload of a Control Information export (kept for the original endpoint)."""
+    from app.services import emass_reports as er
+    sheets = er.read_sheets(data, file_name)
+    imp = store(db, s.org_id, s, file_name, data, user, "control_information", {**er.detect(sheets), "identity": er.identity(sheets)})
+    target(db, imp, s, "control_information", data)
     return imp
 
 
@@ -312,14 +329,14 @@ def tally(items: list[dict]) -> dict:
     return c
 
 
-def decide(db: Session, imp: EmassImport, decisions: list[dict], bulk: str | None) -> None:
+def decide(db: Session, imp: EmassImport, decisions: list[dict], bulk: str | None, allowed: set | None = None) -> None:
     if imp.status != "review":
         raise HTTPException(409, f"This import is {imp.status} – decisions can no longer change")
     items = [{**i, "fields": {k: dict(v) for k, v in i["fields"].items()}} for i in imp.items or []]
-    by = {i["control_id"]: i for i in items}
+    by = {str(i.get("key") or i.get("control_id")).lower(): i for i in items}
     if bulk == "accept_safe":  # accept every changed, valid, unblocked field of controls without a required-field issue
         for i in items:
-            if not i["required_issue"]:
+            if not i["required_issue"] and (allowed is None or i.get("section", "Controls") in allowed):
                 for f in i["fields"].values():
                     if _ok(f) and f["decision"] is None:
                         f["decision"] = "accept"
@@ -329,16 +346,18 @@ def decide(db: Session, imp: EmassImport, decisions: list[dict], bulk: str | Non
                 if _ok(f):
                     f["decision"] = "reject" if bulk == "reject_all" else None
     for d in decisions:
-        i = by.get(str(d.get("control_id", "")).lower())
+        i = by.get(str(d.get("key") or d.get("control_id") or "").lower())
         if i is None:
             raise HTTPException(422, f"{d.get('control_id')} is not in this import")
         keys = [k for k, f in i["fields"].items() if _ok(f)] if d.get("field") in (None, "*") else [d["field"]]
         for k in keys:
             f = i["fields"].get(k)
             if f is None:
-                raise HTTPException(422, f"{k} is not in this import for {i['control']}")
+                raise HTTPException(422, f"{k} is not in this import for {i.get('label')}")
             if d.get("decision") == "accept" and not _ok(f):
-                raise HTTPException(422, f"{i['control']} {ef.FIELD_META[k][0]}: " + (f["error"] or f["blocked"] or "no change to accept"))
+                raise HTTPException(422, f"{i.get('label')} {f.get('label') or ef.FIELD_META.get(k, (k,))[0]}: " + (f["error"] or f["blocked"] or "no change to accept"))
+            if d.get("decision") == "accept" and allowed is not None and i.get("section", "Controls") not in allowed:
+                raise HTTPException(403, f"You cannot apply {i.get('section')} changes ({i.get('section')} needs a different role)")
             f["decision"] = d.get("decision")
     imp.items = items
     imp.counts = tally(items)
@@ -347,12 +366,13 @@ def decide(db: Session, imp: EmassImport, decisions: list[dict], bulk: str | Non
 def apply(db: Session, imp: EmassImport, current, meta: dict) -> dict:
     if imp.status != "review":
         raise HTTPException(409, f"This import is already {imp.status}")
-    src = {"source": f"eMASS import {imp.file_name} (sha256 {imp.sha256[:12]}…)", "import_id": str(imp.id), "import_sha256": imp.sha256,
-           "import_file": imp.file_name}
-    results = []
+    from app.services import emass_reports as er
+    src = {"source": f"eMASS import {er.TYPES.get(imp.report_type, imp.report_type)} {imp.file_name} (sha256 {imp.sha256[:12]}…)", "import_id": str(imp.id),
+           "import_sha256": imp.sha256, "import_file": imp.file_name, "report_type": imp.report_type}
+    results = er.apply_other(db, imp, db.get(System, imp.system_id), current, meta, src)
     for i in imp.items or []:
         acc = {k: f for k, f in i["fields"].items() if _ok(f) and f["decision"] == "accept"}
-        if not acc:
+        if not acc or i.get("section", "Controls") != "Controls":
             continue
         a = db.scalar(select(ControlAssignment).where(ControlAssignment.system_id == imp.system_id, ControlAssignment.control_id == i["control_id"]))
         if a is None:
@@ -458,9 +478,11 @@ def sample_xlsx(system_rows: list[dict] | None = None) -> bytes:
 
 
 def out(imp: EmassImport, full: bool = False) -> dict:
-    d = {"id": str(imp.id), "system_id": str(imp.system_id), "file_name": imp.file_name, "sha256": imp.sha256, "size_bytes": imp.size_bytes,
+    from app.services import emass_reports as er
+    d = {"id": str(imp.id), "system_id": str(imp.system_id) if imp.system_id else None, "file_name": imp.file_name, "report_type": imp.report_type,
+         "report_type_label": er.TYPES.get(imp.report_type), "detected": imp.detected, "sha256": imp.sha256, "size_bytes": imp.size_bytes,
          "status": imp.status, "uploaded_by": imp.uploaded_by_email, "created_at": imp.created_at.isoformat(), "counts": imp.counts or {},
-         "applied_by": imp.applied_by_email, "finished_at": imp.finished_at.isoformat() if imp.finished_at else None, "label": LABEL}
+         "applied_by": imp.applied_by_email, "finished_at": imp.finished_at.isoformat() if imp.finished_at else None, "label": er.label(imp.report_type)}
     if full:
         d.update(detection=imp.detection, report=imp.report, items=imp.items)
     return d

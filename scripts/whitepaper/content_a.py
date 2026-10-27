@@ -207,7 +207,10 @@ PART_A = [
            "Pick values from dropdowns (with Other… for free-text fields); Suggest values (AI or deterministic rules) and accept per field or all; "
            "bulk-set plan fields on selected controls; filter by eMASS status or missing required fields; Import from eMASS: upload an eMASS "
            "Control Information export (compatibility pending verification against a real eMASS export), review current vs imported values "
-           "per field, accept or reject, then apply (audited with the file name and SHA-256).",
+           "per field, accept or reject, then apply (audited with the file name and SHA-256). The same shared eMASS report import also "
+           "recognises System Details, Test Results, POA&M and Hardware/Software List exports by their headers (each labelled compatibility "
+           "pending verification against a real eMASS export), asks whether to update the current system, register a new one or pick an existing "
+           "one, and shows one grouped review; Test Results stay proposals pending SCA approval and POA&Ms match by eMASS ID, then control + weakness.",
            "eMASS-formatted Implementation Plan xlsx (compatibility pending human verification), validation report, OSCAL SSP props/remarks, "
            "MOCKED eMASS sync payload with eMASS API field names.",
            "One implementation status (eMASS status is derived from it). Inherited controls are read-only and their Risk Assessment cannot be edited. "

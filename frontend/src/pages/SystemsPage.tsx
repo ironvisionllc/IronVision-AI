@@ -20,6 +20,7 @@ export function SystemsPage() {
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-1.5 text-[12px] text-slate-600"><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} data-testid="show-archived-toggle" />Show archived</label>
           <Link className="btn-secondary" to="/emass" data-testid="import-emass-btn">eMASS sync / import</Link>
+          <Link className="btn-secondary" to="/emass-import" data-testid="global-import-emass-btn">Import from eMASS</Link>
           <Gated perm="system.register"><Link to="/systems/new" className="btn-primary" data-testid="register-system-btn"><Plus className="h-4 w-4" />Register system</Link></Gated>
         </div>
       </PageHeader>
@@ -53,8 +54,10 @@ export function RegisterSystemPage() {
   const nav = useNavigate();
   const { select, refresh } = useSystems();
   const { data: ref } = useApi<Row>("/reference/rmf");
-  const [f, setF] = useState<Row>({ name: "", acronym: "", emass_id: "", description: "", lifecycle_phase: "Design", authorization_status: "Not authorized",
-    boundary_description: "", mission_owner: "", organization_name: "", deployment_type: "" });
+  const [f, setF] = useState<Row>(() => ({ name: "", acronym: "", emass_id: "", description: "", lifecycle_phase: "Design", authorization_status: "Not authorized",
+    boundary_description: "", mission_owner: "", organization_name: "", deployment_type: "",
+    ...(JSON.parse(sessionStorage.getItem("emassPrefill") || "{}").system || {}) }));
+  const [emassPrefill] = useState<Row | null>(() => { const p = sessionStorage.getItem("emassPrefill"); sessionStorage.removeItem("emassPrefill"); return p ? JSON.parse(p) : null; });
   const [roles, setRoles] = useState<Row>({});
   const [cat, setCat] = useState<Row>(EMPTY_CAT);
   const calc = useCategorization(cat);
@@ -83,6 +86,7 @@ export function RegisterSystemPage() {
   };
   return (
     <form onSubmit={submit} data-testid="register-system-form">
+      {emassPrefill && <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-[12px] text-blue-900" data-testid="register-emass-prefill">Pre-filled from an eMASS file – nothing has been created yet. {emassPrefill.note}{emassPrefill.categorization_hint ? ` File categorization: C ${emassPrefill.categorization_hint.c ?? "?"} / I ${emassPrefill.categorization_hint.i ?? "?"} / A ${emassPrefill.categorization_hint.a ?? "?"} – pick the information types below; the categorization still needs AO approval.` : ""}</div>}
       <PageHeader title="Register system" subtitle="Step 1 Prepare and step 2 Categorize in one form: name the system and its key people, pick its information types, and the app derives the impact level and baseline. Overlays and tailoring follow in step 3 Select." />
       <div className="grid gap-5">
         <Panel title="1 · Prepare – identity and key roles">
