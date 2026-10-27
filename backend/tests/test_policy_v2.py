@@ -1,6 +1,5 @@
 """Policy Auditor v2: sections/retrieval, batching + validation, tenant-scoped cache (no cross-tenant hit), incremental reuse, not-examined
 labelling, and no open transaction / no idle-in-transaction session during or after the AI stage. AI is faked here (no network)."""
-import asyncio
 import json
 import uuid
 from types import SimpleNamespace
@@ -106,21 +105,23 @@ def test_cache_tenant_scoped_and_incremental(fake):
 
 
 def test_no_transaction_during_ai_and_no_idle_in_transaction_after(fake, monkeypatch):
-    from app.db import SessionLocal as SL
+    """No pooled connection is checked out (so none can idle in a transaction) while an AI call runs; the pool returns to baseline.
+    (pg_stat_activity is shared with other processes, so the check uses this process's pool.)"""
+    monkeypatch.setenv("POLICY_AI_WORKERS", "1")
+    pool = get_engine().pool
     seen = []
     orig = fake.run
 
     async def spy(*a, **k):
-        with get_engine().connect() as c:
-            seen.append(c.execute(text("select count(*) from pg_stat_activity where datname=current_database() and state like 'idle in transaction%' "
-                                       "and pid<>pg_backend_pid()")).scalar())
+        seen.append(pool.checkedout())
         return await orig(*a, **k)
     monkeypatch.setattr(fake, "run", spy)
-    with SL() as db:
+    with SessionLocal() as db:
         org = _org(db, "V2 idle")
-    pool = get_engine().pool
     before = pool.checkedout()
     v2.analyze_ai(DOC, uuid.uuid4(), org, TODO, {}, "cat")
-    assert seen and max(seen) == 0, "no session idles in a transaction while AI calls run"
+    assert seen and max(seen) == before, f"connections checked out during AI calls: {seen} (baseline {before})"
     assert pool.checkedout() == before, "pool back to baseline"
-    asyncio.get_event_loop_policy()
+    with get_engine().connect() as c:
+        mine = c.execute(text("select count(*) from pg_stat_activity where pid = pg_backend_pid() and state like 'idle in transaction%'")).scalar()
+    assert mine == 0

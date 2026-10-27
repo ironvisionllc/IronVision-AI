@@ -109,22 +109,59 @@ def _cid_rx(control_id: str) -> str:
     return rf"\b{fam}-0?{re.escape(num.split('.')[0])}\b"
 
 
+class _Index:
+    """Per-document match index: each concept/value regex is run once over the masked sentences and 2-sentence windows (was once per
+    requirement × sentence – 140 s for a 284-control policy). Results are identical to the per-call re.search."""
+
+    def __init__(self, sents: list):
+        self.sents = sents
+        self.ms = [mask(x[2]) for x in sents]
+        self.mw = [mask(" ".join(x[2] for x in sents[i:i + 2])) for i in range(len(sents))]
+        self.cache: dict = {}
+        self.cid: dict = {}
+
+    def hits(self, need: list, window: bool) -> dict:
+        src = self.mw if window else self.ms
+        out = {}
+        for _, rx in need:
+            key = (rx, window)
+            if key not in self.cache:
+                c = re.compile(rx, re.I)
+                self.cache[key] = {i for i, w in enumerate(src) if c.search(w)}
+            out[rx] = self.cache[key]
+        return out
+
+    def cited(self, control_id: str) -> set:
+        if control_id not in self.cid:
+            c = re.compile(_cid_rx(control_id), re.I)
+            self.cid[control_id] = {i for i, (_, _, x) in enumerate(self.sents) if c.search(x)}
+        return self.cid[control_id]
+
+
+_IX: dict = {}
+
+
+def _index(text: str, sents: list) -> _Index:
+    import hashlib
+    k = (hashlib.sha256(text.encode()).hexdigest(), len(sents))
+    if k not in _IX:
+        _IX.clear()  # one document at a time – no long-lived cache of customer content
+        _IX[k] = _Index(sents)
+    return _IX[k]
+
+
 def evaluate(text: str, sents: list, control_id: str, req_text: str, snip) -> dict | None:
     """MET/PARTIAL/MISSING with confidence + basis, or None when the requirement has too few concepts to judge."""
     prof = profile(req_text)
     need = [(k, LEX[k]) for k in prof["concepts"]] + [(f"value:{i}", rx) for i, rx in enumerate(prof["params"])]
     if len(prof["concepts"]) < 1 or len(need) < 2:
         return None
-    windows = [(i, " ".join(s[2] for s in sents[i:i + 2])) for i in range(len(sents))]
-    cited = {i for i, (_, _, s) in enumerate(sents) if re.search(_cid_rx(control_id), s, re.I)}
-
-    def have(w):
-        w = mask(w)
-        return [k for k, rx in need if re.search(rx, w, re.I)]
-
-    single = [(i, have(s[2])) for i, s in enumerate(sents)]
+    ix = _index(text, sents)
+    cited = ix.cited(control_id)
+    hs, hw = ix.hits(need, False), ix.hits(need, True)  # same matches as re.search(rx, mask(sentence|2-sentence window)) – precomputed per rx
+    single = [(i, [k for k, rx in need if i in hs[rx]]) for i in range(len(sents))]
     best_i, best = max(single, key=lambda x: len(x[1]), default=(None, []))
-    pair_i, pair = max(((i, have(w)) for i, w in windows), key=lambda x: len(x[1]), default=(None, []))
+    pair_i, pair = max(((i, [k for k, rx in need if i in hw[rx]]) for i in range(len(sents))), key=lambda x: len(x[1]), default=(None, []))
     r = {"parameter": None, "value": None, "needs": None}
     missing = [k for k, _ in need if k not in (best if len(best) == len(need) else pair)]
     label = ", ".join(k.replace("_", " ") if not k.startswith("value") else "an organization-defined value" for k, _ in need)
