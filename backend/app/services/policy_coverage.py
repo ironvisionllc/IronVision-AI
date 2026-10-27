@@ -262,7 +262,7 @@ def relevant(quote: str | None, req_text: str, title: str = "") -> bool:
     m = TRIGGER.search(plain)  # multi-part requirement with a trigger/condition: the condition must be matched too
     if m:
         cond = _stems(m.group(1)) - _stems(plain[:m.start()]) - ttl
-        if cond and not cond & q:
+        if cond and len(cond & q) < (1 if len(cond) <= 2 else 2):  # "…when new vulnerabilities are identified and reported": ≥2 condition terms
             return False
     return True
 

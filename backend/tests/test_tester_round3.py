@@ -71,6 +71,8 @@ def test_trigger_condition_relevance():
     req = ("Scans for vulnerabilities in the information system and hosted applications when new vulnerabilities potentially affecting "
            "the system/applications are identified and reported.")
     assert not relevant("Threat intelligence feeds and vulnerability advisories are monitored daily by the ISSO.", req, "Vulnerability Monitoring and Scanning")
+    assert not relevant("The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins, "
+                        "and shall trigger an out-of-cycle risk assessment update when the threat picture changes materially.", req, "Vulnerability Monitoring and Scanning")
     assert relevant("When new vulnerabilities affecting the system are identified and reported, the ISSO shall run an ad hoc scan of the affected "
                     "applications within 72 hours.", req, "Vulnerability Monitoring and Scanning")
 
