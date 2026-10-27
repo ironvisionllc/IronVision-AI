@@ -1,0 +1,51 @@
+{
+"label": "base_neg_unrel",
+"corpus": "neg_unrelated",
+"analyzer": "v-current",
+"workers": null,
+"policy_id": "8896b9f4-7dd6-41e8-a2cc-b12f4adf0660",
+"started": "2026-10-27T13:34:18.838805+00:00",
+"wall_s": 3.1,
+"result": {
+"proposed_findings": 0,
+"ai": "AI anthropic/claude-sonnet-5.5"
+},
+"timing_s": {
+"ai": 0.0,
+"controls": 0,
+"ai_workers": 4,
+"ai_controls": 0,
+"verify_write": 0.0,
+"ai_prefetched": 0,
+"deterministic": 0.0,
+"policy_audit_ai": 2.83,
+"store_and_coverage": 0.04,
+"coverage_ai_prefetch": 0.01
+},
+"v2": null,
+"ai_calls": {
+"policy.audit": {
+"n": 1,
+"p50_ms": 2782,
+"p95_ms": 2782,
+"input_tokens": 791,
+"output_tokens": 112,
+"status": {
+"completed": 1
+},
+"model": "anthropic/claude-sonnet-5.5"
+}
+},
+"db": {
+"queries": 31,
+"query_s": 0.02,
+"pool_checkouts": 8
+},
+"idle_in_transaction_before_after": [
+0,
+0
+],
+"coverage_rows": 0,
+"status_counts": {},
+"rows": []
+}

@@ -61,7 +61,7 @@ def _owner_clause(Mdl, a: dict):
 
 def _collect(org_id: uuid.UUID) -> dict:
     a: dict = {"org": org_id}
-    order = ["System", "User", "ControlAssignment", "Poam", "TrWorkbook", "Policy", "Finding"]
+    order = ["System", "User", "ControlAssignment", "Poam", "TrWorkbook", "Policy", "Finding", "PolicyAiCache"]
     names = order + [n for n in sorted({*PARAM_MODEL.values()}) if n not in order]
     with SessionLocal() as db:
         for n in names:

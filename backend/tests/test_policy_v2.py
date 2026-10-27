@@ -61,7 +61,7 @@ def fake(monkeypatch):
     f = FakeSvc()
     monkeypatch.setattr("app.services.ai.service.get_ai_service", lambda: f)
     monkeypatch.setenv("POLICY_AI_VERIFY_FRACTION", "1.0")
-    monkeypatch.setenv("POLICY_AI_MIN_BATCH", "1")
+    monkeypatch.setenv("POLICY_AI_BATCH_REQS", "2")
     return f
 
 

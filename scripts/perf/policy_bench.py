@@ -39,8 +39,8 @@ def _instrument():
         STATS["checkouts"] += 1
 
 
-def _bench_org(db) -> uuid.UUID:
-    org = db.scalar(select(Organization).where(Organization.name == "PERF BENCH – SYNTHETIC"))
+def _bench_org(db, fresh: bool = False) -> uuid.UUID:
+    org = None if fresh else db.scalar(select(Organization).where(Organization.name == "PERF BENCH – SYNTHETIC"))
     if org is None:
         org = Organization(name="PERF BENCH – SYNTHETIC", slug=f"perf-bench-{uuid.uuid4().hex[:6]}", is_synthetic=True, is_sandbox=True)
         db.add(org)
@@ -66,6 +66,7 @@ def main() -> None:
     ap.add_argument("--analyzer", default=os.environ.get("POLICY_ANALYZER", "v-current"))
     ap.add_argument("--workers", type=int, default=None)
     ap.add_argument("--policy-id", default=None, help="re-run an existing bench policy (cache / incremental runs)")
+    ap.add_argument("--fresh-org", action="store_true", help="new SYNTHETIC org → guaranteed cold tenant cache")
     ap.add_argument("--edit-section", default=None, help="append a sentence to this heading before re-running (incremental)")
     a = ap.parse_args()
     os.environ["POLICY_ANALYZER"] = a.analyzer
@@ -75,7 +76,7 @@ def main() -> None:
     _instrument()
     body = (CORPUS / f"{a.corpus}.txt").read_text()
     with SessionLocal() as db:
-        org = _bench_org(db)
+        org = _bench_org(db, a.fresh_org)
         if a.policy_id:
             pol = db.get(Policy, uuid.UUID(a.policy_id))
             if a.edit_section:

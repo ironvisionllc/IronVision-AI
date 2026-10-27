@@ -1,0 +1,743 @@
+[
+ {
+  "label": "v2_p100_multi_first",
+  "corpus": "p100_multi",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 114.1,
+  "ai_calls": 188,
+  "coverage_calls": 187,
+  "p50_ms": 3201,
+  "p95_ms": 37753,
+  "input_tokens": 576904,
+  "output_tokens": 89569,
+  "cost_usd": 2.049,
+  "retries": 2,
+  "cache_hits": 0,
+  "batches": 185,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 100,
+   "ai_workers": 4,
+   "ai_controls": 96,
+   "verify_write": 1.07,
+   "ai_prefetched": 96,
+   "deterministic": 0.67,
+   "store_and_coverage": 1.95,
+   "policy_audit_ai_concurrent": 7.97,
+   "coverage_ai_prefetch_and_audit_join": 111.96
+  },
+  "db": {
+   "queries": 2742,
+   "query_s": 0.67,
+   "pool_checkouts": 627
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.824,
+  "recall": 1.0,
+  "fp": 156,
+  "fn": 0,
+  "control_coverage": "100/100",
+  "requirement_coverage": "888/888",
+  "citation_validity": 0.595,
+  "gap_guidance_readable": 0.976,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "ac-2.5 CCI-001406",
+    "status": "partial",
+    "guidance": "The policy states inactivity, personnel, develop doc. AI disagrees (partial): Says a time period is defined but gives no actual value. \u2013 review needed."
+   },
+   {
+    "req": "ac-2.5 CCI-002133",
+    "status": "partial",
+    "guidance": "The policy states personnel, develop doc. AI disagrees (partial): S8 restates the requirement to define other logout conditions but gives no actual conditions or organization-defined values. \u2013 review needed."
+   },
+   {
+    "req": "cm-3 CCI-000316",
+    "status": "partial",
+    "guidance": "The policy states retain, change refresh, develop doc. AI disagrees (partial): Retention of records is stated, but no actual time period is given; the value is garbled (ISSO and ISSM, FIPS 140-3). \u2013 review needed."
+   },
+   {
+    "req": "ac-2.5 ac-2.5_obj",
+    "status": "partial",
+    "guidance": "The policy states personnel, an organization-defined value. AI disagrees (partial): States users must log out but the value given ('annually') is not a meaningful inactivity period or log-out condition, so the required value is not properly"
+   },
+   {
+    "req": "cm-3 CCI-001586",
+    "status": "partial",
+    "guidance": "The policy states config control, change refresh, develop doc. AI disagrees (partial): Mentions an element responsible for oversight but does not name it; deferred to as determined by the organization. \u2013 review needed."
+   },
+   {
+    "req": "ac-20 CCI-000093",
+    "status": "partial",
+    "guidance": "The policy states authorize, develop doc, maintain. AI disagrees (partial): Echoes the requirement but fills the terms/controls placeholder with 'every 90 days', so no actual terms and conditions or controls are specified. \u2013 review needed."
+   },
+   {
+    "req": "au-5 au-5_obj.b",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201c[Assignment: additional actions] are taken in the event of an audit logging process failure.\u201d. Closest policy sentence is quoted below; it uses related wording but the rule-b"
+   },
+   {
+    "req": "cm-3 CCI-002056",
+    "status": "partial",
+    "guidance": "The policy states retain, change refresh, develop doc. AI disagrees (partial): States the retention period is defined but gives no actual value; the retention clause is garbled ('for FIPS 140-3 validated cryptography'). \u2013 review needed."
+   },
+   {
+    "req": "au-6 CCI-000148",
+    "status": "partial",
+    "guidance": "The policy states audit record, review analyze, indications, develop doc. AI disagrees (partial): A 90-day frequency is given, but the inappropriate or unusual activity is not actually defined. \u2013 review needed."
+   },
+   {
+    "req": "au-6 CCI-000149",
+    "status": "partial",
+    "guidance": "Related text found, but it does not state: personnel."
+   }
+  ]
+ },
+ {
+  "label": "v2_p100_multi_incr",
+  "corpus": "p100_multi",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 12.9,
+  "ai_calls": 5,
+  "coverage_calls": 4,
+  "p50_ms": 5544,
+  "p95_ms": 6740,
+  "input_tokens": 16602,
+  "output_tokens": 3646,
+  "cost_usd": 0.07,
+  "retries": 0,
+  "cache_hits": 181,
+  "batches": 185,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.04,
+   "controls": 100,
+   "ai_workers": 4,
+   "ai_controls": 96,
+   "verify_write": 1.14,
+   "ai_prefetched": 96,
+   "deterministic": 0.67,
+   "store_and_coverage": 2.03,
+   "policy_audit_ai_concurrent": 8.15,
+   "coverage_ai_prefetch_and_audit_join": 10.62
+  },
+  "db": {
+   "queries": 2562,
+   "query_s": 0.82,
+   "pool_checkouts": 263
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.824,
+  "recall": 1.0,
+  "fp": 156,
+  "fn": 0,
+  "control_coverage": "100/100",
+  "requirement_coverage": "888/888",
+  "citation_validity": 0.595,
+  "gap_guidance_readable": 0.976,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "ac-17.4 CCI-000070",
+    "status": "partial",
+    "guidance": "The policy states authorize, develop doc. AI disagrees (partial): Authorization only in assessable-evidence format is stated, but the defined needs value is nonsensical ('within 24 hours'), not a real need. \u2013 review needed."
+   },
+   {
+    "req": "ac-17.4 CCI-002316",
+    "status": "partial",
+    "guidance": "The policy states authorize, develop doc. AI disagrees (partial): Format requirement stated, but the organization-defined needs value ('the ISSO and ISSM') is not a coherent need. \u2013 review needed."
+   },
+   {
+    "req": "ac-17.4 CCI-002317",
+    "status": "partial",
+    "guidance": "The policy states authorize, develop doc. AI disagrees (partial): States needs are defined but only gives an unrelated value ('within 24 hours'), not actual needs. \u2013 review needed."
+   },
+   {
+    "req": "ac-17.4 ac-17.4_obj.a-3",
+    "status": "partial",
+    "guidance": "The policy states authorize, when required. AI disagrees (partial): Needs value given is 'within 24 hours', which is not a meaningful need requiring remote access. \u2013 review needed."
+   },
+   {
+    "req": "ac-17.4 ac-17.4_obj.a-4",
+    "status": "partial",
+    "guidance": "The policy states authorize, when required. AI disagrees (partial): Needs value given is 'the ISSO and ISSM', which names roles rather than needs requiring remote access. \u2013 review needed."
+   },
+   {
+    "req": "ac-2 CCI-003615",
+    "status": "partial",
+    "guidance": "The policy states membership, develop doc. AI disagrees (missing): No retrieved section defines prerequisites and criteria for group and role membership; IA-4 and IA-5 cover identifiers and authenticators, not AC-2 membership criteria. \u2013 re"
+   },
+   {
+    "req": "ac-2 CCI-003616",
+    "status": "partial",
+    "guidance": "The policy states account, develop doc, when required. AI disagrees (partial): Policy restates that attributes are defined for each account but gives no actual attributes or values. \u2013 review needed."
+   },
+   {
+    "req": "au-2 CCI-000123",
+    "status": "partial",
+    "guidance": "Manual review needed \u2013 not confirmed automatically. Requirement: \u201cIdentify the organization-defined event types that the system is capable of logging in support of the audit function.\u201d. Closest policy sentence is quoted below; it uses relat"
+   },
+   {
+    "req": "au-2 CCI-000126",
+    "status": "partial",
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Specifying the event type subset is stated but garbled; no actual event types or per-type frequencies are listed. \u2013 review needed."
+   },
+   {
+    "req": "au-2 CCI-001484",
+    "status": "partial",
+    "guidance": "The policy states its review frequency: \u201cannually\u201d. AI disagrees (partial): Defining the logging frequency is stated but no actual frequency or situation is given. \u2013 review needed."
+   }
+  ]
+ },
+ {
+  "label": "v2_p100_multi_repeat",
+  "corpus": "p100_multi",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 10.1,
+  "ai_calls": 1,
+  "coverage_calls": 0,
+  "p50_ms": null,
+  "p95_ms": null,
+  "input_tokens": 3776,
+  "output_tokens": 950,
+  "cost_usd": 0.017,
+  "retries": 0,
+  "cache_hits": 185,
+  "batches": 185,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 100,
+   "ai_workers": 4,
+   "ai_controls": 96,
+   "verify_write": 1.14,
+   "ai_prefetched": 96,
+   "deterministic": 0.67,
+   "store_and_coverage": 2.02,
+   "policy_audit_ai_concurrent": 7.87,
+   "coverage_ai_prefetch_and_audit_join": 7.87
+  },
+  "db": {
+   "queries": 2557,
+   "query_s": 0.77,
+   "pool_checkouts": 255
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.824,
+  "recall": 1.0,
+  "fp": 156,
+  "fn": 0,
+  "control_coverage": "100/100",
+  "requirement_coverage": "888/888",
+  "citation_validity": 0.595,
+  "gap_guidance_readable": 0.976,
+  "structured_complete": 1.0,
+  "ac17_rows": 28,
+  "samples": [
+   {
+    "req": "ac-2 CCI-001547",
+    "status": "partial",
+    "guidance": "Related text found, but it does not state: account."
+   },
+   {
+    "req": "ac-2 CCI-002117",
+    "status": "partial",
+    "guidance": "The policy states personnel, authorize, membership. AI disagrees (missing): No retrieved section addresses AC-2 role membership or specifying authorized users of a role; AU-9(4) and IA-5 cover other controls. \u2013 review needed."
+   },
+   {
+    "req": "ac-2 CCI-003613",
+    "status": "partial",
+    "guidance": "Related text found, but it does not state: group membership."
+   },
+   {
+    "req": "ac-2 CCI-003625",
+    "status": "partial",
+    "guidance": "The policy states authorize, develop doc, when required. AI disagrees (partial): States attributes for authorizing access are defined but does not list them. \u2013 review needed."
+   },
+   {
+    "req": "ac-2.2 CCI-001365",
+    "status": "partial",
+    "guidance": "The policy states account type, account, termination, develop doc. AI disagrees (partial): Says a time period is defined but provides no value. \u2013 review needed."
+   },
+   {
+    "req": "cm-11 CCI-001804",
+    "status": "partial",
+    "guidance": "The policy states installed, personnel, develop doc. AI disagrees (partial): States that policies governing user software installation are defined, but gives no actual policy content or defined values. \u2013 review needed."
+   },
+   {
+    "req": "ac-22 CCI-001477",
+    "status": "partial",
+    "guidance": "The policy states review analyze, develop doc. AI disagrees (partial): States a frequency is defined but gives no actual frequency value. \u2013 review needed."
+   },
+   {
+    "req": "cm-11 CCI-001805",
+    "status": "partial",
+    "guidance": "The policy states installed, personnel, develop doc. AI disagrees (partial): Establishment is stated only as 'as determined by the organization'; no concrete policy is given. \u2013 review needed."
+   },
+   {
+    "req": "cm-11 CCI-001806",
+    "status": "partial",
+    "guidance": "The policy states installed, develop doc. AI disagrees (partial): States that enforcement methods are defined, but no specific methods are named. \u2013 review needed."
+   },
+   {
+    "req": "cm-11 CCI-001807",
+    "status": "partial",
+    "guidance": "The policy states installed, develop doc. AI disagrees (partial): Enforcement is stated, but the method is left as 'as determined by the organization' without a concrete value. \u2013 review needed."
+   }
+  ]
+ },
+ {
+  "label": "v2_p20_ac_first",
+  "corpus": "p20_ac",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 11.3,
+  "ai_calls": 7,
+  "coverage_calls": 6,
+  "p50_ms": 7803,
+  "p95_ms": 8181,
+  "input_tokens": 26256,
+  "output_tokens": 7108,
+  "cost_usd": 0.124,
+  "retries": 0,
+  "cache_hits": 22,
+  "batches": 28,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 20,
+   "ai_workers": 4,
+   "ai_controls": 19,
+   "verify_write": 0.04,
+   "ai_prefetched": 19,
+   "deterministic": 0.04,
+   "store_and_coverage": 0.14,
+   "policy_audit_ai_concurrent": 10.89,
+   "coverage_ai_prefetch_and_audit_join": 10.89
+  },
+  "db": {
+   "queries": 537,
+   "query_s": 0.23,
+   "pool_checkouts": 58
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.827,
+  "recall": 1.0,
+  "fp": 32,
+  "fn": 0,
+  "control_coverage": "20/20",
+  "requirement_coverage": "185/185",
+  "citation_validity": 0.762,
+  "gap_guidance_readable": 0.962,
+  "structured_complete": 1.0,
+  "ac17_rows": 0,
+  "samples": [
+   {
+    "req": "ac-1 CCI-000003",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-001545",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-003605",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003606",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003607",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003608",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 CCI-003609",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 CCI-003610",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 CCI-003611",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 ac-1_obj.b",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   }
+  ]
+ },
+ {
+  "label": "v2_p20_ac_incr",
+  "corpus": "p20_ac",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 13.4,
+  "ai_calls": 8,
+  "coverage_calls": 7,
+  "p50_ms": 4897,
+  "p95_ms": 12725,
+  "input_tokens": 29569,
+  "output_tokens": 7748,
+  "cost_usd": 0.137,
+  "retries": 0,
+  "cache_hits": 21,
+  "batches": 28,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 20,
+   "ai_workers": 4,
+   "ai_controls": 19,
+   "verify_write": 0.04,
+   "ai_prefetched": 19,
+   "deterministic": 0.04,
+   "store_and_coverage": 0.15,
+   "policy_audit_ai_concurrent": 7.21,
+   "coverage_ai_prefetch_and_audit_join": 13.03
+  },
+  "db": {
+   "queries": 541,
+   "query_s": 0.21,
+   "pool_checkouts": 60
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.827,
+  "recall": 1.0,
+  "fp": 32,
+  "fn": 0,
+  "control_coverage": "20/20",
+  "requirement_coverage": "185/185",
+  "citation_validity": 0.762,
+  "gap_guidance_readable": 0.961,
+  "structured_complete": 1.0,
+  "ac17_rows": 0,
+  "samples": [
+   {
+    "req": "ac-1 CCI-000003",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-001545",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-003605",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003606",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003607",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003608",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review-triggering events is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-003609",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review-triggering events is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-003610",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-003611",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 ac-1_obj.b",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   }
+  ]
+ },
+ {
+  "label": "v2_p20_ac_repeat",
+  "corpus": "p20_ac",
+  "analyzer": "v2",
+  "workers": 16,
+  "wall_s": 8.9,
+  "ai_calls": 1,
+  "coverage_calls": 0,
+  "p50_ms": null,
+  "p95_ms": null,
+  "input_tokens": 3778,
+  "output_tokens": 944,
+  "cost_usd": 0.017,
+  "retries": 0,
+  "cache_hits": 28,
+  "batches": 28,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "setup": 0.03,
+   "controls": 20,
+   "ai_workers": 4,
+   "ai_controls": 19,
+   "verify_write": 0.04,
+   "ai_prefetched": 19,
+   "deterministic": 0.04,
+   "store_and_coverage": 0.15,
+   "policy_audit_ai_concurrent": 8.57,
+   "coverage_ai_prefetch_and_audit_join": 8.57
+  },
+  "db": {
+   "queries": 533,
+   "query_s": 0.2,
+   "pool_checkouts": 46
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.827,
+  "recall": 1.0,
+  "fp": 32,
+  "fn": 0,
+  "control_coverage": "20/20",
+  "requirement_coverage": "185/185",
+  "citation_validity": 0.762,
+  "gap_guidance_readable": 0.962,
+  "structured_complete": 1.0,
+  "ac17_rows": 0,
+  "samples": [
+   {
+    "req": "ac-1 CCI-000003",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-001545",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-003605",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003606",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003607",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003608",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 CCI-003609",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 CCI-003610",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 CCI-003611",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 ac-1_obj.b",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   }
+  ]
+ },
+ {
+  "label": "v2_p20_w8",
+  "corpus": "p20_ac",
+  "analyzer": "v2",
+  "workers": 8,
+  "wall_s": 32.4,
+  "ai_calls": 32,
+  "coverage_calls": 31,
+  "p50_ms": 5227,
+  "p95_ms": 10429,
+  "input_tokens": 101972,
+  "output_tokens": 19054,
+  "cost_usd": 0.394,
+  "retries": 0,
+  "cache_hits": 0,
+  "batches": 30,
+  "rate_limit_wait_s": 0.0,
+  "failed_batches": 0,
+  "not_examined": 0,
+  "verification_sample": 0,
+  "verification_found": 0,
+  "timing_s": {
+   "ai": 0.0,
+   "controls": 20,
+   "ai_workers": 4,
+   "ai_controls": 19,
+   "verify_write": 0.04,
+   "ai_prefetched": 19,
+   "deterministic": 0.04,
+   "policy_audit_ai": 8.38,
+   "store_and_coverage": 0.15,
+   "coverage_ai_prefetch": 23.67
+  },
+  "db": {
+   "queries": 569,
+   "query_s": 0.13,
+   "pool_checkouts": 111
+  },
+  "idle_in_txn_before_after": [
+   0,
+   0
+  ],
+  "precision": 0.827,
+  "recall": 1.0,
+  "fp": 32,
+  "fn": 0,
+  "control_coverage": "20/20",
+  "requirement_coverage": "185/185",
+  "citation_validity": 0.762,
+  "gap_guidance_readable": 0.961,
+  "structured_complete": 1.0,
+  "ac17_rows": 0,
+  "samples": [
+   {
+    "req": "ac-1 CCI-000003",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-001545",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review frequency is stated for it. A value is stated for something else."
+   },
+   {
+    "req": "ac-1 CCI-003605",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003606",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003607",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   },
+   {
+    "req": "ac-1 CCI-003608",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 CCI-003609",
+    "status": "partial",
+    "guidance": "The policy is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 CCI-003610",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 CCI-003611",
+    "status": "partial",
+    "guidance": "The procedures is said to be reviewed, but no review-triggering events is stated for it."
+   },
+   {
+    "req": "ac-1 ac-1_obj.b",
+    "status": "partial",
+    "guidance": "An official is referred to, but no specific official or role is named."
+   }
+  ]
+ }
+]

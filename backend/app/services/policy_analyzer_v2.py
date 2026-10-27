@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 log = logging.getLogger(__name__)
 ANALYZER = "v2.0"
-PROMPT = ("policy.coverage_refine", "2.0.0")
+PROMPT = ("policy.coverage_refine", "2.1.0")
 STOP = set("the and for with that this shall must are any all its from into each such has have been being which when where or of to in on by be is as an at it not".split())
 PAGE = re.compile(r"^\s*(?:-{2,}\s*)?page\s+(\d+)(?:\s*-{2,})?\s*$|\f", re.I | re.M)
 HEAD = re.compile(r"^\s*(?:#{1,4}\s+.+|(?:\d+(?:\.\d+)*\.?\s+)[A-Z][^\n]{2,90}|[A-Z]{2}-\d+(?:\(\d+\))?\s[^\n]{2,90})\s*$", re.M)
@@ -63,29 +63,35 @@ def _cid_rx(cid: str) -> re.Pattern:
 
 
 class Retriever:
-    """BM25 over sections (k1=1.2, b=0.75) + a strong boost for sections that name the control ID explicitly."""
+    """BM25 (k1=1.2, b=0.75) over an inverted index + a strong boost for sections naming the control ID (heading +25, body +8)."""
 
     def __init__(self, secs: list[dict]):
         self.secs = secs
-        self.toks = [Counter(_tok(s["heading"] + " " + s["heading"] + " " + s["text"])) for s in secs]
-        self.avg = sum(sum(t.values()) for t in self.toks) / max(1, len(secs))
-        df = Counter(w for t in self.toks for w in t)
+        toks = [Counter(_tok(s["heading"] + " " + s["heading"] + " " + s["text"])) for s in secs]
+        lens = [sum(t.values()) or 1 for t in toks]
+        avg = sum(lens) / max(1, len(secs))
         n = len(secs)
-        self.idf = {w: math.log(1 + (n - d + 0.5) / (d + 0.5)) for w, d in df.items()}
+        self.post: dict = {}
+        for i, t in enumerate(toks):
+            for w, f in t.items():
+                self.post.setdefault(w, []).append((i, f * 2.2 / (f + 1.2 * (0.25 + 0.75 * lens[i] / avg))))
+        self.idf = {w: math.log(1 + (n - len(p) + 0.5) / (len(p) + 0.5)) for w, p in self.post.items()}
+        self._cid: dict = {}
+
+    def _boost(self, cid: str) -> dict:
+        if cid not in self._cid:
+            rx = _cid_rx(cid)
+            self._cid[cid] = {i: 25 if rx.search(s["heading"]) else 8 for i, s in enumerate(self.secs) if rx.search(s["text"])}
+        return self._cid[cid]
 
     def scores(self, query: str, cid: str) -> list[tuple[float, int]]:
-        q = set(_tok(query))
-        rx = _cid_rx(cid)
-        out = []
-        for i, t in enumerate(self.toks):
-            ln = sum(t.values()) or 1
-            s = sum(self.idf.get(w, 0) * t[w] * 2.2 / (t[w] + 1.2 * (0.25 + 0.75 * ln / self.avg)) for w in q if w in t)
-            if rx.search(self.secs[i]["heading"]):
-                s += 25
-            elif rx.search(self.secs[i]["text"]):
-                s += 8
-            out.append((s, i))
-        return sorted(out, reverse=True)
+        sc: Counter = Counter(self._boost(cid))
+        for w in set(_tok(query)):
+            idf = self.idf.get(w)
+            if idf:
+                for i, tfn in self.post[w]:
+                    sc[i] += idf * tfn
+        return sorted(((v, i) for i, v in sc.items()), reverse=True)
 
 
 class Bucket:
@@ -195,7 +201,7 @@ class Run:
             try:
                 with self.lock:
                     self.st["calls"] += 1
-                res = asyncio.run(self.svc.run(*PROMPT, {"requirements": reqs, "sections": ctx}, max_tokens=min(8000, 160 * len(items) + 400)))
+                res = asyncio.run(self.svc.run(*PROMPT, {"requirements": reqs, "sections": ctx}, max_tokens=min(8000, 120 * len(items) + 400)))
                 break
             except AIOutputTruncatedError:
                 with self.lock:
@@ -260,26 +266,27 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog) 
         for q, (_, r) in zip(reqs, results):
             item = {"control_id": cid, "requirement_id": q["id"], "text": q["text"][:500], "deterministic": r["status"], "family": cid.split("-")[0]}
             sc = rt.scores(f"{titles.get(cid, '')} {q['text']}", cid)
-            top = [i for s, i in sc[:k] if s >= min_score]
-            (examined if top else not_examined).append((item, top or [i for _, i in sc[:2]]))
+            top = [i for s_, i in sc[:k] if s_ >= min_score and s_ >= 0.6 * sc[0][0]] if sc else []  # near-best sections only (keeps batches dense)
+            (examined if top else not_examined).append((item, top or [i for _, i in sc[:2]] or [0]))
     t1 = time.perf_counter()
     n_verify = min(len(not_examined), max(0, math.ceil(len(not_examined) * float(os.environ.get("POLICY_AI_VERIFY_FRACTION") or 0.1))))
     verify = sorted(not_examined, key=lambda x: hashlib.sha256((x[0]["control_id"] + x[0]["requirement_id"]).encode()).hexdigest())[:n_verify]
     max_reqs, max_ctx = env_int("POLICY_AI_BATCH_REQS", 25), env_int("POLICY_AI_BATCH_CHARS", 9000)
-    min_batch = env_int("POLICY_AI_MIN_BATCH", 12)
-    batches, cur, cur_secs, cur_primary = [], [], set(), None
-    for item, top in sorted(examined + verify, key=lambda x: (x[0]["family"], x[0]["control_id"], x[1][:1])):
-        add = cur_secs | set(top)
-        new_sec = bool(cur) and top[:1] != cur_primary and len(cur) >= min_batch  # section affinity keeps incremental re-runs small
-        if cur and (len(cur) >= max_reqs or sum(len(secs[i]["text"]) for i in add) > max_ctx or item["family"] != cur[0]["family"] or new_sec):
-            batches.append((cur, sorted(cur_secs)))
-            cur, add = [], set(top)
-        while len(add) > 1 and sum(len(secs[i]["text"]) for i in add) > max_ctx:  # one requirement's own sections over budget → keep the best
-            add.discard(max(add, key=lambda i: len(secs[i]["text"])))
-        if not cur:
-            cur_primary = top[:1]
-        cur.append(item)
-        cur_secs = add
+    max_reqs, max_ctx = env_int("POLICY_AI_BATCH_REQS", 25), env_int("POLICY_AI_BATCH_CHARS", 16000)
+    groups: dict = {}  # section affinity: requirements sharing a primary section travel together (small incremental re-runs)
+    for item, top in examined + verify:
+        groups.setdefault((item["family"], top[0]), []).append((item, top))
+    batches, cur, cur_secs = [], [], set()
+    for (fam, _), members in sorted(groups.items(), key=lambda kv: (kv[0][0], kv[0][1])):
+        for item, top in members:
+            add = cur_secs | set(top)
+            while len(add) > len(cur_secs) + 1 and sum(len(secs[i]["text"]) for i in add) > max_ctx:
+                add.discard(max(add - cur_secs - {top[0]}, key=lambda i: len(secs[i]["text"])))
+            if cur and (len(cur) >= max_reqs or item["family"] != cur[0]["family"] or sum(len(secs[i]["text"]) for i in add) > max_ctx):
+                batches.append((cur, sorted(cur_secs)))
+                cur, add = [], set(top[:1])
+            cur.append(item)
+            cur_secs = add
     if cur:
         batches.append((cur, sorted(cur_secs)))
     st.update(sections=len(secs), requirements=len(examined) + len(not_examined), examined=len(examined), not_examined=len(not_examined) - len(verify),
