@@ -1,0 +1,44 @@
+{
+  "summary": "Tested the shared eMASS report import (5 types) on the backend and frontend. Backend regression: 91 passed on the second run. On the first run 1 test failed (test_tr.py::test_prepopulated_mode_leaves_a_to_l_untouched); it passes alone and on rerun, so it is flaky. test_tr_export_modes.py is unchanged (git diff is empty). Live API suite (tests/test_iter19_emass_reports_live.py): all tests passed except the audit test, which was skipped because it used the wrong path; audit was then checked by hand at /audit-events. Detection gives the correct type with high confidence for all 5 fixtures. The MPP mismatch, register prefill (no system created), System Details update of LTP with blocked fields (accepting a blocked field returns 422), the POA&M flow (ZZ-9, bad date and Extreme severity flagged; Completed status and POC blocked; apply created P-0032 with status new), Control Information errors, TR apply (50 rows, none approved, state=missing, decided_by=None), HW/SW apply, .txt/.docx rejected with 422, 5 samples, cancel, history and discard (a second discard returns 409) all work. Audit source reads 'eMASS import <type> <file> (sha256 …)'. UI: the login page has no whitepaper or demo-video links, and sign in, Explore the demo and Create sandbox account are present. The global import is reachable from Systems and POA&M. The no-system prompt shows the type and high confidence. Register new opens /systems/new with the prefill banner and name, acronym, eMASS ID, organization and description filled in. Picking LTP opens the review with unchanged fields hidden (8 vs 10 rows) and authorization, categorization and roles blocked with reasons. Accepting one field and clicking Apply set the status to applied (1 field) and the system was updated (the description was restored afterwards). The in-system MPP prompt shows the mismatch warning, the type override works, the entry buttons on TR and Inventory go to /systems/LTP/emass-import, the sample downloads, and a bad file shows a clean toast.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "emass_reports.mismatch()", "issue": "No mismatch warning if ANY single identifier matches. Example: the file has eMASS ID SYN-48213 and LTP has emass_id DEMO-1000, but the acronym LTP matches, so no warning. A different eMASS ID with the same acronym is a strong sign of the wrong system and should probably still warn."},
+      {"endpoint": "POST /api/v1/emass-imports/{id}/target action=cancel", "issue": "Sets status=discarded without finished_at or applied_by_email and without an audit event, unlike /discard."},
+      {"endpoint": "POST /api/v1/emass-imports/{id}/target action=register", "issue": "The import stays in status 'detected' forever after the user goes to registration. Orphan sessions pile up in history as 'Resume'."},
+      {"endpoint": "POST /api/v1/emass-imports", "issue": "Only needs system.read, so read-only roles (e.g. leadership_viewer) can upload or store files and create import sessions. Consider requiring a write permission."},
+      {"endpoint": "pytest tests/test_tr.py::test_prepopulated_mode_leaves_a_to_l_untouched", "issue": "Flaky under xdist: failed 1 of 2 full runs, passes alone."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ImportReview POA&M Control Acronym", "issue": "Imported control shows the internal normalized id in lowercase ('si-2') instead of 'SI-2'.", "selector": "[data-testid^='import-field-new-row-5-control']", "priority": "LOW"},
+      {"component": "Import report (System Details)", "issue": "'Items: 15' is the number of fields read, but only 3 items/sections are shown. The label is confusing.", "selector": "[data-testid='import-counts']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Register system prefill banner", "issues": ["The text says 'Pre-filled from an eMASS file…' and then 'Pre-filled from the eMASS file…' again (the note is duplicated)."]},
+      {"screen": "Review – Categorization", "issues": ["Blocked fields whose value is unchanged (e.g. Integrity Moderate → Moderate) are still shown while 'Show unchanged fields' is off. This is noise."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter19_emass_reports_live.py", "/app/test_reports/pytest/iter19_regression.xml", "/app/test_reports/pytest/iter19_live.xml"],
+  "action_items": [
+    "Optional: make mismatch() warn when the eMASS ID differs even if the acronym or name matches",
+    "Format POA&M control ids with fmt_acronym in the review (SI-2, not si-2)",
+    "Audit the cancel action and set finished_at; handle orphan 'detected' sessions after register",
+    "Consider a stronger permission than system.read for the generic upload",
+    "Remove the duplicated prefill note text; consider hiding unchanged blocked fields by default",
+    "Look into the flaky test_prepopulated_mode_leaves_a_to_l_untouched"
+  ],
+  "critical_code_review_comments": [
+    "emass_import.py has 'from … import' statements in the middle of the module (noqa E402). It works but would be cleaner split into its own module.",
+    "build_poam: an eMASS row with status Completed (row 5, SI-2) is offered as 'will be created' and becomes a 'new' POA&M if accepted. Consider a note or warning on that item.",
+    "Report 'matched' for system_details counts fields, not items."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter19_emass_reports_live.py", "/app/backend/tests/iter19_check.py", "/app/backend/tests/iter19_restore.py"],
+  "success_rate": {"backend": "100% (91/91 regression on rerun; live 29/29 run, 1 skipped)", "frontend": "100% of requested flows"},
+  "seed_data_creation": "On LTP the test created POA&M P-0032 ('SYNTHETIC: Inactive accounts are not disabled after 35 days', status new), TR workbook 633bf62e-e1f8-4246-958e-a478d50c0247 (rows not approved), one HW/SW inventory import (91929351-…) and several discarded or applied import sessions. The LTP description and emass_id were restored to their original values.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Login with demo@ironvision.ai / IronVisionDemo!2026. The audit endpoint is /api/v1/audit-events. TR rows are at /api/v1/tr/workbooks/{id}/rows. The live test runs with: pytest -n0 -s tests/test_iter19_emass_reports_live.py (pytest.ini forces xdist; conftest needs TEST_DATABASE_URL). POA&M row 4 of the sample now matches the existing P-0032."
+}

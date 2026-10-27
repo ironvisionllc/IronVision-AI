@@ -1,0 +1,45 @@
+{
+  "summary": "Tested ITEM A (login whitepaper link removal) and ITEM B (eMASS Control Information import) end-to-end on the public URL. Backend: 24/24 unit tests (test_emass_import.py + test_emass_fields.py) and 16/16 new live tests (tests/test_emass_import_live.py) pass. Frontend: every requested flow passed in Playwright. Checked: the login page no longer links to the whitepaper or demo video; /whitepaper and /demo-video still load and the public files return 200. Checked: the Workbench entry button and the control detail import link; sample download, upload and the report; review accept/reject per field and per control; the bulk buttons (accept safe, reject all, reset); the show-unchanged toggle; invalid and blocked fields have no Accept button; nothing is saved before Apply; Apply with a confirm dialog (AU-2 is reported as not saved because N/A Justification is missing); audit source 'eMASS import <file> (sha256 …)'; a second Apply returns 409; Resume keeps the decisions; Discard works; SCA, AO and ISSM are read-only (403); System Owner can edit; round trip gives 0 changes; malicious and non-xlsx files get a clean 422 toast and no session is created. ONE CRITICAL ENVIRONMENT/ROBUSTNESS ISSUE FOUND: the worker process was started before models.py gained EmassImport. The worker has no hot reload, so the nightly sandbox.demo_reset job (00:06) failed 3 times with ImportError. The demo was then unusable: POST /auth/demo-login returned 503 'The demo workspace is being prepared' with no automatic recovery. I restarted the worker and re-enqueued sandbox.demo_reset, and the demo recovered. The reset also regenerated all system IDs: LTP is now 3630fca0-4fb1-45d5-b020-a93156344bb4, and the old f47571aa… returns 404.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "worker job sandbox.demo_reset / POST /api/v1/auth/demo-login", "issue": "The worker (no hot reload) held a stale app.models without EmassImport. reset_demo_account → seed_phase4 → emass_fields.grounding → imports app.api.v1.workbench → app.api.v1/__init__ → emass_import.py → ImportError. The job reached max_attempts=3 and was marked failed. The org stayed in sandbox_status != 'ready', so demo-login returned 503 indefinitely. Fixed in this environment: supervisorctl restart worker + re-enqueued the job. Still needed: (a) restart the worker after model or migration changes (add this to the pod_bootstrap/deploy steps); (b) make a failed demo_reset recoverable (set sandbox_status back to ready or re-enqueue it automatically, and alert); (c) stop services.emass_fields.grounding importing the API layer (app.api.v1.workbench). Move _control_poams/_policies_for into a service module.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /systems/{sid}/emass-imports/{id}/apply", "issue": "There is no row lock (SELECT … FOR UPDATE) on EmassImport, so two concurrent Apply calls could both pass the status=='review' check and apply twice. Also, the narrative save is not inside begin_nested like the plan and risk saves are."},
+      {"endpoint": "services/emass_import.build", "issue": "It runs _current() once per row, which is several queries each. A 10,000-row file means N+1 queries. Batch-load the fields and narratives."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Import history", "issue": "The history table shows 'Accepted / rejected / undecided' but not the applied count. Example: an import shows 2 accepted while only 1 field was applied, because AU-2 failed the required-field rule. The spec asks the history to show applied counts.", "affected_selectors": ["emass-import-history", "import-history-<id>"]},
+      {"flow": "Apply confirm", "issue": "The confirm dialog says 'Apply 2 accepted field(s)' even when one accepted field belongs to a control with a known required_issue and will certainly be rejected. Consider warning in the confirm text or excluding that field from the count.", "affected_selectors": ["import-apply-btn"]}
+    ],
+    "design_issues": [
+      {"screen": "Import from eMASS page", "issues": ["Breadcrumb shows 'LTP > Start > Systems' instead of '4 · Implement > Control Workbench > Import from eMASS'", "The success toast overlaps the 'Acting as' header pill for a few seconds after upload", "The column-mapping line in the report is one very long grey 11px paragraph that is hard to read; a small table or collapsible block would help"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_emass_import_live.py", "/app/backend/tests/test_emass_import.py", "/app/backend/tests/test_emass_fields.py", "/app/test_reports/pytest/iter18_emass_import_live.xml"],
+  "action_items": [
+    "HIGH: Make sandbox.demo_reset failure recoverable. Today 3 failed attempts leave demo-login at 503 forever. Add an auto-retry or re-enqueue, or restore sandbox_status to 'ready' on failure.",
+    "HIGH: Restart the worker whenever models or migrations change (pod_bootstrap/deploy). Remove the services → api import (emass_fields.grounding importing app.api.v1.workbench).",
+    "Show applied_fields / failed_controls in the import history row.",
+    "Apply confirm: warn about accepted fields on controls with a required_issue.",
+    "Add a row lock on EmassImport in apply/discard/decide to stop a double apply.",
+    "Fix the breadcrumb on the eMASS import page."
+  ],
+  "critical_code_review_comments": [
+    "emass_fields.grounding() imports app.api.v1.workbench. A service depending on the API layer pulls in every router at import time and broke the worker seed path. Move the helpers into services.",
+    "ei.apply: there is no SELECT FOR UPDATE on the import, so concurrent applies can race. The narrative write is not in a savepoint.",
+    "ei.build is N+1 per row (fields_for + narrative query). Batch it for files with up to 10k rows.",
+    "Things that are correct: file safety (PK magic, OLE/encrypted rejection, workbook.xml check, uncompressed-size and entry caps, keep_vba=False, read_only, data_only); SHA-256 stored; RBAC (implementation.write + _can_edit); the 409 on a re-apply; empty cells are treated as 'no value', never as a clear."
+  ],
+  "updated_files": ["/app/backend/tests/test_emass_import_live.py (new)"],
+  "success_rate": {"backend": "100% (24/24 unit + 16/16 live)", "frontend": "100% of requested flows (one critical environment issue in the worker / demo reset)"},
+  "seed_data_creation": "Applied a few sample changes on LTP (AC-2 SLCM Frequency/Comments/Severity, AC-17 SLCM Method, etc.). Several imports were created and discarded or applied in the LTP history. Manually re-enqueued sandbox.demo_reset (job 749dabd8) after restarting the worker.",
+  "test_credentials": "demo@ironvision.ai / IronVisionDemo!2026 (password login works when demo-login hits its 30/h rate limit); persona switch via acting-as-select or POST /api/v1/sandbox/act-as",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "System IDs change on every demo reset. Resolve LTP via GET /api/v1/systems (acronym=='LTP'). The live tests do this automatically. Demo-login is rate-limited to 30/h per IP; the live test falls back to password login. Audit list endpoint: GET /api/v1/audit-events?action=emass.plan_updated (not /api/v1/audit). After the first Apply in a reset period, AC-2 sample values match the stored ones, so they no longer show as changes.",
+  "rca of the issue": "Demo outage: at 00:06 the scheduler ran sandbox.demo_reset in the worker process. The worker had been started at about 23:54, before models.py (23:57) and emass_import.py (23:59) were edited, and it does not hot reload. During reseeding, emass_fields.grounding lazily imported app.api.v1.workbench. That executed app/api/v1/__init__.py, which imported the new app.api.v1.emass_import, which did 'from app.models import EmassImport' against the stale cached app.models → ImportError. The job failed 3 times (max_attempts), and the demo org was left not 'ready', so demo-login returned 503. Fix applied: sudo supervisorctl restart worker, then enqueue('sandbox.demo_reset') → succeeded, and demo-login returned 200."
+}
