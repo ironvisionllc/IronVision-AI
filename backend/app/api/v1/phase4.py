@@ -351,8 +351,14 @@ def mapping_review_decide(body: QueueDecision, request: Request, db: Session = D
     if body.action == "edit" and not edit:
         raise HTTPException(422, "Choose the control(s) the mapping should point to instead")
     system = db.get(System, body.system_id)
-    result = {"approved": 0, "rejected": 0, "edited": 0, "partial": []}
+    result = {"approved": 0, "rejected": 0, "edited": 0, "partial": [], "skipped": []}
+    from app.services import review_bulk as rb
+    maps = [{"key": f"{i.kind}:{','.join(i.ids)}", "kind": i.kind, "ids": i.ids} for i in body.items if i.kind in ("policy_map", "finding_map")]
+    still = rb._still_open(db, system, maps) if maps else set()
     for it in body.items:
+        if it.kind in ("policy_map", "finding_map") and f"{it.kind}:{','.join(it.ids)}" not in still:  # already decided → never re-decided
+            result["skipped"].append({"control_id": it.control_id, "reason": "Already decided – no longer in the open queue"})
+            continue
         decide_item(db, system, it, body.action, just, edit, current, can_assess, result, audit.request_meta(request))
     audit.record(db, action=f"mapping_review.{body.action}", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
                  entity_id=str(body.system_id), after={"items": [i.model_dump() for i in body.items], "justification": just, "edit": edit},

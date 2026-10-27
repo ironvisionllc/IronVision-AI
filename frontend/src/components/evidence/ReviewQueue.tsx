@@ -75,7 +75,8 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
       const n = r.data.approved + r.data.rejected + r.data.edited;
       const part = r.data.partial.length ? ` ${SCA_MSG} (${r.data.partial.map(fmt).join(", ")}) – they moved to “Awaiting assessor (SCA)”.` : "";
       const also = (r.data.also_approved || []).length ? ` Also approved: ${r.data.also_approved.join("; ")}.` : "";
-      setMsg(`${n} item(s) ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "edited"}.${part}${also}`);
+      const skip = (r.data.skipped || []).length ? ` ${r.data.skipped.length} skipped – already decided (${r.data.skipped.map((x: Row) => fmt(x.control_id)).join(", ")}).` : "";
+      setMsg(`${n} item(s) ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "edited"}.${part}${also}${skip}`);
       if (also) toast.success(`Also approved: ${r.data.also_approved.join("; ")}`, { duration: 10000 });
       if (r.data.partial.length) showNextStep({ message: `${SCA_MSG}.`, label: "SCA: confirm the assessment result in “Awaiting assessor (SCA)”", to: `/mapping-review?tab=sca` });
       else showNextStep({ message: `${n} review item(s) ${action}d.`, label: "review the updated controls in the Workbench", to: `/systems/${sid}/controls` });
