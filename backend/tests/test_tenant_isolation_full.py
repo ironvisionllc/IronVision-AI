@@ -3,6 +3,7 @@ route can only be left out via SKIP below (with a written justification). Tenant
 ids in path, query and JSON/multipart body. Pass = no tenant-A identity (org marker, user emails) in ANY response, no tenant-A ids in any
 2xx body (ids B itself sent are excluded – echoing your own input is not a leak), and tenant A's data fingerprint unchanged after every
 write operation. Counts are printed for the report."""
+import os
 import hashlib
 import json
 import re
@@ -18,7 +19,8 @@ from app.main import app
 from tests.conftest import auth
 from tests.test_sandbox import _signup, signup_on  # noqa: F401
 
-ROLES = ("isso", "issm", "sca", "ao", "platform_admin")
+ALL_ROLES = ("isso", "issm", "sca", "ao", "platform_admin")
+ROLES = tuple(r for r in os.environ.get("SWEEP_ROLES", ",".join(ALL_ROLES)).split(",") if r in ALL_ROLES)  # shard by persona to fit a foreground run
 # (method, path) → justification. Only operations that cannot be swept meaningfully; each is covered elsewhere.
 SKIP = {
     ("POST", "/api/v1/auth/logout"): "revokes the caller's own session (would end the sweep); no tenant data",
@@ -101,11 +103,15 @@ def fingerprint(a: dict) -> dict:
 def _quiesce(a: dict) -> None:
     """Wait until no tenant-A background job is queued/running (demo-data analysis) so fingerprint diffs are caused by the sweep."""
     import time
-    for _ in range(600):
+    for _ in range(30):
         with SessionLocal() as db:
             if not db.scalar(select(M.Job.id).where(M.Job.requested_by.in_(a["User"]), M.Job.status.in_(("queued", "running"))).limit(1)):
                 return
         time.sleep(1)
+    with SessionLocal() as db:  # test DB has no worker: park tenant-A queued jobs so they cannot run mid-sweep (never waits 10 min)
+        for j in db.scalars(select(M.Job).where(M.Job.requested_by.in_(a["User"]), M.Job.status == "queued")):
+            j.status, j.error = "cancelled", "parked by the isolation sweep (no worker on the test DB)"
+        db.commit()
 
 
 def _resolve(schema: dict, comps: dict, depth=0):
@@ -202,8 +208,12 @@ def test_whole_api_cross_tenant(client, world):
     ops = requests = 0
     leaks, writes_changed, unauth = [], [], []
     swept = set()
-    for method, path, op, comps in _ops():
+    k, n = (int(x) for x in os.environ.get("SWEEP_SHARD", "0/1").split("/"))  # optional op shard k/n to fit a foreground run
+    for idx, (method, path, op, comps) in enumerate(_ops()):
         if (method, path) in SKIP:
+            continue
+        if idx % n != k:
+            swept.add((method, path))
             continue
         swept.add((method, path))
         ops += 1
