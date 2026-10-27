@@ -97,3 +97,46 @@ def test_sca_approve_carries_cited_evidence(client, ws):
     with SessionLocal() as db:
         rows = db.scalars(select(Assessment).where(Assessment.system_id == uuid.UUID(ws["sid"]), Assessment.result == "satisfied")).all()
     assert rows and all(r.evidence_ids for r in rows) and "(0 evidence" not in rows[0].findings_text
+
+
+def test_bulk_isso_then_bulk_sca_approve_and_reject(client, ws):
+    """Item 7: bulk path – ISSO bulk-approves status suggestions → Awaiting assessor; SCA bulk-approves some, bulk-rejects others."""
+    from app.models import Assessment, Job
+    from app.services import review_bulk as rb
+
+    def run(jid, who=None):  # same handler the worker's interactive lane runs (tests use their own DB, no worker)
+        with SessionLocal() as db:
+            job = db.get(Job, uuid.UUID(jid))
+            res = rb.run(db, job.payload)
+            job.status, job.result = "succeeded", res
+            db.commit()
+        return res
+    st = [i for i in _q(client, ws) if i["kind"] == "status" and not i["awaiting_sca"]]
+    if len(st) < 2:
+        pytest.skip("need ≥2 status suggestions")
+    j = client.post("/api/v1/mapping-review/bulk-jobs", json={"system_id": ws["sid"], "action": "approve", "kind": "status",
+                                                              "justification": "SYNTHETIC bulk", "idempotency_key": uuid.uuid4().hex}, headers=ws["isso"])
+    assert j.status_code in (200, 201, 202), j.text
+    res = run(j.json()["id"])
+    assert res["succeeded"] == j.json()["total"] and not res["failed"]
+    aw = [i for i in _q(client, ws, "sca") if i["kind"] == "status" and i["awaiting_sca"]]
+    assert {i["control_id"] for i in st} <= {i["control_id"] for i in aw}, "every ISSO-approved suggestion now awaits the SCA"
+    half = len(aw) // 2
+    ok, bad = aw[:half] or aw[:1], aw[half:] if half else []
+    for action, items in (("approve", ok), ("reject", bad)):
+        if not items:
+            continue
+        r = client.post("/api/v1/mapping-review/bulk-jobs", json={"system_id": ws["sid"], "action": action, "item_keys": [i["key"] for i in items],
+                                                                  "justification": f"SYNTHETIC SCA bulk {action}", "idempotency_key": uuid.uuid4().hex}, headers=ws["sca"])
+        assert r.status_code in (200, 201, 202), r.text
+        out = run(r.json()["id"], "sca")
+        assert out["succeeded"] == len(items) and not out["failed"], out
+    left = {i["control_id"] for i in _q(client, ws, "sca") if i["kind"] == "status" and i["awaiting_sca"]}
+    assert not left & {i["control_id"] for i in aw}, "decided items leave the queue after reload"
+    with SessionLocal() as db:
+        for items, result in ((ok, "satisfied"), (bad, "other_than_satisfied")):
+            for i in items:
+                a = db.scalar(select(ControlAssignment).where(ControlAssignment.system_id == uuid.UUID(ws["sid"]), ControlAssignment.control_id == i["control_id"]))
+                asm = db.scalars(select(Assessment).where(Assessment.assignment_id == a.id).order_by(Assessment.created_at.desc())).first()
+                assert a.assessment_status == result and asm is not None and asm.result == result and asm.evidence_ids, (i["control_id"], result)
+    print(f"bulk SCA: isso={res['succeeded']} sca_approved={len(ok)} sca_rejected={len(bad)}")
