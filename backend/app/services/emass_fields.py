@@ -212,7 +212,8 @@ def _assisted(f: EmassControlFields, fields: list[str], source: str | None, inte
     f.assisted = {**(f.assisted or {}), **{k: stamp for k in fields}}
 
 
-def save_plan(db: Session, a: ControlAssignment, status: str, vals: dict, current, assist: dict, meta: dict, audit_extra: dict | None = None) -> dict:
+def save_plan(db: Session, a: ControlAssignment, status: str, vals: dict, current, assist: dict, meta: dict, audit_extra: dict | None = None,
+              enforce_required: bool = True) -> dict:
     vals = {k: (v.strip() if isinstance(v, str) else v) or None for k, v in vals.items() if k in PLAN_FIELDS}
     check_values(vals)
     f = ensure(db, a)
@@ -240,7 +241,7 @@ def save_plan(db: Session, a: ControlAssignment, status: str, vals: dict, curren
             else:
                 follow.pop(k, None)
     miss = missing_required(status, {**values(f), **vals} if status == "Inherited" else check)
-    if miss:
+    if miss and enforce_required:
         raise HTTPException(422, f"eMASS requires these fields when Implementation Status is {status}: "
                                  + ", ".join(FIELD_META[k][0] for k in miss))
     for k, v in vals.items():

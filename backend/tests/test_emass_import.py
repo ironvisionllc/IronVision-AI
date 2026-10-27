@@ -79,7 +79,7 @@ def test_fixture_report_matching_and_validation(client, ctx):
     inv = {(x["control"], x["field"]) for x in rep["invalid"]}
     assert inv == {("CM-6", "SLCM Frequency"), ("RA-5", "Estimated Completion Date"), ("RA-5", "Residual Risk Level"), ("SI-2", "SLCM Comments")}
     assert any(x["control"] == "IA-2(1)" and x["field"] == "Severity" for x in rep["blocked"])
-    assert any(x["control"] == "AU-2" and "N/A Justification" in x["issue"] for x in rep["required_issues"])
+    assert any(x["control"] == "AU-2" and "N/A Justification" in x["missing"] for x in rep["status_not_applied"])
     assert "AC-3" in rep["missing_from_file"] and d["status"] == "review" and len(d["sha256"]) == 64
     with SessionLocal() as db:
         imp = db.get(EmassImport, uuid.UUID(d["id"]))
@@ -101,14 +101,15 @@ def test_no_autosave_accept_reject_per_field_and_apply_audited(client, ctx):
     d = client.put(u, json={"bulk": "accept_safe"}, headers=ctx["h"]).json()
     items = {i["control_id"]: i for i in d["items"]}
     assert items["ac-2"]["fields"]["severity"]["decision"] == "reject", "bulk accept keeps explicit rejections"
-    assert all(f["decision"] is None for f in items["au-2"]["fields"].values() if f["change"]), "controls with a required-field issue are not bulk-accepted"
-    assert client.put(u, json={"decisions": [{"control_id": "au-2", "field": "implementation_status", "decision": "accept"}]}, headers=ctx["h"]).status_code == 200
+    assert items["au-2"]["fields"]["implementation_status"]["blocked"] and items["au-2"]["fields"]["implementation_status"]["decision"] is None, \
+        "a status whose eMASS required fields are missing is not applied (row warning), never bulk-accepted"
+    assert client.put(u, json={"decisions": [{"control_id": "au-2", "field": "implementation_status", "decision": "accept"}]}, headers=ctx["h"]).status_code == 422
     assert client.get(f"{ctx['base']}/ac-2/emass", headers=ctx["h"]).json()["values"] == before
     res = client.post(f"{ctx['url']}/{iid}/apply", headers=ctx["h"])
     assert res.status_code == 200, res.text
     out = {x["control"]: x for x in res.json()["results"]}
     assert "slcm_frequency" in out["AC-2"]["applied"] and "severity" not in out["AC-2"]["applied"]
-    assert "N/A Justification" in out["AU-2"]["failed"], "required-rule violation is flagged, not saved"
+    assert "implementation_status" not in (out.get("AU-2") or {}).get("applied", []), "required-rule violation is flagged, not saved"
     v = client.get(f"{ctx['base']}/ac-2/emass", headers=ctx["h"]).json()
     assert v["values"]["slcm_frequency"] == "Weekly" and v["values"]["severity"] == "Low" and v["assisted"]["slcm_frequency"]["source"] == "emass_import"
     assert client.get(f"{ctx['base']}/au-2/emass", headers=ctx["h"]).json()["implementation_status"] != "Not Applicable"

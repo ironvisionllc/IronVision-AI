@@ -1,0 +1,66 @@
+"""Regression: our own eMASS-formatted Implementation Plan export, edited by the user, must import through both paths."""
+import uuid
+from pathlib import Path
+
+import pytest
+from sqlalchemy import select
+
+from app.db import SessionLocal
+from app.models import AuditEvent, ControlAssignment, EmassControlFields
+from app.services import emass_reports as er
+from tests.conftest import auth
+from tests.test_sandbox import _signup, signup_on  # noqa: F401
+
+FX = Path(__file__).parent / "fixtures" / "emass" / "IV_eMASS_implementation_plan_user_edited.xlsx"
+FIPS = {"baseline_key": "moderate", "categorization_mode": "fips199", "information_types": [{"id": "D.16.3"}], "processes_pii": False}
+
+
+@pytest.fixture(scope="module")
+def ctx(client, signup_on):  # noqa: F811
+    t = _signup(client, f"ip-{uuid.uuid4().hex[:6]}@example.com", "IP Org")
+    h = auth(t["access_token"])
+    role = lambda r: auth(client.post("/api/v1/sandbox/act-as", json={"role": r}, headers=h).json()["access_token"])  # noqa: E731
+    sid = client.post("/api/v1/systems", json={"name": "Plan Target", "acronym": "PLN" + uuid.uuid4().hex[:3], **FIPS}, headers=h).json()["id"]
+    return {"sid": sid, "isso": role("isso")}
+
+
+def test_repro_both_paths(client, ctx):
+    """Root cause (before the fix): every row got a required-field issue, bulk accept skipped them and apply saved nothing."""
+    data = FX.read_bytes()
+    d = er.detect(er.read_sheets(data, FX.name))
+    assert d["type"] == "control_information" and d["confidence"] == "high"
+    r = client.post(f"/api/v1/systems/{ctx['sid']}/emass-imports", files={"file": (FX.name, data)}, headers=ctx["isso"])
+    assert r.status_code == 201, r.text
+    p1 = r.json()
+    assert p1["detection"]["sheet"] == "Implementation Plan" and p1["detection"]["header_row"] == 2
+    r = client.post("/api/v1/emass-imports", files={"file": (FX.name, data)}, data={"system_id": ctx["sid"]}, headers=ctx["isso"])
+    assert r.status_code == 201
+    r2 = client.post(f"/api/v1/emass-imports/{r.json()['id']}/target", json={"action": "update", "system_id": ctx["sid"]}, headers=ctx["isso"])
+    assert r2.status_code == 200
+    for j in (p1, r2.json()):
+        s = j["report"]["summary"]
+        print("SUMMARY", s, {k: len(j["report"][k]) for k in ("warnings", "info", "status_not_applied", "required_issues", "invalid", "blocked")})
+        assert s["rows_read"] == 423 and s["rows_to_apply"] == 287 and s["rows_with_errors"] == 0
+        assert s["rows_not_in_system"] == 136 and s["placeholders_ignored"] == 287
+        assert len(j["report"]["warnings"]) == 287, "Common Control Provider on non-inherited rows → warning, not applied"
+        assert all("common_control_provider" not in i["fields"] and "na_justification" not in i["fields"] for i in j["items"])
+    ctx["p1"] = p1
+
+
+def test_apply_changes_target_fields_with_audit(client, ctx):
+    p1 = ctx["p1"]
+    u = f"/api/v1/systems/{ctx['sid']}/emass-imports/{p1['id']}"
+    d = client.put(f"{u}/decisions", json={"bulk": "accept_safe"}, headers=ctx["isso"]).json()
+    assert d["counts"]["accepted"] >= 287
+    r = client.post(f"{u}/apply", headers=ctx["isso"])
+    assert r.status_code == 200, r.text
+    res = {x["control"]: x for x in r.json()["results"]}
+    assert res["AC-2"]["applied"] and not res["AC-2"]["failed"] and res["AC-2"]["warning"]
+    assert r.json()["counts"]["failed_controls"] == 0
+    with SessionLocal() as db:
+        a = db.scalar(select(ControlAssignment).where(ControlAssignment.system_id == uuid.UUID(ctx["sid"]), ControlAssignment.control_id == "ac-2"))
+        f = db.scalar(select(EmassControlFields).where(EmassControlFields.assignment_id == a.id))
+        assert f.control_designation == "System-Specific" and f.common_control_provider is None and f.na_justification is None
+        ev = db.scalar(select(AuditEvent).where(AuditEvent.entity_id == str(a.id), AuditEvent.action == "emass.plan_updated"))
+        assert ev.after["control_designation"] == "System-Specific" and ev.details["import_id"] == p1["id"]
+

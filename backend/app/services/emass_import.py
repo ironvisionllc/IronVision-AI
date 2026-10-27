@@ -116,7 +116,8 @@ def parse(data: bytes, file_name: str = "upload.xlsx") -> dict:
 
 def parse_sheets(sheets: list) -> dict:
     best = None
-    for title, rows in sheets:
+    data_sheets = [x for x in sheets if _n(x[0]) not in AUX_SHEETS] or sheets  # our own export: Field mapping / Validation are not data
+    for title, rows in data_sheets:
         for i, row in enumerate(rows[:HEADER_SCAN_ROWS], start=1):
             hits = {c: ALIASES[_n(v)] for c, v in enumerate(row) if v is not None and _n(v) in ALIASES}
             if "acronym" in hits.values() and len(hits) >= 2 and (best is None or len(hits) > len(best[3])):
@@ -145,6 +146,10 @@ def parse_sheets(sheets: list) -> dict:
         rows.append({"row": n, "acronym": vals.pop("acronym"), "values": vals})
     return {"sheet": title, "header_row": hrow, "columns": {f: {"header": str(header[c]), "col": _col(c)} for f, c in cols.items()},
             "unknown_headers": unknown, "ignored_headers": ignored, "duplicate_headers": dup_cols, "rows": rows}
+
+
+AUX_SHEETS = {"fieldmapping", "validation", "readme", "instructions", "readmefirst"}
+PLACEHOLDERS = {"", "na", "none", "nil", "tbd", "notapplicable"}  # after _n(): "N/A ", "n/a", "-", "--" …
 
 
 def _col(i: int) -> str:
@@ -212,7 +217,8 @@ def _current(db: Session, a: ControlAssignment) -> dict:
 def build(db: Session, s: System, parsed: dict) -> tuple[list[dict], dict]:
     assigned = {a.control_id: a for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == s.id))}
     seen: dict[str, int] = {}
-    items, rep = [], {"not_in_system": [], "unparseable": [], "duplicates": [], "invalid": [], "blocked": [], "required_issues": []}
+    items, rep = [], {"not_in_system": [], "unparseable": [], "duplicates": [], "invalid": [], "blocked": [], "required_issues": [],
+                      "warnings": [], "info": [], "status_not_applied": []}
     for r in parsed["rows"]:
         cid = norm_acronym(r["acronym"])
         if not cid:
@@ -250,6 +256,7 @@ def build(db: Session, s: System, parsed: dict) -> tuple[list[dict], dict]:
                 rep["invalid"].append({"row": r["row"], "control": fmt_acronym(cid), "field": ef.FIELD_META[f][0], "value": str(r["values"][f])[:120], "error": err})
             if blocked:
                 rep["blocked"].append({"row": r["row"], "control": fmt_acronym(cid), "field": ef.FIELD_META[f][0], "reason": blocked})
+        _row_rules(fields, cur, r["row"], fmt_acronym(cid), rep)
         item = {"control_id": cid, "control": fmt_acronym(cid), "row": r["row"], "fields": fields, "required_issue": None}
         item["required_issue"] = required_issue(item, cur)
         if item["required_issue"]:
@@ -259,7 +266,39 @@ def build(db: Session, s: System, parsed: dict) -> tuple[list[dict], dict]:
     rep["missing_from_file"] = sorted(fmt_acronym(c) for c in assigned if c not in seen)
     rep["rows_read"] = len(parsed["rows"])
     rep["with_changes"] = sum(1 for i in items if any(f["change"] and not f["error"] and not f["blocked"] for f in i["fields"].values()))
+    rows_of = lambda *ks: {x["row"] for k in ks for x in rep[k] if x.get("row")}  # noqa: E731
+    err = rows_of("invalid", "unparseable", "duplicates")
+    rep["summary"] = {"rows_read": rep["rows_read"], "rows_to_apply": rep["with_changes"], "rows_not_in_system": len(rep["not_in_system"]),
+                      "rows_with_warnings": len(rows_of("warnings", "status_not_applied", "required_issues", "blocked") - err),
+                      "rows_with_errors": len(err), "placeholders_ignored": len(rep["info"])}
     return items, rep
+
+
+def _row_rules(fields: dict, cur: dict, row: int, ctl: str, rep: dict) -> None:
+    """Per-row eMASS rules – never a whole-import failure: fields that don't apply to the row's status are dropped (placeholders → info,
+    real values → warning); a status whose required fields are missing is not applied (row warning); everything else stays importable."""
+    sf = fields.get("implementation_status")
+    st = sf["imported"] if sf and _ok(sf) else cur["implementation_status"]
+    for k, applies, where in (("na_justification", st == "Not Applicable", "Not Applicable"),
+                              ("common_control_provider", st in ("Inherited", "Manually Inherited"), "Inherited / Manually Inherited")):
+        f = fields.get(k)
+        if f is None or applies or f["error"]:
+            continue
+        lab, v = ef.FIELD_META[k][0], str(f["imported"] or "")
+        if _n(v) in PLACEHOLDERS:
+            rep["info"].append({"row": row, "control": ctl, "field": lab, "value": v, "note": f"Placeholder ignored – {lab} does not apply to {st}"})
+        else:
+            rep["warnings"].append({"row": row, "control": ctl, "field": lab, "value": v[:120],
+                                    "reason": f"{lab} only applies to {where} controls – not applied (row is {st})"})
+        del fields[k]
+    if sf and _ok(sf) and sf["imported"] != "Inherited":
+        vals = {k: (fields[k]["imported"] if k in fields and _ok(fields[k]) else cur.get(k)) for k in ef.PLAN_FIELDS}
+        miss = ef.missing_required(sf["imported"], vals)
+        if miss:
+            labs = [ef.FIELD_META[k][0] for k in miss]
+            sf["blocked"] = (f"Not applied – eMASS requires {', '.join(labs)} when Implementation Status is {sf['imported']}. "
+                             "Add them to the file (or the Control Workbench) and re-import; the other values of this row are still imported.")
+            rep["status_not_applied"].append({"row": row, "control": ctl, "status": sf["imported"], "missing": labs})
 
 
 def _ok(f: dict) -> bool:
@@ -278,7 +317,8 @@ def required_issue(item: dict, cur: dict, only_accepted: bool = False) -> str | 
         return None
     vals = {k: (fs[k]["imported"] if k in touched else cur.get(k)) for k in ef.PLAN_FIELDS}
     miss = ef.missing_required(st, vals)
-    return f"Implementation Status {st} would be missing: {', '.join(ef.FIELD_META[k][0] for k in miss)}" if miss else None
+    return (f"Still incomplete for eMASS (Implementation Status {st}) – missing: {', '.join(ef.FIELD_META[k][0] for k in miss)}. "
+            "The imported values are saved; the row stays flagged in the Workbench and the eMASS validation report.") if miss else None
 
 
 def store(db: Session, org_id, system: System | None, file_name: str, data: bytes, user, report_type: str, detected: dict) -> EmassImport:
@@ -338,9 +378,9 @@ def decide(db: Session, imp: EmassImport, decisions: list[dict], bulk: str | Non
         raise HTTPException(409, f"This import is {imp.status} – decisions can no longer change")
     items = [{**i, "fields": {k: dict(v) for k, v in i["fields"].items()}} for i in imp.items or []]
     by = {str(i.get("key") or i.get("control_id")).lower(): i for i in items}
-    if bulk == "accept_safe":  # accept every changed, valid, unblocked field of controls without a required-field issue
+    if bulk == "accept_safe":  # accept every changed, valid, unblocked field (required-field gaps are row warnings, not blockers)
         for i in items:
-            if not i["required_issue"] and (allowed is None or i.get("section", "Controls") in allowed):
+            if allowed is None or i.get("section", "Controls") in allowed:
                 for f in i["fields"].values():
                     if _ok(f) and f["decision"] is None:
                         f["decision"] = "accept"
@@ -397,7 +437,8 @@ def apply(db: Session, imp: EmassImport, current, meta: dict) -> dict:
             vals["estimated_completion_date"] = date.fromisoformat(vals["estimated_completion_date"]) if vals.get("estimated_completion_date") else None
             try:
                 with db.begin_nested():
-                    ef.save_plan(db, a, st, vals, current, {"source": "emass_import", "fields": [k for k in plan_keys if k != "implementation_status"]}, meta, src)
+                    ef.save_plan(db, a, st, vals, current, {"source": "emass_import", "fields": [k for k in plan_keys if k != "implementation_status"]}, meta, src,
+                                 enforce_required=False)  # status changes were already gated per row in build (_row_rules)
                 done += plan_keys
             except HTTPException as exc:
                 failed.append(f"Implementation Plan not saved: {exc.detail}")
@@ -420,7 +461,7 @@ def apply(db: Session, imp: EmassImport, current, meta: dict) -> dict:
                 done += risk_keys
             except HTTPException as exc:
                 failed.append(f"Risk Assessment not saved: {exc.detail}")
-        results.append({"control": i["control"], "applied": done, "failed": "; ".join(failed) or None})
+        results.append({"control": i["control"], "applied": done, "failed": "; ".join(failed) or None, "warning": i.get("required_issue")})
     imp.status = "applied"
     imp.applied_by_email = current.user.email
     imp.finished_at = datetime.now(timezone.utc)

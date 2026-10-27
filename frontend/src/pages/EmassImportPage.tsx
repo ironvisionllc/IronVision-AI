@@ -27,12 +27,22 @@ function Report({ imp }: { imp: Row }) {
         <div>Invalid: <b>{c.invalid}</b> · blocked: <b>{c.blocked}</b>{c.applied_fields !== undefined && <> · applied: <b data-testid="import-applied-count">{c.applied_fields}</b></>}</div>
       </div>
       <p className="mt-2 text-[11px] text-slate-500">{imp.label} · SHA-256 {imp.sha256?.slice(0, 16)}…{d.sheet ? ` · sheet "${d.sheet}", header row ${d.header_row}` : ""}</p>
+      {r.summary && <div className="mt-2 flex flex-wrap gap-2 text-[12px]" data-testid="import-row-summary">
+        <span className="rounded bg-slate-100 px-2 py-0.5">Rows read <b>{r.summary.rows_read}</b></span>
+        <span className="rounded bg-emerald-50 px-2 py-0.5 text-emerald-900" data-testid="import-rows-to-apply">Would apply <b>{r.summary.rows_to_apply}</b></span>
+        <span className="rounded bg-amber-50 px-2 py-0.5 text-amber-900" data-testid="import-rows-warnings">With warnings <b>{r.summary.rows_with_warnings}</b></span>
+        <span className={`rounded px-2 py-0.5 ${r.summary.rows_with_errors ? "bg-rose-50 text-rose-800" : "bg-slate-100"}`} data-testid="import-rows-errors">With errors <b>{r.summary.rows_with_errors}</b></span>
+        <span className="rounded bg-slate-100 px-2 py-0.5">Not in this system <b>{r.summary.rows_not_in_system}</b></span>
+        <span className="rounded bg-slate-100 px-2 py-0.5">Placeholders ignored <b>{r.summary.placeholders_ignored}</b></span></div>}
       {imp.detected?.mismatch && <div className="mt-2 rounded border border-rose-300 bg-rose-50 px-3 py-1.5 text-[12px] text-rose-800" data-testid="import-mismatch-banner">System mismatch: {imp.detected.mismatch}</div>}
       <div className="mt-2 space-y-1">
         <List title="Not in this system" rows={r.not_in_system} render={(x) => `${x.control} (row ${x.row})`} testId="import-not-in-system" />
         <List title="Invalid values" rows={r.invalid} render={(x) => `Row ${x.row} ${x.control} – ${x.field}: ${x.error}`} testId="import-invalid" />
         <List title="Blocked by rules" rows={r.blocked} render={(x) => `Row ${x.row} ${x.control} – ${x.field}: ${x.reason}`} testId="import-blocked" />
         <List title="Required-field problems" rows={r.required_issues} render={(x) => `Row ${x.row} ${x.control}: ${x.issue}`} testId="import-required" />
+        <List title="Implementation Status not applied (eMASS required fields missing)" rows={r.status_not_applied} render={(x) => `Row ${x.row} ${x.control}: ${x.status} needs ${x.missing.join(", ")}`} testId="import-status-not-applied" />
+        <List title="Warnings – value not applied" rows={r.warnings} render={(x) => `Row ${x.row} ${x.control} – ${x.field} "${x.value}": ${x.reason}`} testId="import-warnings" />
+        <List title="Info – placeholders ignored" rows={r.info} render={(x) => `Row ${x.row} ${x.control} – ${x.field} "${x.value}": ${x.note}`} testId="import-info" />
         <List title="Duplicate rows (first occurrence used)" rows={r.duplicates} render={(x) => `${x.control} row ${x.row} (first at row ${x.first_row})`} testId="import-duplicates" />
         <List title="System controls missing from the file" rows={(r.missing_from_file || []).map((x: string) => ({ x }))} render={(x) => x.x} testId="import-missing" />
         <List title="Exception queue" rows={r.exceptions} render={(x) => `${x.row ? `Row ${x.row} ` : ""}${x.control}: ${x.issue}`} testId="import-exceptions" />
