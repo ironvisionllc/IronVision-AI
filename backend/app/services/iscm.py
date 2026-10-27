@@ -253,5 +253,19 @@ def run_due_job(db: Session) -> dict:
     for st in db.scalars(select(IscmStrategy).where(IscmStrategy.approved_snapshot.is_not(None))):
         s = db.get(System, st.system_id)
         items = due(db, s)
-        out[s.acronym or str(s.id)] = {k: sum(1 for i in items if i["status"] == k) for k in ("overdue", "due_soon", "never_monitored")}
+        c = {k: sum(1 for i in items if i["status"] == k) for k in ("overdue", "due_soon", "never_monitored")}
+        out[s.acronym or str(s.id)] = {**c, "notified": notify_due(db, s, items, c)}
     return {"systems": out}
+
+
+def notify_due(db: Session, s: System, items: list[dict], c: dict) -> int:
+    """In-app notice to the system's ISSO + ISSM when SLCM reviews are overdue / due within 14 days (once per system, day and counts)."""
+    from app.services.rmf import role_users, send
+    if not (c["overdue"] or c["due_soon"]):
+        return 0
+    top = ", ".join(i["control_id"].upper() for i in items if i["status"] in ("overdue", "due_soon"))[:200]
+    title = f"{s.acronym or s.name}: {c['overdue']} SLCM review(s) overdue, {c['due_soon']} due within 14 days"
+    key = f"slcm_due:{s.id}:{date.today().isoformat()}:{c['overdue']}:{c['due_soon']}"
+    users = {u for r in ("isso", "issm") for u in role_users(db, s.org_id, s.id, r)}
+    return sum(send(db, u, "slcm_due", title, f"/rmf/monitor?system={s.id}", f"Per the approved Continuous Monitoring Strategy: {top}", dedupe_key=key)
+               for u in users)

@@ -426,7 +426,7 @@ The Control Information import above is now the first type of one shared import 
 
 **Due list:**
 - Next due = the later of the last assessment and the last evidence date, plus the effective SLCM Frequency.
-- The daily scheduled job `conmon.slcm_due` computes the counts.
+- The daily scheduled job `conmon.slcm_due` computes the counts and sends an in-app notification (kind `slcm_due`, per-user prefs honored) to the system ISSO and ISSM when reviews are overdue or due within 14 days. It is deduplicated per system, day and counts.
 
 **Demo data:** LTP has a SYNTHETIC approved strategy:
 - defaults: Moderate / Annually / Manual;
@@ -441,6 +441,7 @@ The Control Information import above is now the first type of one shared import 
 3. **Overlays:** searchable cards. The legacy overlays are merged in as cards. The privacy prompt sits inside the Privacy card, with its testids kept. The admin data import moved to "Admin: overlay data".
 4. **Tailoring and ODPs:** tailoring decisions now record Applicability (Applicable / Not Applicable / Compensating control) and an optional catalog-checked compensating control (migration 0033). Parameter comparison and CNSSI parameter adoption are shown in the same step.
 5. **Review & approve:** original baseline vs final selection, added and removed controls with the reason and rationale, counts, items still needing a decision, and approval status. "Submit selection for approval" creates a `selection_review` request in the existing Reviews workflow: the ISSM endorses, then the AO decides.
+   **Approval effect (P7):** when the AO approves (after ISSM endorsement), the exact approved control list and count are frozen on the request (`approved_control_ids`). Nothing is re-applied or changed. Step 5 then shows "approved selection: N controls (unchanged)" or "selection changed since approval; resubmit". A later baseline, overlay or tailoring change is never silently treated as approved.
 
 **No auto-apply and no silent removals.** Baseline, overlay and tailoring actions first run as a `dry_run`: the real service runs inside a SAVEPOINT that is rolled back. The preview shows:
 - controls added and removed;

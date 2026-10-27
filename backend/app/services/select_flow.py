@@ -93,7 +93,10 @@ def review(db: Session, s: System, select_view: dict) -> dict:
                        "parameters_set": odp, "overlays_applied": len(s.overlay_keys or [])},
             "reconciliation": select_view["counts"]["labels"]["reconciliation"], "needs_decision": needs,
             "approval": None if not req else {"id": str(req.id), "human_id": req.human_id, "status": req.status, "assigned_role": req.assigned_role,
-                                              "created_at": req.created_at.isoformat()}}
+                                              "created_at": req.created_at.isoformat(),
+                                              **({"approved_count": req.payload.get("approved_count"), "approved_at": req.payload.get("approved_at"),
+                                                  "changed_since_approval": sorted(rows) != req.payload["approved_control_ids"]}
+                                                 if req.status == "approved" and (req.payload or {}).get("approved_control_ids") is not None else {})}}
 
 
 def submit(db: Session, s: System, actor, justification: str, snapshot: dict) -> ApprovalRequest:

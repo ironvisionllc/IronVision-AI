@@ -377,6 +377,14 @@ def _apply_effects(db: Session, req: ApprovalRequest, actor: User) -> None:
         for i in db.scalars(select(Implementation).where(Implementation.assignment_id == impl.assignment_id, Implementation.review_status == "approved")):
             i.review_status = "superseded"
         impl.review_status, impl.needs_reconsideration = "approved", False
+    elif t == "selection_review":
+        # Approval records the approved selection (no auto-apply): the exact control list is frozen on the request so later drift is visible.
+        s = db.get(System, req.system_id)
+        ids = sorted(db.scalars(select(ControlAssignment.control_id).where(ControlAssignment.system_id == s.id)))
+        submitted = (req.payload or {}).get("final_count")
+        req.payload = {**(req.payload or {}), "approved_control_ids": ids, "approved_count": len(ids), "approved_at": now().isoformat(),
+                       "changed_since_submission": submitted is not None and submitted != len(ids) or
+                       sorted(s.overlay_keys or []) != sorted((req.payload or {}).get("overlays") or [])}
     audit.record(db, action=f"review.effect.{t}", actor_user_id=actor.id, actor_email=actor.email, entity_type="approval_request",
                  entity_id=str(req.id), details={"poam_id": str(req.poam_id) if req.poam_id else None,
                                                  "finding_id": str(req.finding_id) if req.finding_id else None})
