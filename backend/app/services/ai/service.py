@@ -114,7 +114,8 @@ class AIService:
         prompt = get_prompt(prompt_id, version)
         model = model_for(prompt_id, self.provider.model, await run_in_threadpool(_org_model, actor_user_id))
         req = AIRequest(system=prompt.system, user=prompt.render(**variables), max_tokens=max_tokens or prompt.max_tokens, model=model,
-                        json_schema=prompt.output_model.model_json_schema(), schema_name=prompt_id.replace(".", "_"))
+                        json_schema=prompt.output_model.model_json_schema(), schema_name=prompt_id.replace(".", "_"),
+                        reasoning_effort=prompt.reasoning_effort)
         input_sha = hashlib.sha256((req.system + "\n" + req.user).encode()).hexdigest()
         started = time.perf_counter()
         log = dict(

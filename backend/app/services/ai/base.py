@@ -11,6 +11,7 @@ class AIRequest(BaseModel):
     json_schema: dict | None = None       # expected output schema (structured output where the provider supports it)
     schema_name: str | None = None
     temperature: float | None = None
+    reasoning_effort: str | None = None   # OpenRouter: cap hidden reasoning (counts against max_tokens) for long-input prompts
 
 
 class AIResponse(BaseModel):

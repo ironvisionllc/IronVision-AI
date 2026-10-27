@@ -59,6 +59,8 @@ export function PolicyMappingsPanel({ policyId, data, canMap, reload, setMsg }: 
     catch (e) { setMsg(`Could not confirm the mapping: ${errorMessage(e)}`); }
   };
   const rows: Row[] = data.control_mappings || [];
+  const notSel: Record<string, string> = data.policy?.analysis?.not_selected || {};
+  const related: Row[] = data.policy?.analysis?.possible_related_controls || [];
   return (
     <div data-testid="policy-mappings">
       <p className="mb-2 text-[12px] text-slate-600">Controls this policy supports. <b>Confirm</b> the suggestions you agree with, <b>reject</b> the rest, or <b>map</b> more controls yourself. Confirmed mappings show on each control in the Control Workbench.</p>
@@ -71,12 +73,18 @@ export function PolicyMappingsPanel({ policyId, data, canMap, reload, setMsg }: 
           <td className="max-w-[260px] py-1 text-[11px] text-slate-600" data-testid={`mapping-basis-${m.control_id}`}>{basisText(m.source)}</td>
           <td className="max-w-[340px] py-1 text-[11px] text-slate-700">{m.no_supporting_text ? <b className="text-rose-700" data-testid={`mapping-no-text-${m.control_id}`}>No supporting text found – manual review required</b>
             : (m.excerpts || []).slice(0, 2).map((e: Row, i: number) => <div key={i}>“{e.text}”<span className="block text-[10px] text-slate-500">{e.section ? `§ ${e.section}` : ""}{e.page ? ` · p. ${e.page}` : ""}</span></div>)}
-            {m.reanalysis && <div className="text-[10px] text-amber-800">Re-analysis differs from approved</div>}{m.review_flag && <div className="text-[10px] text-rose-700">Flagged for manual review</div>}</td>
+            {m.reanalysis && <div className="text-[10px] text-amber-800">Re-analysis differs from approved</div>}{notSel[m.control_id] ? <div className="text-[10px] font-semibold text-amber-800" data-testid={`mapping-not-selected-${m.control_id}`}>Policy states not selected – human review (no coverage gaps raised)<span className="block font-normal">“{notSel[m.control_id]}”</span></div>
+              : m.review_flag && <div className="text-[10px] text-rose-700">Flagged for manual review</div>}</td>
           <td className="py-1" data-testid={`mapping-status-${m.control_id}`}>{STATUS[m.status] ?? m.status}{m.decider_name && <div className="text-[10px] text-slate-500">{m.decider_name} · {new Date(m.decided_at).toLocaleString()}</div>}{m.justification && <div className="text-[10px] text-slate-500">Reason: {m.justification}</div>}</td>
           <td className="py-1"><button className="mb-1 text-[11px] text-blue-800 underline" onClick={() => setSbs(m.control_id)} data-testid={`mapping-sbs-${m.control_id}`}>Review side by side</button>{canMap && m.status !== "rejected" && <div className="flex gap-1">
             {m.status === "proposed" && <button className="btn-primary px-2 py-0.5 text-[11px]" onClick={() => confirm(m.control_id)} data-testid={`mapping-confirm-${m.control_id}`}>Confirm</button>}
             <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => { setReject(m); setErr(""); }} data-testid={`mapping-reject-${m.control_id}`}>Reject mapping</button></div>}</td></tr>)}
       </tbody></table></TableScroll>}
+      {related.length > 0 && <details className="mt-2 text-[11px]" data-testid="possible-related-controls"><summary className="cursor-pointer text-slate-600">Possible related controls – low confidence, not proposed ({related.length})</summary>
+        <p className="my-1 text-slate-600">This policy declares its controls by ID. These other-family controls only matched by name, so no review item was created. Map one yourself if it applies.</p>
+        {related.map((r) => <div key={r.control_id} className="border-t border-slate-100 py-1" data-testid={`possible-related-${r.control_id}`}><span className="font-mono font-semibold">{fmtId(r.control_id)}</span> · {r.basis}
+          {(r.matched_text || []).slice(0, 1).map((t: string, i: number) => <div key={i} className="text-slate-700">“{t}”</div>)}
+          {canMap && <button className="text-blue-800 underline" onClick={() => setOpen([r.control_id])} data-testid={`possible-related-map-${r.control_id}`}>Map this control</button>}</div>)}</details>}
       <details className="mt-2 text-[11px]" data-testid="mapping-history"><summary className="cursor-pointer text-slate-600">Mapping history ({(data.mapping_history || []).length} entries – every decision is kept)</summary>
         {(data.mapping_history || []).map((h: Row) => <div key={h.id}>{new Date(h.created_at).toLocaleString()} · {fmtId(h.control_id)} · {STATUS[h.status] ?? h.status} · {basisText(h.source)}{h.decider_name ? ` · ${h.decider_name}` : ""}{h.valid_to ? " (replaced by a later decision)" : ""}</div>)}</details>
       {sbs && <SideBySideReview policyId={policyId} controlId={sbs} canDecide={canMap} onClose={() => setSbs(null)} onChanged={reload} />}

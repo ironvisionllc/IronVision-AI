@@ -68,6 +68,8 @@ class Provider(AIProvider):
         body = {"model": model, "max_tokens": request.max_tokens,
                 "temperature": self.temperature if request.temperature is None else request.temperature,
                 "messages": [{"role": "system", "content": system}, {"role": "user", "content": request.user}]}
+        if request.reasoning_effort and self.name == "openrouter":
+            body["reasoning"] = {"effort": request.reasoning_effort, "exclude": True}
         if mode == "json_schema":
             body["response_format"] = {"type": "json_schema", "json_schema": {
                 "name": request.schema_name or "output", "strict": True, "schema": request.json_schema}}

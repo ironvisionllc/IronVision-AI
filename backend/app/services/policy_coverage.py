@@ -191,7 +191,7 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
         return r
     if concept in ("frequency", "events"):
         rx = FREQ if concept == "frequency" else EVENTS
-        both = {i for i, h in enumerate(sents) if re.search(r"\bboth\b", h[2], re.I) and any(_about(sents[j][2], target) for j in range(max(0, i - 3), i))}
+        both = {i for i, h in enumerate(sents) if re.search(r"\bboth\b", h[2], re.I) and any(_about(sents[j][2], target) for j in range(max(0, i - 6), i))}  # 6: "(RA-1c.2)" splits into fragments
         about = {i for i, h in enumerate(sents) if _about(h[2], target)} | both  # "an out-of-cycle review of both shall follow …" refers back
         rev = [h for h in sents if re.search(r"review|updat|revis", h[2], re.I)]
         ab = {id(sents[i]) for i in about}
@@ -205,7 +205,7 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
         if [h for h in rev if id(h) in ab]:
             r.update(status="partial", confidence="Medium", snippets=_snip(text, [h for h in rev if id(h) in ab]),
                      reason=f"The policy says the {target} is reviewed, but it does not state the {what} for the {target}."
-                     + (f" (A {what} is stated elsewhere in the document, for something else.)" if other else ""))
+                     + (" The document states one for something else, not for the " + target + "." if other else ""))
         else:
             r.update(reason=f"No {what} is stated for the {target}.")
         r["needs"] = (f"Add: “The {fam} {target} is reviewed and updated at least annually.”" if concept == "frequency"

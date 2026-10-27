@@ -134,6 +134,7 @@ class PromptTemplate:
     user_template: str
     output_model: type[BaseModel]
     max_tokens: int = 300
+    reasoning_effort: str | None = None
 
     def render(self, **variables: str) -> str:
         return self.user_template.format(**variables)
@@ -275,6 +276,7 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
                        "each description under 40 words."),
         output_model=PolicyAuditOutput,
         max_tokens=4000,
+        reasoning_effort="low",  # 1.0.0/first 1.1.0 runs: ~3.9k of the 4k budget went to hidden reasoning → "reply cut off"
     ),
 }
 

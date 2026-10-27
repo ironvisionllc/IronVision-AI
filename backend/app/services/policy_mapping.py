@@ -17,6 +17,10 @@ CONF_RANK = {"High": 0, "Medium": 1, "Low": 2}
 
 def _sentence(text: str, start: int, end: int) -> str:
     from app.services.rmf import sentence_at
+    ls, le = text.rfind("\n", 0, start) + 1, text.find("\n", end)
+    line = text[ls:le if le >= 0 else len(text)]
+    if " | " in line:  # table row (e.g. traceability matrix): the whole row, not cut at "8.2"
+        return line.strip()[:300]
     s, e = sentence_at(text, start, end)
     return text[s:e].strip()[:300]
 
@@ -71,7 +75,8 @@ def extract_mappings(db: Session, text: str, detail: dict | None = None) -> list
         if source not in m["sources"]:
             m["sources"].append(source)
             m["basis"].append(basis)
-        if snippet and snippet not in m["snippets"] and len(m["snippets"]) < 4:
+        row = bool(snippet) and " | " in snippet and bool(CID_RX.match(snippet)) and source == "explicit_id"  # matrix row naming this control
+        if snippet and snippet not in m["snippets"] and (len(m["snippets"]) < 4 or (row and sum(" | " in x for x in m["snippets"]) < 2)):
             m["snippets"].append(snippet)
         if part and part not in m["parts"]:
             m["parts"].append(part)
@@ -106,7 +111,7 @@ def extract_mappings(db: Session, text: str, detail: dict | None = None) -> list
         if i >= 0:
             add(r.control_id, "Low", "title_language", f"control title “{r.title}” appears in the text", _sentence(text, i, i + len(t)))
     declared = {c.split("-")[0] for c, m in out.items() if "explicit_id" in m["sources"]}
-    related = [m for c, m in out.items() if declared and m["sources"] == ["title_language"] and c.split("-")[0] not in declared]
+    related = [m for c, m in out.items() if declared and set(m["sources"]) <= {"title_language", "statement_language"} and c.split("-")[0] not in declared]
     for m in related:
         del out[m["control_id"]]
     ns = _not_selected(text, known)
