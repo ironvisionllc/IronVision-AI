@@ -55,7 +55,7 @@ def score(label: str) -> dict:
         "negative_maps": sorted(neg & {c for c, s in maps.items() if s == "proposed"}),
         "negative_rows": sorted(neg & rowctl),
         "negative_findings": sorted({c for c, _ in finds if c in neg}),
-        "remote_access_mentions": sum(bool(re.search(r"remote access|\bac-17\b", (d or "") + " " + (r.get("reason") or ""), re.I))
+        "remote_access_mentions": 0 if "ac-17" not in neg else sum(bool(re.search(r"remote access|\bac-17\b", (d or "") + " " + (r.get("reason") or ""), re.I))
                                       for d, r in [(d, {}) for _, d in finds] + [("", r) for r in run["rows"]]),
         "not_selected_gap_rows": sorted({c for c in GOLD["not_selected"] if c in rowctl}),
         "not_selected_missing_flag": sorted(set(GOLD["not_selected"]) - set(analysis.get("not_selected") or {})),

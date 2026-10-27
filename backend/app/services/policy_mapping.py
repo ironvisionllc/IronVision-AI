@@ -111,7 +111,8 @@ def extract_mappings(db: Session, text: str, detail: dict | None = None) -> list
         if i >= 0:
             add(r.control_id, "Low", "title_language", f"control title “{r.title}” appears in the text", _sentence(text, i, i + len(t)))
     declared = {c.split("-")[0] for c, m in out.items() if "explicit_id" in m["sources"]}
-    related = [m for c, m in out.items() if declared and set(m["sources"]) <= {"title_language", "statement_language"} and c.split("-")[0] not in declared]
+    explicit = {c for c, m in out.items() if "explicit_id" in m["sources"]}  # a policy that declares controls by ID: name-only matches are not review items
+    related = [m for c, m in out.items() if declared and set(m["sources"]) <= {"title_language", "statement_language"} and c not in explicit]
     for m in related:
         del out[m["control_id"]]
     ns = _not_selected(text, known)

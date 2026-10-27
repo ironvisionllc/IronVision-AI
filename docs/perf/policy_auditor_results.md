@@ -86,3 +86,28 @@ In every RA run after the fixes:
 - Full policy text is sent each time (truncated at 24k chars), so on p284 most input tokens are repeated policy text: 3.2M input tokens, 422 calls.
 - Deterministic stage on p284 was 140 s and computed twice. It was memoised and indexed for **both** analyzers: identical results, about 10× faster.
 - The baseline p284 numbers were measured before that change.
+
+## Tester round 2: evidence guard and generalisation (AC / SC demo policies)
+
+Gold sets:
+- `ra_raven.gold.json`: the user's RA policy, 156 requirements.
+- `ac_raven.gold.json`: 194 requirements, 24 deliberate gaps, with AC-17 remote access as a positive case.
+- `sc_raven.gold.json`: 151 requirements, 18 deliberate gaps.
+
+Each set also has negative controls (15 per policy), not-selected and withdrawn controls. The AC/SC policies are SYNTHETIC demo-style DOCX files built by `scripts/perf/make_demo_policies.py`: numbered sections, tables, part tags, a traceability matrix, and not-selected / withdrawn / inherited lines. Scorer: `GOLD=<file> scripts/perf/score_ra.py <run>`.
+
+| policy | analyzer | wall | AI calls | cost | precision | recall | exact | false gaps | gold gaps flagged | citation validity | off-subject met quotes | review items | possible related | violations |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| RA (user) | v-current | 31.1 s | 24 | $0.64 | 0.987 | 0.981 | 0.660 | 2 | 4/4 | 1.0 | 0 | 22 | 19 | none |
+| RA (user) | **v2** | 16.1 s | 6 | $0.24 | 0.987 | **1.000** | **0.699** | **0** | 4/4 | 1.0 | 0 | 22 | 19 | none |
+| AC demo | v-current | 48.2 s | 29 | $0.43 | 0.909 | 1.000 | 0.732 | 0 | 23/24 | 1.0 | 0 | 18 | 8 | none |
+| AC demo | **v2** | 14.7 s | 8 | $0.23 | 0.909 | 1.000 | 0.701 | 0 | 24/24 | 1.0 | 0 | 18 | 8 | none |
+| SC demo | v-current | 28.9 s | 25 | $0.34 | 0.917 | 1.000 | 0.821 | 0 | 18/18 | 1.0 | 0 | 21 | 9 | none |
+| SC demo | **v2** | 14.2 s | 6 | $0.17 | 0.924 | 1.000 | 0.815 | 0 | 18/18 | 1.0 | 0 | 21 | 9 | none |
+
+Before and after the evidence guard, for RA under v2 (`ra_v2_first` → `ra_v2_final`):
+- Recall 0.948 → 1.000.
+- False gaps on met requirements 6 → 0.
+- Met quotes that do not address the requirement's subject 32 → 0. The scorer ignores xx-1 policy-element rows, which legitimately quote section headings.
+
+How to read precision: it treats any met or partial result as "addressed". Deliberate gaps that the analyzer flags as *partial* therefore count against precision, even though they are shown to the reviewer as gaps. "Gold gaps flagged" counts them as found.

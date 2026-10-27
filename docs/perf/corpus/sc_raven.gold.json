@@ -1,0 +1,1088 @@
+{
+ "document": "backend/tests/fixtures/policies/sc_policy_raven_demo.docx (SYNTHETIC demo, built by scripts/perf/make_demo_policies.py)",
+ "labelled_by": "construction: in-scope control parts are written to be addressed except the listed deliberate gaps",
+ "requirements": [
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-001075",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-001076",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-001077",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-001079",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-001080",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-001081",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-002378",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-002380",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004852",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004853",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004854",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004855",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004856",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004857",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004858",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004859",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004860",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004861",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004862",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004863",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "CCI-004864",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a-1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a-2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a-3",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a-4",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a.1.a-1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a.1.a-2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a.1.a-3",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a.1.a-4",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a.1.a-5",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a.1.a-6",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a.1.a-7",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.a.1.b",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.c.1-1",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.c.1-2",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.c.2-1",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-1",
+   "requirement_id": "sc-1_obj.c.2-2",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-5",
+   "requirement_id": "CCI-001093",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-5",
+   "requirement_id": "CCI-002385",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-5",
+   "requirement_id": "CCI-004866",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "The controls employed per DoS type are not stated as a separate objective."
+  },
+  {
+   "control_id": "sc-5",
+   "requirement_id": "CCI-004867",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "The controls employed per DoS type are not stated as a separate objective."
+  },
+  {
+   "control_id": "sc-5",
+   "requirement_id": "sc-5_obj.a",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-5",
+   "requirement_id": "sc-5_obj.b",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "The controls employed per DoS type are not stated as a separate objective."
+  },
+  {
+   "control_id": "sc-7",
+   "requirement_id": "CCI-001097",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7",
+   "requirement_id": "CCI-001098",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7",
+   "requirement_id": "CCI-002395",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "Separation of publicly accessible components is not stated."
+  },
+  {
+   "control_id": "sc-7",
+   "requirement_id": "CCI-004868",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7",
+   "requirement_id": "sc-7_obj.a-1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7",
+   "requirement_id": "sc-7_obj.a-2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7",
+   "requirement_id": "sc-7_obj.a-3",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7",
+   "requirement_id": "sc-7_obj.a-4",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7",
+   "requirement_id": "sc-7_obj.b",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "Separation of publicly accessible components is not stated."
+  },
+  {
+   "control_id": "sc-7",
+   "requirement_id": "sc-7_obj.c",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.3",
+   "requirement_id": "CCI-001101",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.3",
+   "requirement_id": "sc-7.3_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "CCI-001102",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "CCI-001103",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "CCI-001105",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "CCI-001106",
+   "part": "e",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "CCI-001107",
+   "part": "e",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "CCI-001108",
+   "part": "e",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "CCI-002396",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "CCI-004869",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "CCI-004870",
+   "part": "g",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "CCI-004871",
+   "part": "h",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "sc-7.4_obj.a",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "sc-7.4_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "sc-7.4_obj.c-1",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "sc-7.4_obj.c-2",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "sc-7.4_obj.d",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "sc-7.4_obj.e-1",
+   "part": "e",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "sc-7.4_obj.e-2",
+   "part": "e",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "sc-7.4_obj.f",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "sc-7.4_obj.g",
+   "part": "g",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.4",
+   "requirement_id": "sc-7.4_obj.h",
+   "part": "h",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.5",
+   "requirement_id": "CCI-001109",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.5",
+   "requirement_id": "CCI-004872",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.5",
+   "requirement_id": "sc-7.5_obj-1",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.5",
+   "requirement_id": "sc-7.5_obj-2",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.7",
+   "requirement_id": "CCI-002397",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.7",
+   "requirement_id": "CCI-004873",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-7.7",
+   "requirement_id": "sc-7.7_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-8",
+   "requirement_id": "CCI-002418",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-8",
+   "requirement_id": "sc-8_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-8.1",
+   "requirement_id": "CCI-002421",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-8.1",
+   "requirement_id": "sc-8.1_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-10",
+   "requirement_id": "CCI-001133",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-10",
+   "requirement_id": "CCI-001134",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-10",
+   "requirement_id": "sc-10_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002428",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002429",
+   "part": "-",
+   "label": "not_addressed",
+   "note": "Only key generation and storage are stated."
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002430",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002431",
+   "part": "-",
+   "label": "not_addressed",
+   "note": "Only key generation and storage are stated."
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002432",
+   "part": "-",
+   "label": "not_addressed",
+   "note": "Only key generation and storage are stated."
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002433",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002434",
+   "part": "-",
+   "label": "not_addressed",
+   "note": "Only key generation and storage are stated."
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002435",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002436",
+   "part": "-",
+   "label": "not_addressed",
+   "note": "Only key generation and storage are stated."
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002437",
+   "part": "-",
+   "label": "not_addressed",
+   "note": "Only key generation and storage are stated."
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002438",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002439",
+   "part": "-",
+   "label": "not_addressed",
+   "note": "Only key generation and storage are stated."
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002440",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002441",
+   "part": "-",
+   "label": "not_addressed",
+   "note": "Only key generation and storage are stated."
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "CCI-002442",
+   "part": "-",
+   "label": "not_addressed",
+   "note": "Only key generation and storage are stated."
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "sc-12_obj-1",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-12",
+   "requirement_id": "sc-12_obj-2",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-13",
+   "requirement_id": "CCI-002449",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-13",
+   "requirement_id": "CCI-002450",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-13",
+   "requirement_id": "CCI-004900",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-13",
+   "requirement_id": "sc-13_obj.a",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-13",
+   "requirement_id": "sc-13_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-17",
+   "requirement_id": "CCI-001159",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-17",
+   "requirement_id": "CCI-002456",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-17",
+   "requirement_id": "CCI-004909",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-17",
+   "requirement_id": "sc-17_obj.a",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-17",
+   "requirement_id": "sc-17_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-20",
+   "requirement_id": "CCI-001178",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-20",
+   "requirement_id": "CCI-001179",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "Chain-of-trust / child-subspace security status is not stated."
+  },
+  {
+   "control_id": "sc-20",
+   "requirement_id": "CCI-001663",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "Chain-of-trust / child-subspace security status is not stated."
+  },
+  {
+   "control_id": "sc-20",
+   "requirement_id": "CCI-002462",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-20",
+   "requirement_id": "sc-20_obj.a-1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-20",
+   "requirement_id": "sc-20_obj.a-2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-20",
+   "requirement_id": "sc-20_obj.b-1",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "Chain-of-trust / child-subspace security status is not stated."
+  },
+  {
+   "control_id": "sc-20",
+   "requirement_id": "sc-20_obj.b-2",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "Chain-of-trust / child-subspace security status is not stated."
+  },
+  {
+   "control_id": "sc-21",
+   "requirement_id": "CCI-002465",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-21",
+   "requirement_id": "CCI-002466",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-21",
+   "requirement_id": "CCI-002467",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-21",
+   "requirement_id": "CCI-002468",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-21",
+   "requirement_id": "sc-21_obj-1",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-21",
+   "requirement_id": "sc-21_obj-2",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-21",
+   "requirement_id": "sc-21_obj-3",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-21",
+   "requirement_id": "sc-21_obj-4",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-22",
+   "requirement_id": "CCI-001182",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-22",
+   "requirement_id": "CCI-001183",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-22",
+   "requirement_id": "sc-22_obj-1",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-22",
+   "requirement_id": "sc-22_obj-2",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-22",
+   "requirement_id": "sc-22_obj-3",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-23",
+   "requirement_id": "CCI-001184",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-23",
+   "requirement_id": "sc-23_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-28",
+   "requirement_id": "CCI-001199",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-28",
+   "requirement_id": "CCI-002472",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-28",
+   "requirement_id": "sc-28_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-28.1",
+   "requirement_id": "CCI-002473",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-28.1",
+   "requirement_id": "CCI-002474",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-28.1",
+   "requirement_id": "CCI-002475",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-28.1",
+   "requirement_id": "CCI-002476",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-28.1",
+   "requirement_id": "sc-28.1_obj-1",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-28.1",
+   "requirement_id": "sc-28.1_obj-2",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-39",
+   "requirement_id": "CCI-002530",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "sc-39",
+   "requirement_id": "sc-39_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  }
+ ],
+ "not_selected": {
+  "sc-15": "SC-15 is not selected for The Raven: the system has no collaborative computing devices."
+ },
+ "withdrawn": [
+  "sc-9",
+  "sc-14"
+ ],
+ "negative_controls": [
+  "ac-17",
+  "ac-2",
+  "ac-6",
+  "ra-3",
+  "ra-5",
+  "ia-2",
+  "au-6",
+  "cp-9",
+  "ir-4",
+  "cm-6",
+  "pe-3",
+  "si-4",
+  "ps-3",
+  "mp-6",
+  "ca-7"
+ ],
+ "negative_rule": "never a proposed map, coverage row (gap or covered) or audit finding"
+}

@@ -1,0 +1,1391 @@
+{
+ "document": "backend/tests/fixtures/policies/ac_policy_raven_demo.docx (SYNTHETIC demo, built by scripts/perf/make_demo_policies.py)",
+ "labelled_by": "construction: in-scope control parts are written to be addressed except the listed deliberate gaps",
+ "requirements": [
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-000002",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-000003",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-000005",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-000006",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-001545",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-001546",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-002107",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-002108",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003601",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003602",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003603",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003604",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003605",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003606",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003607",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003608",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003609",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003610",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "CCI-003611",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a-1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a-2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a-3",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a-4",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a.1.a-1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a.1.a-2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a.1.a-3",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a.1.a-4",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a.1.a-5",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a.1.a-6",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a.1.a-7",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.a.1.b",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.c.1-1",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.c.1-2",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.c.2-1",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-1",
+   "requirement_id": "ac-1_obj.c.2-2",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-000010",
+   "part": "e",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-000011",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-000012",
+   "part": "j",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-001547",
+   "part": "j",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002112",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002115",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002116",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002117",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002118",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002119",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002120",
+   "part": "e",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002121",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002122",
+   "part": "g",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002123",
+   "part": "h",
+   "label": "not_addressed",
+   "note": "Notification of account managers (time periods) is not stated."
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002124",
+   "part": "h",
+   "label": "not_addressed",
+   "note": "Notification of account managers (time periods) is not stated."
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002125",
+   "part": "h",
+   "label": "not_addressed",
+   "note": "Notification of account managers (time periods) is not stated."
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002126",
+   "part": "i",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002127",
+   "part": "i",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002128",
+   "part": "i",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-002129",
+   "part": "k",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003612",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003613",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003614",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003615",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003616",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003617",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003618",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003619",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003620",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003621",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003622",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003623",
+   "part": "h",
+   "label": "not_addressed",
+   "note": "Notification of account managers (time periods) is not stated."
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003624",
+   "part": "h",
+   "label": "not_addressed",
+   "note": "Notification of account managers (time periods) is not stated."
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003625",
+   "part": "i",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "CCI-003626",
+   "part": "l",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.a-1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.a-2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.c",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.d.1",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.d.2",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.d.3-1",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.d.3-2",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.e",
+   "part": "e",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.f-1",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.f-2",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.f-3",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.f-4",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.f-5",
+   "part": "f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.g",
+   "part": "g",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.h.1",
+   "part": "h",
+   "label": "not_addressed",
+   "note": "Notification of account managers (time periods) is not stated."
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.h.2",
+   "part": "h",
+   "label": "not_addressed",
+   "note": "Notification of account managers (time periods) is not stated."
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.h.3",
+   "part": "h",
+   "label": "not_addressed",
+   "note": "Notification of account managers (time periods) is not stated."
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.i.1",
+   "part": "i",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.i.2",
+   "part": "i",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.i.3",
+   "part": "i",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.j",
+   "part": "j",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.k-1",
+   "part": "k",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.k-2",
+   "part": "k",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.l-1",
+   "part": "l",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2",
+   "requirement_id": "ac-2_obj.l-2",
+   "part": "l",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.2",
+   "requirement_id": "CCI-000016",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.2",
+   "requirement_id": "CCI-001361",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.2",
+   "requirement_id": "CCI-001365",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.2",
+   "requirement_id": "CCI-001682",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.2",
+   "requirement_id": "ac-2.2_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.3",
+   "requirement_id": "CCI-000017",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.3",
+   "requirement_id": "CCI-000217",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.3",
+   "requirement_id": "CCI-003627",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.3",
+   "requirement_id": "CCI-003628",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.3",
+   "requirement_id": "CCI-003629",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.3",
+   "requirement_id": "ac-2.3_obj.a",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.3",
+   "requirement_id": "ac-2.3_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.3",
+   "requirement_id": "ac-2.3_obj.c",
+   "part": "c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-2.3",
+   "requirement_id": "ac-2.3_obj.d",
+   "part": "d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-3",
+   "requirement_id": "CCI-000213",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-3",
+   "requirement_id": "ac-3_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6",
+   "requirement_id": "CCI-000225",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6",
+   "requirement_id": "ac-6_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.1",
+   "requirement_id": "CCI-001558",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.1",
+   "requirement_id": "CCI-002221",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.1",
+   "requirement_id": "CCI-002222",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.1",
+   "requirement_id": "CCI-002223",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.1",
+   "requirement_id": "CCI-003685",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.1",
+   "requirement_id": "CCI-003686",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.1",
+   "requirement_id": "ac-6.1_obj.a-1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.1",
+   "requirement_id": "ac-6.1_obj.a-2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.1",
+   "requirement_id": "ac-6.1_obj.a-3",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.1",
+   "requirement_id": "ac-6.1_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.2",
+   "requirement_id": "CCI-000039",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.2",
+   "requirement_id": "CCI-001419",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-6.2",
+   "requirement_id": "ac-6.2_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-7",
+   "requirement_id": "CCI-000043",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-7",
+   "requirement_id": "CCI-000044",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-7",
+   "requirement_id": "CCI-001423",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-7",
+   "requirement_id": "CCI-002236",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "No action when the logon limit is exceeded."
+  },
+  {
+   "control_id": "ac-7",
+   "requirement_id": "CCI-002237",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "No action when the logon limit is exceeded."
+  },
+  {
+   "control_id": "ac-7",
+   "requirement_id": "CCI-002238",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "No action when the logon limit is exceeded."
+  },
+  {
+   "control_id": "ac-7",
+   "requirement_id": "ac-7_obj.a",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-7",
+   "requirement_id": "ac-7_obj.b",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "No action when the logon limit is exceeded."
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-000048",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-000050",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-001384",
+   "part": "c",
+   "label": "not_addressed",
+   "note": "Publicly accessible system conditions are not stated."
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-001385",
+   "part": "c",
+   "label": "not_addressed",
+   "note": "Publicly accessible system conditions are not stated."
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-001386",
+   "part": "c",
+   "label": "not_addressed",
+   "note": "Publicly accessible system conditions are not stated."
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-001387",
+   "part": "c",
+   "label": "not_addressed",
+   "note": "Publicly accessible system conditions are not stated."
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-001388",
+   "part": "c",
+   "label": "not_addressed",
+   "note": "Publicly accessible system conditions are not stated."
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-002243",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-002244",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-002245",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-002246",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-002247",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "CCI-002248",
+   "part": "c",
+   "label": "not_addressed",
+   "note": "Publicly accessible system conditions are not stated."
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "ac-8_obj.a",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "ac-8_obj.a.1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "ac-8_obj.a.2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "ac-8_obj.a.3",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "ac-8_obj.a.4",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "ac-8_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "ac-8_obj.c.1",
+   "part": "c",
+   "label": "not_addressed",
+   "note": "Publicly accessible system conditions are not stated."
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "ac-8_obj.c.2",
+   "part": "c",
+   "label": "not_addressed",
+   "note": "Publicly accessible system conditions are not stated."
+  },
+  {
+   "control_id": "ac-8",
+   "requirement_id": "ac-8_obj.c.3",
+   "part": "c",
+   "label": "not_addressed",
+   "note": "Publicly accessible system conditions are not stated."
+  },
+  {
+   "control_id": "ac-11",
+   "requirement_id": "CCI-000056",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-11",
+   "requirement_id": "CCI-000057",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-11",
+   "requirement_id": "CCI-000059",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-11",
+   "requirement_id": "ac-11_obj.a",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-11",
+   "requirement_id": "ac-11_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-12",
+   "requirement_id": "CCI-002360",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-12",
+   "requirement_id": "CCI-002361",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-12",
+   "requirement_id": "ac-12_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17",
+   "requirement_id": "CCI-000065",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17",
+   "requirement_id": "CCI-002310",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17",
+   "requirement_id": "CCI-002311",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17",
+   "requirement_id": "CCI-002312",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17",
+   "requirement_id": "ac-17_obj.a-1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17",
+   "requirement_id": "ac-17_obj.a-2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17",
+   "requirement_id": "ac-17_obj.a-3",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17",
+   "requirement_id": "ac-17_obj.b",
+   "part": "b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.1",
+   "requirement_id": "CCI-000067",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.1",
+   "requirement_id": "CCI-002314",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.1",
+   "requirement_id": "ac-17.1_obj-1",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.1",
+   "requirement_id": "ac-17.1_obj-2",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.2",
+   "requirement_id": "CCI-000068",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.2",
+   "requirement_id": "CCI-001453",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.2",
+   "requirement_id": "ac-17.2_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.3",
+   "requirement_id": "CCI-000069",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.3",
+   "requirement_id": "ac-17.3_obj",
+   "part": "-",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "CCI-000070",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "CCI-002316",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "CCI-002317",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "CCI-002318",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "CCI-002319",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "Rationale for remote privileged access is not documented in the policy."
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "CCI-002320",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "Rationale for remote privileged access is not documented in the policy."
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "ac-17.4_obj.a-1",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "ac-17.4_obj.a-2",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "ac-17.4_obj.a-3",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "ac-17.4_obj.a-4",
+   "part": "a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ac-17.4",
+   "requirement_id": "ac-17.4_obj.b",
+   "part": "b",
+   "label": "not_addressed",
+   "note": "Rationale for remote privileged access is not documented in the policy."
+  }
+ ],
+ "not_selected": {
+  "ac-2.6": "AC-2(6) Dynamic Privilege Management is not selected for The Raven."
+ },
+ "withdrawn": [
+  "ac-2.10",
+  "ac-17.5",
+  "ac-17.7",
+  "ac-17.8"
+ ],
+ "negative_controls": [
+  "ra-3",
+  "ra-5",
+  "sc-7",
+  "sc-8",
+  "sc-13",
+  "sc-28",
+  "cp-9",
+  "ir-4",
+  "au-6",
+  "cm-6",
+  "si-4",
+  "pe-3",
+  "mp-6",
+  "ps-3",
+  "ca-7"
+ ],
+ "negative_rule": "never a proposed map, coverage row (gap or covered) or audit finding"
+}
