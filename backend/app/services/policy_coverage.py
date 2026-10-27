@@ -2,6 +2,7 @@
 assessment objectives) and decide MET / PARTIAL / MISSING from the policy text with deterministic keyword/section heuristics.
 Each result keeps the matched snippet(s) with page/section, a confidence, the reason, any organization-defined value found
 (e.g. review frequency) and – when not met – what text would satisfy it. Nothing here changes a control status."""
+import functools
 import hashlib
 import logging
 import re
@@ -74,8 +75,25 @@ def classify(text: str) -> tuple[str, str, str | None]:
     return "generic", tgt, None
 
 
+@functools.lru_cache(maxsize=2)  # cleared after each analysis
 def _sentences(text: str):
     return [(m.start(), m.end(), m.group().strip()) for m in re.finditer(r"[^.\n]+\.?", text) if len(m.group().strip()) > 3]
+
+
+@functools.lru_cache(maxsize=2)
+def _wordsets(text: str) -> list:
+    return [set(re.findall(r"[a-z]{5,}", h[2].lower())) for h in _sentences(text)]
+
+
+@functools.lru_cache(maxsize=64)
+def _rx_hits(text: str, rx: str) -> tuple:
+    c = re.compile(rx, re.I)
+    return tuple(i for i, h in enumerate(_sentences(text)) if c.search(h[2]))
+
+
+def _clear_text_caches() -> None:
+    for f in (_sentences, _wordsets, _rx_hits):
+        f.cache_clear()
 
 
 def _about(s: str, target: str) -> bool:
@@ -102,7 +120,7 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
 
     if concept == "element":
         rx = dict(ELEMENTS)[elem]
-        hits = [h for h in sents if re.search(rx, h[2], re.I)]
+        hits = [sents[i] for i in _rx_hits(text, rx)]
         if hits:
             return found(hits, f"The policy addresses {elem}.")
         r.update(reason=f"No statement addressing {elem} was found.", needs=f"Add a section or sentence on {elem} for the {fam} policy.")
@@ -110,7 +128,7 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
     if concept in ("develop_elements", "develop") and target != "procedures":
         have = [e for e, rx in ELEMENTS if re.search(rx, low)]
         miss = [e for e, _ in ELEMENTS if e not in have]
-        hits = [h for h in sents if any(re.search(rx, h[2], re.I) for _, rx in ELEMENTS)]
+        hits = [sents[i] for i in sorted(set().union(*(_rx_hits(text, rx) for _, rx in ELEMENTS)))]
         if concept == "develop":
             if len(have) >= 3:
                 return found(hits, f"A documented {fam} policy with {len(have)} of 7 policy elements.")
@@ -190,8 +208,10 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
                       else f"Add: “The {fam} {target} is reviewed and updated following significant changes, incidents or assessment findings.”")
         return r
     words = {w for w in re.findall(r"[a-z]{5,}", req_text.lower())} - {"organization", "defined", "assignment", "selection", "system", "policy", "controls"}
-    best = max(sents, key=lambda h: len(words & set(re.findall(r"[a-z]{5,}", h[2].lower()))), default=None)
-    score = len(words & set(re.findall(r"[a-z]{5,}", best[2].lower()))) / max(len(words), 1) if best else 0
+    ws = _wordsets(text)
+    bi = max(range(len(sents)), key=lambda i: len(words & ws[i]), default=None)
+    best = sents[bi] if bi is not None else None
+    score = len(words & ws[bi]) / max(len(words), 1) if best else 0
     req = re.sub(r"\s+", " ", req_text).strip()
     short = req if len(req) <= 220 else req[:217].rsplit(" ", 1)[0] + "…"
     if best and score >= 0.5:  # no keyword lists in the output: requirement, verbatim sentence, and an explicit manual-review ask
@@ -328,6 +348,7 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
                                             linked=prev.linked if prev else None)
             db.add(row)
             out.append(row)
+    _clear_text_caches()
     _S1.clear()  # the deterministic memo lives only for one analysis (no long-lived cache of customer content)
     if v2_stats is not None:
         policy.analysis = {**(policy.analysis or {}), "v2": {k: v for k, v in v2_stats.items() if k != "not_examined_ids"}}
