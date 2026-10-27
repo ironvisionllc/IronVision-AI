@@ -287,8 +287,7 @@ def extract_text(file_name: str, data: bytes) -> str:
         from pypdf import PdfReader
         return "\n\f".join(p.extract_text() or "" for p in PdfReader(io.BytesIO(data)).pages)
     if ext == "docx":
-        import docx
-        return "\n".join(_docx_para(p) for p in docx.Document(io.BytesIO(data)).paragraphs)
+        return _docx_text(data)
     if ext == "txt":
         return data.decode("utf-8", errors="replace")
     raise HTTPException(422, "Supported policy formats: PDF, DOCX, TXT")
@@ -315,7 +314,32 @@ def sentence_at(text: str, start: int, end: int) -> tuple[int, int]:
     return s, e
 
 
-TEXT_VERSION = "text-2"  # pdf per-page form feeds + docx page-break markers; older policies are re-extracted from the stored file
+TEXT_VERSION = "text-3"  # text-3: docx tables extracted; text-2: pdf per-page form feeds + docx page-break markers; older policies are re-extracted from the stored file
+
+
+def _docx_text(data: bytes) -> str:
+    """Paragraphs AND tables in document order (tables were dropped before: traceability matrices, schedules, timelines).
+    Each table row becomes one line "cell | cell | …"; a merged cell is emitted once."""
+    import docx
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
+    d = docx.Document(io.BytesIO(data))
+    out = []
+    for el in d.element.body.iterchildren():
+        tag = el.tag.rsplit("}", 1)[-1]
+        if tag == "p":
+            out.append(_docx_para(Paragraph(el, d)))
+        elif tag == "tbl":
+            for row in Table(el, d).rows:
+                cells, seen = [], []
+                for c in row.cells:
+                    if any(c._tc is x for x in seen):
+                        continue
+                    seen.append(c._tc)
+                    cells.append(" ".join(c.text.split()))
+                if any(cells):
+                    out.append(" | ".join(cells))
+    return "\n".join(out)
 
 
 def _docx_para(p) -> str:
@@ -407,8 +431,11 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
     from app.models import Control
     from app.services import policy_mapping as pm
 
-    mappings = pm.extract_mappings(db, policy.text_content or "")
+    det: dict = {}
+    mappings = pm.extract_mappings(db, policy.text_content or "", det)
     families = {m["control_id"].split("-")[0] for m in mappings}
+    in_scope = {m["control_id"].split("-")[0] for m in mappings if m["sources"] != ["title_language"]} or families
+    dropped_scope = []
     top1 = next((m["control_id"] for m in mappings if re.fullmatch(r"[a-z]{2}-1", m["control_id"])), None)
     ex = rule_extract(policy.text_content or "", families, top1)
     pm.store_proposals(db, policy, mappings)
@@ -440,12 +467,20 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
             cid = (s.get("control_id") or "").lower().replace("(", ".").replace(")", "").strip()
             if cid not in known:
                 continue  # unknown control IDs from AI are dropped (validated against catalog)
+            if cid.split("-")[0] not in in_scope or cid in det["not_selected"]:  # e.g. AC-17 for an RA policy – never a gap of this policy
+                if sid == uuid.UUID((policy.system_ids or [None])[0]):
+                    dropped_scope.append({"control_id": cid, "description": (s.get("description") or "")[:300]})
+                continue
             vq = verbatim_quote(policy.text_content or "", s.get("quote"))
             qtxt = vq["quote"] if vq["quote_status"] != "paraphrase" else f"[paraphrase – not a quote] {vq['quote']}"
             add(finding_type="ai_suggested_needs_validation", control_id=cid, description=s.get("description", "")[:2000], quote=(qtxt or "")[:1000],
                 origin="ai", ai_interaction_id=ai_interaction_id)
     policy.analysis_status = "analyzed"
     policy.analysis = {**ex, "text_version": (policy.analysis or {}).get("text_version"), "control_mappings": [{k: m[k] for k in ("control_id", "confidence", "sources", "basis", "snippets", "parts")} for m in mappings],
+                       "not_selected": det["not_selected"], "possible_related_controls": det["possible_related"],
+                       "counts": {"proposed_maps": len(mappings), "possible_related_not_proposed": len(det["possible_related"]),
+                                  "not_selected_flagged": len([m for m in mappings if m.get("not_selected")])},
+                       "ai_dropped_out_of_scope": dropped_scope,
                        "ai_used": ai_output is not None, "ai_dropped_unknown_controls": [s.get("control_id") for s in (ai_output or {}).get("findings", [])
                                                                                                  if (s.get("control_id") or "").lower().replace("(", ".").replace(")", "") not in known]}
     from app.services import policy_coverage as pc

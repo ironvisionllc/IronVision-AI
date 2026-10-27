@@ -262,6 +262,20 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
         output_model=PolicyAuditOutput,
         max_tokens=2500,
     ),
+    ("policy.audit", "1.1.0"): PromptTemplate(
+        prompt_id="policy.audit",
+        version="1.1.0",
+        system=("You review an organizational security policy (SYNTHETIC demo) against NIST SP 800-53 Rev 5. Identify requirements of the controls "
+                "THIS policy addresses that are vague, contradictory, or missing. Only report on control families the policy itself declares or "
+                "clearly implements – never report controls from other families (a policy that does not mention a topic is not deficient for it). "
+                "Controls the policy states are not selected, withdrawn, or inherited are not gaps – skip them. NIST organization-defined "
+                "parameters have NO universal threshold – never claim a value is wrong by itself. Respond ONLY with JSON."),
+        user_template=("Policy text:\n{text}\n\nReturn {{\"findings\": [{{\"control_id\": \"<Rev 5 control ID addressed by this policy, e.g. xx-1 or xx-2.3>\", "
+                       "\"description\": \"...\", \"quote\": \"<short exact quote from the policy, or null>\"}}]}} with at most 8 findings, "
+                       "each description under 40 words."),
+        output_model=PolicyAuditOutput,
+        max_tokens=4000,
+    ),
 }
 
 

@@ -25,7 +25,7 @@ ELEMENTS = [("purpose", r"\bpurpose\b"), ("scope", r"\bscope\b"), ("roles", r"\b
             ("coordination among organizational entities", r"\bcoordinat"), ("compliance", r"\bcomplian")]
 FREQ = (r"\b(annually|yearly|every\s+(?:\d+|one|two|three|six|twelve)\s+(?:months?|years?)|at least (?:once )?(?:annually|every\s+\d+\s+(?:months?|years?)|once (?:a|per) year)"
         r"|quarterly|biennially|semi-?annually|monthly|once (?:a|per) year)\b")
-EVENTS = (r"\b(?:following|after|upon|in response to|whenever|when)\b[^.]{0,160}?\b(incidents?|breach\w*|significant changes?|changes? (?:to|in) [a-z ]{3,40}|"
+EVENTS = (r"\b(?:follow(?:s|ing)?|after|upon|in response to|whenever|when)\b[^.]{0,160}?\b(incidents?|breach\w*|significant changes?|changes? (?:to|in) [a-z ]{3,40}|"
           r"(?:risk |security )?assessments?|audits?|findings?|new (?:laws?|regulations?|threats?)|reorgani[sz]ation|mission changes?)")
 DISSEM = r"\b(disseminat\w*|distribut\w*|communicat\w*|published|made available|provided)\b"
 RECIP = r"\b(?:to|among|with)\s+((?:all |the )?[A-Za-z][A-Za-z ,/&()-]{2,90}?)(?=[.;]|$| via | through | within | by | upon | at )"
@@ -154,7 +154,7 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
         return r
     if concept == "laws":
         hits = [h for h in sents if re.search(r"\b(laws?|executive orders?|directives?|regulations?|standards|guidelines)\b", h[2], re.I)
-                and re.search(r"complian|consistent|accordance|adhere|comply", h[2], re.I)]
+                and re.search(r"complian|consisten|accordance|adhere|comply", h[2], re.I)]
         if hits:
             return found(hits, "The policy states consistency/compliance with applicable laws, directives or standards.")
         r.update(reason="No statement of consistency with applicable laws, executive orders, directives, regulations, policies, standards and guidelines.",
@@ -191,17 +191,21 @@ def evaluate(text: str, concept: str, target: str, elem: str | None, family: str
         return r
     if concept in ("frequency", "events"):
         rx = FREQ if concept == "frequency" else EVENTS
+        both = {i for i, h in enumerate(sents) if re.search(r"\bboth\b", h[2], re.I) and any(_about(sents[j][2], target) for j in range(max(0, i - 3), i))}
+        about = {i for i, h in enumerate(sents) if _about(h[2], target)} | both  # "an out-of-cycle review of both shall follow …" refers back
         rev = [h for h in sents if re.search(r"review|updat|revis", h[2], re.I)]
-        mine = [h for h in rev if _about(h[2], target) and re.search(rx, h[2], re.I)]
+        ab = {id(sents[i]) for i in about}
+        mine = [h for h in rev if id(h) in ab and re.search(rx, h[2], re.I)]
         what = "review frequency" if concept == "frequency" else "review-triggering events"
         if mine:
             m = re.search(rx, mine[0][2], re.I)
             val = (m.group(1) if concept == "frequency" else m.group(0)).strip()
             return found(mine, f"The {target} states its {what}: “{val}”.", value=val[:255], param=f"{what} ({target})")
         other = [h for h in rev if re.search(rx, h[2], re.I)]
-        if [h for h in rev if _about(h[2], target)]:
-            r.update(status="partial", confidence="Medium", snippets=_snip(text, [h for h in rev if _about(h[2], target)]),
-                     reason=f"The {target} is said to be reviewed, but no {what} is stated for it." + (" A value is stated for something else." if other else ""))
+        if [h for h in rev if id(h) in ab]:
+            r.update(status="partial", confidence="Medium", snippets=_snip(text, [h for h in rev if id(h) in ab]),
+                     reason=f"The policy says the {target} is reviewed, but it does not state the {what} for the {target}."
+                     + (f" (A {what} is stated elsewhere in the document, for something else.)" if other else ""))
         else:
             r.update(reason=f"No {what} is stated for the {target}.")
         r["needs"] = (f"Add: “The {fam} {target} is reviewed and updated at least annually.”" if concept == "frequency"
@@ -309,7 +313,8 @@ def analyzer() -> str:
 def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: dict | None = None) -> list[PolicyRequirementCoverage]:
     """Recompute coverage for every current proposed/mapped control of this policy; covered-elsewhere overrides are kept."""
     maps = [m for m in db.scalars(select(PolicyControlMap).where(PolicyControlMap.policy_id == policy.id, PolicyControlMap.valid_to.is_(None)))
-            if m.status == "mapped" or (m.status == "proposed" and m.confidence in ("High", "Medium"))]
+            if (m.status == "mapped" or (m.status == "proposed" and m.confidence in ("High", "Medium")))
+            and m.control_id not in ((policy.analysis or {}).get("not_selected") or {})]  # "policy states not selected" → human review, never gap rows
     old = {(c.control_id, c.requirement_id): c for c in db.scalars(select(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id == policy.id))}
     text = policy.text_content or ""
     sents = _sentences(text)

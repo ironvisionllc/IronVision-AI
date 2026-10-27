@@ -42,7 +42,7 @@ def _instrument():
 def _bench_org(db, fresh: bool = False) -> uuid.UUID:
     org = None if fresh else db.scalar(select(Organization).where(Organization.name == "PERF BENCH – SYNTHETIC"))
     if org is None:
-        org = Organization(name="PERF BENCH – SYNTHETIC", slug=f"perf-bench-{uuid.uuid4().hex[:6]}", is_synthetic=True, is_sandbox=True)
+        org = Organization(name="PERF BENCH – SYNTHETIC" + (f" {uuid.uuid4().hex[:6]}" if fresh else ""), slug=f"perf-bench-{uuid.uuid4().hex[:6]}", is_synthetic=True, is_sandbox=True)
         db.add(org)
         db.commit()
     return org.id
@@ -67,6 +67,8 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=None)
     ap.add_argument("--policy-id", default=None, help="re-run an existing bench policy (cache / incremental runs)")
     ap.add_argument("--fresh-org", action="store_true", help="new SYNTHETIC org → guaranteed cold tenant cache")
+    ap.add_argument("--docx", default=None, help="use the text extracted from this DOCX/PDF (same extractor as upload) instead of a corpus .txt")
+    ap.add_argument("--with-system", action="store_true", help="attach a SYNTHETIC system so policy-audit findings are stored (as in UAT)")
     ap.add_argument("--edit-section", default=None, help="append a sentence to this heading before re-running (incremental)")
     a = ap.parse_args()
     os.environ["POLICY_ANALYZER"] = a.analyzer
@@ -74,7 +76,11 @@ def main() -> None:
         os.environ["POLICY_AI_WORKERS"] = str(a.workers)
     from worker.handlers import handle_policy_analyze
     _instrument()
-    body = (CORPUS / f"{a.corpus}.txt").read_text()
+    if a.docx:
+        from app.services.rmf import extract_text
+        body = extract_text(a.docx, Path(a.docx).read_bytes())
+    else:
+        body = (CORPUS / f"{a.corpus}.txt").read_text()
     with SessionLocal() as db:
         org = _bench_org(db, a.fresh_org)
         if a.policy_id:
@@ -85,8 +91,15 @@ def main() -> None:
                 pol.text_content = t[:i] + "\nThe organization reviews this section after every significant change." + t[i:]
                 pol.version += 1
         else:
+            sids = None
+            if a.with_system:
+                from app.models import System
+                sysm = System(id=uuid.uuid4(), org_id=org, name=f"SYNTHETIC bench system {a.corpus}")
+                db.add(sysm)
+                db.flush()
+                sids = [str(sysm.id)]
             pol = Policy(org_id=org, policy_key=f"BENCH-{a.corpus}-{uuid.uuid4().hex[:4]}", title=f"SYNTHETIC bench {a.corpus}", version=1,
-                         status="current", text_content=body, analysis_status="queued")
+                         status="current", text_content=body, analysis_status="queued", system_ids=sids)
             db.add(pol)
         db.commit()
         pid = pol.id

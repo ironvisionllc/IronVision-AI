@@ -216,7 +216,7 @@ def _policy_analyze(db: Session, pol) -> dict:
     def _audit():  # no DB access in this thread; runs concurrently with the coverage AI (was strictly before it)
         t = _t.perf_counter()
         try:
-            r = asyncio.run(svc.run("policy.audit", "1.0.0", {"text": text_[:12000]}))
+            r = asyncio.run(svc.run("policy.audit", "1.1.0", {"text": text_[:60000]}))  # 1.0.0 had "ac-17" as its example ID and saw only 12k chars
             return r.output.model_dump(), r.interaction_id, f"AI {r.model}", _t.perf_counter() - t
         except Exception as exc:  # AI failure must not block deterministic findings
             return None, None, f"AI step failed: {exc}"[:300], _t.perf_counter() - t
@@ -230,7 +230,7 @@ def _policy_analyze(db: Session, pol) -> dict:
         from app.models import PolicyControlMap
         from app.services import policy_coverage as pc
         from app.services import policy_mapping as pm
-        cids = {m["control_id"] for m in pm.extract_mappings(db, text_) if m["confidence"] in ("High", "Medium")}
+        cids = {m["control_id"] for m in pm.extract_mappings(db, text_) if m["confidence"] in ("High", "Medium") and not m.get("not_selected")}
         cids |= set(db.scalars(_sel(PolicyControlMap.control_id).where(PolicyControlMap.policy_id == pol.id, PolicyControlMap.valid_to.is_(None),
                                                                         PolicyControlMap.status == "mapped")))
         pre = pc.prefetch_ai(db, pol, cids)

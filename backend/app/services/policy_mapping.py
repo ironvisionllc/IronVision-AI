@@ -21,7 +21,37 @@ def _sentence(text: str, start: int, end: int) -> str:
     return text[s:e].strip()[:300]
 
 
-def extract_mappings(db: Session, text: str) -> list[dict]:
+NOT_SEL = re.compile(r"\bnot selected\b", re.I)
+
+
+def _not_selected(text: str, known: set) -> dict:
+    """Controls the policy itself declares "not selected": a table row whose first cell is the control and a later cell says so,
+    or prose where "not selected" follows the control ID within the same clause (no other ID in between)."""
+    out: dict = {}
+    for line in text.splitlines():
+        if not NOT_SEL.search(line):
+            continue
+        cells = line.split(" | ")
+        ids = list(CID_RX.finditer(line))
+        for i, mt in enumerate(ids):
+            fam, num, enh = mt.group(1), mt.group(2), mt.group(3)
+            cid = f"{fam.lower()}-{int(num)}" + (f".{int(enh)}" if enh else "")
+            if cid not in known:
+                continue
+            if len(cells) > 1:
+                hit = mt.start() < len(cells[0]) and len(ids[:i]) == 0 and any(NOT_SEL.search(c) for c in cells[1:])
+            else:
+                nxt = ids[i + 1].start() if i + 1 < len(ids) else len(line)
+                hit = bool(NOT_SEL.search(line[mt.end():min(nxt, mt.end() + 60)]))
+            if hit:
+                out.setdefault(cid, line.strip()[:300])
+    return out
+
+
+def extract_mappings(db: Session, text: str, detail: dict | None = None) -> list[dict]:
+    """Proposals (review items). When the policy declares its controls by explicit ID, title-only matches in OTHER families are not
+    proposed – they are returned in detail["possible_related"] (low confidence, not proposed; a reviewer can promote one manually).
+    detail["not_selected"]: controls the policy states are not selected (kept as proposals, flagged for human review, no gap rows)."""
     rows = db.execute(select(Control.control_id, Control.family_id, Control.title, Control.is_withdrawn)
                       .where(Control.catalog_version_id == _cat(db))).all()
     known = {r.control_id for r in rows if not r.is_withdrawn}
@@ -75,6 +105,19 @@ def extract_mappings(db: Session, text: str) -> list[dict]:
         i = low.find(t)
         if i >= 0:
             add(r.control_id, "Low", "title_language", f"control title “{r.title}” appears in the text", _sentence(text, i, i + len(t)))
+    declared = {c.split("-")[0] for c, m in out.items() if "explicit_id" in m["sources"]}
+    related = [m for c, m in out.items() if declared and m["sources"] == ["title_language"] and c.split("-")[0] not in declared]
+    for m in related:
+        del out[m["control_id"]]
+    ns = _not_selected(text, known)
+    for c, line in ns.items():
+        if c in out:
+            out[c]["not_selected"] = line
+            out[c]["basis"].insert(0, f"policy states not selected: “{line[:200]}”")
+    if detail is not None:
+        detail["possible_related"] = [{"control_id": m["control_id"], "confidence": "Low", "status": "possible related control (low confidence, not proposed)",
+                                       "basis": "; ".join(m["basis"]), "matched_text": m["snippets"][:2]} for m in sorted(related, key=lambda x: x["control_id"])]
+        detail["not_selected"] = ns
     ranked = sorted(out.values(), key=lambda m: (CONF_RANK[m["confidence"]], -len(m["sources"]), -m["mentions"], m["control_id"]))
     return ranked
 
@@ -107,7 +150,7 @@ def store_proposals(db: Session, policy, mappings: list[dict]) -> None:
             continue
         db.add(PolicyControlMap(id=uuid.uuid4(), policy_id=policy.id, org_id=policy.org_id, control_id=m["control_id"], status="proposed",
                                 source="+".join(m["sources"]), confidence=m["confidence"], basis="; ".join(m["basis"]),
-                                snippets=m["snippets"], parts=m["parts"]))
+                                snippets=m["snippets"], parts=m["parts"], review_flag=bool(m.get("not_selected"))))
     db.flush()
 
 
@@ -115,7 +158,11 @@ def decide(db: Session, policy, control_id: str, status: str, actor, justificati
     prev = next((m for m in current(db, policy.id) if m.control_id == control_id), None)
     if prev is not None:
         prev.valid_to = now()
-    found = None if prev else next((m for m in extract_mappings(db, policy.text_content or "") if m["control_id"] == control_id), None)
+    det: dict = {}
+    found = None if prev else next((m for m in extract_mappings(db, policy.text_content or "", det) if m["control_id"] == control_id), None)
+    rel = None if prev or found else next((r for r in det.get("possible_related", []) if r["control_id"] == control_id), None)
+    if rel:  # reviewer promotes a "possible related control" – keep its matched text, still Low
+        found = {"sources": ["title_language"], "confidence": "Low", "basis": [rel["basis"]], "snippets": rel["matched_text"], "parts": []}
     # A manual mapping is not "High" by default: it gets the evidence the text actually contains, or Low with no excerpt (manual review).
     row = PolicyControlMap(id=uuid.uuid4(), policy_id=policy.id, org_id=policy.org_id, control_id=control_id, status=status,
                            source=prev.source if prev else ("+".join(found["sources"])[:30] if found else "manual"),

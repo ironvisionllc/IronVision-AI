@@ -150,6 +150,21 @@ def _index(text: str, sents: list) -> _Index:
     return _IX[k]
 
 
+LABEL = {  # readable wording for gap/met reasons (was the raw concept key: "does not state: in accordance, develop doc")
+    "in_accordance": "that it follows a defined process or standard (“in accordance with …”)", "develop_doc": "that it is developed or documented",
+    "when_required": "when it is required (triggering conditions)", "review_analyze": "review or analysis", "change_refresh": "changing or refreshing",
+    "protect_content": "protection of the content", "aligned": "alignment or coordination with related processes", "create": "creation",
+    "disable": "disabling", "notify": "notification", "authorize": "authorization", "prohibit": "prohibition", "monitor": "monitoring",
+    "update": "updating", "maintain": "maintenance", "report": "reporting", "assign": "assignment of responsibility", "approval": "approval",
+    "termination": "termination", "transfer": "transfer or reassignment", "installed": "installation", "reestablish": "re-establishing access",
+    "personnel": "the personnel or roles involved", "findings": "the findings", "account": "the accounts concerned", "membership": "membership",
+}
+
+
+def _lbl(k: str) -> str:
+    return "the organization-defined value" if k.startswith("value") else LABEL.get(k, k.replace("_", " "))
+
+
 def evaluate(text: str, sents: list, control_id: str, req_text: str, snip) -> dict | None:
     """MET/PARTIAL/MISSING with confidence + basis, or None when the requirement has too few concepts to judge."""
     prof = profile(req_text)
@@ -164,7 +179,7 @@ def evaluate(text: str, sents: list, control_id: str, req_text: str, snip) -> di
     pair_i, pair = max(((i, [k for k, rx in need if i in hw[rx]]) for i in range(len(sents))), key=lambda x: len(x[1]), default=(None, []))
     r = {"parameter": None, "value": None, "needs": None}
     missing = [k for k, _ in need if k not in (best if len(best) == len(need) else pair)]
-    label = ", ".join(k.replace("_", " ") if not k.startswith("value") else "an organization-defined value" for k, _ in need)
+    label = "; ".join(_lbl(k) for k, _ in need)
     if len(best) == len(need) or len(pair) == len(need):
         i = best_i if len(best) == len(need) else pair_i
         hits = sents[i:i + (1 if len(best) == len(need) else 2)]
@@ -177,19 +192,19 @@ def evaluate(text: str, sents: list, control_id: str, req_text: str, snip) -> di
                 if got_v:
                     val, vhits = "; ".join(got_v), [h]
                     break
-        r.update(status="met", confidence=conf, snippets=snip(vhits), reason=f"The policy states {label}.", basis="id" if expl else "concept",
+        r.update(status="met", confidence=conf, snippets=snip(vhits), reason=f"One policy passage covers every element of the requirement: {label}.", basis="id" if expl else "concept",
                  value=val, parameter="organization-defined value" if val else None)
         return r
     got = max(best, pair, key=len)
     if len(got) * 2 >= len(need):
         hits = sents[pair_i:pair_i + 2] if got is pair else sents[best_i:best_i + 1]
         r.update(status="partial", confidence="Medium" if len(need) - len(got) == 1 else "Low", snippets=snip(hits), basis="concept",
-                 reason=f"Related text found, but it does not state: {', '.join(m.replace('_', ' ') if not m.startswith('value') else 'the organization-defined value' for m in missing)}.",
-                 needs=f"Add a statement covering {label}.")
+                 reason=f"Related text found, but the policy does not state {'; '.join(_lbl(m) for m in missing)}.",
+                 needs=f"Add a statement covering {'; '.join(_lbl(m) for m in missing)}.")
         return r
     r.update(status="missing", confidence="High" if not got else "Medium", snippets=[], basis="concept",
              reason="No sentence addresses this requirement." if not got else f"Only {len(got)} of {len(need)} required elements appear near each other.",
-             needs=f"Add a statement covering {label}.")
+             needs=f"Add a statement covering: {label}.")
     return r
 
 
