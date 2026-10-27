@@ -70,13 +70,13 @@ class Decision(BaseModel):
     decision: str | None = Field(None, pattern="^(accept|reject)$")
 
 
-class DecideIn(BaseModel):
+class EmassImportDecideIn(BaseModel):
     decisions: list[Decision] = Field(default_factory=list, max_length=20000)
     bulk: str | None = Field(None, pattern="^(accept_safe|reject_all|reset)$")
 
 
 @router.put("/systems/{system_id}/emass-imports/{import_id}/decisions")
-def decisions(system_id: uuid.UUID, import_id: uuid.UUID, body: DecideIn, request: Request, db: Session = Depends(get_db),
+def decisions(system_id: uuid.UUID, import_id: uuid.UUID, body: EmassImportDecideIn, request: Request, db: Session = Depends(get_db),
               current: CurrentUser = Depends(require_permission("implementation.write"))) -> dict:
     enforce(request, current, "implementation.write", system_id)
     imp = _imp(db, system_id, import_id)
@@ -242,7 +242,7 @@ def generic_detail(import_id: uuid.UUID, request: Request, db: Session = Depends
 
 
 @router.put("/emass-imports/{import_id}/decisions")
-def generic_decisions(import_id: uuid.UUID, body: DecideIn, request: Request, db: Session = Depends(get_db),
+def generic_decisions(import_id: uuid.UUID, body: EmassImportDecideIn, request: Request, db: Session = Depends(get_db),
                       current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
     imp = _org_imp(db, import_id, current, request)
     allowed = _allowed(current, imp.system_id) if imp.system_id else set()

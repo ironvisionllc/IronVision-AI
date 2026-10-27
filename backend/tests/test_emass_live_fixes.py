@@ -4,7 +4,7 @@ import requests
 import pytest
 
 BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://aegis-rmf-demo.preview.emergentagent.com").rstrip("/")
-SID = "f47571aa-d9ff-4aed-9623-837751b8f48a"
+SID = None
 
 
 @pytest.fixture(scope="module")
@@ -12,6 +12,13 @@ def token():
     r = requests.post(f"{BASE}/api/v1/auth/demo-login", json={}, timeout=30)
     assert r.status_code == 200, r.text
     return r.json()["access_token"]
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _ltp(token):
+    global SID
+    systems = requests.get(f"{BASE}/api/v1/systems", headers={"Authorization": f"Bearer {token}"}, timeout=30).json()
+    SID = next(x["id"] for x in systems if x["acronym"] == "LTP")  # demo system id changes on every demo reset
 
 
 @pytest.fixture(scope="module")

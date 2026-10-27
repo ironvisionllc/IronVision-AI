@@ -34,7 +34,7 @@ export function BulkEmass({ systemId, ids, onClose, onDone }: { systemId: string
         <p className="mb-3 text-[12px] text-slate-600">Only the fields you fill in are changed; empty fields are left as they are. Inherited and Not Applicable controls are skipped. Implementation Status is not changed in bulk.</p>
         <div className="grid gap-3 md:grid-cols-2">
           {Object.entries(ENUMS).map(([k, [l, opts]]) => <label key={k} className="block text-[12px]"><span className="font-medium">{l}</span>
-            <select className="input mt-1 w-full" value={v[k] ?? ""} onChange={(e) => set(k, e.target.value)} data-testid={`emass-bulk-${k}`}><option value="">(leave unchanged)</option>{opts.map((o) => <option key={o}>{o}</option>)}</select></label>)}
+            <select className="input mt-1 w-full" value={v[k] ?? ""} onChange={(e) => set(k, e.target.value)} data-testid={`emass-bulk-${k}`}><option value="">(leave unchanged)</option>{k.startsWith("slcm_") && <option value="__strategy__">Follow Continuous Monitoring Strategy</option>}{opts.map((o) => <option key={o}>{o}</option>)}</select></label>)}
           <label className="block text-[12px]"><span className="font-medium">Estimated Completion Date</span>
             <input type="date" className="input mt-1 w-full" value={v.estimated_completion_date ?? ""} onChange={(e) => set("estimated_completion_date", e.target.value)} data-testid="emass-bulk-estimated_completion_date" /></label>
           {TEXT.map(([k, l]) => <div key={k} className="text-[12px]" data-testid={`emass-bulk-field-${k}`}><span className="font-medium">{l}</span><OtherSelect field={k} value={v[k] ?? ""} onChange={(x) => set(k, x)} max={2000} /></div>)}

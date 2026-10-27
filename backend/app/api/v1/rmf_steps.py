@@ -213,6 +213,7 @@ def select_overlay_controls(system_id: uuid.UUID, overlay_key: str, db: Session 
 class BaselineIn(BaseModel):
     baseline_key: str = Field(pattern="^(low|moderate|high)$")
     include_privacy: bool = False
+    dry_run: bool = False
 
 
 def _privacy_prompt(db: Session, s) -> dict | None:
@@ -316,6 +317,9 @@ def accept_cnssi_baseline(system_id: uuid.UUID, body: CnssiAcceptIn, db: Session
 def select_baseline(system_id: uuid.UUID, body: BaselineIn, db: Session = Depends(get_db),
                     current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
     s = get_system(db, system_id)
+    if body.dry_run:
+        from app.services import select_flow
+        return _err(select_flow.dry_run, db, s, lambda d, x: rs.apply_baseline(d, x, body.baseline_key, body.include_privacy, current.user))
     out = _err(rs.apply_baseline, db, s, body.baseline_key, body.include_privacy, current.user)
     db.commit()
     return {**out, "counts": system_counts(db, s)}
@@ -324,12 +328,16 @@ def select_baseline(system_id: uuid.UUID, body: BaselineIn, db: Session = Depend
 class OverlayIn(BaseModel):
     overlay_key: str = Field(max_length=100)
     apply: bool
+    dry_run: bool = False
 
 
 @router.post("/systems/{system_id}/select/overlay")
 def select_overlay(system_id: uuid.UUID, body: OverlayIn, db: Session = Depends(get_db),
                    current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
     s = get_system(db, system_id)
+    if body.dry_run:
+        from app.services import select_flow
+        return _err(select_flow.dry_run, db, s, lambda d, x: rs.set_overlay(d, x, body.overlay_key, body.apply, current.user))
     out = _err(rs.set_overlay, db, s, body.overlay_key, body.apply, current.user)
     db.commit()
     return {**out, "counts": system_counts(db, s)}
@@ -339,15 +347,46 @@ class TailorIn(BaseModel):
     action: str = Field(pattern="^(add|remove)$")
     control_ids: list[str] = Field(min_length=1, max_length=1500)
     justification: str = Field("", max_length=4000)
+    applicability: str | None = Field(None, max_length=30)
+    compensating_control_id: str | None = Field(None, max_length=50)
+    dry_run: bool = False
 
 
 @router.post("/systems/{system_id}/select/tailor")
 def select_tailor(system_id: uuid.UUID, body: TailorIn, db: Session = Depends(get_db),
                   current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
     s = get_system(db, system_id)
-    out = _err(rs.tailor, db, s, body.action, body.control_ids, body.justification, current.user)
+    args = (body.action, body.control_ids, body.justification, current.user, body.applicability, body.compensating_control_id)
+    if body.dry_run:
+        from app.services import select_flow
+        return _err(select_flow.dry_run, db, s, lambda d, x: rs.tailor(d, x, *args))
+    out = _err(rs.tailor, db, s, *args)
     db.commit()
     return {**out, "counts": system_counts(db, s)}
+
+
+@router.get("/systems/{system_id}/select/review")
+def select_review(system_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    """Select step 5 – original baseline vs final selection, counts, open decisions and the selection approval status (Task S-6)."""
+    from app.services import select_flow
+    s = get_system(db, system_id)
+    return select_flow.review(db, s, select_view(system_id, db, current))
+
+
+class SelectionSubmitIn(BaseModel):
+    justification: str = Field(min_length=10, max_length=4000)
+
+
+@router.post("/systems/{system_id}/select/submit", status_code=201)
+def select_submit(system_id: uuid.UUID, body: SelectionSubmitIn, db: Session = Depends(get_db),
+                  current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+    """Submit the control selection for approval via the existing reviews workflow (ISSM endorses → AO approves)."""
+    from app.services import select_flow
+    s = get_system(db, system_id)
+    snap = select_flow.review(db, s, select_view(system_id, db, current))
+    req = select_flow.submit(db, s, current.user, body.justification, snap)
+    db.commit()
+    return {"id": str(req.id), "human_id": req.human_id, "status": req.status, "assigned_role": req.assigned_role}
 
 
 @router.post("/overlays/{overlay_key}/import", status_code=201)

@@ -57,7 +57,16 @@ export function EmassPanels({ systemId, controlId, onSaved }: { systemId: string
       : k === "estimated_completion_date" ? <input type="date" className="input w-full" value={val} disabled={ro || locked} onChange={(e) => set(k, e.target.value)} data-testid={`emass-${k}`} />
       : PLAN_TEXT.includes(k) ? <OtherSelect field={k} value={val} onChange={(x) => set(k, x)} disabled={ro || locked} max={max} />
       : <><textarea className="input w-full" rows={k === "slcm_comments" ? 3 : 2} maxLength={max} value={val} disabled={ro || locked} onChange={(e) => set(k, e.target.value)} data-testid={`emass-${k}`} /><Counter v={val} max={max} testId={`emass-count-${k}`} /></>;
-    return <EField key={k} k={k} label={o.labels[k]} required={req.includes(k)} missing={req.includes(k) && !String(val).trim()} sug={ro ? undefined : sugFor(k)} onAccept={() => accept(k)}>{input}</EField>;
+    return <EField key={k} k={k} label={o.labels[k]} required={req.includes(k)} missing={req.includes(k) && !String(val).trim()} sug={ro ? undefined : sugFor(k)} onAccept={() => accept(k)}>{input}{SLCM.includes(k) && <SlcmChip k={k} />}</EField>;
+  };
+  const SlcmChip = ({ k }: { k: string }) => {
+    const src = d.slcm_source?.[k] || "", sv = d.strategy_values?.[k];
+    if (!src && !sv) return null;
+    const reset = async () => { try { await api.post(`${url}/slcm-reset`, { fields: [k] }); toast.success(`${o.labels[k]} now follows the Continuous Monitoring Strategy`); reload(); onSaved(); } catch (e) { toast.error(errorMessage(e)); } };
+    return <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px]" data-testid={`emass-src-${k}`}>
+      <span className={`rounded px-1.5 py-0.5 ${src === "Override" ? "bg-amber-50 text-amber-900" : "bg-blue-50 text-blue-900"}`} title="Where the effective eMASS value comes from (override → profile → system default)">{src || "Not set"}</span>
+      {src === "Override" && sv && <span className="text-slate-500">Strategy: {sv}</span>}
+      {src === "Override" && sv && !ro && !locked && <button className="text-blue-800 underline" onClick={reset} data-testid={`emass-reset-${k}`}>Reset to strategy</button>}</div>;
   };
   const hint = residualHint(v.likelihood, v.impact);
   return (

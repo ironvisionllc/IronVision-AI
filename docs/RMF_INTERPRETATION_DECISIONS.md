@@ -353,3 +353,98 @@ The Control Information import above is now the first type of one shared import 
 - The original file is stored in object storage under a tenant-scoped key, with its SHA-256.
 
 **SME review required:** compare each type's headers with real eMASS exports before relying on the import.
+
+## Import Test Plan (eMASS Test Results / Assessment Procedures) – Step 5 Assess
+
+**Root cause of the UAT report: not reproduced.** The code had no "Import Test Plan" action. The capability existed only under Assess → Templates → Test Results, so we treat this as a discoverability gap and fixed that. If the user still hits a specific error, we need their file.
+
+**Entry points:**
+- Step 5 Assess: "Import Test Plan (eMASS Test Results / Assessment Procedures)".
+- The Test Results page.
+
+**No second parser.** The import reuses existing code:
+- the TR parser `services/tr/xlsx.detect`, with the minimum header score lowered to 2 so a file with only AP Acronym + CCI is accepted;
+- `tr.service.match` for CCI/AP matching;
+- the shared `emass_reports.detect`, which recognises other eMASS reports and points the user to "Import from eMASS".
+
+**Formats:**
+- The eMASS Test Result Import template (.xlsx/.xlsm).
+- CSV with the same columns. The CSV is converted to an .xlsx workbook. Every cell is written as text, so cells are never treated as formulas.
+
+**Required columns:** AP Acronym and CCI. If either is missing, the 422 response names it and lists the columns that were found.
+
+**Every rejected row is listed with its row number.** Rejection reasons:
+- empty AP Acronym;
+- invalid AP Acronym;
+- empty or invalid CCI;
+- unknown control;
+- control not selected for the system;
+- duplicate within the file (same AP + CCI);
+- duplicate of a row already in a Test Results workbook of this system.
+
+**Preview and import:**
+- Preview (`POST /systems/{id}/tr/test-plan/preview`) saves nothing.
+- Import (`…/import`) creates a TR workbook from the accepted rows only. Results stay blank until the SCA approves them.
+- The import is audited with the file's SHA-256 and the rejected row numbers.
+- Permission: `ingest.upload`. Without it the API returns 403 with the reason and the roles that hold it.
+
+## Continuous Monitoring Strategy (ISCM) and the eMASS SLCM fields
+
+**Where it lives (SP 800-37 Rev 2):**
+- The strategy is defined in Select, Task S-5, as "Continuous Monitoring Strategy (ISCM)".
+- It is executed in Monitor (Tasks M-2/M-3), under "SLCM due / overdue".
+- Each page links to the other; nothing is duplicated.
+
+**Tables (migration 0032, additive):**
+- `iscm_strategies`: one per system. Holds narrative, scope, default SLCM values, reporting, review activities, evidence requirements, approval and `approved_snapshot`.
+- `iscm_profiles`: match by family, control list or Security Control Designation; ordered, first match wins.
+- `emass_control_fields.slcm_inherit`: marks fields that explicitly follow the strategy.
+
+**Effective value of each SLCM field (Criticality, Frequency, Method, Reporting, Tracking, Comments):**
+- The per-control override is used first, then the first matching profile, then the system default, otherwise the field is empty.
+- Only the **approved** snapshot feeds controls. Drafts never change exports.
+- Inherited and Not Applicable controls have no SLCM values (eMASS rule).
+- One resolver (`emass_fields.effective`) feeds:
+  - the Implementation Plan panel, which shows a source chip on each field;
+  - the "missing required eMASS fields" filter;
+  - the Implementation Plan xlsx;
+  - the mocked eMASS sync payload;
+  - OSCAL SSP props;
+  - the current values in the eMASS import review.
+
+**Saving a control:**
+- A value equal to the strategy value, or an empty value, follows the strategy.
+- A different value is stored as an override.
+- "Reset to strategy" clears the override (audited).
+- Bulk edit offers "Follow Continuous Monitoring Strategy".
+
+**Migration and approval:**
+- Existing per-control values stay as overrides; nothing is dropped.
+- "Promote common values" lists override values shared by several controls. Promoting one only changes the draft; it is a reviewed action and never automatic.
+- Approval: the ISSO/ISSM saves and submits the strategy (`system.write`). Only the ISSM approves, and separation of duties applies (the same person cannot submit and approve).
+- On approval, any override that equals the approved value is marked "follows strategy". The effective value does not change, and the change is audited.
+
+**Due list:**
+- Next due = the later of the last assessment and the last evidence date, plus the effective SLCM Frequency.
+- The daily scheduled job `conmon.slcm_due` computes the counts.
+
+**Demo data:** LTP has a SYNTHETIC approved strategy:
+- defaults: Moderate / Annually / Manual;
+- an AU/SI/RA profile: Monthly / Automated;
+- Tracking and Comments are left to the controls, so the missing-fields demo still works.
+
+## Select step – 5-step guided flow (SP 800-37 Tasks S-1..S-4, S-6)
+
+**Steps** (URL `?sstep=1..5`; old `?overlay=` links open step 3):
+1. **Categorization summary:** FIPS 199 and CNSSI 1253 shown separately, C/I/A, link to Categorize.
+2. **Initial baseline:** the existing FIPS baseline or CNSSI proposal. CNSSI acceptance is still blocked until AO approval.
+3. **Overlays:** searchable cards. The legacy overlays are merged in as cards. The privacy prompt sits inside the Privacy card, with its testids kept. The admin data import moved to "Admin: overlay data".
+4. **Tailoring and ODPs:** tailoring decisions now record Applicability (Applicable / Not Applicable / Compensating control) and an optional catalog-checked compensating control (migration 0033). Parameter comparison and CNSSI parameter adoption are shown in the same step.
+5. **Review & approve:** original baseline vs final selection, added and removed controls with the reason and rationale, counts, items still needing a decision, and approval status. "Submit selection for approval" creates a `selection_review` request in the existing Reviews workflow: the ISSM endorses, then the AO decides.
+
+**No auto-apply and no silent removals.** Baseline, overlay and tailoring actions first run as a `dry_run`: the real service runs inside a SAVEPOINT that is rolled back. The preview shows:
+- controls added and removed;
+- parameter values changed;
+- for removals, how many implementation statements and evidence links would be deleted.
+
+Baseline, overlay and tailoring records stay separate (`origin`, `overlay_keys`, `tailoring_decisions`). Counts come only from `counts.system_counts`. Existing configurations show as "already applied". No IL4/5/6 assumptions are made.

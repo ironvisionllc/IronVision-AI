@@ -104,6 +104,16 @@ def values(f: EmassControlFields | None) -> dict:
     return {k: (getattr(f, k) if f is not None else None) for k in PLAN_FIELDS + RISK_FIELDS}
 
 
+FOLLOW = "__strategy__"
+
+
+def effective(db: Session, a: ControlAssignment, f: EmassControlFields | None, res=None) -> tuple[dict, dict]:
+    """Raw values with SLCM resolved from the approved Continuous Monitoring Strategy (override → profile → default). One resolver for all consumers."""
+    from app.services import iscm
+    res = res or iscm.resolver_for_system_id(db, a.system_id)
+    return res.apply(a.control_id, emass_status(a, f), f, values(f))
+
+
 def missing_required(status: str, vals: dict) -> list[str]:
     return [k for k in REQUIRED[status] if vals.get(k) in (None, "")]
 
@@ -153,9 +163,11 @@ def provider_info(db: Session, a: ControlAssignment) -> dict | None:
 def view(db: Session, a: ControlAssignment, can_edit: bool) -> dict:
     f = fields_for(db, a)
     st = emass_status(a, f)
-    vals = values(f)
+    vals, src = effective(db, a, f)
+    from app.services import iscm
+    strat = iscm.resolver_for_system_id(db, a.system_id).strategy_values(a.control_id, vals.get("control_designation"))[0] if st not in iscm.NO_SLCM else {}
     narr = _narrative(db, a)
-    return {"implementation_status": st, "internal_status": a.implementation_status, "values": vals,
+    return {"implementation_status": st, "internal_status": a.implementation_status, "values": vals, "slcm_source": src, "strategy_values": strat,
             "missing_required": missing_all(st, vals, narr), "required": REQUIRED[st],
             "inherited_locked": st == "Inherited", "inheritance": provider_info(db, a),
             "narrative_length": len(narr), "narrative_over_limit": len(narr) > NARRATIVE_LIMIT,
@@ -213,12 +225,27 @@ def save_plan(db: Session, a: ControlAssignment, status: str, vals: dict, curren
         if before_status == "Inherited" and any(vals.get(k) != before.get(k) for k in vals):
             raise HTTPException(422, "Inherited controls take their Implementation Plan from the providing system – these fields are read-only")
         vals = {}
-    miss = missing_required(status, {**values(f), **vals} if status == "Inherited" else vals)
+    from app.services import iscm
+    follow = dict(f.slcm_inherit or {})
+    check = dict(vals)
+    if status not in iscm.NO_SLCM:
+        strat = iscm.resolver_for_system_id(db, a.system_id).strategy_values(a.control_id, vals.get("control_designation") or f.control_designation)[0]
+        for k in SLCM:
+            if k not in vals:
+                continue
+            if vals[k] is None or (vals[k] == strat.get(k) and (getattr(f, k) in (None, "") or follow.get(k))):
+                if k in strat:  # empty or equal to the strategy value → follow the strategy (not an override)
+                    vals[k], follow[k] = None, True
+                    check[k] = strat[k]
+            else:
+                follow.pop(k, None)
+    miss = missing_required(status, {**values(f), **vals} if status == "Inherited" else check)
     if miss:
         raise HTTPException(422, f"eMASS requires these fields when Implementation Status is {status}: "
                                  + ", ".join(FIELD_META[k][0] for k in miss))
     for k, v in vals.items():
         setattr(f, k, v)
+    f.slcm_inherit = follow or None
     f.manually_inherited = status == "Manually Inherited"
     new_internal = internal_status(a.implementation_status, status)
     prev_internal = a.implementation_status
@@ -264,6 +291,8 @@ def bulk(db: Session, s: System, control_ids: list[str], vals: dict, current, me
     vals = {k: (v.strip() if isinstance(v, str) else v) for k, v in vals.items() if k in BULK_FIELDS and v not in (None, "")}
     if not vals:
         raise HTTPException(422, "Choose at least one Implementation Plan field to set")
+    follow_ks = [k for k, v in vals.items() if v == FOLLOW and k in SLCM]
+    vals = {k: v for k, v in vals.items() if v != FOLLOW}
     check_values(vals)
     from app.services import audit
     done, skipped = [], []
@@ -279,12 +308,17 @@ def bulk(db: Session, s: System, control_ids: list[str], vals: dict, current, me
         before = values(f)
         for k, v in vals.items():
             setattr(f, k, v)
+        fl = {k: True for k in follow_ks}
+        for k in follow_ks:
+            setattr(f, k, None)
+        f.slcm_inherit = {**{k: x for k, x in (f.slcm_inherit or {}).items() if k not in vals}, **fl} or None
         f.updated_by = current.user.id
-        _audit(db, current, a, "emass.plan_updated", before, values(f), {"bulk": True}, meta)
+        _audit(db, current, a, "emass.plan_updated", before, values(f), {"bulk": True, "follow_strategy": follow_ks}, meta)
         done.append(a.control_id)
     audit.record(db, action="emass.plan_bulk_updated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
-                 entity_id=str(s.id), after={k: _j(v) for k, v in vals.items()}, details={"updated": done, "skipped": skipped}, **meta)
-    return {"updated": done, "skipped": skipped, "fields": sorted(vals)}
+                 entity_id=str(s.id), after={**{k: _j(v) for k, v in vals.items()}, **{k: "follow strategy" for k in follow_ks}},
+                 details={"updated": done, "skipped": skipped}, **meta)
+    return {"updated": done, "skipped": skipped, "fields": sorted([*vals, *follow_ks])}
 
 
 # ---------- grounding + deterministic suggestions ----------
@@ -421,6 +455,8 @@ def clean_suggestions(items: list[dict], status: str) -> tuple[list[dict], list[
 # ---------- exports ----------
 def rows(db: Session, s: System) -> list[dict]:
     from app.models import Control
+    from app.services import iscm
+    res = iscm.resolver(db, s)
     fmap = {f.assignment_id: f for f in db.scalars(select(EmassControlFields).where(EmassControlFields.system_id == s.id))}
     narr = narratives(db, s.id)
     out = []
@@ -428,11 +464,11 @@ def rows(db: Session, s: System) -> list[dict]:
                                       .where(ControlAssignment.system_id == s.id).order_by(Control.sort_id)).all():
         f = fmap.get(a.id)
         st = emass_status(a, f)
-        vals = values(f)
+        vals, src = effective(db, a, f, res)
         n = narr.get(a.id) or ""
         miss = missing_all(st, vals, n)
         out.append({"control_id": a.control_id, "acronym": label, "title": title, "implementation_status": st, **vals,
-                    "implementation_narrative": n, "missing": miss, "narrative_over_limit": len(n) > NARRATIVE_LIMIT})
+                    "implementation_narrative": n, "missing": miss, "narrative_over_limit": len(n) > NARRATIVE_LIMIT, "slcm_source": src})
     return out
 
 
@@ -506,17 +542,18 @@ def _cell(v):
     return v
 
 
-def oscal_props(f: EmassControlFields | None, a: ControlAssignment) -> tuple[list[dict], str | None]:
-    """Props (enum/date values) + markdown remarks (free text) for an OSCAL implemented-requirement."""
+def oscal_props(f: EmassControlFields | None, a: ControlAssignment, eff: dict | None = None) -> tuple[list[dict], str | None]:
+    """Props (enum/date values) + markdown remarks (free text) for an OSCAL implemented-requirement; SLCM values are the resolved (effective) ones."""
     ns = "https://ironvisionai.com/ns/oscal/emass"
     props = [{"name": "emass-implementation-status", "ns": ns, "value": emass_status(a, f)}]
-    if f is None:
+    if f is None and not eff:
         return props, None
+    g = (lambda k: eff.get(k)) if eff is not None else (lambda k: getattr(f, k))
     for k in ("control_designation", "common_control_provider", "slcm_frequency", "slcm_method", *RISK_ENUMS):
-        if getattr(f, k):
-            props.append({"name": "emass-" + k.replace("_", "-"), "ns": ns, "value": getattr(f, k)})
-    if f.estimated_completion_date:
-        props.append({"name": "emass-estimated-completion-date", "ns": ns, "value": f.estimated_completion_date.isoformat()})
-    text = [f"**{FIELD_META[k][0]}:** {getattr(f, k).strip()}" for k in ("responsible_entities", "slcm_criticality", "slcm_reporting", "slcm_tracking",
-                                                                       "slcm_comments", "na_justification", *RISK_TEXT) if (getattr(f, k) or "").strip()]
+        if g(k):
+            props.append({"name": "emass-" + k.replace("_", "-"), "ns": ns, "value": g(k)})
+    if g("estimated_completion_date"):
+        props.append({"name": "emass-estimated-completion-date", "ns": ns, "value": g("estimated_completion_date").isoformat()})
+    text = [f"**{FIELD_META[k][0]}:** {g(k).strip()}" for k in ("responsible_entities", "slcm_criticality", "slcm_reporting", "slcm_tracking",
+                                                                "slcm_comments", "na_justification", *RISK_TEXT) if (g(k) or "").strip()]
     return props, ("eMASS Implementation Plan / Risk Assessment (IronVision AI):\n\n" + "\n\n".join(text)) if text else None

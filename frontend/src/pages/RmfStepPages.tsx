@@ -22,6 +22,9 @@ import { PrivacyOverlayPrompt } from "@/components/rmf/PrivacyOverlayPrompt";
 import { PageSizeSelect, Pager, usePageSize, usePaged } from "@/components/common/PageSize";
 import { downloadFile } from "@/lib/download";
 import { Gated } from "@/components/common/RoleGate";
+import { IscmStrategy } from "@/components/rmf/IscmStrategy";
+import { CategorizationSummary, PreviewBox, SelectionReview, SelectStepper } from "@/components/rmf/SelectSteps";
+import { SlcmDue } from "@/components/rmf/SlcmDue";
 
 function StepFrame({ k, title, purpose, children }: { k: string; title: string; purpose: string; children?: ReactNode }) {
   const { systems, loaded } = useSystems();
@@ -111,7 +114,10 @@ function Baseline({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
   const [key, setKey] = useState(d.baseline_key);
   const [priv, setPriv] = useState(d.include_privacy || !!d.processes_pii);
   const [m, setM] = useState<{ ok?: string; err?: string }>({});
+  const [pv, setPv] = useState<Row | null>(null);
+  const preview = async () => { try { setPv((await api.post<Row>(`/systems/${sid}/select/baseline`, { baseline_key: key, include_privacy: priv, dry_run: true })).data); } catch (e) { setM({ err: errorMessage(e) }); } };
   const apply = async () => {
+    setPv(null);
     try { const r = await api.post<Row>(`/systems/${sid}/select/baseline`, { baseline_key: key, include_privacy: priv }); reload();
       setM({ ok: `Baseline applied: ${r.data.added} control(s) added. ${r.data.counts.labels.reconciliation}.${r.data.beyond_baseline.length ? ` ${r.data.beyond_baseline.length} control(s) are no longer in this baseline – remove them below with a rationale if they are not needed.` : ""}` });
     } catch (e) { setM({ err: errorMessage(e) }); }
@@ -129,7 +135,9 @@ function Baseline({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
           Privacy baseline <Help text="800-53B privacy baseline – required when the system processes PII (answered in Categorize)." /></label>
       </div>
       {d.processes_pii && !d.include_privacy && <p className="mt-2 text-[12px] text-amber-800">The system processes PII – apply the privacy baseline.</p>}
-      <button className="btn-primary mt-3" onClick={apply} data-testid="select-apply-baseline">Apply baseline</button>
+      {d.baseline_key && <p className="mt-2 text-[12px] text-emerald-800" data-testid="select-baseline-applied">Already applied: {d.counts.labels.baseline}</p>}
+      <button className="btn-primary mt-3" onClick={preview} data-testid="select-apply-baseline">Preview baseline</button>
+      {pv && <PreviewBox p={pv} label="Apply baseline" onConfirm={apply} onCancel={() => setPv(null)} testId="select-baseline-preview" />}
       <p className="mt-2 text-[11px] text-slate-500">Applying adds missing baseline controls. It never deletes controls: use tailoring below (with a rationale) to remove any.</p>
     </Panel>);
 }
@@ -156,7 +164,7 @@ function OverlayControls({ sid, k }: { sid: string; k: string }) {
     </div>);
 }
 
-function OverlayGroup({ sid, g, busy, apply }: { sid: string; g: Row; busy: boolean; apply: (key: string, on: boolean, title: string) => void }) {
+function OverlayGroup({ sid, g, busy, apply, privacy }: { sid: string; g: Row; busy: boolean; apply: (key: string, on: boolean, title: string) => void; privacy?: Row }) {
   const [open, setOpen] = useState(false);
   const [sp] = _usp();
   const focus = sp.get("overlay") === g.group;
@@ -169,6 +177,7 @@ function OverlayGroup({ sid, g, busy, apply }: { sid: string; g: Row; busy: bool
         <div className="min-w-[260px] flex-1"><b className="text-[13px]">{g.title}</b>
           {g.document && <span className="ml-1 text-[11px] text-slate-500" title={`SHA-256 ${g.document.sha256} · ${g.document.marking}`}>{g.document.cite} · {g.document.date}</span>}
           {cur ? <span className="ml-2 rounded bg-emerald-100 px-1.5 text-[11px] text-emerald-800" data-testid={`overlay-group-${g.group}-applied`}>Applied: {cur.label}</span> : null}
+          {g.group === "privacy" && privacy && <div className="mt-2"><PrivacyOverlayPrompt p={privacy} /></div>}
           {g.question && <div className="mt-1 text-[12px] text-slate-800">{g.question}</div>}
           {g.help && <div className="mt-0.5 text-[11px] text-slate-500">{g.help}</div>}
           {g.note && <div className="mt-1 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-900" data-testid={`overlay-group-${g.group}-restricted`}>{g.note}</div>}
@@ -189,7 +198,15 @@ function Overlays({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
   const [m, setM] = useState<{ ok?: string; err?: string }>({});
   const [ver, setVer] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [q, setQ] = useState("");
+  const [pv, setPv] = useState<{ key: string; on: boolean; title: string; p: Row } | null>(null);
+  const preview = async (key: string, on: boolean, title: string) => {
+    setBusy(true);
+    try { setPv({ key, on, title, p: (await api.post<Row>(`/systems/${sid}/select/overlay`, { overlay_key: key, apply: on, dry_run: true })).data }); }
+    catch (e) { setM({ err: errorMessage(e) }); } finally { setBusy(false); }
+  };
   const apply = async (key: string, on: boolean, title: string) => {
+    setPv(null);
     setBusy(true);
     try { const r = await api.post<Row>(`/systems/${sid}/select/overlay`, { overlay_key: key, apply: on }); reload();
       const x = r.data;
@@ -211,17 +228,23 @@ function Overlays({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
   };
   const legacy = (d.overlays || []).filter((o: Row) => !o.structure_only || o.key === "cnssi-nc3");
   return (
-    <Panel title="Overlays" eyebrow="CNSSI 1253 overlays – answer each question; applying adds/removes controls and sets parameter values" testId="select-overlays"
-      actions={can("admin.content.load") ? <label className="btn-secondary cursor-pointer px-2 py-0.5 text-[11px]" title="Admins: load a derived overlay data file (e.g. the restricted Intelligence / CDS overlays, or a newer version)">Import official data (JSON)
-        <input type="file" accept=".json" className="hidden" onChange={(e) => e.target.files?.[0] && importRef(e.target.files[0])} data-testid="overlay-import-reference" /></label> : undefined}>
+    <Panel title="Step 3 · Overlays" eyebrow="CNSSI 1253 overlays – answer each question; preview what it adds, removes and sets, then apply" testId="select-overlays"
+      actions={<input className="input w-56 py-0.5 text-[12px]" placeholder="Search overlays" value={q} onChange={(e) => setQ(e.target.value)} data-testid="overlay-search" />}>
       <Msg m={m} />
       <p className="text-[11px] text-slate-500">Control lists are parsed from the official CNSS documents (file, date and SHA-256 shown on hover). Removing an overlay reverses exactly its own changes.</p>
       {(d.review_flags || []).map((f: Row, i: number) => <p key={i} className="mb-2 rounded bg-amber-50 p-2 text-[11px] text-amber-900" data-testid={`overlay-review-flag-${i}`}>{f.message} ({f.value})</p>)}
       {d.framework !== "cnssi1253" && <p className="mb-2 rounded bg-blue-50 p-2 text-[11px] text-blue-900" data-testid="overlay-fips-note">This system uses FIPS 199 (non-NSS): CNSSI 1253 overlays do not apply. Privacy controls come from the NIST SP 800-53B privacy baseline, selected through the PTA / PII determination.</p>}
-      <PrivacyOverlayPrompt p={d.privacy_prompt} onApply={() => document.querySelector("[data-testid=overlay-group-privacy]")?.scrollIntoView({ block: "center" })} />
-      {(d.overlay_groups || []).map((g: Row) => <OverlayGroup key={g.group} sid={sid} g={g} busy={busy || !can("system.write")} apply={apply} />)}
-      {legacy.length > 0 && <TableScroll><table className="mt-3 w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th className="py-1">Other overlays</th><th>Controls</th><th>Status</th><th /></tr></thead><tbody>
-        {legacy.map((o: Row) => <tr key={o.key} className="border-t border-slate-100 align-top" data-testid={`overlay-${o.key}`}>
+      {!(d.overlay_groups || []).some((g: Row) => g.group === "privacy") && <PrivacyOverlayPrompt p={d.privacy_prompt} />}
+      {pv && <PreviewBox p={pv.p} label={pv.on ? `Apply ${pv.title}` : `Remove ${pv.title}`} onConfirm={() => apply(pv.key, pv.on, pv.title)} onCancel={() => setPv(null)} testId="overlay-preview" />}
+      {[...(d.overlay_groups || []), ...legacy.filter((o: Row) => !o.structure_only).map((o: Row) => ({ group: o.key, title: `${o.title} v${o.version}${o.synthetic ? " (SYNTHETIC)" : ""}`, help: o.description, kind: "single",
+        variants: [{ key: o.key, label: o.title, applied: o.applied, add: o.add, remove: o.remove, parameters: 0, guidance_only: 0 }] }))]
+        .filter((g: Row) => !q || `${g.title} ${g.question || ""} ${g.help || ""}`.toLowerCase().includes(q.toLowerCase()))
+        .map((g: Row) => <OverlayGroup key={g.group} sid={sid} g={g} busy={busy || !can("system.write")} apply={preview} privacy={d.privacy_prompt} />)}
+      {can("admin.content.load") && <details className="mt-3 text-[12px]" data-testid="overlay-admin"><summary className="cursor-pointer text-blue-800 underline">Admin: overlay data</summary>
+        <label className="btn-secondary mt-2 inline-block cursor-pointer px-2 py-0.5 text-[11px]" title="Admins: load a derived overlay data file (e.g. the restricted Intelligence / CDS overlays, or a newer version)">Import official data (JSON)
+          <input type="file" accept=".json" className="hidden" onChange={(e) => e.target.files?.[0] && importRef(e.target.files[0])} data-testid="overlay-import-reference" /></label>
+      {legacy.some((o: Row) => o.structure_only) && <TableScroll><table className="mt-3 w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th className="py-1">Structure-only overlays</th><th>Controls</th><th>Status</th><th /></tr></thead><tbody>
+        {legacy.filter((o: Row) => o.structure_only).map((o: Row) => <tr key={o.key} className="border-t border-slate-100 align-top" data-testid={`overlay-${o.key}`}>
           <td className="py-2"><b className="font-medium">{o.title}</b> {!o.structure_only && <span className="text-slate-400">v{o.version}</span>}{o.synthetic && <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-800">SYNTHETIC</span>}
             {o.structure_only && <div className="mt-0.5 text-[11px] text-slate-500">{o.description}</div>}</td>
           <td className="py-2 font-mono">{o.structure_only ? "—" : `+${o.add} / −${o.remove}`}</td>
@@ -232,7 +255,7 @@ function Overlays({ sid, d, reload }: { sid: string; d: Row; reload: () => void 
                 <input type="file" accept=".csv" className="hidden" onChange={(e) => e.target.files?.[0] && importCsv(o, e.target.files[0])} data-testid={`overlay-${o.key}-import`} /></label></span>
               : <span className="text-[11px] text-slate-500">An administrator must import the official list</span>)
             : <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => apply(o.key, !o.applied, o.title)} data-testid={`overlay-${o.key}-toggle`}>{o.applied ? "Remove" : "Apply"}</button>}</td>
-        </tr>)}</tbody></table></TableScroll>}
+        </tr>)}</tbody></table></TableScroll>}</details>}
     </Panel>);
 }
 
@@ -243,18 +266,24 @@ function Tailoring({ sid, d, reload }: { sid: string; d: Row; reload: () => void
   const [picked, setPicked] = useState<string[]>([]);
   const [q, setQ] = useState("");
   const [why, setWhy] = useState("");
+  const [appl, setAppl] = useState("");
+  const [comp, setComp] = useState("");
+  const [pv, setPv] = useState<Row | null>(null);
   const [m, setM] = useState<{ ok?: string; err?: string }>({});
   const shown = useMemo(() => (tr ?? []).filter((r) => !q || r.control_id.includes(q.toLowerCase().replace("(", ".").replace(")", ""))).slice(0, 200), [tr, q]);
   const submit = async () => {
     const all = [...picked, ...ids.split(/[\s,;]+/).filter(Boolean)];
     if (why.trim().length < 10) { setM({ err: "Write a rationale of at least 10 characters – it is required for every tailoring decision and is kept in the audit history." }); return; }
-    try { const r = await api.post<Row>(`/systems/${sid}/select/tailor`, { action, control_ids: all, justification: why }); reload(); reTr(); setPicked([]); setIds(""); setWhy("");
+    const body = { action, control_ids: all, justification: why, applicability: appl || null, compensating_control_id: comp || null };
+    if (!pv) { try { setPv((await api.post<Row>(`/systems/${sid}/select/tailor`, { ...body, dry_run: true })).data); setM({}); } catch (e) { setM({ err: errorMessage(e) }); } return; }
+    setPv(null);
+    try { const r = await api.post<Row>(`/systems/${sid}/select/tailor`, body); reload(); reTr(); setPicked([]); setIds(""); setWhy(""); setAppl(""); setComp("");
       const msg = `${action === "remove" ? "Removed" : "Added"} ${r.data.controls.length} control(s).${r.data.skipped.length ? ` Skipped (already ${action === "remove" ? "absent" : "selected"}): ${r.data.skipped.join(", ")}.` : ""} ${r.data.counts.labels.reconciliation}.`;
       setM({ ok: msg }); showNextStep({ message: msg, label: "track implementation of the selected controls", to: "/rmf/implement" });
     } catch (e) { setM({ err: errorMessage(e) }); }
   };
   return (
-    <Panel title="Tailoring decisions" eyebrow="Add or remove controls – each decision needs a rationale" testId="select-tailoring">
+    <Panel title="Step 4 · Tailoring" eyebrow="Add or remove controls, set applicability or a compensating control – each decision needs a rationale" testId="select-tailoring">
       <Msg m={m} />
       <div className="grid gap-4 text-[12px] lg:grid-cols-2">
         <div>
@@ -274,13 +303,18 @@ function Tailoring({ sid, d, reload }: { sid: string; d: Row; reload: () => void
         <div>
           <label className="font-medium">Rationale (shared by all controls in this decision)<textarea className="input mt-1" rows={4} value={why} onChange={(e) => setWhy(e.target.value)}
             placeholder="e.g. Accounts are managed by the enterprise IdP, which is inherited" data-testid="tailor-justification" /></label>
-          <button className="btn-primary mt-2" onClick={submit} data-testid="tailor-submit">{action === "remove" ? "Remove selected controls" : "Add controls"}</button>
+          <div className="mt-2 grid gap-2 md:grid-cols-2">
+            <label className="font-medium">Applicability<select className="input mt-1" value={appl} onChange={(e) => setAppl(e.target.value)} data-testid="tailor-applicability">
+              <option value="">— not recorded —</option>{["Applicable", "Not Applicable", "Compensating control"].map((x) => <option key={x}>{x}</option>)}</select></label>
+            <label className="font-medium">Compensating control<input className="input mt-1" placeholder="e.g. IA-2(1)" value={comp} onChange={(e) => setComp(e.target.value)} data-testid="tailor-compensating" /></label></div>
+          <button className="btn-primary mt-2" onClick={submit} data-testid="tailor-submit">{action === "remove" ? "Preview removal" : "Preview additions"}</button>
+          {pv && <PreviewBox p={pv} label={action === "remove" ? "Remove controls" : "Add controls"} onConfirm={submit} onCancel={() => setPv(null)} testId="tailor-preview" />}
           <p className="mt-2 text-[11px] text-slate-500">Removing a control deletes its statement and evidence links for this system; the decision, who made it and the rationale are kept in the audit log.</p>
         </div>
       </div>
-      {d.tailoring.length > 0 && <TableScroll><table className="mt-4 w-full text-[12px]" data-testid="tailor-history"><thead><tr className="text-left text-slate-500"><th>Control</th><th>Decision</th><th>Rationale</th><th>When</th></tr></thead>
+      {d.tailoring.length > 0 && <TableScroll><table className="mt-4 w-full text-[12px]" data-testid="tailor-history"><thead><tr className="text-left text-slate-500"><th>Control</th><th>Decision</th><th>Applicability</th><th>Rationale</th><th>When</th></tr></thead>
         <tbody>{d.tailoring.slice(0, 50).map((t: Row) => <tr key={t.id} className="border-t border-slate-100"><td className="py-1 font-mono">{fmtControl(t.control_id)}</td><td>{t.action === "remove" ? "Removed" : "Added"}</td>
-          <td>{t.justification}</td><td>{new Date(t.created_at).toLocaleDateString()}</td></tr>)}</tbody></table></TableScroll>}
+          <td>{t.applicability || "—"}{t.compensating_control_id ? ` → ${fmtControl(t.compensating_control_id)}` : ""}</td><td>{t.justification}</td><td>{new Date(t.created_at).toLocaleDateString()}</td></tr>)}</tbody></table></TableScroll>}
     </Panel>);
 }
 
@@ -288,15 +322,26 @@ export function SelectPage() {
   const sid = useActiveSystemId();
   const { can } = useAuth();
   const { data, reload } = useApi<Row>(sid ? `/systems/${sid}/select` : null);
+  const [sp, setSp] = _usp();
+  const step = Math.min(4, Math.max(0, Number(sp.get("sstep") || (sp.get("overlay") ? 3 : 1)) - 1));
+  const setStep = (n: number) => { const x = new URLSearchParams(sp); x.set("sstep", String(n + 1)); x.delete("overlay"); setSp(x, { replace: true }); };
+  const ro = <p className="text-[12px] text-slate-600">Changing the control selection needs the “system.write” permission (ISSO, ISSM or System Owner). You can view the selection in the <Link className="underline" to="/traceability">traceability matrix</Link>.</p>;
+  const nextBtn = (n: number, label: string) => <button className="btn-primary mt-3 self-start" onClick={() => setStep(n)} data-testid={`select-next-${n}`}>Next: {label}</button>;
   return (
     <StepFrame k="select" title="Step 3 · Select – baseline, overlays and tailoring" purpose="Decide which controls apply: start from the baseline that matches the categorization, apply overlays for special situations, then tailor controls in or out with a rationale.">
       {data && sid && <div className="grid gap-5">
         <div className="panel p-4 text-[12px]" data-testid="select-counts"><b>Control count:</b> <span data-testid="select-reconciliation">{data.counts.labels.reconciliation}</span>
           <Help text="Same numbers as the Workbench and dashboard (one shared calculation): baseline + added by overlays − removed by overlays − tailored out + tailored in = assigned." /></div>
-          <button className="btn-secondary ml-2 px-2 py-0.5 text-[11px]" onClick={() => downloadFile(`/systems/${sid}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="select-export-parameters">Export parameter comparison (CSV)</button>
-        <ParameterComparison sid={sid} />
-        {can("system.write") ? <>{data.cnssi ? <CnssiBaseline sid={sid} d={data} reload={reload} /> : <Baseline sid={sid} d={data} reload={reload} />}<Overlays sid={sid} d={data} reload={reload} /><Tailoring sid={sid} d={data} reload={reload} /></>
-          : <p className="text-[12px] text-slate-600">Changing the control selection needs the “system.write” permission (ISSO, ISSM or System Owner). You can view the selection in the <Link className="underline" to="/traceability">traceability matrix</Link>.</p>}
+        <SelectStepper step={step} setStep={setStep} done={[!!data.counts.baseline, !!data.counts.assigned, (data.overlay_keys || []).length > 0, (data.tailoring || []).length > 0, false]} />
+        {step === 0 && <CategorizationSummary sid={sid} d={data} next={() => setStep(1)} />}
+        {step === 1 && (can("system.write") ? <>{data.cnssi ? <CnssiBaseline sid={sid} d={data} reload={reload} /> : <Baseline sid={sid} d={data} reload={reload} />}{nextBtn(2, "overlays")}</> : ro)}
+        {step === 2 && (can("system.write") ? <><Overlays sid={sid} d={data} reload={reload} />{nextBtn(3, "tailoring & parameters")}</> : ro)}
+        {step === 3 && <>{can("system.write") ? <Tailoring sid={sid} d={data} reload={reload} /> : ro}
+          <Panel title="Organization-defined parameters (ODPs)" eyebrow="SP 800-53 assignment / selection values – compare, adopt CNSSI values, export" testId="select-odps">
+            <button className="btn-secondary mb-2 px-2 py-0.5 text-[11px]" onClick={() => downloadFile(`/systems/${sid}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="select-export-parameters">Export parameter comparison (CSV)</button>
+            <ParameterComparison sid={sid} /></Panel>{nextBtn(4, "review & approve")}</>}
+        {step === 4 && <SelectionReview sid={sid} canSubmit={can("system.write")} />}
+        <div id="iscm"><IscmStrategy sid={sid} /></div>
       </div>}
     </StepFrame>);
 }
@@ -323,6 +368,7 @@ export function AssessPage() {
   return (
     <StepFrame k="assess" title="Step 5 · Assess" purpose="The Security Control Assessor (SCA) tests each control and records Satisfied / Other than satisfied. Review the automated mappings the assessment relies on.">
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <Go to="/test-results#test-plan" title="Import Test Plan (eMASS Test Results / Assessment Procedures)" text="Upload the eMASS Test Result Import template or CSV – AP Acronyms and CCIs are checked before anything is saved." testId="assess-go-test-plan" />
         <Go to={`/systems/${sid}/controls?assessment_status=not_assessed`} title="Controls not yet assessed" text="Workbench filtered to assessment status Not assessed." testId="assess-go-workbench" />
         <Go to="/reviews" title="Reviews and SCA assessments" text="Assessment requests and results." testId="assess-go-reviews" />
         <Go to="/mapping-review" title="Mapping Review" text="Approve STIG, policy and status mappings before relying on them." testId="assess-go-mapping" />
@@ -363,6 +409,7 @@ export function MonitorPage() {
   const mt = s?.metrics ?? {};
   return (
     <StepFrame k="monitor" title="Step 7 · Monitor" purpose="Continuous monitoring (ConMon): keep evidence current, fix new findings and POA&Ms on time, and watch the authorization expiration date.">
+      {sid && <div className="mb-5"><SlcmDue sid={sid} /></div>}
       {s && <div className="mb-5 grid gap-3 md:grid-cols-3 xl:grid-cols-6" data-testid="monitor-stats">
         <Stat label="Controls with current evidence" value={`${mt.controls_with_current_evidence ?? 0} / ${mt.assigned_controls ?? 0}`} testId="mon-current" hint="Evidence collected within its freshness window" />
         <Stat label="Controls with stale / expired evidence" value={mt.controls_stale ?? 0} testId="mon-stale" />

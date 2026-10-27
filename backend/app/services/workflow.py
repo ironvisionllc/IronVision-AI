@@ -16,7 +16,7 @@ REQUEST_TYPES = {"finding_out_of_scope": "Out of scope / N/A / informational dis
                  "waiver_extension": "Waiver (risk accepted past due date)", "control_implementation_review": "Control implementation review",
                  "deadline_extension": "Deadline extension (≤ 90 days, no risk acceptance)", "authorization_package_review": "Authorization package review",
                  "assessment_result": "Assessment result", "authorization_decision": "Authorization decision",
-                 "emass_submission": "eMASS outbound change"}
+                 "emass_submission": "eMASS outbound change", "selection_review": "Control selection review (baseline, overlays, tailoring)"}
 EXTENSION_LIMIT_DAYS = 90
 RULE_PRECEDENCE = ("Exactly one active rule per request type. Deadline extension applies only when the new date is ≤ 90 days past the current "
                    "due date; anything longer, or any extension that accepts residual risk, must be filed as a Waiver (ISSM endorses → AO decides).")
@@ -47,6 +47,8 @@ DEFAULT_RULES = [
      "Authorization package → ISSM endorses, AO records authorization decision"),
     ("authorization_decision", [{"role": "ao", "action": "decide"}], "Authorization decision (ATO/ATO w/ conditions/IATT/DATO) → AO only"),
     ("emass_submission", [{"role": "issm", "action": "decide"}], "eMASS outbound change → ISSM approves before submission"),
+    ("selection_review", [{"role": "issm", "action": "endorse"}, {"role": "ao", "action": "decide"}],
+     "Control selection (SP 800-37 Task S-6 plan approval) → ISSM endorses, AO approves"),
 ]
 
 

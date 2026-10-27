@@ -436,7 +436,8 @@ class TailoringDecision(CoreMixin, Base):
     overlay_key: Mapped[str | None] = mapped_column(String(100))
     prior_origin: Mapped[str | None] = mapped_column(String(30))
     prior_origin_detail: Mapped[str | None] = mapped_column(String(255))
-
+    applicability: Mapped[str | None] = mapped_column(String(30))
+    compensating_control_id: Mapped[str | None] = mapped_column(String(50))
 
 class Implementation(CoreMixin, Base):
     __tablename__ = "implementations"
@@ -1434,6 +1435,7 @@ class EmassControlFields(CoreMixin, Base):
     mitigations: Mapped[str | None] = mapped_column(Text)
     assisted: Mapped[dict | None] = mapped_column(JSONB)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    slcm_inherit: Mapped[dict | None] = mapped_column(JSONB)
     is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
 
 
@@ -1457,3 +1459,32 @@ class EmassImport(CoreMixin, Base):
     counts: Mapped[dict | None] = mapped_column(JSONB)
     applied_by_email: Mapped[str | None] = mapped_column(String(320))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class IscmStrategy(CoreMixin, Base):
+    """Continuous Monitoring Strategy (SP 800-37 Task S-5) – one per system; its approved snapshot feeds the eMASS SLCM fields."""
+    __tablename__ = "iscm_strategies"
+    system_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("systems.id", ondelete="CASCADE"), nullable=False, unique=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="draft")
+    version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
+    narrative: Mapped[str | None] = mapped_column(Text)
+    scope: Mapped[str | None] = mapped_column(Text)
+    defaults: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    reporting: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    review_activities: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    evidence_requirements: Mapped[list] = mapped_column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
+    approved_snapshot: Mapped[dict | None] = mapped_column(JSONB)
+    submitted_by: Mapped[dict | None] = mapped_column(JSONB)
+    approved_by: Mapped[dict | None] = mapped_column(JSONB)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+
+
+class IscmProfile(CoreMixin, Base):
+    __tablename__ = "iscm_profiles"
+    strategy_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("iscm_strategies.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    match_type: Mapped[str] = mapped_column(String(20), nullable=False)  # family | control_list | designation
+    match_value: Mapped[str] = mapped_column(String(2000), nullable=False)
+    values: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))

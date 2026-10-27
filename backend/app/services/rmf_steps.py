@@ -423,16 +423,27 @@ def set_overlay(db: Session, s: System, key: str, on: bool, actor: User) -> dict
     return {"added": [], "removed": [], **out}
 
 
-def tailor(db: Session, s: System, action: str, ids: list[str], justification: str, actor: User) -> dict:
+def tailor(db: Session, s: System, action: str, ids: list[str], justification: str, actor: User,
+           applicability: str | None = None, compensating_control_id: str | None = None) -> dict:
     if len((justification or "").strip()) < 10:
         raise ValueError("A rationale of at least 10 characters is required for every tailoring decision")
     ids = [c.strip().lower().replace("(", ".").replace(")", "") for c in ids if c.strip()]
     if not ids:
         raise ValueError("Select or enter at least one control")
+    from app.services.select_flow import APPLICABILITY
+    if applicability and applicability not in APPLICABILITY:
+        raise ValueError(f"Applicability must be one of: {', '.join(APPLICABILITY)}")
+    comp = (compensating_control_id or "").strip().lower().replace("(", ".").replace(")", "") or None
+    if applicability == "Compensating control" and not comp:
+        raise ValueError("Name the compensating control (e.g. AC-2(1))")
+    if comp and not _catalog_ids(db, [comp]):
+        raise ValueError(f"Compensating control {comp.upper()} is not in the 800-53 Rev 5 catalog")
     done = _add(db, s, ids, "tailored_in", "tailoring", actor) if action == "add" else _remove(db, s, ids)
     for cid in done:
-        db.add(TailoringDecision(system_id=s.id, control_id=cid, action=action, justification=justification.strip(), decided_by=actor.id))
-    _finish(db, s, actor, "system.tailored", {"action": action, "controls": done, "justification": justification})
+        db.add(TailoringDecision(system_id=s.id, control_id=cid, action=action, justification=justification.strip(), decided_by=actor.id,
+                                 applicability=applicability, compensating_control_id=comp))
+    _finish(db, s, actor, "system.tailored", {"action": action, "controls": done, "justification": justification,
+                                              "applicability": applicability, "compensating_control_id": comp})
     return {"action": action, "controls": done, "skipped": sorted(set(ids) - set(done))}
 
 

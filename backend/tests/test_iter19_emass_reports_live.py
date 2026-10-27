@@ -64,8 +64,9 @@ def test_mismatch_in_mpp_context(s):
 
 
 def test_no_mismatch_in_ltp_context(s):
+    # Name/acronym match LTP, but the SYNTHETIC file's eMASS ID differs from LTP's → warned (rule added after iteration 19)
     d = up(s, "SYNTHETIC_system_details.xlsx", LTP).json()
-    assert not d["detected"].get("mismatch")
+    assert "eMASS ID" in (d["detected"].get("mismatch") or "")
     s.post(f"{API}/emass-imports/{d['id']}/discard")
 
 

@@ -128,8 +128,10 @@ def build_ssp(db: Session, s: System) -> dict:
     from app.services import emass_fields as ef
 
     fmap = {f.assignment_id: f for f in db.scalars(select(EmassControlFields).where(EmassControlFields.system_id == s.id))}
+    from app.services import iscm
+    res = iscm.resolver(db, s)
     for a in db.scalars(select(ControlAssignment).where(ControlAssignment.system_id == s.id).order_by(ControlAssignment.control_id)):
-        eprops, eremarks = ef.oscal_props(fmap.get(a.id), a)
+        eprops, eremarks = ef.oscal_props(fmap.get(a.id), a, ef.effective(db, a, fmap.get(a.id), res)[0])
         req = {"uuid": str(a.id), "control-id": a.control_id,
                "props": [{"name": "implementation-status", "value": "implemented" if a.implementation_status == "implemented" else "planned"},
                          {"name": "control-origination", "ns": "https://aegisrmf.demo/ns/oscal", "value": a.responsibility}, *eprops],

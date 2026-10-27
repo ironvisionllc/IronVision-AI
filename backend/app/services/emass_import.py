@@ -206,7 +206,7 @@ def _j(v):
 def _current(db: Session, a: ControlAssignment) -> dict:
     f = ef.fields_for(db, a)
     narr = db.scalar(select(Implementation.narrative).where(Implementation.assignment_id == a.id, Implementation.is_current.is_(True)))
-    return {"implementation_status": ef.emass_status(a, f), **{k: _j(v) for k, v in ef.values(f).items()}, "implementation_narrative": narr}
+    return {"implementation_status": ef.emass_status(a, f), **{k: _j(v) for k, v in ef.effective(db, a, f)[0].items()}, "implementation_narrative": narr}
 
 
 def build(db: Session, s: System, parsed: dict) -> tuple[list[dict], dict]:

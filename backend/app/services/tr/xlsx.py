@@ -92,13 +92,13 @@ def _limits(ws, col: int) -> int | None:
     return None
 
 
-def detect(data: bytes) -> dict:
+def detect(data: bytes, min_score: int = 3) -> dict:
     wb = openpyxl.load_workbook(io.BytesIO(data), keep_vba=False)
     sheets = []
     for ws in wb.worksheets:
         r, n = _header_row(ws)
         sheets.append({"title": ws.title, "state": ws.sheet_state, "header_row": r, "score": n})
-    cands = [s for s in sheets if s["score"] >= 3 and s["state"] == "visible" and not SKIP_SHEETS.search(s["title"])] or [s for s in sheets if s["score"] >= 3]
+    cands = [s for s in sheets if s["score"] >= min_score and s["state"] == "visible" and not SKIP_SHEETS.search(s["title"])] or [s for s in sheets if s["score"] >= min_score]
     if not cands:
         raise ValueError("No Test Result header row found (looked for AP Acronym, CCI, Compliance Status, Date Tested, Tested By, Test Results in the first 40 rows of every sheet)")
     main = max(cands, key=lambda s: (s["score"], s["title"].lower() == "template"))

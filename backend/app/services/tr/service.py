@@ -78,7 +78,7 @@ def match(cmap: dict, catalog: set, ap: str | None, cci_raw: str | None, ctl_raw
     return {**out, "match_status": "unmatched", "match_reason": "Row has neither a recognisable AP Acronym nor a CCI"}
 
 
-def import_workbook(db: Session, system: System, file_name: str, data: bytes, actor) -> TrWorkbook:
+def import_workbook(db: Session, system: System, file_name: str, data: bytes, actor, enqueue: bool = True) -> TrWorkbook:
     from app.services import jobs
     from app.services.storage.base import get_storage
 
@@ -90,7 +90,8 @@ def import_workbook(db: Session, system: System, file_name: str, data: bytes, ac
                     uploaded_by=actor.email)
     db.add(wb)
     db.flush()
-    jobs.enqueue(db, "tr.detect", {"workbook_id": str(wb.id)}, requested_by=getattr(actor, "id", None))
+    if enqueue:
+        jobs.enqueue(db, "tr.detect", {"workbook_id": str(wb.id)}, requested_by=getattr(actor, "id", None))
     return wb
 
 
@@ -104,11 +105,11 @@ def _apply_template(db: Session, wb: TrWorkbook, det: dict) -> dict:
     return d
 
 
-def detect_and_match(db: Session, wb: TrWorkbook, roles_override: dict | None = None) -> None:
+def detect_and_match(db: Session, wb: TrWorkbook, roles_override: dict | None = None, min_score: int = 3) -> None:
     from app.services.storage.base import get_storage
 
     data = get_storage().get(wb.storage_key)
-    det = xlsx.detect(data)
+    det = xlsx.detect(data, min_score)
     wb.detection = {k: v for k, v in det.items() if k != "rows"}
     wb.definition = _apply_template(db, wb, det) if not roles_override else {**(wb.definition or {}), "roles": roles_override}
     if roles_override and roles_override != det["roles"]:  # re-read the identifiers with the user's column roles

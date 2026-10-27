@@ -78,10 +78,12 @@ def controls(system_id: uuid.UUID, queue: bool = False, q: str | None = None, im
             raise HTTPException(422, "emass_missing must be yes/no (true/false and 1/0 are also accepted)")
         fm = {f.assignment_id: f for f in db.scalars(select(EmassControlFields).where(EmassControlFields.system_id == system_id))}
         narr = ef.narratives(db, system_id)
+        from app.services import iscm
+        res = iscm.resolver_for_system_id(db, system_id)
         keep = []
         for a in db.scalars(select(A).where(A.system_id == system_id)):
             st = ef.emass_status(a, fm.get(a.id))
-            miss = bool(ef.missing_all(st, ef.values(fm.get(a.id)), narr.get(a.id)))
+            miss = bool(ef.missing_all(st, ef.effective(db, a, fm.get(a.id), res)[0], narr.get(a.id)))
             if (not emass_status or st == emass_status) and (want is None or miss == want):
                 keep.append(a.control_id)
         stmt = stmt.where(A.control_id.in_(keep))

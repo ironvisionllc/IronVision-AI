@@ -238,6 +238,7 @@ HANDLERS: dict[str, Callable[[Session, dict], dict]] = {
     "connectors.collect": handle_connectors,
     "kev.reevaluate": handle_kev,
     "emass.retry": handle_emass_retry,
+    "conmon.slcm_due": lambda db, payload: __import__("app.services.iscm", fromlist=["run_due_job"]).run_due_job(db),
     "sandbox.provision": lambda db, payload: __import__("app.services.sandbox", fromlist=["provision"]).provision(db, __import__("uuid").UUID(payload["org_id"])),
     "sandbox.expiry": lambda db, payload: __import__("app.services.sandbox", fromlist=["run_expiry"]).run_expiry(db),
     "sandbox.demo_reset": lambda db, payload: __import__("app.services.sandbox", fromlist=["reset_demo_account"]).reset_demo_account(db),

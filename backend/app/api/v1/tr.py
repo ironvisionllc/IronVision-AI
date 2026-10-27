@@ -65,6 +65,41 @@ async def upload(system_id: uuid.UUID, request: Request, file: UploadFile = File
     return _out(wb)
 
 
+def _plan_perm(current: CurrentUser, system_id: uuid.UUID) -> None:
+    if not _can(None, current, "ingest.upload", system_id):
+        from app.security.rbac import ROLE_PERMISSIONS, ROLES
+        raise HTTPException(403, {"code": "missing_permission", "permission": "ingest.upload",
+                                  "message": "Importing a Test Plan needs the ingest.upload permission – your role can view Test Results but not import them",
+                                  "roles": [r for r in ROLES if "ingest.upload" in ROLE_PERMISSIONS.get(r, set())]})
+
+
+@router.post("/systems/{system_id}/tr/test-plan/preview")
+async def test_plan_preview(system_id: uuid.UUID, file: UploadFile = File(...), db: Session = Depends(get_db),
+                            current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    """Import Test Plan – step 1: recognise the format, validate columns and rows, list accepted/rejected rows. Nothing is saved."""
+    from app.services.tr import test_plan
+
+    _plan_perm(current, system_id)
+    p = test_plan.preview(db, get_system(db, system_id), file.filename or "", await file.read(test_plan.MAX_BYTES + 1))
+    p.pop("_xlsx")
+    return p
+
+
+@router.post("/systems/{system_id}/tr/test-plan/import", status_code=201)
+async def test_plan_import(system_id: uuid.UUID, request: Request, file: UploadFile = File(...), db: Session = Depends(get_db),
+                           current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    """Import Test Plan – step 2: create a Test Results workbook from the accepted rows (results stay blank until the SCA approves)."""
+    from app.services.tr import test_plan
+
+    _plan_perm(current, system_id)
+    wb, p = test_plan.import_accepted(db, get_system(db, system_id), file.filename or "", await file.read(test_plan.MAX_BYTES + 1), current.user)
+    audit.record(db, action="tr.test_plan_imported", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="tr_workbook",
+                 entity_id=str(wb.id), after={"file_name": wb.file_name, "sha256": wb.sha256, "accepted": p["counts"]["accepted"],
+                                              "rejected_rows": [r["row"] for r in p["rejected"]]}, **audit.request_meta(request))
+    db.commit()
+    return {**_out(wb), "preview": {k: v for k, v in p.items() if k != "_xlsx"}}
+
+
 @router.get("/systems/{system_id}/tr/workbooks")
 def list_workbooks(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> list[dict]:
     s = get_system(db, system_id)

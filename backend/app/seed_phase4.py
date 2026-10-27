@@ -56,6 +56,38 @@ def seed_phase4(db: Session, org: Organization) -> None:
     db.flush()
     if ltp:
         seed_emass_fields(db, ltp)
+        seed_iscm(db, ltp)
+
+
+def seed_iscm(db: Session, s: System) -> None:
+    """SYNTHETIC approved Continuous Monitoring Strategy (Task S-5) for LTP. Tracking/Comments are left to the controls so the
+    "missing required eMASS fields" demo (cp-4, au-2) still shows. Idempotent."""
+    from app.models import IscmProfile, IscmStrategy
+    from app.services import iscm
+
+    if db.scalar(select(IscmStrategy.id).where(IscmStrategy.system_id == s.id)):
+        return
+    st = IscmStrategy(system_id=s.id, status="approved", version=1, is_synthetic=True,
+                      narrative="SYNTHETIC ISCM strategy: automated scanner evidence (ACAS/STIG) is reviewed monthly, policy and procedure controls annually; "
+                                "the ISSO reviews SLCM results and reports to the ISSM monthly and to the AO annually.",
+                      scope="All selected controls of LTP that are not Inherited or Not Applicable.",
+                      defaults={"slcm_criticality": "Moderate", "slcm_frequency": "Annually", "slcm_method": "Manual",
+                                "slcm_reporting": "Annual security review report to the ISSM"},
+                      reporting=[{"report": "ConMon summary", "audience": "ISSM", "frequency": "Monthly"},
+                                 {"report": "Security status / ATO health", "audience": "AO", "frequency": "Annually"}],
+                      review_activities=[{"activity": "Vulnerability scan review (ACAS/STIG)", "frequency": "Monthly", "role": "isso"},
+                                         {"activity": "Annual control assessment subset", "frequency": "Annually", "role": "sca"}],
+                      evidence_requirements=[{"evidence": "Scanner results (ACAS, STIG checklists)", "freshness_days": 30},
+                                             {"evidence": "Policies and procedures", "freshness_days": 365}],
+                      submitted_by={"persona_email": "seed", "real_email": "seed"}, approved_by={"persona_email": "seed (SYNTHETIC)", "real_email": "seed"},
+                      approved_at=datetime.now(timezone.utc))
+    db.add(st)
+    db.flush()
+    p = IscmProfile(strategy_id=st.id, name="AU/SI – scanner-monitored", match_type="family", match_value="au,si,ra", sort_order=0,
+                    values={"slcm_frequency": "Monthly", "slcm_method": "Automated", "slcm_reporting": "Monthly ConMon report to the ISSM"})
+    db.add(p)
+    db.flush()
+    st.approved_snapshot = iscm.snapshot(st, [p])
 
 
 EMASS_DEMO = ("ac-2", "ac-2.3", "ac-17", "at-2", "au-9", "cm-6", "ia-2", "ra-5", "sc-13", "sc-28", "si-2")

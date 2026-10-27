@@ -21,6 +21,7 @@ DEFAULT_SCHEDULES = [
     ("connectors.collect", "Mock connector collection (per source frequency)", 30),
     ("kev.reevaluate", "KEV re-evaluation of findings", 1440),
     ("emass.retry", "eMASS outbound retry (backoff)", 5),
+    ("conmon.slcm_due", "SLCM due/overdue per Continuous Monitoring Strategy (Monitor)", 1440),
     ("retention.purge", "Data retention purge (dry-run by default; never audit/legal-hold)", 1440),
     ("sandbox.expiry", "Sandbox inactivity warnings + purge (sandbox tenants only)", 1440),
     ("sandbox.demo_reset", "Nightly reset of the shared demo account sandbox", 1440),

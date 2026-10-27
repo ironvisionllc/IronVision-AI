@@ -4362,7 +4362,7 @@
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/app__api__v1__emass_import__DecideIn"
+        "$ref": "#/components/schemas/EmassImportDecideIn"
        }
       }
      }
@@ -4778,7 +4778,7 @@
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/app__api__v1__emass_import__DecideIn"
+        "$ref": "#/components/schemas/EmassImportDecideIn"
        }
       }
      }
@@ -4882,6 +4882,414 @@
          "type": "object",
          "additionalProperties": true,
          "title": "Response Generic Discard Api V1 Emass Imports  Import Id  Discard Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/iscm": {
+   "get": {
+    "tags": [
+     "iscm"
+    ],
+    "summary": "Get Strategy",
+    "operationId": "get_strategy_api_v1_systems__system_id__iscm_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Get Strategy Api V1 Systems  System Id  Iscm Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "iscm"
+    ],
+    "summary": "Put Strategy",
+    "operationId": "put_strategy_api_v1_systems__system_id__iscm_put",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/StrategyIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Put Strategy Api V1 Systems  System Id  Iscm Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/iscm/submit": {
+   "post": {
+    "tags": [
+     "iscm"
+    ],
+    "summary": "Submit Strategy",
+    "operationId": "submit_strategy_api_v1_systems__system_id__iscm_submit_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Submit Strategy Api V1 Systems  System Id  Iscm Submit Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/iscm/decision": {
+   "post": {
+    "tags": [
+     "iscm"
+    ],
+    "summary": "Decide Strategy",
+    "operationId": "decide_strategy_api_v1_systems__system_id__iscm_decision_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/IscmDecisionIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Decide Strategy Api V1 Systems  System Id  Iscm Decision Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/iscm/promote-preview": {
+   "get": {
+    "tags": [
+     "iscm"
+    ],
+    "summary": "Promote Preview",
+    "operationId": "promote_preview_api_v1_systems__system_id__iscm_promote_preview_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Promote Preview Api V1 Systems  System Id  Iscm Promote Preview Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/iscm/promote": {
+   "post": {
+    "tags": [
+     "iscm"
+    ],
+    "summary": "Promote",
+    "operationId": "promote_api_v1_systems__system_id__iscm_promote_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PromoteIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Promote Api V1 Systems  System Id  Iscm Promote Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/iscm/due": {
+   "get": {
+    "tags": [
+     "iscm"
+    ],
+    "summary": "Slcm Due",
+    "operationId": "slcm_due_api_v1_systems__system_id__iscm_due_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Slcm Due Api V1 Systems  System Id  Iscm Due Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/workbench/controls/{control_id}/emass/slcm-reset": {
+   "post": {
+    "tags": [
+     "iscm"
+    ],
+    "summary": "Slcm Reset",
+    "description": "Reset to strategy: clears the per-control SLCM override so the approved Continuous Monitoring Strategy value applies.",
+    "operationId": "slcm_reset_api_v1_systems__system_id__workbench_controls__control_id__emass_slcm_reset_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "control_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Control Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ResetIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Slcm Reset Api V1 Systems  System Id  Workbench Controls  Control Id  Emass Slcm Reset Post"
         }
        }
       }
@@ -11799,6 +12207,108 @@
     }
    }
   },
+  "/api/v1/systems/{system_id}/select/review": {
+   "get": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Select Review",
+    "description": "Select step 5 \u2013 original baseline vs final selection, counts, open decisions and the selection approval status (Task S-6).",
+    "operationId": "select_review_api_v1_systems__system_id__select_review_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Select Review Api V1 Systems  System Id  Select Review Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/select/submit": {
+   "post": {
+    "tags": [
+     "rmf-steps"
+    ],
+    "summary": "Select Submit",
+    "description": "Submit the control selection for approval via the existing reviews workflow (ISSM endorses \u2192 AO approves).",
+    "operationId": "select_submit_api_v1_systems__system_id__select_submit_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SelectionSubmitIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Select Submit Api V1 Systems  System Id  Select Submit Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/overlays/{overlay_key}/import": {
    "post": {
     "tags": [
@@ -12261,6 +12771,118 @@
     }
    }
   },
+  "/api/v1/systems/{system_id}/tr/test-plan/preview": {
+   "post": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Test Plan Preview",
+    "description": "Import Test Plan \u2013 step 1: recognise the format, validate columns and rows, list accepted/rejected rows. Nothing is saved.",
+    "operationId": "test_plan_preview_api_v1_systems__system_id__tr_test_plan_preview_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_test_plan_preview_api_v1_systems__system_id__tr_test_plan_preview_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Test Plan Preview Api V1 Systems  System Id  Tr Test Plan Preview Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/tr/test-plan/import": {
+   "post": {
+    "tags": [
+     "test-results"
+    ],
+    "summary": "Test Plan Import",
+    "description": "Import Test Plan \u2013 step 2: create a Test Results workbook from the accepted rows (results stay blank until the SCA approves).",
+    "operationId": "test_plan_import_api_v1_systems__system_id__tr_test_plan_import_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_test_plan_import_api_v1_systems__system_id__tr_test_plan_import_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Test Plan Import Api V1 Systems  System Id  Tr Test Plan Import Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/tr/workbooks/{wid}": {
    "get": {
     "tags": [
@@ -12689,7 +13311,7 @@
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/app__api__v1__tr__DecideIn"
+        "$ref": "#/components/schemas/DecideIn"
        }
       }
      }
@@ -14709,6 +15331,11 @@
       "type": "boolean",
       "title": "Include Privacy",
       "default": false
+     },
+     "dry_run": {
+      "type": "boolean",
+      "title": "Dry Run",
+      "default": false
      }
     },
     "type": "object",
@@ -14888,6 +15515,34 @@
      "file"
     ],
     "title": "Body_overlay_import_reference_api_v1_overlays_import_reference_post"
+   },
+   "Body_test_plan_import_api_v1_systems__system_id__tr_test_plan_import_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_test_plan_import_api_v1_systems__system_id__tr_test_plan_import_post"
+   },
+   "Body_test_plan_preview_api_v1_systems__system_id__tr_test_plan_preview_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_test_plan_preview_api_v1_systems__system_id__tr_test_plan_preview_post"
    },
    "Body_upload_api_v1_systems__system_id__emass_imports_post": {
     "properties": {
@@ -15974,6 +16629,93 @@
     ],
     "title": "CoveredElsewhere"
    },
+   "DecideIn": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "title": "Action",
+      "description": "`approve` (SCA only) or `edit`"
+     },
+     "row_ids": {
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "type": "array",
+      "title": "Row Ids"
+     },
+     "justification": {
+      "type": "string",
+      "title": "Justification",
+      "default": ""
+     },
+     "use_suggestion": {
+      "type": "boolean",
+      "title": "Use Suggestion",
+      "description": "approve: use the evidence suggestion as the SCA's Compliance Status",
+      "default": false
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status",
+      "description": "approve: the SCA's Compliance Status (must be in the template vocabulary)"
+     },
+     "values": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Values",
+      "description": "edit: {\"test_results\": str, \"compliance_status\": str (SCA only)}. approve: only {\"test_results\": str} \u2013 the SCA's final Test Results text, saved with the approval"
+     },
+     "tested_by": {
+      "type": "string",
+      "title": "Tested By",
+      "description": "approve: actual tester for the batch (required unless per_row)",
+      "default": ""
+     },
+     "date_tested": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Tested",
+      "description": "approve: actual test date for the batch, not in the future (required unless per_row)"
+     },
+     "per_row": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/TesterIn"
+      },
+      "type": "object",
+      "title": "Per Row",
+      "description": "approve: row_id \u2192 {tested_by, date_tested}",
+      "default": {}
+     }
+    },
+    "type": "object",
+    "required": [
+     "action",
+     "row_ids"
+    ],
+    "title": "DecideIn"
+   },
    "Decision": {
     "properties": {
      "control_id": {
@@ -16242,6 +16984,32 @@
     ],
     "title": "EmassConfigIn"
    },
+   "EmassImportDecideIn": {
+    "properties": {
+     "decisions": {
+      "items": {
+       "$ref": "#/components/schemas/Decision"
+      },
+      "type": "array",
+      "maxItems": 20000,
+      "title": "Decisions"
+     },
+     "bulk": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(accept_safe|reject_all|reset)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bulk"
+     }
+    },
+    "type": "object",
+    "title": "EmassImportDecideIn"
+   },
    "FailSim": {
     "properties": {
      "mode": {
@@ -16488,6 +17256,25 @@
      "role"
     ],
     "title": "InviteIn"
+   },
+   "IscmDecisionIn": {
+    "properties": {
+     "approve": {
+      "type": "boolean",
+      "title": "Approve"
+     },
+     "comment": {
+      "type": "string",
+      "maxLength": 2000,
+      "title": "Comment",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "approve"
+    ],
+    "title": "IscmDecisionIn"
    },
    "JobOut": {
     "properties": {
@@ -16922,6 +17709,11 @@
      "apply": {
       "type": "boolean",
       "title": "Apply"
+     },
+     "dry_run": {
+      "type": "boolean",
+      "title": "Dry Run",
+      "default": false
      }
     },
     "type": "object",
@@ -17493,6 +18285,86 @@
     ],
     "title": "PrefIn"
    },
+   "ProfileIn": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "title": "Name"
+     },
+     "match_type": {
+      "type": "string",
+      "enum": [
+       "family",
+       "control_list",
+       "designation"
+      ],
+      "title": "Match Type"
+     },
+     "match_value": {
+      "type": "string",
+      "maxLength": 2000,
+      "title": "Match Value"
+     },
+     "values": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Values",
+      "default": {}
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "match_type",
+     "match_value"
+    ],
+    "title": "ProfileIn"
+   },
+   "PromoteIn": {
+    "properties": {
+     "field": {
+      "type": "string",
+      "enum": [
+       "slcm_criticality",
+       "slcm_frequency",
+       "slcm_method",
+       "slcm_reporting",
+       "slcm_tracking",
+       "slcm_comments"
+      ],
+      "title": "Field"
+     },
+     "value": {
+      "type": "string",
+      "maxLength": 4000,
+      "title": "Value"
+     },
+     "target": {
+      "type": "string",
+      "enum": [
+       "system_default",
+       "family_profile"
+      ],
+      "title": "Target"
+     },
+     "families": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Families",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "field",
+     "value",
+     "target"
+    ],
+    "title": "PromoteIn"
+   },
    "ProviderIn": {
     "properties": {
      "name": {
@@ -17801,6 +18673,22 @@
     ],
     "title": "RemoveIn"
    },
+   "ResetIn": {
+    "properties": {
+     "fields": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Fields"
+     }
+    },
+    "type": "object",
+    "required": [
+     "fields"
+    ],
+    "title": "ResetIn"
+   },
    "ReviewReqIn": {
     "properties": {
      "justification": {
@@ -17963,6 +18851,21 @@
      "enabled"
     ],
     "title": "ScheduleIn"
+   },
+   "SelectionSubmitIn": {
+    "properties": {
+     "justification": {
+      "type": "string",
+      "maxLength": 4000,
+      "minLength": 10,
+      "title": "Justification"
+     }
+    },
+    "type": "object",
+    "required": [
+     "justification"
+    ],
+    "title": "SelectionSubmitIn"
    },
    "SignupIn": {
     "properties": {
@@ -18132,6 +19035,77 @@
      "step"
     ],
     "title": "StepIn"
+   },
+   "StrategyIn": {
+    "properties": {
+     "narrative": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 20000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Narrative"
+     },
+     "scope": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 4000
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Scope"
+     },
+     "defaults": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Defaults",
+      "default": {}
+     },
+     "profiles": {
+      "items": {
+       "$ref": "#/components/schemas/ProfileIn"
+      },
+      "type": "array",
+      "title": "Profiles",
+      "default": []
+     },
+     "reporting": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Reporting",
+      "default": []
+     },
+     "review_activities": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Review Activities",
+      "default": []
+     },
+     "evidence_requirements": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Evidence Requirements",
+      "default": []
+     }
+    },
+    "type": "object",
+    "title": "StrategyIn"
    },
    "SuggestIn": {
     "properties": {
@@ -19034,6 +20008,35 @@
       "maxLength": 4000,
       "title": "Justification",
       "default": ""
+     },
+     "applicability": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 30
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Applicability"
+     },
+     "compensating_control_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 50
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Compensating Control Id"
+     },
+     "dry_run": {
+      "type": "boolean",
+      "title": "Dry Run",
+      "default": false
      }
     },
     "type": "object",
@@ -19486,32 +20489,6 @@
     "type": "object",
     "title": "RiskIn"
    },
-   "app__api__v1__emass_import__DecideIn": {
-    "properties": {
-     "decisions": {
-      "items": {
-       "$ref": "#/components/schemas/Decision"
-      },
-      "type": "array",
-      "maxItems": 20000,
-      "title": "Decisions"
-     },
-     "bulk": {
-      "anyOf": [
-       {
-        "type": "string",
-        "pattern": "^(accept_safe|reject_all|reset)$"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Bulk"
-     }
-    },
-    "type": "object",
-    "title": "DecideIn"
-   },
    "app__api__v1__evidence__MapIn": {
     "properties": {
      "control_id": {
@@ -19622,93 +20599,6 @@
      "justification"
     ],
     "title": "RiskIn"
-   },
-   "app__api__v1__tr__DecideIn": {
-    "properties": {
-     "action": {
-      "type": "string",
-      "title": "Action",
-      "description": "`approve` (SCA only) or `edit`"
-     },
-     "row_ids": {
-      "items": {
-       "type": "string",
-       "format": "uuid"
-      },
-      "type": "array",
-      "title": "Row Ids"
-     },
-     "justification": {
-      "type": "string",
-      "title": "Justification",
-      "default": ""
-     },
-     "use_suggestion": {
-      "type": "boolean",
-      "title": "Use Suggestion",
-      "description": "approve: use the evidence suggestion as the SCA's Compliance Status",
-      "default": false
-     },
-     "status": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Status",
-      "description": "approve: the SCA's Compliance Status (must be in the template vocabulary)"
-     },
-     "values": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Values",
-      "description": "edit: {\"test_results\": str, \"compliance_status\": str (SCA only)}. approve: only {\"test_results\": str} \u2013 the SCA's final Test Results text, saved with the approval"
-     },
-     "tested_by": {
-      "type": "string",
-      "title": "Tested By",
-      "description": "approve: actual tester for the batch (required unless per_row)",
-      "default": ""
-     },
-     "date_tested": {
-      "anyOf": [
-       {
-        "type": "string",
-        "format": "date"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Date Tested",
-      "description": "approve: actual test date for the batch, not in the future (required unless per_row)"
-     },
-     "per_row": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/TesterIn"
-      },
-      "type": "object",
-      "title": "Per Row",
-      "description": "approve: row_id \u2192 {tested_by, date_tested}",
-      "default": {}
-     }
-    },
-    "type": "object",
-    "required": [
-     "action",
-     "row_ids"
-    ],
-    "title": "DecideIn"
    },
    "app__api__v1__tr__ResolveIn": {
     "properties": {
