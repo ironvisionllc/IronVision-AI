@@ -1435,3 +1435,23 @@ class EmassControlFields(CoreMixin, Base):
     assisted: Mapped[dict | None] = mapped_column(JSONB)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+
+
+class EmassImport(CoreMixin, Base):
+    """eMASS Control Information import session: parsed proposals + per-field decisions; nothing is applied until apply()."""
+    __tablename__ = "emass_imports"
+    org_id: Mapped[uuid.UUID] = _fk("organizations.id")
+    system_id: Mapped[uuid.UUID] = _fk("systems.id")
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(1000), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="review")
+    uploaded_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    uploaded_by_email: Mapped[str | None] = mapped_column(String(320))
+    detection: Mapped[dict | None] = mapped_column(JSONB)
+    report: Mapped[dict | None] = mapped_column(JSONB)
+    items: Mapped[list | None] = mapped_column(JSONB)
+    counts: Mapped[dict | None] = mapped_column(JSONB)
+    applied_by_email: Mapped[str | None] = mapped_column(String(320))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

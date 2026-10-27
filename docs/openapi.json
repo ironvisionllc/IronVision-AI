@@ -4134,6 +4134,375 @@
     }
    }
   },
+  "/api/v1/systems/{system_id}/emass-imports": {
+   "get": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "History",
+    "operationId": "history_api_v1_systems__system_id__emass_imports_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response History Api V1 Systems  System Id  Emass Imports Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Upload",
+    "operationId": "upload_api_v1_systems__system_id__emass_imports_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_upload_api_v1_systems__system_id__emass_imports_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Upload Api V1 Systems  System Id  Emass Imports Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/emass-imports/sample.xlsx": {
+   "get": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Sample",
+    "operationId": "sample_api_v1_systems__system_id__emass_imports_sample_xlsx_get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/emass-imports/{import_id}": {
+   "get": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Detail",
+    "operationId": "detail_api_v1_systems__system_id__emass_imports__import_id__get",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Detail Api V1 Systems  System Id  Emass Imports  Import Id  Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/emass-imports/{import_id}/decisions": {
+   "put": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Decisions",
+    "operationId": "decisions_api_v1_systems__system_id__emass_imports__import_id__decisions_put",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/app__api__v1__emass_import__DecideIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Decisions Api V1 Systems  System Id  Emass Imports  Import Id  Decisions Put"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/emass-imports/{import_id}/apply": {
+   "post": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Apply",
+    "operationId": "apply_api_v1_systems__system_id__emass_imports__import_id__apply_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Apply Api V1 Systems  System Id  Emass Imports  Import Id  Apply Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/systems/{system_id}/emass-imports/{import_id}/discard": {
+   "post": {
+    "tags": [
+     "emass-import"
+    ],
+    "summary": "Discard",
+    "operationId": "discard_api_v1_systems__system_id__emass_imports__import_id__discard_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "import_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Import Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Discard Api V1 Systems  System Id  Emass Imports  Import Id  Discard Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/poams": {
    "get": {
     "tags": [
@@ -11924,7 +12293,7 @@
      "content": {
       "application/json": {
        "schema": {
-        "$ref": "#/components/schemas/DecideIn"
+        "$ref": "#/components/schemas/app__api__v1__tr__DecideIn"
        }
       }
      }
@@ -12855,13 +13224,13 @@
    }
   },
   "/api/v1/public/whitepaper.{ext}": {
-   "get": {
+   "head": {
     "tags": [
      "public"
     ],
     "summary": "Whitepaper",
     "description": "Public (no auth) download of the product whitepaper. PDF inline (opens in iOS Safari's viewer), DOCX as attachment.",
-    "operationId": "whitepaper_api_v1_public_whitepaper__ext__get",
+    "operationId": "whitepaper_api_v1_public_whitepaper__ext__head",
     "parameters": [
      {
       "name": "ext",
@@ -12894,13 +13263,13 @@
      }
     }
    },
-   "head": {
+   "get": {
     "tags": [
      "public"
     ],
     "summary": "Whitepaper",
     "description": "Public (no auth) download of the product whitepaper. PDF inline (opens in iOS Safari's viewer), DOCX as attachment.",
-    "operationId": "whitepaper_api_v1_public_whitepaper__ext__get",
+    "operationId": "whitepaper_api_v1_public_whitepaper__ext__head",
     "parameters": [
      {
       "name": "ext",
@@ -12935,13 +13304,13 @@
    }
   },
   "/api/v1/public/demo/{name}": {
-   "get": {
+   "head": {
     "tags": [
      "public"
     ],
     "summary": "Demo File",
     "description": "Public (no auth) product demo video and its narration/caption/timeline/validation files. Range requests supported (MP4 seeking).",
-    "operationId": "demo_file_api_v1_public_demo__name__get",
+    "operationId": "demo_file_api_v1_public_demo__name__head",
     "parameters": [
      {
       "name": "name",
@@ -12974,13 +13343,13 @@
      }
     }
    },
-   "head": {
+   "get": {
     "tags": [
      "public"
     ],
     "summary": "Demo File",
     "description": "Public (no auth) product demo video and its narration/caption/timeline/validation files. Range requests supported (MP4 seeking).",
-    "operationId": "demo_file_api_v1_public_demo__name__get",
+    "operationId": "demo_file_api_v1_public_demo__name__head",
     "parameters": [
      {
       "name": "name",
@@ -14098,6 +14467,20 @@
     ],
     "title": "Body_overlay_import_reference_api_v1_overlays_import_reference_post"
    },
+   "Body_upload_api_v1_systems__system_id__emass_imports_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_upload_api_v1_systems__system_id__emass_imports_post"
+   },
    "Body_upload_api_v1_systems__system_id__inventory_imports_post": {
     "properties": {
      "file": {
@@ -15169,92 +15552,43 @@
     ],
     "title": "CoveredElsewhere"
    },
-   "DecideIn": {
+   "Decision": {
     "properties": {
-     "action": {
+     "control_id": {
       "type": "string",
-      "title": "Action",
-      "description": "`approve` (SCA only) or `edit`"
+      "maxLength": 50,
+      "title": "Control Id"
      },
-     "row_ids": {
-      "items": {
-       "type": "string",
-       "format": "uuid"
-      },
-      "type": "array",
-      "title": "Row Ids"
-     },
-     "justification": {
-      "type": "string",
-      "title": "Justification",
-      "default": ""
-     },
-     "use_suggestion": {
-      "type": "boolean",
-      "title": "Use Suggestion",
-      "description": "approve: use the evidence suggestion as the SCA's Compliance Status",
-      "default": false
-     },
-     "status": {
-      "anyOf": [
-       {
-        "type": "string"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Status",
-      "description": "approve: the SCA's Compliance Status (must be in the template vocabulary)"
-     },
-     "values": {
-      "anyOf": [
-       {
-        "additionalProperties": true,
-        "type": "object"
-       },
-       {
-        "type": "null"
-       }
-      ],
-      "title": "Values",
-      "description": "edit: {\"test_results\": str, \"compliance_status\": str (SCA only)}. approve: only {\"test_results\": str} \u2013 the SCA's final Test Results text, saved with the approval"
-     },
-     "tested_by": {
-      "type": "string",
-      "title": "Tested By",
-      "description": "approve: actual tester for the batch (required unless per_row)",
-      "default": ""
-     },
-     "date_tested": {
+     "field": {
       "anyOf": [
        {
         "type": "string",
-        "format": "date"
+        "maxLength": 40
        },
        {
         "type": "null"
        }
       ],
-      "title": "Date Tested",
-      "description": "approve: actual test date for the batch, not in the future (required unless per_row)"
+      "title": "Field"
      },
-     "per_row": {
-      "additionalProperties": {
-       "$ref": "#/components/schemas/TesterIn"
-      },
-      "type": "object",
-      "title": "Per Row",
-      "description": "approve: row_id \u2192 {tested_by, date_tested}",
-      "default": {}
+     "decision": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(accept|reject)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Decision"
      }
     },
     "type": "object",
     "required": [
-     "action",
-     "row_ids"
+     "control_id"
     ],
-    "title": "DecideIn"
+    "title": "Decision"
    },
    "DecisionIn": {
     "properties": {
@@ -18676,6 +19010,32 @@
     "type": "object",
     "title": "RiskIn"
    },
+   "app__api__v1__emass_import__DecideIn": {
+    "properties": {
+     "decisions": {
+      "items": {
+       "$ref": "#/components/schemas/Decision"
+      },
+      "type": "array",
+      "maxItems": 20000,
+      "title": "Decisions"
+     },
+     "bulk": {
+      "anyOf": [
+       {
+        "type": "string",
+        "pattern": "^(accept_safe|reject_all|reset)$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Bulk"
+     }
+    },
+    "type": "object",
+    "title": "DecideIn"
+   },
    "app__api__v1__evidence__MapIn": {
     "properties": {
      "control_id": {
@@ -18786,6 +19146,93 @@
      "justification"
     ],
     "title": "RiskIn"
+   },
+   "app__api__v1__tr__DecideIn": {
+    "properties": {
+     "action": {
+      "type": "string",
+      "title": "Action",
+      "description": "`approve` (SCA only) or `edit`"
+     },
+     "row_ids": {
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      },
+      "type": "array",
+      "title": "Row Ids"
+     },
+     "justification": {
+      "type": "string",
+      "title": "Justification",
+      "default": ""
+     },
+     "use_suggestion": {
+      "type": "boolean",
+      "title": "Use Suggestion",
+      "description": "approve: use the evidence suggestion as the SCA's Compliance Status",
+      "default": false
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status",
+      "description": "approve: the SCA's Compliance Status (must be in the template vocabulary)"
+     },
+     "values": {
+      "anyOf": [
+       {
+        "additionalProperties": true,
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Values",
+      "description": "edit: {\"test_results\": str, \"compliance_status\": str (SCA only)}. approve: only {\"test_results\": str} \u2013 the SCA's final Test Results text, saved with the approval"
+     },
+     "tested_by": {
+      "type": "string",
+      "title": "Tested By",
+      "description": "approve: actual tester for the batch (required unless per_row)",
+      "default": ""
+     },
+     "date_tested": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Date Tested",
+      "description": "approve: actual test date for the batch, not in the future (required unless per_row)"
+     },
+     "per_row": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/TesterIn"
+      },
+      "type": "object",
+      "title": "Per Row",
+      "description": "approve: row_id \u2192 {tested_by, date_tested}",
+      "default": {}
+     }
+    },
+    "type": "object",
+    "required": [
+     "action",
+     "row_ids"
+    ],
+    "title": "DecideIn"
    },
    "app__api__v1__tr__ResolveIn": {
     "properties": {

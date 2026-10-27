@@ -213,7 +213,10 @@ def test_migration_0029_up_down_up():
         command.downgrade(cfg, "0028")
         assert "emass_control_fields" not in inspect(eng).get_table_names()
         command.upgrade(cfg, "head")
-        assert "emass_control_fields" in inspect(eng).get_table_names()
+        assert {"emass_control_fields", "emass_imports"} <= set(inspect(eng).get_table_names())
+        command.downgrade(cfg, "0029")
+        assert "emass_imports" not in inspect(eng).get_table_names() and "emass_control_fields" in inspect(eng).get_table_names()
+        command.upgrade(cfg, "head")
         eng.dispose()
     finally:
         with admin.connect() as c:

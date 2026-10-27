@@ -16,6 +16,7 @@ import LeadershipPage from "@/pages/LeadershipPage";
 import { RegisterSystemPage, SystemsPage } from "@/pages/SystemsPage";
 import SystemDetailPage from "@/pages/SystemDetailPage";
 import WorkbenchPage from "@/pages/WorkbenchPage";
+import EmassImportPage from "@/pages/EmassImportPage";
 import { IngestRunPage, LedgerPage, SourcesPage } from "@/pages/EvidencePages";
 import { useSystems } from "@/context/SystemContext";
 import { PoamDetailPage, PoamListPage } from "@/pages/PoamPages";
@@ -64,6 +65,8 @@ function Shell() {
           <Route path="/systems/:id" element={<SystemDetailPage />} />
           <Route path="/systems/:id/controls" element={<WorkbenchPage />} />
           <Route path="/systems/:id/controls/:controlId" element={<WorkbenchPage />} />
+          <Route path="/systems/:id/emass-import" element={<EmassImportPage />} />
+          <Route path="/systems/:id/emass-import/:importId" element={<EmassImportPage />} />
           <Route path="/evidence-sources" element={<SourcesPage />} />
           <Route path="/ingest-runs/:id" element={<IngestRunPage />} />
           <Route path="/evidence-ledger" element={<LedgerPage />} />

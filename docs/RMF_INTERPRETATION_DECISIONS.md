@@ -201,3 +201,57 @@ The server enforces these rules with HTTP 422. The UI shows or hides fields to m
 - **Mocked eMASS sync:** the queued control change (`entity_type=control`) uses eMASS API field names and stays labelled MOCKED.
 
 **SME review required:** check the xlsx column order against a current eMASS Control Information export before any upload.
+
+## eMASS Control Information import (import back) – compatibility pending verification against a real eMASS export
+
+There is no real eMASS Control Information export file in this repository. The column names were compiled from three sources:
+- the eMASS UI field labels in the DCSA "NISP eMASS Industry Operation Guide";
+- the public DCSA/DAAPM guidance on the ControlInfoExport spreadsheet;
+- the MITRE emass_client API field names already used in this app.
+
+**Header handling:**
+- Matching is case-, whitespace- and punctuation-insensitive.
+- The header row is detected automatically: it is the first-30-rows row, on any sheet, with the most recognised headers, and it must include a Control Acronym column.
+- Columns are found by header name, not by position. Our own eMASS-formatted Implementation Plan xlsx (header row 2) imports cleanly as a round trip.
+
+| Field | Accepted headers (plus the eMASS API name and our internal name) |
+|---|---|
+| Control (matching key) | Control Acronym, Control, Acronym, Control ID, Security Control, Security Control Acronym, Control Identifier, Control Number |
+| implementationStatus | Implementation Status, Impl Status |
+| commonControlProvider | Common Control Provider, CCP |
+| naJustification | N/A Justification, NA Justification, Not Applicable Justification |
+| controlDesignation | Security Control Designation, Control Designation, Designation |
+| estimatedCompletionDate | Estimated Completion Date, ECD, Estimated Completion, Scheduled Completion Date |
+| responsibleEntities | Responsible Entities, Responsible Entity |
+| implementationNarrative | Implementation Narrative, Narrative |
+| slcmCriticality / Frequency / Method / Reporting / Tracking / Comments | SLCM Criticality / Criticality, SLCM Frequency / Frequency, SLCM Method / Method, SLCM Reporting / Reporting, SLCM Tracking / Tracking, SLCM Comments |
+| severity, likelihood, impact | Severity, Likelihood, Impact |
+| relevanceOfThreat | Relevance of Threat, Threat Relevance |
+| residualRiskLevel | Residual Risk Level, Residual Risk |
+| impactDescription, recommendations, mitigations | Impact Description, Recommendations, Mitigations |
+| (UI-only field) Vulnerability Summary | Vulnerability Summary |
+
+Known eMASS columns that are not imported (System Name, Control Title, Control Information, Compliance Status, AP Acronym, CCI, Test Method, Date Tested, Tested By, Test Results, and similar) are reported as "not importable". Any other header is reported as unknown and ignored.
+
+**Values:**
+- Control Acronyms are normalised: "AC-2 (1)", "AC-02(01)", "AC-2(1)" and our internal "ac-2.1" are the same control.
+- Enumerations are matched case-insensitively; "N/A" means Not Applicable.
+- Dates may be Excel dates, Excel serial numbers, YYYY-MM-DD, MM/DD/YYYY or DD-Mon-YYYY.
+- **Empty cells mean "no value in the file" and never clear a stored value.**
+- Character limits are the eMASS limits. Values outside the enumerations, bad dates and over-limit text are reported with their row numbers and cannot be accepted.
+
+**Rules on review and apply:**
+- Nothing saves automatically. Each field is accepted or rejected per field, per control, or with "accept all conflict-free". The bulk accept skips controls whose resulting plan would break the eMASS required-field rules, and keeps explicit rejections.
+- Apply goes through `services.emass_fields.save_plan` / `save_risk`, so status sync, the required-field rules and the Inherited rules are the same as manual edits. A plan that would violate the required-field rules is reported "not saved".
+- Importing "Inherited" without an inheritance record is blocked. Risk Assessment changes for Inherited controls are blocked.
+- An imported narrative becomes a new **draft** implementation version. It is never approved.
+- Each applied change is audited with before/after and `source = "eMASS import <file> (sha256 …)"`, plus the import id.
+
+**Safety:**
+- .xlsx/.xlsm only, 10 MB and 10,000 rows maximum.
+- Zip-bomb guard (120 MB uncompressed, 2,000 parts). Encrypted or legacy OLE files are rejected.
+- Macros are never loaded (`keep_vba=False`, read-only, `data_only`). Any parser error is a clean 422.
+- The original upload is stored in object storage under `emass-import/<org>/<system>/<sha256>/` and its SHA-256 is recorded.
+- Sessions are system-scoped and can be resumed until applied or discarded.
+
+**SME review required:** compare these headers with a current real eMASS Control Information export before relying on the import.

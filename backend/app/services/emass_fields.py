@@ -200,7 +200,7 @@ def _assisted(f: EmassControlFields, fields: list[str], source: str | None, inte
     f.assisted = {**(f.assisted or {}), **{k: stamp for k in fields}}
 
 
-def save_plan(db: Session, a: ControlAssignment, status: str, vals: dict, current, assist: dict, meta: dict) -> dict:
+def save_plan(db: Session, a: ControlAssignment, status: str, vals: dict, current, assist: dict, meta: dict, audit_extra: dict | None = None) -> dict:
     vals = {k: (v.strip() if isinstance(v, str) else v) or None for k, v in vals.items() if k in PLAN_FIELDS}
     check_values(vals)
     f = ensure(db, a)
@@ -228,17 +228,18 @@ def save_plan(db: Session, a: ControlAssignment, status: str, vals: dict, curren
     _assisted(f, used, assist.get("source"), assist.get("interaction_id"), current.user)
     changed = _audit(db, current, a, "emass.plan_updated", before, {**values(f), "implementation_status": status},
                      {"ai_assisted": assist.get("source") == "ai" and bool(used), "suggestion_source": assist.get("source") if used else None,
-                      "suggested_fields_accepted": used, "interaction_id": str(assist.get("interaction_id")) if used and assist.get("interaction_id") else None},
-                     meta)
+                      "suggested_fields_accepted": used, "interaction_id": str(assist.get("interaction_id")) if used and assist.get("interaction_id") else None,
+                      **(audit_extra or {})}, meta)
     if new_internal != prev_internal:
         from app.services import audit
         audit.record(db, action="implementation.status_changed", actor_user_id=current.user.id, actor_email=current.user.email,
                      entity_type="control_assignment", entity_id=str(a.id), before={"implementation_status": prev_internal},
-                     after={"implementation_status": new_internal, "emass_status": status, "via": "emass_implementation_plan"}, **meta)
+                     after={"implementation_status": new_internal, "emass_status": status, "via": "emass_implementation_plan"},
+                     details=audit_extra or None, **meta)
     return {"changed": sorted(changed), "status_changed": new_internal != prev_internal}
 
 
-def save_risk(db: Session, a: ControlAssignment, vals: dict, current, assist: dict, meta: dict) -> dict:
+def save_risk(db: Session, a: ControlAssignment, vals: dict, current, assist: dict, meta: dict, audit_extra: dict | None = None) -> dict:
     f = ensure(db, a)
     if emass_status(a, f) == "Inherited":
         raise HTTPException(422, "Risk Assessment information cannot be updated when the control is Inherited (eMASS business rule)")
@@ -252,7 +253,7 @@ def save_risk(db: Session, a: ControlAssignment, vals: dict, current, assist: di
     _assisted(f, used, assist.get("source"), assist.get("interaction_id"), current.user)
     changed = _audit(db, current, a, "emass.risk_updated", before, values(f),
                      {"ai_assisted": assist.get("source") == "ai" and bool(used), "suggestion_source": assist.get("source") if used else None,
-                      "suggested_fields_accepted": used}, meta)
+                      "suggested_fields_accepted": used, **(audit_extra or {})}, meta)
     return {"changed": sorted(changed)}
 
 

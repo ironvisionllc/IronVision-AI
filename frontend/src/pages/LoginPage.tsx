@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Compass, KeyRound, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api, errorMessage } from "@/lib/api";
@@ -120,9 +120,6 @@ export default function LoginPage() {
             {info?.dev_password_enabled && info?.signup_enabled && (mode === "signup" ? <><SignupForm onDone={(e) => { setEmail(e); setMode("login"); setNote("Account created – your private sandbox is being prepared. Sign in to continue."); }} />
               <button type="button" className="mt-3 w-full text-center text-[13px] text-blue-800 underline" onClick={() => setMode("login")} data-testid="show-login-btn">I already have an account – sign in</button></>
               : <button type="button" className="mt-4 w-full text-center text-[13px] text-blue-800 underline" onClick={() => setMode("signup")} data-testid="show-signup-btn">New here? Create a free sandbox account</button>)}
-            <footer className="mt-8 border-t border-slate-200 pt-3 text-center text-[12px] text-slate-500" data-testid="login-footer">
-              <Link to="/whitepaper" className="text-blue-800 underline" data-testid="login-whitepaper-link">Read the IronVision AI whitepaper (PDF / DOCX)</Link>
-            </footer>
           </div>
         </main>
       </div>
