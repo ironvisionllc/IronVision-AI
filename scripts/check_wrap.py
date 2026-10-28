@@ -6,6 +6,9 @@ Fails a route when
   label-wrap   a button, button-styled link, tab, chip/badge, status label or menu item renders its label on more than one line
   clipped      a visible button is cut off by a non-scrolling container, lies outside the viewport, or its label is truncated
   squeezed     a text block or table cell is under ~12 characters wide while wrapping onto 3+ lines
+  row-wrap     a line of a list row (li > button/a, e.g. the Workbench control queue) wraps – rows are one line per field
+  tab-scroll   a tab bar needs sideways scrolling (phones must use a select or wrapped tabs)
+Rows rendered with content-visibility:auto are measured too: lists are waited for (act "list") before measuring.
 Runs next to scripts/check_layout_overflow.py (no horizontal page overflow) – same routes, login and fixtures.
 Options: SHOT_PAGES=a,b  WRAP_THEMES=dark,light  WRAP_SIZES=1280x800,768x1024,390x844  WRAP_SHOTS=1 (light-theme screenshots → $WRAP_RAW)
 Results: docs/screenshots/wrap/results-<tag>.json"""
@@ -28,13 +31,14 @@ SIZES = [tuple(int(x) for x in s.split("x")) for s in os.environ.get("WRAP_SIZES
 ONLY = set(filter(None, os.environ.get("SHOT_PAGES", "").split(",")))
 
 MEASURE = r"""() => {
+  for (const el of document.querySelectorAll('[class*="content-visibility"]')) el.style.contentVisibility = 'visible';  // skipped rows have no line boxes to measure
   const W = innerWidth, H = innerHeight, out = [];
   const vis = (el) => { const r = el.getBoundingClientRect(), s = getComputedStyle(el);
     return r.width > 1 && r.height > 1 && s.visibility !== 'hidden' && s.display !== 'none' && !el.closest('[aria-hidden=true], [hidden], details:not([open]) > :not(summary)'); };
   const id = (el) => (el.closest('[data-testid]')?.dataset.testid || el.tagName.toLowerCase());
   const lines = (el) => {  // number of visual lines of el's own text (text nodes only – icons are ignored)
     const rs = []; const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    for (let n = tw.nextNode(); n; n = tw.nextNode()) { if (!n.textContent.trim()) continue; const rg = document.createRange(); rg.selectNodeContents(n);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) { if (!n.textContent.trim() || n.parentElement.closest('.sr-only') || n.parentElement.getBoundingClientRect().width <= 1) continue; /* screen-reader-only text has no visual line */ const rg = document.createRange(); rg.selectNodeContents(n);
       rs.push(...[...rg.getClientRects()].filter((r) => r.width > 0.5 && r.height > 4)); }
     const lh = parseFloat(getComputedStyle(el).lineHeight) || parseFloat(getComputedStyle(el).fontSize) * 1.4;
     const tops = []; for (const r of rs) { const c = r.top + r.height / 2; if (!tops.some((t) => Math.abs(t - c) < lh * 0.6)) tops.push(c); }
@@ -62,6 +66,25 @@ MEASURE = r"""() => {
         break;
       }
     }
+  }
+  // list rows (li > button/a with stacked lines): every line must stay ONE line – the tester's 390 px Workbench queue (ID/status/title wrapping) was
+  // skipped above because multi-line buttons are excluded as "cards"
+  for (const row of document.querySelectorAll('li > button, li > a, [role=option]')) {
+    if (!vis(row) || !row.querySelector(':scope > div, :scope > span')) continue;
+    for (const ln of row.querySelectorAll(':scope > div, :scope > span')) {
+      if (!vis(ln) || !(ln.innerText || '').trim() || ln.querySelector('p, ul, table')) continue;
+      if (lines(ln) > 1 || ln.scrollHeight > (parseFloat(getComputedStyle(ln).lineHeight) || 16) * 1.6) { out.push({ check: 'row-wrap', el: id(row), text: (ln.innerText || '').trim().slice(0, 40) }); break; }
+    }
+  }
+  // tab bars must not need sideways scrolling (the old check accepted any tab inside a horizontal scroller)
+  for (const tl of document.querySelectorAll('[role=tablist]')) {
+    if (!vis(tl)) continue;
+    let sc = tl.scrollWidth > tl.clientWidth + 2;
+    for (let p = tl.parentElement; !sc && p && p !== document.body; p = p.parentElement) {
+      if (p.matches('[data-testid=main-content]')) break;
+      if (/auto|scroll/.test(getComputedStyle(p).overflowX) && p.scrollWidth > p.clientWidth + 2) sc = true;
+    }
+    if (sc) out.push({ check: 'tab-scroll', el: id(tl), text: (tl.innerText || '').replace(/\s+/g, ' ').slice(0, 40) });
   }
   const BLOCKS = 'p, td, th, dd, dt, li, label, h1, h2, h3, h4, [data-testid] > span, div';
   for (const el of document.querySelectorAll(BLOCKS)) {
@@ -106,6 +129,7 @@ async def main(tag: str) -> None:
                         await page.wait_for_selector("[data-testid=main-content] h1, [data-testid=main-content] h2", timeout=20000)
                         await page.wait_for_load_state("networkidle", timeout=15000)
                         await act(page, how)
+                        await page.wait_for_function("!document.querySelector('.animate-pulse, [data-testid$=-loading], [aria-busy=true]')", timeout=8000)
                     except Exception:
                         pass
                     await page.wait_for_timeout(300)

@@ -20,7 +20,7 @@ export function ReviewsPage() {
   return (
     <div data-testid="reviews-page">
       <PageHeader title="Reviews" subtitle="Approval engine driven by versioned decision rules. Requesters cannot decide their own requests." />
-      <div className="mb-4 flex gap-1 border-b border-slate-200" role="tablist">
+      <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-200" role="tablist">
         {TABS.map(([k, l]) => (
           <button key={k} role="tab" onClick={() => setTab(k)} data-testid={`reviews-tab-${k}`}
             className={cn("border-b-2 px-4 py-2 text-[13px] font-medium", tab === k ? "border-blue-700 text-blue-800" : "border-transparent text-slate-600")}>

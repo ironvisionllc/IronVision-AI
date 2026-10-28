@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { useActiveSystemId } from "@/components/rmf/Stepper";
 import { NeedSystem } from "@/components/common/Bits";
@@ -21,13 +22,15 @@ export default function ScaWorkspacePage() {
   const { data: tr } = useApi<Row[]>(sid ? `/systems/${sid}/tr/workbooks` : null);
   const { data: d, reload: reloadD } = useApi<Row>(sid && controlId ? `/systems/${sid}/workbench/controls/${controlId}` : null);
   const [auto, setAuto] = usePref("sca_auto_advance", true);
+  const [moved, setMoved] = useState<{ text: string; back: string } | null>(null);
   if (!sid) return <NeedSystem />;
   const queue = list || [];
   const next = () => {
     const i = queue.findIndex((a) => a.control_id === controlId); const n = queue[i + 1] ?? queue[0]; reload(); reloadD();
-    if (!auto || !n || n.control_id === controlId) { toast.success("Saved"); return; }
-    const back = controlId; nav(`/assess/workspace/${n.control_id}`);
-    toast.success(`Saved – moved to next control (${n.label})`, { duration: 8000, action: { label: "Undo move / stay on this control", onClick: () => nav(`/assess/workspace/${back}`) } });
+    if (!auto || !n || n.control_id === controlId) { setMoved(null); toast.success("Saved"); return; }
+    const back = controlId as string, text = `Saved – moved to next control (${n.label})`; nav(`/assess/workspace/${n.control_id}`);
+    setMoved({ text, back });
+    toast.success(text, { duration: 12000, action: { label: "Undo move / stay on this control", onClick: () => { setMoved(null); nav(`/assess/workspace/${back}`); } } });
   };
   const trs = (Array.isArray(tr) ? tr : (tr as unknown as Row | undefined)?.items || []) as Row[];
   return (
@@ -36,6 +39,10 @@ export default function ScaWorkspacePage() {
         <label className="flex items-center gap-1.5 whitespace-nowrap text-[12px]"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} data-testid="sca-auto-advance" />Move to next control after saving</label>
       </PageHeader>
       <GuidedPanel step="assess" />
+      {moved && <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-900" role="status" data-testid="sca-moved-banner">
+        <span>{moved.text}</span>
+        <button className="btn-secondary !py-0.5 text-[12px]" onClick={() => { const b = moved.back; setMoved(null); nav(`/assess/workspace/${b}`); }} data-testid="sca-moved-undo">Undo move / stay on {moved.back.toUpperCase()}</button>
+        <button className="ml-auto text-[12px] underline" onClick={() => setMoved(null)} data-testid="sca-moved-dismiss">Dismiss</button></div>}
       <ol className="mb-4 flex flex-wrap gap-2" data-testid="sca-flow">{FLOW.map((f, i) => <li key={f} className={cn("min-w-[10rem] flex-1 whitespace-nowrap rounded-lg px-2 py-1.5 text-center text-[12px] font-semibold",
         (controlId ? (i <= 2) : i === 0) ? "bg-sky-700 text-white" : "bg-slate-100 text-slate-600")}>{f}</li>)}</ol>
       {trs.length > 0 && <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] text-sky-900" data-testid="sca-tr-imports">
@@ -44,8 +51,8 @@ export default function ScaWorkspacePage() {
       <div className="grid gap-4 xl:grid-cols-[300px_1fr]">
         <Panel title={`Queue – not assessed (${queue.length})`} testId="sca-queue">
           <ul className="max-h-[620px] overflow-y-auto text-[12px]">{queue.slice(0, 400).map((a) => <li key={a.control_id}>
-            <button className={cn("w-full border-b border-slate-100 px-2 py-1.5 text-left hover:bg-sky-50", a.control_id === controlId && "bg-sky-50 font-semibold")} onClick={() => nav(`/assess/workspace/${a.control_id}`)} data-testid={`sca-item-${a.control_id}`}>
-              <span className="block font-mono text-sky-800">{a.label}</span><span className="block text-slate-600">{a.title}</span></button></li>)}</ul>
+            <button className={cn("w-full min-w-0 border-b border-slate-100 px-2 py-1.5 text-left hover:bg-sky-50", a.control_id === controlId && "bg-sky-50 font-semibold")} onClick={() => nav(`/assess/workspace/${a.control_id}`)} data-testid={`sca-item-${a.control_id}`} title={`${a.label} – ${a.title}`}>
+              <span className="block truncate font-mono text-sky-800">{a.label}</span><span className="block truncate text-slate-600">{a.title}</span></button></li>)}</ul>
         </Panel>
         {!controlId || !d ? <div className="panel p-6 text-[13px] text-slate-500" data-testid="sca-empty">Select a control from the queue.</div> : (
           <div className="space-y-3" data-testid="sca-control">

@@ -204,9 +204,11 @@ export default function WorkbenchPage() {
                 {can("implementation.write") && <input type="checkbox" className="ml-2 mt-3" checked={sel.has(a.control_id)} aria-label={`select ${a.label}`} data-testid={`wb-select-${a.control_id}`}
                   onChange={(e) => setSel((p) => { const n = new Set(p); if (e.target.checked) n.add(a.control_id); else n.delete(a.control_id); return n; })} />}
                 <button onClick={() => nav(`/systems/${id}/controls/${a.control_id}?${params.toString()}`)} data-testid={`queue-item-${a.control_id}`}
-                  className={cn("w-full border-b border-slate-100 px-3 py-2 text-left transition-colors hover:bg-blue-50", controlId === a.control_id && "bg-blue-50")}>
-                  <div className="flex items-center justify-between"><span className="font-mono text-[12px] font-semibold text-blue-800">{a.label}</span>
-                    <span className="text-[10px] text-slate-600" data-testid={`queue-status-${a.control_id}`}>{a.implementation_status.replace(/_/g, " ")}</span></div>
+                  title={`${a.label} – ${a.title} · ${a.implementation_status.replace(/_/g, " ")}`}
+                  className={cn("w-full min-w-0 border-b border-slate-100 px-3 py-2 text-left transition-colors hover:bg-blue-50", controlId === a.control_id && "bg-blue-50")}>
+                  <div className="flex min-w-0 items-center gap-2 whitespace-nowrap"><span className="font-mono text-[12px] font-semibold text-blue-800">{a.label}</span>
+                    <span className={cn("h-2 w-2 shrink-0 rounded-full", STATUS_DOT[a.implementation_status] || "bg-slate-400")} aria-hidden data-testid={`queue-dot-${a.control_id}`} />
+                    <span className="ml-auto min-w-0 truncate text-[10px] text-slate-600 max-sm:sr-only" data-testid={`queue-status-${a.control_id}`}>{a.implementation_status.replace(/_/g, " ")}</span></div>
                   <div className="truncate text-[12px] text-slate-700">{a.title}</div>
                 </button>
               </li>
@@ -221,6 +223,8 @@ export default function WorkbenchPage() {
   );
 }
 
+const STATUS_DOT: Record<string, string> = { implemented: "bg-emerald-500", partially_implemented: "bg-amber-500", planned: "bg-sky-500",
+  not_implemented: "bg-rose-500", inherited: "bg-violet-500", not_applicable: "bg-slate-400" };
 const WB_TABS: [string, (d: Row) => string][] = [["requirements", () => "Requirements"], ["implementation", () => "Implementation"],
   ["evidence", (d) => `Evidence & Policies (${d.evidence.length})`], ["assessment", () => "Assessment"], ["findings", (d) => `Findings & POA&M (${d.open_findings.length + d.poams.length})`], ["monitoring", () => "Monitoring"]];
 
@@ -231,6 +235,7 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
   const [msg, setMsg] = useState("");
   const [sp, setSp] = useSearchParams();
   const tab = sp.get("tab") || "implementation";
+  const setTab = (k: string) => setSp((p) => { const n = new URLSearchParams(p); n.set("tab", k); return n; }, { replace: true });
   if (denied) return <AccessDenied denied={denied} area="this control" />;
   if (error) return <div className="panel p-6 text-sm text-rose-700">{error}</div>;
   if (!d) return null;
@@ -255,8 +260,11 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
           {n.fields.map((f: Row, i: number) => <div key={i} className="mt-1"><b>{f.label}</b> (p. {f.page}): {f.text}</div>)}</details>)}
         <div className="mt-1 text-[11px] text-slate-400">Last eMASS sync: {d.emass_sync}</div>
       </Panel>
-      <div className="flex flex-wrap gap-1 border-b border-slate-200" role="tablist" data-testid="wb-tabs">{WB_TABS.map(([k, l]) =>
-        <button key={k} role="tab" aria-selected={tab === k} onClick={() => setSp((p) => { const n = new URLSearchParams(p); n.set("tab", k); return n; }, { replace: true })}
+      <label className="block sm:hidden"><span className="sr-only">Control tab</span>
+        <select className="input w-full" value={tab} onChange={(e) => setTab(e.target.value)} data-testid="wb-tab-select">
+          {WB_TABS.map(([k, l]) => <option key={k} value={k}>{l(d)}</option>)}</select></label>
+      <div className="hidden flex-wrap gap-1 border-b border-slate-200 sm:flex" role="tablist" data-testid="wb-tabs">{WB_TABS.map(([k, l]) =>
+        <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
           className={cn("px-3 py-2 text-[13px] font-semibold", tab === k ? "border-b-2 border-sky-700 text-sky-900" : "text-slate-500")} data-testid={`wb-tab-${k}`}>{l(d)}</button>)}</div>
       {tab === "evidence" && <>{(d.pending_reviews || []).length > 0 && <Link to="/mapping-review" className="block rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] text-sky-900" data-testid="wb-pending-suggestions">{d.pending_reviews.length} pending mapping/status suggestion(s) for this control → Mapping review</Link>}
       <Panel title="Supporting evidence" testId="wb-evidence">

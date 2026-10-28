@@ -1,0 +1,162 @@
+[
+ {
+  "page": "catalog",
+  "theme": "dark",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog-tree",
+  "theme": "dark",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog-tree-system",
+  "theme": "dark",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "reviews",
+  "theme": "dark",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "sca-workspace",
+  "theme": "dark",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog-tree",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog-tree-system",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "reviews",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "sca-workspace",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog-tree",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog-tree-system",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "reviews",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "sca-workspace",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog-tree",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog-tree-system",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "reviews",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "sca-workspace",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ }
+]

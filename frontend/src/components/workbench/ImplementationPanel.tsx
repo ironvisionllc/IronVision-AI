@@ -35,7 +35,7 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
     try {
       const r = await api.post<Row>(`/systems/${systemId}/workbench/controls/${controlId}/ai-draft`, null, { params: { mode } });
       if (!(r.data.draft?.narrative || "").trim()) { setMsg("The draft came back empty – nothing was changed in the editor. Try Template draft or write the statement manually."); return; }
-      setAi(r.data); setNarr(r.data.draft.narrative); setMsg(`${r.data.template ? "Template" : "AI"} draft loaded into the editor – not saved yet. Review it, then Save draft version.`);
+      setAi(r.data); setNarr(r.data.draft.narrative); setMsg(`${r.data.template ? "Template" : "AI"} draft loaded into the editor – not saved yet. Review it, then Save statement.`);
     }
     catch (e) { setMsg(`Draft generation failed – the editor was not changed. ${errorMessage(e)}`); } finally { setBusy(false); }
   };
@@ -73,7 +73,7 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
         <Gated perm="implementation.write"><>
           <button className="btn-secondary" onClick={() => generate("auto")} disabled={!!busy} data-testid="ai-generate-btn">{busy === "auto" ? "Generating…" : "Generate draft"}</button>
           <button className="btn-secondary" onClick={() => generate("template")} disabled={!!busy} data-testid="template-generate-btn">{busy === "template" ? "Building template…" : "Template draft"}</button>
-          <button className="btn-primary" onClick={save} disabled={!narr.trim()} data-testid="wb-narrative-save">Save draft version</button>
+          <button className="btn-primary" onClick={save} disabled={!narr.trim()} data-testid="wb-narrative-save" title="Saves the statement as a new draft version">Save statement</button>
           <button className="btn-secondary" onClick={requestReview} disabled={!latest || latest.review_status !== "draft" || !!ai} data-testid="wb-request-review">Request review</button>
         </></Gated>
         <EmassSubmitButton systemId={systemId} controlId={controlId} />

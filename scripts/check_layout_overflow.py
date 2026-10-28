@@ -67,7 +67,7 @@ def routes(ids: dict) -> list[tuple[str, str, str, str | None]]:
          ("categorize-fips", "/rmf/categorize", f, None), ("select", "/rmf/select", n, "overlays"), ("select-fips", "/rmf/select", f, "overlays"),
          ("parameter-comparison", "/rmf/select", n, "params"), ("catalog", "/catalog", n, None), ("catalog-tree", "/catalog?control=ac-2.1", n, "close-drawer"),
          ("catalog-tree-system", f"/catalog?system={n}", n, "tree-expand"), ("implement", "/rmf/implement", n, None),
-         ("workbench", "/controls", n, None), ("control-detail", f"/systems/{n}/controls/ac-2", n, None), ("control-detail-fips", f"/systems/{f}/controls/ac-2", f, None),
+         ("workbench", "/controls", n, "list"), ("control-detail", f"/systems/{n}/controls/ac-2", n, None), ("control-detail-fips", f"/systems/{f}/controls/ac-2", f, None),
          ("inheritance", "/inheritance", f, None), ("inventory", "/inventory", f, None), ("ccis", "/ccis", f, None),
          ("policy-auditor", "/policy-auditor", f, None), ("evidence-sources", "/evidence-sources", f, None), ("assess", "/rmf/assess", f, None),
          ("reviews", "/reviews", f, None), ("test-results", "/test-results", f, None), ("mapping-review", "/mapping-review", f, "queue-sbs"),
@@ -83,6 +83,8 @@ def routes(ids: dict) -> list[tuple[str, str, str, str | None]]:
 
 
 async def act(page, how: str | None) -> None:
+    if how == "list":  # the control list renders after the summary – measure the rows, not the empty frame
+        await page.wait_for_selector("[data-testid^=queue-item-]", timeout=20000)
     if how == "close-drawer":
         await page.wait_for_selector("[data-testid=tree-enhancement-ac-2\\.1]", timeout=20000)
         await page.keyboard.press("Escape")

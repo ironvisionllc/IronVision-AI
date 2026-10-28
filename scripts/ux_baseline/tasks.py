@@ -183,6 +183,7 @@ async def t_evidence(m, ctx):
     open(p, "w").write(json.dumps({"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "SYNTHETIC-scanner"}}, "results": []}]}))
     if NEW and await m.page.locator("[data-testid=wb-tab-evidence]").count():  # from the control just updated: Evidence tab → Attach evidence
         await m.click("[data-testid=wb-tab-evidence]")
+        await m.click("[data-testid=wb-attach-evidence-btn]")  # opens the in-app dialog (drop zone + Choose file)
         await m.upload("[data-testid=wb-attach-evidence-input]", [p])
         await m.page.wait_for_selector("[data-testid=wb-attach-evidence-done]", timeout=20000)
         return

@@ -181,11 +181,12 @@ export function CatalogTree() {
           return (
             <li key={f.id} role="treeitem" aria-level={1} aria-expanded={isOpen} aria-selected={false} ref={reg(fk)} tabIndex={active === fk ? 0 : -1}
               onFocus={(e) => e.target === e.currentTarget && setFocusKey(fk)} className="border-b border-slate-100 outline-none focus-visible:ring-2 focus-visible:ring-blue-600" data-testid={`tree-family-${f.id}`}>
-              <button tabIndex={-1} onClick={() => { setFocusKey(fk); toggle(fk); }} className="flex min-h-[44px] w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left hover:bg-slate-50 sm:px-4" data-testid={`tree-family-toggle-${f.id}`}>
+              <button tabIndex={-1} onClick={() => { setFocusKey(fk); toggle(fk); }} title={`${f.id.toUpperCase()} ${f.title} – ${f.base} controls · ${f.enhancements} enhancements${st ? ` · ${st.applicable} applicable · ${st.implemented} implemented · ${st.assessed} assessed` : ""}`}
+                className="flex min-h-[44px] w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left hover:bg-slate-50 sm:px-4" data-testid={`tree-family-toggle-${f.id}`}>
                 {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" aria-hidden /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />}
                 <span className="w-8 font-mono text-[13px] font-bold text-blue-900">{f.id.toUpperCase()}</span>
-                <span className="min-w-0 flex-1 basis-[55%] break-words font-medium text-slate-900 sm:basis-auto">{f.title}</span>
-                <span className="w-full pl-[60px] text-[11px] text-slate-600 sm:w-auto sm:pl-0" data-testid={`tree-family-counts-${f.id}`}>{f.base} controls · {f.enhancements} enhancements
+                <span className="min-w-0 flex-1 basis-[55%] truncate font-medium text-slate-900 sm:basis-auto">{f.title}</span>
+                <span className="w-full truncate pl-[60px] text-[11px] text-slate-600 sm:w-auto sm:pl-0" data-testid={`tree-family-counts-${f.id}`}>{f.base} controls · {f.enhancements} enhancements
                   {st && ` · ${st.applicable} applicable · ${st.implemented} implemented · ${st.assessed} assessed`}</span>
               </button>
               {isOpen && <ul role="group">{f.controls.map((n) => {

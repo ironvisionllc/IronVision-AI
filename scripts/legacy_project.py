@@ -186,6 +186,10 @@ def validate_dump(p: Path, tools: PgTools) -> dict:
     if hdr["Format"] != "CUSTOM":
         raise RuntimeError(f"{p.name}: archive format {hdr['Format']!r}, expected CUSTOM")
     vf, vb = major(hdr["Dumped from database version"]), major(hdr["Dumped by pg_dump version"])
+    if vf is None or vb is None:  # newer pg_restore lists a mangled archive with exit 0 but no readable versions
+        with open(p, "rb") as f:
+            hint = " (CR/LF bytes: looks like a TTY-mangled stream – dump without `-t`)" if b"\r\n" in f.read(1 << 20) else ""
+        raise RuntimeError(f"{p.name}: pg_restore -l failed to read the archive versions{hint}")
     if vf != tools.server or vb != tools.server:
         raise RuntimeError(f"{p.name}: archive dumped from PostgreSQL {vf} by pg_dump {vb}, server is {tools.server} – version mismatch")
     entries = sum(1 for ln in txt.splitlines() if ln.strip() and not ln.startswith(";"))
