@@ -1,0 +1,4375 @@
+[
+ {
+  "page": "rmf-workflow",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 12,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "status-dot",
+    "state": "rest",
+    "ratio": 2.41,
+    "need": 3,
+    "el": "rmf-step-prepare .rounded-full"
+   },
+   {
+    "check": "status-dot",
+    "state": "hover",
+    "ratio": 2.41,
+    "need": 3,
+    "el": "rmf-step-prepare .rounded-full"
+   }
+  ]
+ },
+ {
+  "page": "systems",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 7,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "status-dot",
+    "state": "rest",
+    "ratio": 2.41,
+    "need": 3,
+    "el": "rmf-step-prepare .rounded-full"
+   },
+   {
+    "check": "status-dot",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "rmf-step-assess .rounded-full"
+   },
+   {
+    "check": "status-dot",
+    "state": "hover",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "rmf-step-assess .rounded-full"
+   }
+  ]
+ },
+ {
+  "page": "system-detail",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.42,
+    "need": 3,
+    "el": "open-import-center-btn .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "open-import-center-btn .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "open-import-center-btn .btn-secondary"
+   }
+  ]
+ },
+ {
+  "page": "portfolio",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 3,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "status-dot",
+    "state": "rest",
+    "ratio": 2.41,
+    "need": 3,
+    "el": "rmf-step-prepare .rounded-full"
+   },
+   {
+    "check": "status-dot",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "rmf-step-assess .rounded-full"
+   }
+  ]
+ },
+ {
+  "page": "prepare",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Assign key roles"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Assign key roles"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Assign key roles"
+   }
+  ]
+ },
+ {
+  "page": "categorize",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 2,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   },
+   {
+    "target": ".border-blue-500 > span[x-column=\"83\"][x-id=\"FrameworkStep_30_83\"][x-source-path=\"source\"]",
+    "summary": "Element has insufficient color contrast of 4.3 (foreground color: #64748b, background color: #e8f6f9, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"mt-1 block text-[10px] text-slate-500\" x-file-name=\"FrameworkStep\" x-line-number=\"30\" x-column=\"83\" x-compo"
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Categorize the system"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Categorize the system"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Categorize the system"
+   }
+  ]
+ },
+ {
+  "page": "categorize-fips",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 2,
+  "custom": 12,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   },
+   {
+    "target": ".border-blue-500.bg-blue-50[x-id=\"FrameworkStep_28_10\"] > span[x-column=\"83\"][x-id=\"FrameworkStep_30_83\"][x-source-path=\"source\"]",
+    "summary": "Element has insufficient color contrast of 4.3 (foreground color: #64748b, background color: #e8f6f9, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"mt-1 block text-[10px] text-slate-500\" x-file-name=\"FrameworkStep\" x-line-number=\"30\" x-column=\"83\" x-compo"
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "status-dot",
+    "state": "rest",
+    "ratio": 2.41,
+    "need": 3,
+    "el": "rmf-step-prepare .rounded-full"
+   },
+   {
+    "check": "status-dot",
+    "state": "hover",
+    "ratio": 2.41,
+    "need": 3,
+    "el": "rmf-step-prepare .rounded-full"
+   }
+  ]
+ },
+ {
+  "page": "select",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Review baseline, overlays a"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Review baseline, overlays a"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Review baseline, overlays a"
+   }
+  ]
+ },
+ {
+  "page": "select-fips",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 12,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "status-dot",
+    "state": "rest",
+    "ratio": 2.41,
+    "need": 3,
+    "el": "rmf-step-prepare .rounded-full"
+   },
+   {
+    "check": "status-dot",
+    "state": "hover",
+    "ratio": 2.41,
+    "need": 3,
+    "el": "rmf-step-prepare .rounded-full"
+   }
+  ]
+ },
+ {
+  "page": "parameter-comparison",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Review baseline, overlays a"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Review baseline, overlays a"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Review baseline, overlays a"
+   }
+  ]
+ },
+ {
+  "page": "catalog",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "catalog-tree",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 12,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.21,
+    "need": 3,
+    "el": "catalog-tree-filter-implementation_status .input"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.21,
+    "need": 3,
+    "el": "catalog-tree-filter-implementation_status .input"
+   }
+  ]
+ },
+ {
+  "page": "catalog-tree-system",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "implement",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Work on unimplemented contr"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Work on unimplemented contr"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Work on unimplemented contr"
+   }
+  ]
+ },
+ {
+  "page": "workbench",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.42,
+    "need": 3,
+    "el": "wb-import-emass-btn .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "wb-import-emass-btn .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "wb-import-emass-btn .btn-secondary"
+   }
+  ]
+ },
+ {
+  "page": "control-detail",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.42,
+    "need": 3,
+    "el": "wb-import-emass-btn .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "wb-import-emass-btn .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "wb-import-emass-btn .btn-secondary"
+   }
+  ]
+ },
+ {
+  "page": "control-detail-fips",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.42,
+    "need": 3,
+    "el": "wb-import-emass-btn .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "wb-import-emass-btn .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "wb-import-emass-btn .btn-secondary"
+   }
+  ]
+ },
+ {
+  "page": "inheritance",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "inventory",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 2,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   },
+   {
+    "target": ".bg-indigo-600",
+    "summary": "Element has insufficient color contrast of 4.38 (foreground color: #ffffff, background color: #1b839f, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"mr-1 rounded px-1 text-[10px] font-semibold text-white bg-indigo-600\" x-file-name=\"InventoryPage\" x-line-nu"
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.42,
+    "need": 3,
+    "el": "emass-import-entry .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "emass-import-entry .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "emass-import-entry .btn-secondary"
+   }
+  ]
+ },
+ {
+  "page": "ccis",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 12,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.43,
+    "need": 3,
+    "el": "ccis-page-size .input"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.43,
+    "need": 3,
+    "el": "ccis-page-size .input"
+   }
+  ]
+ },
+ {
+  "page": "policy-auditor",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 10,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   },
+   {
+    "target": "tr[data-testid=\"policy-row-ia-standard-qa-v1\"] > td[x-line-number=\"150\"][x-id=\"Phase3Pages_150_12\"][x-column=\"12\"] > .text-blue-800.hover\\:underline",
+    "summary": "Element has insufficient color contrast of 3.17 (foreground color: #6d949e, background color: #fafbfc, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<a class=\"text-blue-800 hover:underline\" href=\"/policy-auditor/37eb5e2a-6014-426f-89c8-53cfaeb5597e\" data-discover=\"true"
+   },
+   {
+    "target": "tr[data-testid=\"policy-row-ia-standard-qa-v1\"] > td[x-column=\"58\"][x-id=\"Phase3Pages_151_58\"][x-line-number=\"151\"] > .bg-slate-100.text-slate-700.border-slate-300",
+    "summary": "Element has insufficient color contrast of 3.25 (foreground color: #818a97, background color: #f5f7fa, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span data-testid=\"policy-review-status...\" class=\"inline-flex items-ce...\" x-file-name=\"StatusPill\" x-line-number=\"28\" "
+   },
+   {
+    "target": "tr[data-testid=\"policy-row-ia-standard-qa-v1\"] > td[x-column=\"79\"][x-id=\"Phase3Pages_152_79\"][x-line-number=\"152\"] > .bg-slate-100.text-slate-700.border-slate-300",
+    "summary": "Element has insufficient color contrast of 3.25 (foreground color: #818a97, background color: #f5f7fa, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"inline-flex items-ce...\" x-file-name=\"StatusPill\" x-line-number=\"28\" x-column=\"4\" x-component=\"span\" x-id=\""
+   },
+   {
+    "target": "tr[data-testid=\"policy-row-RA-v2\"] > td[x-line-number=\"150\"][x-id=\"Phase3Pages_150_12\"][x-column=\"12\"] > .text-blue-800.hover\\:underline",
+    "summary": "Element has insufficient color contrast of 3.17 (foreground color: #6d949e, background color: #fafbfc, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<a class=\"text-blue-800 hover:underline\" href=\"/policy-auditor/a8b3a498-14f2-4886-a81d-43bab3b5b3c3\" data-discover=\"true"
+   },
+   {
+    "target": "span[data-testid=\"policy-review-status-RA-v2\"]",
+    "summary": "Element has insufficient color contrast of 3.25 (foreground color: #818a97, background color: #f5f7fa, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span data-testid=\"policy-review-status...\" class=\"inline-flex items-ce...\" x-file-name=\"StatusPill\" x-line-number=\"28\" "
+   },
+   {
+    "target": "tr[data-testid=\"policy-row-RA-v2\"] > td[x-column=\"79\"][x-id=\"Phase3Pages_152_79\"][x-line-number=\"152\"] > .bg-slate-100.text-slate-700.border-slate-300",
+    "summary": "Element has insufficient color contrast of 3.25 (foreground color: #818a97, background color: #f5f7fa, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"inline-flex items-ce...\" x-file-name=\"StatusPill\" x-line-number=\"28\" x-column=\"4\" x-component=\"span\" x-id=\""
+   },
+   {
+    "target": "tr[data-testid=\"policy-row-RA-v1\"] > td[x-line-number=\"150\"][x-id=\"Phase3Pages_150_12\"][x-column=\"12\"] > .text-blue-800.hover\\:underline",
+    "summary": "Element has insufficient color contrast of 3.17 (foreground color: #6d949e, background color: #fafbfc, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<a class=\"text-blue-800 hover:underline\" href=\"/policy-auditor/93257cea-fc4b-48f2-b535-069733a66f44\" data-discover=\"true"
+   },
+   {
+    "target": "span[data-testid=\"policy-review-status-RA-v1\"]",
+    "summary": "Element has insufficient color contrast of 3.25 (foreground color: #818a97, background color: #f5f7fa, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span data-testid=\"policy-review-status...\" class=\"inline-flex items-ce...\" x-file-name=\"StatusPill\" x-line-number=\"28\" "
+   },
+   {
+    "target": "tr[data-testid=\"policy-row-RA-v1\"] > td[x-column=\"79\"][x-id=\"Phase3Pages_152_79\"][x-line-number=\"152\"] > .bg-slate-100.text-slate-700.border-slate-300",
+    "summary": "Element has insufficient color contrast of 3.25 (foreground color: #818a97, background color: #f5f7fa, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"inline-flex items-ce...\" x-file-name=\"StatusPill\" x-line-number=\"28\" x-column=\"4\" x-component=\"span\" x-id=\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "evidence-sources",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.42,
+    "need": 3,
+    "el": "add-source-btn .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "add-source-btn .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "add-source-btn .btn-secondary"
+   }
+  ]
+ },
+ {
+  "page": "assess",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Assess controls"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Assess controls"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Assess controls"
+   }
+  ]
+ },
+ {
+  "page": "reviews",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "test-results",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 10,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   },
+   {
+    "target": "span[data-testid=\"tr-badge-approved-7\"]",
+    "summary": "Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"rounded bg-emerald-600 px-1 text-white\" data-testid=\"tr-badge-approved-7\" x-file-name=\"TestResultsPage\" x-l"
+   },
+   {
+    "target": "span[data-testid=\"tr-badge-approved-22\"]",
+    "summary": "Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"rounded bg-emerald-600 px-1 text-white\" data-testid=\"tr-badge-approved-22\" x-file-name=\"TestResultsPage\" x-"
+   },
+   {
+    "target": "span[data-testid=\"tr-badge-approved-23\"]",
+    "summary": "Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"rounded bg-emerald-600 px-1 text-white\" data-testid=\"tr-badge-approved-23\" x-file-name=\"TestResultsPage\" x-"
+   },
+   {
+    "target": "span[data-testid=\"tr-badge-approved-44\"]",
+    "summary": "Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"rounded bg-emerald-600 px-1 text-white\" data-testid=\"tr-badge-approved-44\" x-file-name=\"TestResultsPage\" x-"
+   },
+   {
+    "target": "span[data-testid=\"tr-badge-approved-45\"]",
+    "summary": "Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"rounded bg-emerald-600 px-1 text-white\" data-testid=\"tr-badge-approved-45\" x-file-name=\"TestResultsPage\" x-"
+   },
+   {
+    "target": "span[data-testid=\"tr-badge-approved-46\"]",
+    "summary": "Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"rounded bg-emerald-600 px-1 text-white\" data-testid=\"tr-badge-approved-46\" x-file-name=\"TestResultsPage\" x-"
+   },
+   {
+    "target": "span[data-testid=\"tr-badge-approved-47\"]",
+    "summary": "Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"rounded bg-emerald-600 px-1 text-white\" data-testid=\"tr-badge-approved-47\" x-file-name=\"TestResultsPage\" x-"
+   },
+   {
+    "target": "span[data-testid=\"tr-badge-approved-49\"]",
+    "summary": "Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"rounded bg-emerald-600 px-1 text-white\" data-testid=\"tr-badge-approved-49\" x-file-name=\"TestResultsPage\" x-"
+   },
+   {
+    "target": "span[data-testid=\"tr-badge-approved-51\"]",
+    "summary": "Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"rounded bg-emerald-600 px-1 text-white\" data-testid=\"tr-badge-approved-51\" x-file-name=\"TestResultsPage\" x-"
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.42,
+    "need": 3,
+    "el": "emass-import-entry .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "emass-import-entry .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "emass-import-entry .btn-secondary"
+   }
+  ]
+ },
+ {
+  "page": "mapping-review",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 3,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "authorize",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Prepare the authorization p"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Prepare the authorization p"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Prepare the authorization p"
+   }
+  ]
+ },
+ {
+  "page": "authorization-package",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "poam",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.42,
+    "need": 3,
+    "el": "emass-import-entry .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "emass-import-entry .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.47,
+    "need": 3,
+    "el": "emass-import-entry .btn-secondary"
+   }
+  ]
+ },
+ {
+  "page": "emass",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "monitor",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Review continuous monitorin"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Review continuous monitorin"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "rmf-next-action .btn-primary",
+    "label": "Next action: Review continuous monitorin"
+   }
+  ]
+ },
+ {
+  "page": "evidence-ledger",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "traceability",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 12,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.43,
+    "need": 3,
+    "el": "trace-policy .input"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.43,
+    "need": 3,
+    "el": "trace-policy .input"
+   }
+  ]
+ },
+ {
+  "page": "help",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 12,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.43,
+    "need": 3,
+    "el": "role-matrix-search .input"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.43,
+    "need": 3,
+    "el": "role-matrix-search .input"
+   }
+  ]
+ },
+ {
+  "page": "audit-log",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 12,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.42,
+    "need": 3,
+    "el": "audit-filter-actor .input"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.42,
+    "need": 3,
+    "el": "audit-filter-actor .input"
+   }
+  ]
+ },
+ {
+  "page": "admin",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 11,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.91,
+    "need": 3,
+    "el": "admin-docs-link .btn-outline"
+   }
+  ]
+ },
+ {
+  "page": "docs",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 2,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   },
+   {
+    "target": "a[data-testid=\"docs-link-digitalocean\"] > .min-w-0[x-id=\"DocsCenterPage_50_14\"][x-column=\"14\"] > .font-mono[x-column=\"93\"][x-id=\"DocsCenterPage_50_93\"]",
+    "summary": "Element has insufficient color contrast of 4.3 (foreground color: #64748b, background color: #e8f6f9, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<span class=\"block font-mono text...\" x-file-name=\"DocsCenterPage\" x-line-number=\"50\" x-column=\"93\" x-component=\"span\" x"
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "notifications",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "dashboard",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "my-work",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "sca-workspace",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 10,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   }
+  ]
+ },
+ {
+  "page": "import-center",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 12,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.43,
+    "need": 3,
+    "el": "ic-system-select .input"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.43,
+    "need": 3,
+    "el": "ic-system-select .input"
+   }
+  ]
+ },
+ {
+  "page": "policy-detail",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 13,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "focus-indicator",
+    "state": "focus",
+    "ratio": 1,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "hover",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "boundary",
+    "state": "focus",
+    "ratio": 2.58,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "map-to-control-btn .btn-primary",
+    "label": "Map to control"
+   },
+   {
+    "check": "text",
+    "state": "hover",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "map-to-control-btn .btn-primary",
+    "label": "Map to control"
+   },
+   {
+    "check": "text",
+    "state": "focus",
+    "ratio": 4.38,
+    "need": 4.5,
+    "el": "map-to-control-btn .btn-primary",
+    "label": "Map to control"
+   }
+  ]
+ },
+ {
+  "page": "policy-side-by-side",
+  "theme": "light",
+  "size": "390x844",
+  "axe": 1,
+  "custom": 4,
+  "axe_nodes": [
+   {
+    "target": ".bg-white\\/15",
+    "summary": "Element has insufficient color contrast of 4.49 (foreground color: #ffffff, background color: #388092, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
+    "html": "<select class=\"rounded bg-white/15 ...\" data-testid=\"acting-as-select\" aria-label=\"Acting as role\" x-file-name=\"Sandbox\""
+   }
+  ],
+  "custom_items": [
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.38,
+    "need": 3,
+    "el": "acting-as-select ."
+   },
+   {
+    "check": "boundary",
+    "state": "rest",
+    "ratio": 1.48,
+    "need": 3,
+    "el": "guided-first-login-no .btn-secondary"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "guided-first-login-yes .btn-primary",
+    "label": "Turn on guided mode"
+   },
+   {
+    "check": "text",
+    "state": "rest",
+    "ratio": 3.42,
+    "need": 4.5,
+    "el": "map-to-control-btn .btn-primary",
+    "label": "Map to control"
+   }
+  ]
+ }
+]

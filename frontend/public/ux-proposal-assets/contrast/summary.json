@@ -1,0 +1,640 @@
+{
+ "worst": [
+  "dashboard",
+  "traceability",
+  "prepare",
+  "implement",
+  "test-results",
+  "authorize"
+ ],
+ "before": {
+  "dark-1280": 972,
+  "dark-390": 843,
+  "light-1280": 573,
+  "light-390": 553
+ },
+ "after": {
+  "dark-1280": 2,
+  "dark-390": 2,
+  "light-1280": 0,
+  "light-390": 0
+ },
+ "per_route": {
+  "rmf-workflow": {
+   "before": {
+    "dark-1280": 22,
+    "dark-390": 18,
+    "light-1280": 13,
+    "light-390": 13
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "systems": {
+   "before": {
+    "dark-1280": 17,
+    "dark-390": 13,
+    "light-1280": 9,
+    "light-390": 8
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "system-detail": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 17,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "portfolio": {
+   "before": {
+    "dark-1280": 10,
+    "dark-390": 7,
+    "light-1280": 4,
+    "light-390": 4
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "prepare": {
+   "before": {
+    "dark-1280": 29,
+    "dark-390": 28,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "categorize": {
+   "before": {
+    "dark-1280": 26,
+    "dark-390": 24,
+    "light-1280": 14,
+    "light-390": 15
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "categorize-fips": {
+   "before": {
+    "dark-1280": 23,
+    "dark-390": 19,
+    "light-1280": 14,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "select": {
+   "before": {
+    "dark-1280": 26,
+    "dark-390": 25,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "select-fips": {
+   "before": {
+    "dark-1280": 23,
+    "dark-390": 19,
+    "light-1280": 13,
+    "light-390": 13
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "parameter-comparison": {
+   "before": {
+    "dark-1280": 25,
+    "dark-390": 24,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "catalog": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 16,
+    "light-1280": 13,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "catalog-tree": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 18,
+    "light-1280": 13,
+    "light-390": 13
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "catalog-tree-system": {
+   "before": {
+    "dark-1280": 19,
+    "dark-390": 15,
+    "light-1280": 13,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "implement": {
+   "before": {
+    "dark-1280": 29,
+    "dark-390": 28,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "workbench": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 17,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "control-detail": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 17,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 1,
+    "dark-390": 1,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "control-detail-fips": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 16,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 1,
+    "dark-390": 1,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "inheritance": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 16,
+    "light-1280": 13,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "inventory": {
+   "before": {
+    "dark-1280": 24,
+    "dark-390": 21,
+    "light-1280": 14,
+    "light-390": 15
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "ccis": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 18,
+    "light-1280": 13,
+    "light-390": 13
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "policy-auditor": {
+   "before": {
+    "dark-1280": 26,
+    "dark-390": 22,
+    "light-1280": 28,
+    "light-390": 20
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "evidence-sources": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 17,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "assess": {
+   "before": {
+    "dark-1280": 26,
+    "dark-390": 25,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "reviews": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 16,
+    "light-1280": 13,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "test-results": {
+   "before": {
+    "dark-1280": 29,
+    "dark-390": 25,
+    "light-1280": 22,
+    "light-390": 23
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "mapping-review": {
+   "before": {
+    "dark-1280": 13,
+    "dark-390": 9,
+    "light-1280": 5,
+    "light-390": 4
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "authorize": {
+   "before": {
+    "dark-1280": 29,
+    "dark-390": 28,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "authorization-package": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 16,
+    "light-1280": 13,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "poam": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 17,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "emass": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 16,
+    "light-1280": 13,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "monitor": {
+   "before": {
+    "dark-1280": 24,
+    "dark-390": 22,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "evidence-ledger": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 16,
+    "light-1280": 15,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "traceability": {
+   "before": {
+    "dark-1280": 31,
+    "dark-390": 29,
+    "light-1280": 13,
+    "light-390": 13
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "help": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 18,
+    "light-1280": 13,
+    "light-390": 13
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "audit-log": {
+   "before": {
+    "dark-1280": 19,
+    "dark-390": 17,
+    "light-1280": 13,
+    "light-390": 13
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "admin": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 17,
+    "light-1280": 13,
+    "light-390": 12
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "docs": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 16,
+    "light-1280": 14,
+    "light-390": 12
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "notifications": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 16,
+    "light-1280": 13,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "dashboard": {
+   "before": {
+    "dark-1280": 46,
+    "dark-390": 43,
+    "light-1280": 13,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "my-work": {
+   "before": {
+    "dark-1280": 23,
+    "dark-390": 19,
+    "light-1280": 13,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "sca-workspace": {
+   "before": {
+    "dark-1280": 21,
+    "dark-390": 17,
+    "light-1280": 13,
+    "light-390": 11
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "import-center": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 18,
+    "light-1280": 13,
+    "light-390": 13
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "policy-detail": {
+   "before": {
+    "dark-1280": 20,
+    "dark-390": 19,
+    "light-1280": 13,
+    "light-390": 14
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  },
+  "policy-side-by-side": {
+   "before": {
+    "dark-1280": 12,
+    "dark-390": 9,
+    "light-1280": 5,
+    "light-390": 5
+   },
+   "after": {
+    "dark-1280": 0,
+    "dark-390": 0,
+    "light-1280": 0,
+    "light-390": 0
+   }
+  }
+ }
+}

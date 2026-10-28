@@ -1,0 +1,242 @@
+[
+ {
+  "page": "select",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "parameter-comparison",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": "TimeoutError: Locator.scroll_into_view_if_needed: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"[data-testid=param-comp"
+ },
+ {
+  "page": "catalog",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "workbench",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "test-results",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "mapping-review",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "audit-log",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "admin",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "dashboard",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "my-work",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "sca-workspace",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "import-center",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "select",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "parameter-comparison",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": "TimeoutError: Locator.scroll_into_view_if_needed: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"[data-testid=param-comp"
+ },
+ {
+  "page": "catalog",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "workbench",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "test-results",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "mapping-review",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "audit-log",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "admin",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "dashboard",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "my-work",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "sca-workspace",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "import-center",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ }
+]

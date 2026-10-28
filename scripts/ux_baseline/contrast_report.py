@@ -10,6 +10,7 @@ from collections import defaultdict
 from PIL import Image, ImageDraw, ImageFont
 
 C = "/app/docs/screenshots/contrast"
+SHOTS = os.environ.get("CONTRAST_RAW", "/tmp/contrast_raw")
 RUNS = ["dark-1280", "dark-390", "light-1280", "light-390"]
 OUT, PUB = "/app/docs/ux/screens/contrast", "/app/frontend/public/ux-proposal-assets/contrast"
 
@@ -39,7 +40,7 @@ rows.append("| **Total** | " + " | ".join(f"{tot_b[r]} → **{tot_a[r]}**" for r
 os.makedirs(OUT, exist_ok=True)
 font = ImageFont.load_default()
 for p in worst:
-    l, r = Image.open(f"{C}/before-dark-1280/{p}.png"), Image.open(f"{C}/after-dark-1280/{p}.png")
+    l, r = Image.open(f"{SHOTS}/before-dark-1280/{p}.png"), Image.open(f"{SHOTS}/after-dark-1280/{p}.png")
     w, h = l.size
     img = Image.new("RGB", (w * 2 + 24, h + 40), "#0b1220")
     img.paste(l, (0, 40))

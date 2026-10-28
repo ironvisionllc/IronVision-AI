@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from check_layout_overflow import BASE, EMAIL, PW, act, ensure_systems, routes  # noqa: E402
 
 OUT = "/app/docs/screenshots/contrast"
+RAW = os.environ.get("CONTRAST_RAW", "/tmp/contrast_raw")  # raw per-route screenshots, not committed
 AXE = "/app/frontend/node_modules/axe-core/axe.min.js"
 AXE_SRC = open(AXE).read()
 THEMES = os.environ.get("CONTRAST_THEMES", "dark,light").split(",")
@@ -119,7 +120,7 @@ async def main(tag: str) -> None:
     os.makedirs(OUT, exist_ok=True)
     shots = os.environ.get("CONTRAST_SHOTS") == "1"
     if shots:
-        os.makedirs(f"{OUT}/{tag}", exist_ok=True)
+        os.makedirs(f"{RAW}/{tag}", exist_ok=True)
     tok = httpx.post(f"{BASE}/api/v1/auth/login", json={"email": EMAIL, "password": PW}, timeout=60).json()["access_token"]
     rs, results = routes(ensure_systems(tok)), []
     async with async_playwright() as p:
@@ -152,7 +153,7 @@ async def main(tag: str) -> None:
                     results.append(row)
                     print(f"{theme:5} {w}x{h} {name:24} axe={row['axe']:3} custom={row['custom']:3}", flush=True)
                     if shots and theme == "dark" and w == 1280:
-                        await page.screenshot(path=f"{OUT}/{tag}/{name}.png")
+                        await page.screenshot(path=f"{RAW}/{tag}/{name}.png")
         await b.close()
     json.dump(results, open(f"{OUT}/results-{tag}.json", "w"), indent=1)
     by = defaultdict(int)

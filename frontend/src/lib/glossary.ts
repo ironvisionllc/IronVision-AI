@@ -26,7 +26,7 @@ export const GLOSSARY: Record<Dim, Record<string, Entry>> = {
   },
   assessment: {
     satisfied: ["Satisfied", `${SOLID} bg-emerald-600 text-white`], other_than_satisfied: ["Other Than Satisfied", `${SOLID} bg-rose-600 text-white`],
-    not_assessed: ["Not Assessed", `${SOLID} bg-slate-300 text-slate-800`], not_applicable: ["Not Applicable", `${SOLID} bg-slate-500 text-white`],
+    not_assessed: ["Not Assessed", `${SOLID} bg-slate-200 text-slate-800`], not_applicable: ["Not Applicable", `${SOLID} bg-slate-500 text-white`],
   },
   authorization: {
     ato: ["ATO", "rounded-sm bg-emerald-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"],

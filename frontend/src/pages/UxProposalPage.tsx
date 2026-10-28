@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { BrandLockup } from "@/components/shell/Brand";
 import { SyntheticBanner } from "@/components/shell/SyntheticBanner";
@@ -72,7 +73,8 @@ const IMPLEMENTED: [string, string][] = [
   ["generate_ssp", "Authorize › Package & documents: SSP validation and download (eMASS plan export moved here)"],
   ["guided_off", "Guided Mode off (default)"], ["guided_on", "Guided Mode on: purpose, why, what you need, who, what's next"],
 ];
-const AFTER: [string, number, number, number, string][] = [];
+type AfterRow = { clicks: number; page_changes: number; fields: number; next_action_shown: boolean };
+type Contrast = { worst: string[]; before: Record<string, number>; after: Record<string, number> };
 
 function Table({ head, rows, testId }: { head: string[]; rows: (string | number)[][]; testId: string }) {
   return (
@@ -95,6 +97,12 @@ function Shot({ src, caption, testId }: { src: string; caption: string; testId: 
 }
 
 export default function UxProposalPage() {
+  const [after, setAfter] = useState<AfterRow[]>([]);
+  const [contrast, setContrast] = useState<Contrast | null>(null);
+  useEffect(() => {
+    fetch(`${P}/implemented/after_metrics.json`).then((r) => (r.ok ? r.json() : null)).then((d) => d && setAfter(d.results)).catch(() => undefined);
+    fetch(`${P}/contrast/summary.json`).then((r) => (r.ok ? r.json() : null)).then((d) => d && setContrast(d)).catch(() => undefined);
+  }, []);
   return (
     <div className="flex min-h-full flex-col" data-testid="ux-proposal-page">
       <SyntheticBanner />
@@ -125,8 +133,12 @@ export default function UxProposalPage() {
           <p className="text-[13px] text-slate-600">The proposal above was approved and built in seven releases. These are screenshots of the implemented app, not mockups.
             Data, permissions, separation of duties, SCA independence, AO authority, human approval of AI, audit and tenant isolation are unchanged.</p>
           <Table head={["Task", "Clicks before → after", "Page changes before → after", "Fields before → after", "Next action before → after"]}
-            rows={AFTER.map(([t, ...a], i) => [t, `${METRICS[i][1]} → ${a[0]}`, `${METRICS[i][2]} → ${a[1]}`, `${METRICS[i][3]} → ${a[2]}`, `${METRICS[i][4]} → ${a[3]}`])} testId="ux-after-metrics-table" />
-          {IMPLEMENTED.map(([k, c]) => <Shot key={k} src={`${P}/implemented/${k}.png`} caption={c} testId={`ux-implemented-${k}`} />)}</Section>
+            rows={after.map((r, i) => [METRICS[i][0], `${METRICS[i][1]} → ${r.clicks}`, `${METRICS[i][2]} → ${r.page_changes}`, `${METRICS[i][3]} → ${r.fields}`, `${METRICS[i][4]} → ${r.next_action_shown ? "yes" : "no"}`])} testId="ux-after-metrics-table" />
+          {IMPLEMENTED.map(([k, c]) => <Shot key={k} src={`${P}/implemented/${k}.png`} caption={c} testId={`ux-implemented-${k}`} />)}
+          <h3 className="t-title mt-8 text-slate-900">Night-mode contrast (WCAG 2.2 AA) – fixed at the token level</h3>
+          <p className="mt-1 text-[13px] text-slate-600">axe-core colour-contrast plus computed contrast of resting, hover and keyboard-focus states, every route, dark and light, 1280 and 390 wide.</p>
+          {contrast && <Table head={["Run", "Violations before", "Violations after"]} rows={Object.keys(contrast.before).map((k) => [k, contrast.before[k], contrast.after[k]])} testId="ux-contrast-table" />}
+          {contrast?.worst.map((k) => <Shot key={k} src={`${P}/contrast/${k}.png`} caption={`${k} – dark mode, before (left) / after (right)`} testId={`ux-contrast-${k}`} />)}</Section>
       </main>
     </div>);
 }

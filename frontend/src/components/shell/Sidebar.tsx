@@ -48,7 +48,7 @@ export function Sidebar() {
               <div className={cn("iv-nav-link group w-full !pr-1", activeGroup === g.key && "font-semibold")}>
                 <Link to={g.path!} onClick={() => setOpen(g.key)} className="flex min-w-0 flex-1 items-center gap-2" data-testid={`nav-step-${g.key}`}
                   title={st ? `${g.help}\n${STEP_STATUS[st.status].label}: ${st.summary}` : g.help}>
-                  <span className={cn("h-2 w-2 shrink-0 rounded-full", st ? STEP_STATUS[st.status].dot : "bg-slate-300")} data-testid={`nav-step-status-${g.key}`} data-status={st?.status} aria-label={st ? STEP_STATUS[st.status].label : "no system"} />
+                  <span className={cn("h-2 w-2 shrink-0 rounded-full", st ? STEP_STATUS[st.status].dot : "bg-slate-400")} data-testid={`nav-step-status-${g.key}`} data-status={st?.status} aria-label={st ? STEP_STATUS[st.status].label : "no system"} />
                   <span className="flex-1 truncate text-left">{g.label}</span>
                   {st && <span className="iv-sb-muted text-[10px]">{STEP_STATUS[st.status].short}</span>}
                 </Link>
