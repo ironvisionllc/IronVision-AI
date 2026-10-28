@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { TableScroll } from "@/components/common/TableScroll";
 import { CompletedNext } from "@/components/common/CompletedNext";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -149,9 +150,9 @@ export default function ImportCenterPage() {
             <tbody>{files.map((f, n) => <FileRow key={n} f={f} n={n} sid={sid} types={types} preset={preset} onDone={() => setTick(tick + 1)} />)}</tbody></table>}
         </Panel>
         <Panel title="Supported import types" testId="ic-types">
-          <table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>Type</th><th>RMF step</th><th>Destination</th><th>Your access</th></tr></thead>
+          <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>Type</th><th>RMF step</th><th>Destination</th><th>Your access</th></tr></thead>
             <tbody>{Object.values(types).map((t: Row) => <tr key={t.key} className={`border-t border-slate-100 ${t.allowed ? "" : "text-slate-400"}`} data-testid={`ic-typerow-${t.key}`}>
-              <td>{t.label}</td><td>{t.step}</td><td>{t.dest}</td><td>{t.allowed ? "Can import" : t.reason}</td></tr>)}</tbody></table>
+              <td>{t.label}</td><td>{t.step}</td><td>{t.dest}</td><td>{t.allowed ? "Can import" : t.reason}</td></tr>)}</tbody></table></TableScroll>
         </Panel>
         <History key={`${sid}-${tick}`} sid={id} />
       </div>
