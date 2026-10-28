@@ -159,9 +159,27 @@ export function PolicyAuditorPage() {
 const TYPES: Record<string, string> = { policy_vs_config_difference: "Policy vs configuration", odp_not_met: "ODP not met", missing_policy_requirement: "Missing requirement",
   possible_outdated_reference: "Possible outdated reference", ai_suggested_needs_validation: "AI suggestion – needs validation" };
 
+/** Stored results from an older auditor version or keyword-only (no AI) rows: one-click re-analysis with the latest auditor (ISSO/ISSM, audited). */
+function StaleAuditor({ a, id, canRun, reload, setMsg }: { a: Row; id: string; canRun: boolean; reload: () => void; setMsg: (m: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try { await api.post(`/policies/${id}/reanalyze?latest=true`); setMsg("Re-analysis with the latest auditor queued – your Mapping Review decisions are kept."); reload(); }
+    catch (e) { setMsg(errorMessage(e)); } finally { setBusy(false); }
+  };
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid="policy-stale-auditor">
+      <span className="rounded bg-amber-200 px-1.5 py-0.5 font-semibold" data-testid="policy-stale-badge">Analyzed with an older auditor version</span>
+      <span>{a.used_version !== a.current_version ? `${a.used_version || "unknown"} → current ${a.current_version}` : `${a.keyword_only_requirements} requirement(s) were checked by keyword only (AI unavailable) – they need manual review`}</span>
+      <button className="btn-primary ml-auto !py-0.5 text-[12px]" disabled={!canRun || busy} title={canRun ? a.est_basis : "Only the ISSO or ISSM can re-analyse"} onClick={run} data-testid="policy-reanalyze-latest">
+        Re-analyze with latest (est. ${Number(a.est_cost_usd).toFixed(2)})</button>
+    </div>);
+}
+
+
 export function PolicyDetailPage() {
   const { id = "" } = useParams();
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const { data, reload } = useApi<Row>(`/policies/${id}`);
   const [msg, setMsg] = useState("");
   const [mapFor, setMapFor] = useState<string[] | null>(null);
@@ -187,6 +205,7 @@ export function PolicyDetailPage() {
       {!analysing && p.analysis?.progress?.phase === "done" && <div className="mb-3 text-[12px] text-slate-600" data-testid="policy-detail-completed">Analysis {p.analysis.progress.stage.toLowerCase()} · {p.analysis.progress.requirements_analyzed} requirements analysed · {p.analysis.progress.requirement_gaps} requirement gaps · {p.analysis.progress.audit_findings} audit findings stored{p.analysis.progress.audit_suggestions != null && ` (${p.analysis.progress.audit_suggestions} AI suggestions)`}
         {p.analysis.progress.audit_note && <div className="text-amber-800" data-testid="policy-detail-audit-note">{p.analysis.progress.audit_note}</div>}
         <StageHistory p={p.analysis.progress} testId="policy-detail-stage-history" /></div>}
+      {data.auditor?.stale && <StaleAuditor a={data.auditor} id={id} canRun={can("ingest.upload") && ((user && user.roles) || []).some((r: Row) => ["isso", "issm", "admin"].includes(r.role))} reload={reload} setMsg={setMsg} />}
       {p.analysis?.text_refreshed && <div className="mb-3 text-[12px] text-slate-600" data-testid="policy-text-refreshed">Re-analysed with improved table extraction on {new Date(p.analysis.text_refreshed.at).toLocaleDateString()}{["queued", "processing"].includes(p.analysis_status) ? " (re-analysis in progress)" : ""}. Your earlier decisions are kept; differences show as “Re-analysis differs from approved”.</div>}
       <Panel title="Mapped controls (confidence · basis · matched text)" className="mb-5" testId="policy-control-mappings">
         <PolicyMappingsPanel policyId={id} data={data} canMap={can("finding.map")} reload={reload} setMsg={setMsg} />

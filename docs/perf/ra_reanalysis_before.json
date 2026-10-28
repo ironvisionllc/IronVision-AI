@@ -1,0 +1,2662 @@
+[
+ {
+  "policy": "9dc6b55b-a85d-4777-aec0-4a305ba0cc8e",
+  "title": "Risk Assessment Policy (synthetic)",
+  "org": "SME Fresh Co Sandbox \u2013 SYNTHETIC (9aafc1",
+  "updated": "2026-10-27 15:11:46",
+  "version": "coverage-4",
+  "analyzer": null,
+  "controls": {
+   "ra-1": {
+    "met": 14,
+    "partial": 11,
+    "missing": 13,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "No statement that the policy is disseminated.",
+    "quote": "Purpose."
+   },
+   "ra-5": {
+    "met": 0,
+    "partial": 3,
+    "missing": 21,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "No sentence addresses this requirement.",
+    "quote": "The official designated in RA-1b reviews and updates this risk assessment policy annually."
+   }
+  }
+ },
+ {
+  "policy": "17bbe4a8-f450-4651-9a39-e9b8696d6c18",
+  "title": "SYNTHETIC Risk Assessment Policy",
+  "org": "SME Final Co Sandbox \u2013 SYNTHETIC (3707c8",
+  "updated": "2026-10-27 15:11:46",
+  "version": "coverage-4",
+  "analyzer": null,
+  "controls": {
+   "ra-1": {
+    "met": 21,
+    "partial": 0,
+    "missing": 17,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "No statement that the procedures is disseminated.",
+    "quote": "Purpose: This policy implements NIST SP 800-53 control RA-1 Policy and Procedures for risk assessment."
+   },
+   "ra-3": {
+    "met": 8,
+    "partial": 3,
+    "missing": 12,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "No sentence with the requirement's key words was found.",
+    "quote": "The organization develops, documents and disseminates a risk assessment policy that addresses purpose, scope, roles, responsibilities, manag"
+   }
+  }
+ },
+ {
+  "policy": "31f72752-0f50-46e1-9d46-f096e41de273",
+  "title": "Risk Assessment Policy (synthetic QA)",
+  "org": "QA Org Sandbox \u2013 SYNTHETIC (82b4ef)",
+  "updated": "2026-10-27 15:11:46",
+  "version": "coverage-4",
+  "analyzer": null,
+  "controls": {
+   "ra-1": {
+    "met": 38,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose."
+   }
+  }
+ },
+ {
+  "policy": "e6a2013e-7d64-4539-99a8-bb51820c6318",
+  "title": "RA Policy B",
+  "org": "Org tb1793114213 Sandbox \u2013 SYNTHETIC (a7",
+  "updated": "2026-10-27 15:17:20",
+  "version": "coverage-4",
+  "analyzer": "v2",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 7,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system"
+   },
+   "ra-2": {
+    "met": 5,
+    "partial": 2,
+    "missing": 1,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cthe system and the information it processes, stores, and transmits are categ",
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Within the system, components shall be prioritized by impact so that protection and remediation effort goes first to the highest-impact comp"
+   },
+   "ra-3": {
+    "met": 18,
+    "partial": 5,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Each assessment shall identify threats and vulnerabilities, and determine the likelihood and magnitude of harm from unauthorized access, use"
+   },
+   "ra-3.1": {
+    "met": 4,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Risk assessments shall draw on all-source threat information available through the CSSP and DoD cyber threat reporting channels."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins"
+   },
+   "ra-5": {
+    "met": 14,
+    "partial": 8,
+    "missing": 2,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the process for conducting random vulnerability scans on the system ",
+    "quote": "The ISSO shall monitor and scan the system and hosted applications on the schedule below, and again whenever a new vulnerability potentially"
+   },
+   "ra-5.10": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The system shall accept reports of vulnerabilities from the public through the DoD Vulnerability Disclosure Program."
+   },
+   "ra-5.2": {
+    "met": 3,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced."
+   },
+   "ra-5.3": {
+    "met": 1,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Scan coverage shall be 100 percent of assets in the system inventory."
+   },
+   "ra-5.4": {
+    "met": 2,
+    "partial": 0,
+    "missing": 3,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the corrective actions if unintended information about the system is",
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 1,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Risk decisions for The Raven shall be made by the Authorizing Official on the basis of current, documented risk information."
+   },
+   "ra-5.6": {
+    "met": 1,
+    "partial": 1,
+    "missing": 1,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the automated mechanisms for comparing the results of multiple vulne",
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "the ISSO shall review AWS CloudTrail, VPC Flow Logs, and host logs for at least the prior 90 days to determine whether it was previously exp"
+   },
+   "ra-7": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Every finding from a security or privacy assessment, continuous monitoring, or an audit shall receive a documented risk response"
+   },
+   "ra-8": {
+    "met": 2,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-9": {
+    "met": 4,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   }
+  }
+ },
+ {
+  "policy": "c015a462-d596-478b-b092-bbd610450000",
+  "title": "RA Policy C",
+  "org": "Org tc1793114251 Sandbox \u2013 SYNTHETIC (c3",
+  "updated": "2026-10-27 15:22:24",
+  "version": "coverage-4",
+  "analyzer": "v2",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 7,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and t"
+   },
+   "ra-2": {
+    "met": 5,
+    "partial": 2,
+    "missing": 1,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cthe system and the information it processes, stores, and transmits are categ",
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Within the system, components shall be prioritized by impact so that protection and remediation effort goes first to the highest-impact comp"
+   },
+   "ra-3": {
+    "met": 18,
+    "partial": 5,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "determine the likelihood and magnitude of harm from unauthorized access, use, disclosure, disruption, modification, or destruction of the sy"
+   },
+   "ra-3.1": {
+    "met": 4,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Risk assessments shall draw on all-source threat information available through the CSSP and DoD cyber threat reporting channels."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins"
+   },
+   "ra-5": {
+    "met": 13,
+    "partial": 10,
+    "missing": 1,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the process for conducting random vulnerability scans on the system ",
+    "quote": "The ISSO shall monitor and scan the system and hosted applications on the schedule below, and again whenever a new vulnerability potentially"
+   },
+   "ra-5.10": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The system shall accept reports of vulnerabilities from the public through the DoD Vulnerability Disclosure Program."
+   },
+   "ra-5.2": {
+    "met": 3,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced."
+   },
+   "ra-5.3": {
+    "met": 0,
+    "partial": 1,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefine the breadth and depth of vulnerability scanning coverage (i.e., infor",
+    "quote": "RA-5(3) | Breadth and Depth of Coverage | None | 8."
+   },
+   "ra-5.4": {
+    "met": 2,
+    "partial": 0,
+    "missing": 3,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the corrective actions if unintended information about the system is",
+    "quote": "the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exposure."
+   },
+   "ra-5.5": {
+    "met": 1,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Risk decisions for The Raven shall be made by the Authorizing Official on the basis of current, documented risk information."
+   },
+   "ra-5.6": {
+    "met": 1,
+    "partial": 1,
+    "missing": 1,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the automated mechanisms for comparing the results of multiple vulne",
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "the ISSO shall review AWS CloudTrail, VPC Flow Logs, and host logs for at least the prior 90 days to determine whether it was previously exp"
+   },
+   "ra-7": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Every finding from a security or privacy assessment, continuous monitoring, or an audit shall receive a documented risk response consistent "
+   },
+   "ra-8": {
+    "met": 2,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-9": {
+    "met": 4,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   }
+  }
+ },
+ {
+  "policy": "bb4c36ad-a591-4f65-a19b-e92334b7237d",
+  "title": "RA D",
+  "org": "Org td1793114806 Sandbox \u2013 SYNTHETIC (2c",
+  "updated": "2026-10-27 15:27:12",
+  "version": "coverage-4",
+  "analyzer": "v2",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 7,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system"
+   },
+   "ra-2": {
+    "met": 5,
+    "partial": 2,
+    "missing": 1,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cthe system and the information it processes, stores, and transmits are categ",
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Within the system, components shall be prioritized by impact so that protection and remediation effort goes first to the highest-impact comp"
+   },
+   "ra-3": {
+    "met": 18,
+    "partial": 5,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "determine the likelihood and magnitude of harm from unauthorized access, use, disclosure, disruption, modification, or destruction of the sy"
+   },
+   "ra-3.1": {
+    "met": 4,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Risk assessments shall draw on all-source threat information available through the CSSP and DoD cyber threat reporting channels."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins"
+   },
+   "ra-5": {
+    "met": 14,
+    "partial": 9,
+    "missing": 1,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the process for conducting random vulnerability scans on the system ",
+    "quote": "The ISSO shall monitor and scan the system and hosted applications on the schedule below"
+   },
+   "ra-5.10": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The system shall accept reports of vulnerabilities from the public through the DoD Vulnerability Disclosure Program."
+   },
+   "ra-5.2": {
+    "met": 3,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced."
+   },
+   "ra-5.3": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Scan coverage shall be 100 percent of assets in the system inventory."
+   },
+   "ra-5.4": {
+    "met": 2,
+    "partial": 0,
+    "missing": 3,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the corrective actions if unintended information about the system is",
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 1,
+    "partial": 2,
+    "missing": 1,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cprivileged access authorization is implemented to [Assignment: system compon",
+    "quote": "Risk decisions for The Raven shall be made by the Authorizing Official on the basis of current, documented risk information."
+   },
+   "ra-5.6": {
+    "met": 1,
+    "partial": 1,
+    "missing": 1,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the automated mechanisms for comparing the results of multiple vulne",
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 3,
+    "partial": 0,
+    "missing": 1,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the system in which will be identified for determining if a vulnerab",
+    "quote": "When a high or critical vulnerability is found, the ISSO shall review AWS CloudTrail, VPC Flow Logs, and host logs for at least the prior 90"
+   },
+   "ra-7": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Every finding from a security or privacy assessment, continuous monitoring, or an audit shall receive a documented risk response consistent "
+   },
+   "ra-8": {
+    "met": 2,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-9": {
+    "met": 4,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   }
+  }
+ },
+ {
+  "policy": "c7978e91-5628-4be1-9278-59d2ea8fc816",
+  "title": "RA Policy",
+  "org": "Org ta1793113994 Sandbox \u2013 SYNTHETIC (ae",
+  "updated": "2026-10-27 15:30:51",
+  "version": "coverage-4",
+  "analyzer": "deterministic",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 3,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and t"
+   },
+   "ra-2": {
+    "met": 1,
+    "partial": 6,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cthe system and the information it processes, stores, and transmits are categ",
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 0,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cConduct a impact-level categorization of organizational systems to obtain ad",
+    "quote": null
+   },
+   "ra-3": {
+    "met": 9,
+    "partial": 9,
+    "missing": 5,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cConduct a risk assessment, including identifying threats to the system.\u201d.",
+    "quote": "Each assessment shall identify threats and vulnerabilities, and determine the likelihood and magnitude of harm from unauthorized access, use"
+   },
+   "ra-3.1": {
+    "met": 2,
+    "partial": 2,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the systems, system-components, and system services for assessing su",
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "RA-3(2) | Use of All-Source Intelligence | None | 7."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 0,
+    "missing": 3,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDetermine the current cyber threat environment on an ongoing basis using org",
+    "quote": null
+   },
+   "ra-5": {
+    "met": 10,
+    "partial": 5,
+    "missing": 9,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cEmploy vulnerability monitoring tools and techniques that facilitate interop",
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   },
+   "ra-5.10": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 0,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cEstablish a public reporting channel for receiving reports of vulnerabilitie",
+    "quote": null
+   },
+   "ra-5.2": {
+    "met": 2,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Results shall be documented in a Risk Assessment Report (RAR), reflected in the System Security Plan and Security Assessment Report, and rec"
+   },
+   "ra-5.3": {
+    "met": 0,
+    "partial": 1,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefine the breadth and depth of vulnerability scanning coverage (i.e., infor",
+    "quote": "RA-5(3) | Breadth and Depth of Coverage | None | 8."
+   },
+   "ra-5.4": {
+    "met": 0,
+    "partial": 2,
+    "missing": 3,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the corrective actions if unintended information about the system is",
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 3,
+    "partial": 0,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cprivileged access authorization is implemented to [Assignment: system compon",
+    "quote": "Risk decisions for The Raven shall be made by the Authorizing Official on the basis of current, documented risk information."
+   },
+   "ra-5.6": {
+    "met": 0,
+    "partial": 1,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cCompare the results of multiple vulnerability scans using organization-defin",
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 0,
+    "partial": 3,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the system in which will be identified for determining if a vulnerab",
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   },
+   "ra-7": {
+    "met": 1,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-9": {
+    "met": 4,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   }
+  }
+ },
+ {
+  "policy": "bb88e558-e6c0-40a7-9b52-5a8bf9b26dd7",
+  "title": "RA Policy",
+  "org": "QA ra Sandbox \u2013 SYNTHETIC (650126)",
+  "updated": "2026-10-27 16:19:04",
+  "version": "coverage-4",
+  "analyzer": "deterministic",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 0,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and t"
+   },
+   "ra-2": {
+    "met": 0,
+    "partial": 8,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 0,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cConduct a impact-level categorization of organizational systems to obtain ad",
+    "quote": null
+   },
+   "ra-3": {
+    "met": 4,
+    "partial": 19,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Each assessment shall identify threats and vulnerabilities, and determine the likelihood and magnitude of harm from unauthorized access, use"
+   },
+   "ra-3.1": {
+    "met": 1,
+    "partial": 3,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the systems, system-components, and system services for assessing su",
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "RA-3(2) | Use of All-Source Intelligence | None | 7."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 0,
+    "missing": 3,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDetermine the current cyber threat environment on an ongoing basis using org",
+    "quote": null
+   },
+   "ra-5": {
+    "met": 6,
+    "partial": 18,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   },
+   "ra-5.10": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 0,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cEstablish a public reporting channel for receiving reports of vulnerabilitie",
+    "quote": null
+   },
+   "ra-5.2": {
+    "met": 0,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Results shall be documented in a Risk Assessment Report (RAR), reflected in the System Security Plan and Security Assessment Report, and rec"
+   },
+   "ra-5.3": {
+    "met": 0,
+    "partial": 1,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefine the breadth and depth of vulnerability scanning coverage (i.e., infor",
+    "quote": "RA-5(3) | Breadth and Depth of Coverage | None | 8."
+   },
+   "ra-5.4": {
+    "met": 0,
+    "partial": 2,
+    "missing": 3,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the corrective actions if unintended information about the system is",
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 0,
+    "partial": 3,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cprivileged access authorization is implemented to [Assignment: system compon",
+    "quote": "Risk decisions for The Raven shall be made by the Authorizing Official on the basis of current, documented risk information."
+   },
+   "ra-5.6": {
+    "met": 0,
+    "partial": 1,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cCompare the results of multiple vulnerability scans using organization-defin",
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 0,
+    "partial": 3,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the system in which will be identified for determining if a vulnerab",
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   },
+   "ra-7": {
+    "met": 1,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-8": {
+    "met": 0,
+    "partial": 6,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-9": {
+    "met": 0,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   }
+  }
+ },
+ {
+  "policy": "3ad9c43f-9e67-4d6c-b622-800c9561d614",
+  "title": "RA",
+  "org": "JT Sandbox \u2013 SYNTHETIC (7460d0)",
+  "updated": "2026-10-27 17:47:52",
+  "version": "coverage-4",
+  "analyzer": "v2",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 7,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and t"
+   },
+   "ra-2": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 0,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cConduct a impact-level categorization of organizational systems to obtain ad",
+    "quote": null
+   },
+   "ra-3": {
+    "met": 20,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Each assessment shall identify threats and vulnerabilities, and determine the likelihood and magnitude of harm from unauthorized access, use"
+   },
+   "ra-3.1": {
+    "met": 5,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Risk assessments shall draw on all-source threat information available through the CSSP and DoD cyber threat reporting channels."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins, and shal"
+   },
+   "ra-5": {
+    "met": 12,
+    "partial": 12,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor and scan the system and hosted applications on the schedule below, and again whenever a new vulnerability potentially"
+   },
+   "ra-5.10": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The system shall accept reports of vulnerabilities from the public through the DoD Vulnerability Disclosure Program."
+   },
+   "ra-5.2": {
+    "met": 3,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced."
+   },
+   "ra-5.3": {
+    "met": 1,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Scan coverage shall be 100 percent of assets in the system inventory."
+   },
+   "ra-5.4": {
+    "met": 2,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Scanners shall be given the privileged access needed for full results, through dedicated, least-privilege, logged service accounts and IAM r"
+   },
+   "ra-5.6": {
+    "met": 1,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "When a high or critical vulnerability is found, the ISSO shall review AWS CloudTrail, VPC Flow Logs, and host logs for at least the prior 90"
+   },
+   "ra-7": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Every finding from a security or privacy assessment, continuous monitoring, or an audit shall receive a documented risk response consistent "
+   },
+   "ra-8": {
+    "met": 2,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall complete a DD Form 2930 in accordance with DoDI 5400.16 before developing or procuring information technology that processes P"
+   },
+   "ra-9": {
+    "met": 4,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall perform a criticality analysis of system components, functions, and services, consistent with DoDI 5200.44. (RA-9)"
+   }
+  }
+ },
+ {
+  "policy": "ff55a35b-ac1c-4f56-9620-69492280cd13",
+  "title": "RA linked",
+  "org": "JT Sandbox \u2013 SYNTHETIC (7460d0)",
+  "updated": "2026-10-27 17:52:57",
+  "version": "coverage-4",
+  "analyzer": "deterministic",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 0,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and t"
+   },
+   "ra-2": {
+    "met": 4,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 0,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cConduct a impact-level categorization of organizational systems to obtain ad",
+    "quote": null
+   },
+   "ra-3": {
+    "met": 14,
+    "partial": 9,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM shall conduct risk assessments using the NIST SP 800-30 Rev. 1 methodology. Each assessment shall identify threats and vulnerabilit"
+   },
+   "ra-3.1": {
+    "met": 3,
+    "partial": 2,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201csupply chain risks associated with [Assignment: systems, system components, ",
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "RA-3(2) | Use of All-Source Intelligence | None | 7.3 | Addressed (tailored in)"
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 0,
+    "missing": 3,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDetermine the current cyber threat environment on an ongoing basis using org",
+    "quote": null
+   },
+   "ra-5": {
+    "met": 7,
+    "partial": 17,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor and scan the system and hosted applications on the schedule below, and again whenever a new vulnerability potentially"
+   },
+   "ra-5.10": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 0,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cEstablish a public reporting channel for receiving reports of vulnerabilitie",
+    "quote": null
+   },
+   "ra-5.2": {
+    "met": 1,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Results shall be documented in a Risk Assessment Report (RAR), reflected in the System Security Plan and Security Assessment Report, and rec"
+   },
+   "ra-5.3": {
+    "met": 1,
+    "partial": 0,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefine the breadth and depth of vulnerability scanning coverage (i.e., infor",
+    "quote": "Every asset in the The Raven boundary shall be continuously monitored and regularly scanned for vulnerabilities, and legitimate findings sha"
+   },
+   "ra-5.4": {
+    "met": 2,
+    "partial": 0,
+    "missing": 3,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the corrective actions if unintended information about the system is",
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 0,
+    "partial": 3,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cprivileged access authorization is implemented to [Assignment: system compon",
+    "quote": "Risk decisions for The Raven shall be made by the Authorizing Official on the basis of current, documented risk information."
+   },
+   "ra-5.6": {
+    "met": 0,
+    "partial": 1,
+    "missing": 2,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cCompare the results of multiple vulnerability scans using organization-defin",
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 0,
+    "partial": 3,
+    "missing": 1,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": "Not found: no sentence in the policy addresses the requirement \u201cDefines the system in which will be identified for determining if a vulnerab",
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   },
+   "ra-7": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "An out-of-cycle review of both shall follow any of these events: a significant system change, a change in categorization or impact level, a "
+   },
+   "ra-8": {
+    "met": 0,
+    "partial": 6,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall complete a DD Form 2930 in accordance with DoDI 5400.16 before developing or procuring information technology that processes P"
+   },
+   "ra-9": {
+    "met": 0,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   }
+  }
+ },
+ {
+  "policy": "8e4e3677-2208-4a73-9e60-b87c0bc763bb",
+  "title": "RA Policy 1",
+  "org": "Round Four Sandbox \u2013 SYNTHETIC (8bbe27)",
+  "updated": "2026-10-27 18:30:36",
+  "version": "coverage-4",
+  "analyzer": "v2",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 7,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and t"
+   },
+   "ra-2": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Within the system, components shall be prioritized by impact so that protection and remediation effort goes first to the highest-impact comp"
+   },
+   "ra-3": {
+    "met": 20,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Each assessment shall identify threats and vulnerabilities, and determine the likelihood and magnitude of harm from unauthorized access, use"
+   },
+   "ra-3.1": {
+    "met": 5,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Risk assessments shall draw on all-source threat information available through the CSSP and DoD cyber threat reporting channels."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins, and shal"
+   },
+   "ra-5": {
+    "met": 12,
+    "partial": 12,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor and scan the system and hosted applications on the schedule below, and again whenever a new vulnerability potentially"
+   },
+   "ra-5.10": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The system shall accept reports of vulnerabilities from the public through the DoD Vulnerability Disclosure Program."
+   },
+   "ra-5.2": {
+    "met": 3,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced."
+   },
+   "ra-5.3": {
+    "met": 1,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Scan coverage shall be 100 percent of assets in the system inventory."
+   },
+   "ra-5.4": {
+    "met": 2,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Scanners shall be given the privileged access needed for full results, through dedicated, least-privilege, logged service accounts and IAM r"
+   },
+   "ra-5.6": {
+    "met": 1,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "When a high or critical vulnerability is found, the ISSO shall review AWS CloudTrail, VPC Flow Logs, and host logs for at least the prior 90"
+   },
+   "ra-7": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Every finding from a security or privacy assessment, continuous monitoring, or an audit shall receive a documented risk response consistent "
+   },
+   "ra-8": {
+    "met": 2,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall complete a DD Form 2930 in accordance with DoDI 5400.16 before developing or procuring information technology that processes P"
+   },
+   "ra-9": {
+    "met": 4,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall perform a criticality analysis of system components, functions, and services, consistent with DoDI 5200.44. (RA-9)"
+   }
+  }
+ },
+ {
+  "policy": "02f5ebc4-7e73-4cfd-bb6c-9fc240abd08c",
+  "title": "RA Linked A",
+  "org": "Round Four Sandbox \u2013 SYNTHETIC (8bbe27)",
+  "updated": "2026-10-27 18:31:19",
+  "version": "coverage-4",
+  "analyzer": "v2",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 7,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and t"
+   },
+   "ra-2": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Within the system, components shall be prioritized by impact so that protection and remediation effort goes first to the highest-impact comp"
+   },
+   "ra-3": {
+    "met": 20,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Each assessment shall identify threats and vulnerabilities, and determine the likelihood and magnitude of harm from unauthorized access, use"
+   },
+   "ra-3.1": {
+    "met": 5,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Risk assessments shall draw on all-source threat information available through the CSSP and DoD cyber threat reporting channels."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins, and shal"
+   },
+   "ra-5": {
+    "met": 12,
+    "partial": 12,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor and scan the system and hosted applications on the schedule below, and again whenever a new vulnerability potentially"
+   },
+   "ra-5.10": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The system shall accept reports of vulnerabilities from the public through the DoD Vulnerability Disclosure Program."
+   },
+   "ra-5.2": {
+    "met": 3,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced."
+   },
+   "ra-5.3": {
+    "met": 1,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Scan coverage shall be 100 percent of assets in the system inventory."
+   },
+   "ra-5.4": {
+    "met": 2,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Scanners shall be given the privileged access needed for full results, through dedicated, least-privilege, logged service accounts and IAM r"
+   },
+   "ra-5.6": {
+    "met": 1,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "When a high or critical vulnerability is found, the ISSO shall review AWS CloudTrail, VPC Flow Logs, and host logs for at least the prior 90"
+   },
+   "ra-7": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Every finding from a security or privacy assessment, continuous monitoring, or an audit shall receive a documented risk response consistent "
+   },
+   "ra-8": {
+    "met": 2,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall complete a DD Form 2930 in accordance with DoDI 5400.16 before developing or procuring information technology that processes P"
+   },
+   "ra-9": {
+    "met": 4,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall perform a criticality analysis of system components, functions, and services, consistent with DoDI 5200.44. (RA-9)"
+   }
+  }
+ },
+ {
+  "policy": "6dbd0f2e-cf92-49bd-9d57-8707b47c9ed9",
+  "title": "RA Linked B",
+  "org": "Round Four Sandbox \u2013 SYNTHETIC (8bbe27)",
+  "updated": "2026-10-27 18:31:30",
+  "version": "coverage-4",
+  "analyzer": "v2",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 7,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and t"
+   },
+   "ra-2": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Within the system, components shall be prioritized by impact so that protection and remediation effort goes first to the highest-impact comp"
+   },
+   "ra-3": {
+    "met": 20,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Each assessment shall identify threats and vulnerabilities, and determine the likelihood and magnitude of harm from unauthorized access, use"
+   },
+   "ra-3.1": {
+    "met": 5,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Risk assessments shall draw on all-source threat information available through the CSSP and DoD cyber threat reporting channels."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins, and shal"
+   },
+   "ra-5": {
+    "met": 12,
+    "partial": 12,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor and scan the system and hosted applications on the schedule below, and again whenever a new vulnerability potentially"
+   },
+   "ra-5.10": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The system shall accept reports of vulnerabilities from the public through the DoD Vulnerability Disclosure Program."
+   },
+   "ra-5.2": {
+    "met": 3,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced."
+   },
+   "ra-5.3": {
+    "met": 1,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Scan coverage shall be 100 percent of assets in the system inventory."
+   },
+   "ra-5.4": {
+    "met": 2,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Scanners shall be given the privileged access needed for full results, through dedicated, least-privilege, logged service accounts and IAM r"
+   },
+   "ra-5.6": {
+    "met": 1,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "When a high or critical vulnerability is found, the ISSO shall review AWS CloudTrail, VPC Flow Logs, and host logs for at least the prior 90"
+   },
+   "ra-7": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Every finding from a security or privacy assessment, continuous monitoring, or an audit shall receive a documented risk response consistent "
+   },
+   "ra-8": {
+    "met": 2,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall complete a DD Form 2930 in accordance with DoDI 5400.16 before developing or procuring information technology that processes P"
+   },
+   "ra-9": {
+    "met": 4,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall perform a criticality analysis of system components, functions, and services, consistent with DoDI 5200.44. (RA-9)"
+   }
+  }
+ },
+ {
+  "policy": "7848b645-19d3-4d36-889d-0a7ee978d77d",
+  "title": "ra_policy_dod_aws_raven_demo",
+  "org": "JudgeOrg Sandbox \u2013 SYNTHETIC (36c854)",
+  "updated": "2026-10-27 19:08:11",
+  "version": "coverage-4",
+  "analyzer": "v2",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 7,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and t"
+   },
+   "ra-2": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Within the system, components shall be prioritized by impact so that protection and remediation effort goes first to the highest-impact comp"
+   },
+   "ra-3": {
+    "met": 20,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Each assessment shall identify threats and vulnerabilities, and determine the likelihood and magnitude of harm from unauthorized access, use"
+   },
+   "ra-3.1": {
+    "met": 5,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Risk assessments shall draw on all-source threat information available through the CSSP and DoD cyber threat reporting channels."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins, and shal"
+   },
+   "ra-5": {
+    "met": 11,
+    "partial": 13,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor and scan the system and hosted applications on the schedule below, and again whenever a new vulnerability potentially"
+   },
+   "ra-5.10": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The system shall accept reports of vulnerabilities from the public through the DoD Vulnerability Disclosure Program."
+   },
+   "ra-5.2": {
+    "met": 3,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced."
+   },
+   "ra-5.3": {
+    "met": 1,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Scan coverage shall be 100 percent of assets in the system inventory."
+   },
+   "ra-5.4": {
+    "met": 2,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 0,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Risk decisions for The Raven shall be made by the Authorizing Official on the basis of current, documented risk information."
+   },
+   "ra-5.6": {
+    "met": 1,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 3,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "When a high or critical vulnerability is found, the ISSO shall review AWS CloudTrail, VPC Flow Logs, and host logs for at least the prior 90"
+   },
+   "ra-7": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Every finding from a security or privacy assessment, continuous monitoring, or an audit shall receive a documented risk response consistent "
+   },
+   "ra-8": {
+    "met": 2,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall complete a DD Form 2930 in accordance with DoDI 5400.16 before developing or procuring information technology that processes P"
+   },
+   "ra-9": {
+    "met": 4,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall perform a criticality analysis of system components, functions, and services, consistent with DoDI 5200.44. (RA-9)"
+   }
+  }
+ },
+ {
+  "policy": "0fbf9ba7-4b74-4317-8ab4-e2f083033e28",
+  "title": "QA RA Policy",
+  "org": "SME Fresh Co Sandbox \u2013 SYNTHETIC (d2cc4b",
+  "updated": "2026-10-27 23:12:03",
+  "version": "coverage-4",
+  "analyzer": "v2",
+  "controls": {
+   "ra-1": {
+    "met": 31,
+    "partial": 7,
+    "missing": 0,
+    "src": [
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Purpose"
+   },
+   "ra-10": {
+    "met": 7,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and t"
+   },
+   "ra-2": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be document"
+   },
+   "ra-2.1": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Within the system, components shall be prioritized by impact so that protection and remediation effort goes first to the highest-impact comp"
+   },
+   "ra-3": {
+    "met": 20,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Each assessment shall identify threats and vulnerabilities, and determine the likelihood and magnitude of harm from unauthorized access, use"
+   },
+   "ra-3.1": {
+    "met": 5,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AW"
+   },
+   "ra-3.2": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Risk assessments shall draw on all-source threat information available through the CSSP and DoD cyber threat reporting channels."
+   },
+   "ra-3.3": {
+    "met": 0,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins, and shal"
+   },
+   "ra-5": {
+    "met": 13,
+    "partial": 11,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall monitor and scan the system and hosted applications on the schedule below, and again whenever a new vulnerability potentially"
+   },
+   "ra-5.10": {
+    "met": 2,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerabilit"
+   },
+   "ra-5.11": {
+    "met": 0,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The system shall accept reports of vulnerabilities from the public through the DoD Vulnerability Disclosure Program."
+   },
+   "ra-5.2": {
+    "met": 3,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced."
+   },
+   "ra-5.3": {
+    "met": 1,
+    "partial": 1,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Scan coverage shall be 100 percent of assets in the system inventory."
+   },
+   "ra-5.4": {
+    "met": 2,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exp"
+   },
+   "ra-5.5": {
+    "met": 2,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Scanners shall be given the privileged access needed for full results, through dedicated, least-privilege, logged service accounts and IAM r"
+   },
+   "ra-5.6": {
+    "met": 1,
+    "partial": 2,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold."
+   },
+   "ra-5.8": {
+    "met": 1,
+    "partial": 3,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evid"
+   },
+   "ra-7": {
+    "met": 8,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai",
+     "deterministic"
+    ],
+    "missing_reason": null,
+    "quote": "Every finding from a security or privacy assessment, continuous monitoring, or an audit shall receive a documented risk response consistent "
+   },
+   "ra-8": {
+    "met": 2,
+    "partial": 4,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall complete a DD Form 2930 in accordance with DoDI 5400.16 before developing or procuring information technology that processes P"
+   },
+   "ra-9": {
+    "met": 4,
+    "partial": 0,
+    "missing": 0,
+    "src": [
+     "ai"
+    ],
+    "missing_reason": null,
+    "quote": "The ISO shall perform a criticality analysis of system components, functions, and services, consistent with DoDI 5200.44. (RA-9)"
+   }
+  }
+ }
+]

@@ -11,7 +11,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Cci, CciControlMap, Control, ControlAssignment, ControlObjective, Policy, PolicyControlMap, PolicyRequirementCoverage, System
@@ -19,6 +19,24 @@ from app.services import policy_profile as pp
 from app.services.rmf import locate
 
 ANALYZER_VERSION = "coverage-4"
+KEYWORD_ONLY = "AI unavailable for this control – keyword check only, needs manual review."
+
+
+def auditor_status(db: Session, policy: Policy) -> dict:
+    """Is this policy's stored result from the current auditor with AI? (stale / keyword-only results get a re-analyse prompt)"""
+    an = policy.analysis or {}
+    kw = db.scalar(select(func.count()).select_from(PolicyRequirementCoverage).where(
+        PolicyRequirementCoverage.policy_id == policy.id, PolicyRequirementCoverage.source == "deterministic",
+        PolicyRequirementCoverage.reason.like(KEYWORD_ONLY + "%"))) or 0
+    det = db.scalar(select(func.count()).select_from(PolicyRequirementCoverage).where(
+        PolicyRequirementCoverage.policy_id == policy.id, PolicyRequirementCoverage.source == "deterministic",
+        ~PolicyRequirementCoverage.control_id.op("~")(r"^[a-z]{2}-1$"))) or 0
+    reqs = db.scalar(select(func.count()).select_from(PolicyRequirementCoverage).where(PolicyRequirementCoverage.policy_id == policy.id)) or 0
+    stale = policy.analysis_status == "analyzed" and (an.get("coverage_version") != ANALYZER_VERSION or an.get("analyzer") == "deterministic" or det > 0)
+    batches = max(1, -(-reqs // 25))
+    return {"current_version": ANALYZER_VERSION, "used_version": an.get("coverage_version"), "analyzer": an.get("analyzer"), "stale": stale,
+            "keyword_only_requirements": max(kw, det), "est_cost_usd": round(batches * (8000 * 3e-6 + 1500 * 15e-6), 2),
+            "est_basis": f"{batches} AI batch(es) × ~8k input + ~1.5k output tokens at Sonnet list price (estimate)"}
 
 ELEMENTS = [("purpose", r"\bpurpose\b"), ("scope", r"\bscope\b"), ("roles", r"\broles?\b"), ("responsibilities", r"\bresponsibilit"),
             ("management commitment", r"management commitment|commitment (?:of|from) (?:senior |executive )?(?:management|leadership)|leadership commitment"),
@@ -513,6 +531,13 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
             if f"{m.control_id}|{req['id']}" in not_examined and r["status"] != "met":
                 r["reason"] = ("Not examined by AI: no policy section was retrieved for this requirement, so it is not addressed by the retrieved "
                                "content (not a pass, fail or N/A). " + (r.get("reason") or ""))[:2000]
+            if not is_xx1(m.control_id) and concept != "profile-ai" and r["status"] != "met":  # no AI verdict: never "language not present"
+                r["status"], r["confidence"] = "partial", "Low"
+                r["reason"] = (KEYWORD_ONLY + " " + (r.get("reason") or "").replace("No sentence addresses this requirement.", "No keyword match was found.")).strip()[:2000]
+                sib = next((rr.get("snippets") for _, rr in results if rr is not r and rr.get("snippets")), None)
+                if not r.get("snippets") and sib:  # an AI batch that dropped this item: show the control's closest verified passage as the candidate
+                    r["snippets"] = sib[:3]
+                    r["reason"] = (r["reason"] + " Closest candidate passage (verified for a sibling requirement of this control) shown.")[:2000]
             if not is_xx1(m.control_id) and r["status"] != "met":  # one generator: quoted requirement + fixed sentences (+ validated AI language)
                 where = "tagged section" if "tags this text" in (r.get("reason") or "") else "quoted policy text"
                 sug = ((ai_by_ctl.get(m.control_id) or {}).get(req["id"]) or {}).get("suggestion") if m.control_id in ai_by_ctl else None

@@ -85,15 +85,22 @@ def retry_run(run_id: uuid.UUID, db: Session = Depends(get_db), current: Current
 
 
 @router.post("/policies/{policy_id}/reanalyze", status_code=202)
-def reanalyze_policy(policy_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("ingest.upload"))) -> dict:
+def reanalyze_policy(policy_id: uuid.UUID, latest: bool = False, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("ingest.upload"))) -> dict:
     p = db.get(Policy, policy_id)
     if p is None or p.org_id != current.user.org_id:
         raise HTTPException(404, "Policy not found")
+    est = None
+    if latest:  # "Re-analyze with latest" (stale / keyword-only results): ISSO or ISSM only, estimated cost recorded in the audit
+        if not {"isso", "issm", "admin"} & set(current.roles):
+            raise HTTPException(403, "Only the ISSO or ISSM can re-analyse a policy with the latest auditor")
+        from app.services.policy_coverage import auditor_status
+        est = auditor_status(db, p)
     p.analysis_status = "queued"
-    job = jobs.enqueue(db, "policy.analyze", {"policy_id": str(p.id)})
+    job = jobs.enqueue(db, "policy.analyze", {"policy_id": str(p.id), **({"reason": "latest_auditor"} if latest else {})})
     from app.services.policy_analyzer_v2 import queued_progress
     queued_progress(db, p, job)
     audit.record(db, action="policy.reanalysis_requested", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="policy",
-                 entity_id=str(p.id), details={"job_id": str(job.id)})
+                 entity_id=str(p.id), details={"job_id": str(job.id), **({"latest": True, "from_version": est["used_version"], "from_analyzer": est["analyzer"],
+                                                                          "est_cost_usd": est["est_cost_usd"]} if est else {})})
     db.commit()
     return {"ok": True, "job_id": str(job.id)}

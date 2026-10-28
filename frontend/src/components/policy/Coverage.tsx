@@ -26,7 +26,7 @@ export function RequirementRow({ r, actions }: { r: Row; actions?: ReactElement 
         {r.kind === "technical" && <div className="text-[10px] text-amber-800" title={TECH_TIP} data-testid={`req-technical-${r.requirement_id || r.label}`}>needs technical evidence</div>}</td>
       <td className="py-1 pr-2 font-mono text-[11px]" title={r.requirement_type === "cci" || r.type === "cci" ? CCI_TIP : "SP 800-53A assessment objective"}>{r.label}</td>
       <td className="py-1 pr-2 text-[11px]">{r.text}{r.parameter && <div className="mt-0.5 text-slate-600">{r.parameter}: <b className="font-mono">{r.parameter_value || r.value || "—"}</b></div>}</td>
-      <td className="py-1 pr-2 text-[11px] text-slate-700">{r.reason}
+      <td className="py-1 pr-2 text-[11px] text-slate-700">{r.source === "deterministic" && String(r.reason || "").startsWith("AI unavailable") && <span className="mb-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900" data-testid={`req-keyword-only-${r.requirement_id || r.label}`}>AI unavailable – keyword check only, needs manual review</span>}{r.reason}
         {(r.snippets || []).slice(0, 2).map((s: Row, i: number) => <blockquote key={i} className="mt-1 border-l-2 border-slate-300 pl-2 text-slate-600">“{s.text}”<div className="text-[10px] text-slate-500">{s.location}</div></blockquote>)}
         {st !== "met" && r.needs && <div className="mt-1 text-[10px] text-rose-800">Would satisfy it: {r.needs}</div>}
         {r.linked && <div className="mt-1 text-[10px] text-emerald-800">Linked as evidence by {r.linked.by} · {String(r.linked.at).slice(0, 10)}</div>}</td>

@@ -1,0 +1,777 @@
+[
+{
+"control_id": "ca-5",
+"requirement_id": "CCI-000264",
+"status": "partial"
+},
+{
+"control_id": "ca-5",
+"requirement_id": "CCI-000265",
+"status": "partial"
+},
+{
+"control_id": "ca-5",
+"requirement_id": "CCI-000266",
+"status": "partial"
+},
+{
+"control_id": "ca-5",
+"requirement_id": "ca-5_obj.a",
+"status": "partial"
+},
+{
+"control_id": "ca-5",
+"requirement_id": "ca-5_obj.b",
+"status": "partial"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-001037",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-001038",
+"status": "partial"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-001039",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-001040",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-001041",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-001042",
+"status": "partial"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-001043",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-001044",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-002368",
+"status": "partial"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-002369",
+"status": "partial"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004603",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004604",
+"status": "partial"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004605",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004606",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004607",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004608",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004609",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004610",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004611",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004612",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "CCI-004613",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a-1",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a-2",
+"status": "partial"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a-3",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a-4",
+"status": "partial"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a.1.a-1",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a.1.a-2",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a.1.a-3",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a.1.a-4",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a.1.a-5",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a.1.a-6",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a.1.a-7",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.a.1.b",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.b",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.c.1-1",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.c.1-2",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.c.2-1",
+"status": "met"
+},
+{
+"control_id": "ra-1",
+"requirement_id": "ra-1_obj.c.2-2",
+"status": "met"
+},
+{
+"control_id": "ra-10",
+"requirement_id": "CCI-004651",
+"status": "met"
+},
+{
+"control_id": "ra-10",
+"requirement_id": "CCI-004652",
+"status": "met"
+},
+{
+"control_id": "ra-10",
+"requirement_id": "CCI-004653",
+"status": "met"
+},
+{
+"control_id": "ra-10",
+"requirement_id": "CCI-004654",
+"status": "met"
+},
+{
+"control_id": "ra-10",
+"requirement_id": "ra-10_obj.a.1",
+"status": "met"
+},
+{
+"control_id": "ra-10",
+"requirement_id": "ra-10_obj.a.2",
+"status": "met"
+},
+{
+"control_id": "ra-10",
+"requirement_id": "ra-10_obj.b",
+"status": "met"
+},
+{
+"control_id": "ra-2",
+"requirement_id": "CCI-001046",
+"status": "met"
+},
+{
+"control_id": "ra-2",
+"requirement_id": "CCI-001047",
+"status": "met"
+},
+{
+"control_id": "ra-2",
+"requirement_id": "CCI-004614",
+"status": "met"
+},
+{
+"control_id": "ra-2",
+"requirement_id": "CCI-004615",
+"status": "met"
+},
+{
+"control_id": "ra-2",
+"requirement_id": "CCI-004616",
+"status": "met"
+},
+{
+"control_id": "ra-2",
+"requirement_id": "ra-2_obj.a",
+"status": "met"
+},
+{
+"control_id": "ra-2",
+"requirement_id": "ra-2_obj.b",
+"status": "met"
+},
+{
+"control_id": "ra-2",
+"requirement_id": "ra-2_obj.c",
+"status": "met"
+},
+{
+"control_id": "ra-2.1",
+"requirement_id": "CCI-004617",
+"status": "partial"
+},
+{
+"control_id": "ra-2.1",
+"requirement_id": "ra-2.1_obj",
+"status": "partial"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-001048",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-001049",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-001050",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-001051",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-001052",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-001053",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-001642",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-002370",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-002371",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-004618",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-004619",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-004620",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-004621",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-004622",
+"status": "partial"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "CCI-004623",
+"status": "partial"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "ra-3_obj.a.1",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "ra-3_obj.a.2",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "ra-3_obj.a.3",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "ra-3_obj.b",
+"status": "partial"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "ra-3_obj.c",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "ra-3_obj.d",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "ra-3_obj.e",
+"status": "met"
+},
+{
+"control_id": "ra-3",
+"requirement_id": "ra-3_obj.f",
+"status": "met"
+},
+{
+"control_id": "ra-3.1",
+"requirement_id": "CCI-004624",
+"status": "met"
+},
+{
+"control_id": "ra-3.1",
+"requirement_id": "CCI-004625",
+"status": "met"
+},
+{
+"control_id": "ra-3.1",
+"requirement_id": "CCI-004626",
+"status": "met"
+},
+{
+"control_id": "ra-3.1",
+"requirement_id": "CCI-004627",
+"status": "met"
+},
+{
+"control_id": "ra-3.1",
+"requirement_id": "ra-3.1_obj.a",
+"status": "partial"
+},
+{
+"control_id": "ra-3.1",
+"requirement_id": "ra-3.1_obj.b",
+"status": "met"
+},
+{
+"control_id": "ra-3.2",
+"requirement_id": "CCI-004628",
+"status": "met"
+},
+{
+"control_id": "ra-3.2",
+"requirement_id": "ra-3.2_obj",
+"status": "met"
+},
+{
+"control_id": "ra-3.3",
+"requirement_id": "CCI-004629",
+"status": "partial"
+},
+{
+"control_id": "ra-3.3",
+"requirement_id": "CCI-004630",
+"status": "partial"
+},
+{
+"control_id": "ra-3.3",
+"requirement_id": "ra-3.3_obj",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-001054",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-001055",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-001056",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-001057",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-001058",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-001059",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-001060",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-001061",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-001641",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-001643",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-002376",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-004634",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-004635",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "CCI-004636",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "ra-5_obj.a-1",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "ra-5_obj.a-2",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "ra-5_obj.b",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "ra-5_obj.b.1",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "ra-5_obj.b.2",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "ra-5_obj.b.3",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "ra-5_obj.c",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "ra-5_obj.d",
+"status": "met"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "ra-5_obj.e",
+"status": "partial"
+},
+{
+"control_id": "ra-5",
+"requirement_id": "ra-5_obj.f",
+"status": "met"
+},
+{
+"control_id": "ra-5.10",
+"requirement_id": "CCI-002372",
+"status": "met"
+},
+{
+"control_id": "ra-5.10",
+"requirement_id": "ra-5.10_obj",
+"status": "met"
+},
+{
+"control_id": "ra-5.11",
+"requirement_id": "CCI-004640",
+"status": "partial"
+},
+{
+"control_id": "ra-5.11",
+"requirement_id": "ra-5.11_obj",
+"status": "partial"
+},
+{
+"control_id": "ra-5.2",
+"requirement_id": "CCI-001063",
+"status": "met"
+},
+{
+"control_id": "ra-5.2",
+"requirement_id": "CCI-001064",
+"status": "met"
+},
+{
+"control_id": "ra-5.2",
+"requirement_id": "ra-5.2_obj",
+"status": "met"
+},
+{
+"control_id": "ra-5.3",
+"requirement_id": "CCI-002373",
+"status": "partial"
+},
+{
+"control_id": "ra-5.3",
+"requirement_id": "ra-5.3_obj",
+"status": "met"
+},
+{
+"control_id": "ra-5.4",
+"requirement_id": "CCI-001066",
+"status": "met"
+},
+{
+"control_id": "ra-5.4",
+"requirement_id": "CCI-002374",
+"status": "partial"
+},
+{
+"control_id": "ra-5.4",
+"requirement_id": "CCI-002375",
+"status": "partial"
+},
+{
+"control_id": "ra-5.4",
+"requirement_id": "ra-5.4_obj-1",
+"status": "met"
+},
+{
+"control_id": "ra-5.4",
+"requirement_id": "ra-5.4_obj-2",
+"status": "partial"
+},
+{
+"control_id": "ra-5.5",
+"requirement_id": "CCI-001067",
+"status": "partial"
+},
+{
+"control_id": "ra-5.5",
+"requirement_id": "CCI-001645",
+"status": "partial"
+},
+{
+"control_id": "ra-5.5",
+"requirement_id": "CCI-002906",
+"status": "partial"
+},
+{
+"control_id": "ra-5.5",
+"requirement_id": "ra-5.5_obj",
+"status": "partial"
+},
+{
+"control_id": "ra-5.6",
+"requirement_id": "CCI-001068",
+"status": "partial"
+},
+{
+"control_id": "ra-5.6",
+"requirement_id": "CCI-004637",
+"status": "partial"
+},
+{
+"control_id": "ra-5.6",
+"requirement_id": "ra-5.6_obj",
+"status": "met"
+},
+{
+"control_id": "ra-5.8",
+"requirement_id": "CCI-001071",
+"status": "met"
+},
+{
+"control_id": "ra-5.8",
+"requirement_id": "CCI-004638",
+"status": "partial"
+},
+{
+"control_id": "ra-5.8",
+"requirement_id": "CCI-004639",
+"status": "met"
+},
+{
+"control_id": "ra-5.8",
+"requirement_id": "ra-5.8_obj",
+"status": "met"
+},
+{
+"control_id": "ra-7",
+"requirement_id": "CCI-004641",
+"status": "met"
+},
+{
+"control_id": "ra-7",
+"requirement_id": "CCI-004642",
+"status": "met"
+},
+{
+"control_id": "ra-7",
+"requirement_id": "CCI-004643",
+"status": "met"
+},
+{
+"control_id": "ra-7",
+"requirement_id": "CCI-004644",
+"status": "met"
+},
+{
+"control_id": "ra-7",
+"requirement_id": "ra-7_obj-1",
+"status": "met"
+},
+{
+"control_id": "ra-7",
+"requirement_id": "ra-7_obj-2",
+"status": "met"
+},
+{
+"control_id": "ra-7",
+"requirement_id": "ra-7_obj-3",
+"status": "met"
+},
+{
+"control_id": "ra-7",
+"requirement_id": "ra-7_obj-4",
+"status": "met"
+},
+{
+"control_id": "ra-9",
+"requirement_id": "CCI-004648",
+"status": "met"
+},
+{
+"control_id": "ra-9",
+"requirement_id": "CCI-004649",
+"status": "met"
+},
+{
+"control_id": "ra-9",
+"requirement_id": "CCI-004650",
+"status": "met"
+},
+{
+"control_id": "ra-9",
+"requirement_id": "ra-9_obj",
+"status": "met"
+}
+]

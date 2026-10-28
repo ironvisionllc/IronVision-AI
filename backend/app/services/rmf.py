@@ -527,7 +527,7 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
             add(finding_type="ai_suggested_needs_validation", control_id=cid, description=s.get("description", "")[:2000], quote=(qtxt or "")[:1000],
                 origin="ai", ai_interaction_id=ai_interaction_id)
     policy.analysis_status = "analyzed"
-    policy.analysis = {**ex, "text_version": (policy.analysis or {}).get("text_version"), "control_mappings": [{k: m[k] for k in ("control_id", "confidence", "sources", "basis", "snippets", "parts")} for m in mappings],
+    policy.analysis = {**ex, "text_version": (policy.analysis or {}).get("text_version"), "history": (policy.analysis or {}).get("history"), "control_mappings": [{k: m[k] for k in ("control_id", "confidence", "sources", "basis", "snippets", "parts")} for m in mappings],
                        "not_selected": det["not_selected"], "possible_related_controls": det["possible_related"],
                        "counts": {"proposed_maps": len(mappings), "possible_related_not_proposed": len(det["possible_related"]),
                                   "not_selected_flagged": len([m for m in mappings if m.get("not_selected")])},

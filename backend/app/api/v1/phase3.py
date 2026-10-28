@@ -509,6 +509,7 @@ async def upload_policy(request: Request, file: UploadFile = File(...), title: s
 
 @router.get("/policies/{policy_id}")
 def policy_detail(policy_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    from app.services.policy_coverage import auditor_status as pc_auditor_status
     p = db.get(Policy, policy_id)
     if p is None or p.org_id != current.user.org_id:
         raise HTTPException(404, "Policy not found")
@@ -556,7 +557,7 @@ def policy_detail(policy_id: uuid.UUID, db: Session = Depends(get_db), current: 
                  "requirements": [{**to_dict(c), "effective": pc.effective(c), "gap": None if pc.effective(c) == "met" else pc.gap_name(c), "basis": pc.basis_label(c), "kind": pc.kind_label(c)}
                                   for c in v]} for k, v in cov.items()]
     newer = db.scalar(select(Policy).where(Policy.supersedes_id == p.id))
-    return {"policy": _policy_out(db, p), "findings": fs, "values": values, "versions": versions, "text_preview": (p.text_content or "")[:4000],
+    return {"policy": _policy_out(db, p), "auditor": pc_auditor_status(db, p), "findings": fs, "values": values, "versions": versions, "text_preview": (p.text_content or "")[:4000],
             "control_mappings": cur, "mapping_history": hist, "coverage": coverage, "is_current": p.status == "current",
             "superseded_by": {"id": str(newer.id), "version": newer.version} if p.status == "superseded" and newer else None}
 
