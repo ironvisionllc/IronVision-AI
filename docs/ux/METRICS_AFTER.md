@@ -13,9 +13,9 @@ Selector changes made for the new layout are commented in `tasks.py` (step heade
 | Update a control | 6 → **5** | 2 → **2** | 2 → **2** | no → **yes** | yes |
 | Attach evidence | 7 → **4** | 2 → **2** | 3 → **1** | no → **yes** | yes |
 | Import test results | 4 → **5** | 2 → **3** | 1 → **1** | no → **yes** | yes |
-| Review a finding | 5 → **3** | 3 → **1** | 1 → **1** | no → **no** | no – not found: [data-testid^=queue-open-] |
-| Create/update a POA&M (from the finding) | 2 → **5** | 1 → **3** | 0 → **1** | no → **no** | yes |
+| Review a finding | 5 → **5** | 3 → **3** | 1 → **1** | no → **yes** | yes |
+| Create/update a POA&M (from the finding) | 2 → **2** | 1 → **1** | 0 → **0** | no → **yes** | yes |
 | Generate an SSP | 3 → **3** | 1 → **1** | 0 → **0** | yes → **yes** | yes |
 | Prepare an authorization package | 3 → **4** | 3 → **3** | 0 → **0** | yes → **yes** | yes |
 | Configure continuous monitoring | 5 → **5** | 1 → **1** | 3 → **3** | yes → **yes** | yes |
-| **Total** | 56 → **55** | 21 → **23** | 19 → **18** | 6/12 → **10/12** | 11/12 |
+| **Total** | 56 → **54** | 21 → **23** | 19 → **17** | 6/12 → **12/12** | 12/12 |

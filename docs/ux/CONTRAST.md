@@ -29,8 +29,8 @@ Checked by `scripts/check_contrast.py` (axe-core `color-contrast` + computed con
 | categorize | 26 → **0** | 24 → **0** | 14 → **0** | 15 → **0** |
 | categorize-fips | 23 → **0** | 19 → **0** | 14 → **0** | 14 → **0** |
 | ccis | 20 → **0** | 18 → **0** | 13 → **0** | 13 → **0** |
-| control-detail | 20 → **1** | 17 → **1** | 13 → **0** | 14 → **0** |
-| control-detail-fips | 20 → **1** | 16 → **1** | 13 → **0** | 14 → **0** |
+| control-detail | 20 → **0** | 17 → **0** | 13 → **0** | 14 → **0** |
+| control-detail-fips | 20 → **0** | 16 → **0** | 13 → **0** | 14 → **0** |
 | dashboard | 46 → **0** | 43 → **0** | 13 → **0** | 11 → **0** |
 | docs | 20 → **0** | 16 → **0** | 14 → **0** | 12 → **0** |
 | emass | 20 → **0** | 16 → **0** | 13 → **0** | 11 → **0** |
@@ -62,7 +62,7 @@ Checked by `scripts/check_contrast.py` (axe-core `color-contrast` + computed con
 | test-results | 29 → **0** | 25 → **0** | 22 → **0** | 23 → **0** |
 | traceability | 31 → **0** | 29 → **0** | 13 → **0** | 13 → **0** |
 | workbench | 20 → **0** | 17 → **0** | 13 → **0** | 14 → **0** |
-| **Total** | 972 → **2** | 843 → **2** | 573 → **0** | 553 → **0** |
+| **Total** | 972 → **0** | 843 → **0** | 573 → **0** | 553 → **0** |
 
 ## Worst 6 screens (dark, 1280) – before / after
 

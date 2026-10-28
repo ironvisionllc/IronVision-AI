@@ -3,6 +3,7 @@ import { useApi, Row } from "@/lib/useApi";
 import { getActingLabel } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader, Panel } from "@/components/common/Panel";
+import { HelpTopics } from "@/components/common/HelpTopics";
 
 /** Action → role matrix generated from the backend RBAC table (same data the server enforces). */
 export default function HelpPage() {
@@ -13,6 +14,8 @@ export default function HelpPage() {
   return (
     <div data-testid="help-page">
       <PageHeader title="Help: who can do what" subtitle="Each action and the roles allowed to do it. The server enforces exactly this table; options you can't use stay visible but locked, and clicking them tells you which role is needed." />
+      <HelpTopics />
+      <div id="role-matrix" />
       <Panel testId="role-matrix" eyebrow={getActingLabel() ? `You are acting as ${getActingLabel()}` : undefined}
         actions={<input className="input w-64" placeholder="Search actions…" value={q} onChange={(e) => setQ(e.target.value)} data-testid="role-matrix-search" />}>
         <div className="overflow-x-auto"><table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th className="py-1">Action</th>

@@ -138,30 +138,18 @@
   "page": "control-detail",
   "theme": "dark",
   "size": "1280x800",
-  "axe": 1,
+  "axe": 0,
   "custom": 0,
-  "axe_nodes": [
-   {
-    "target": ".bg-slate-300",
-    "summary": "Element has insufficient color contrast of 3.54 (foreground color: #e2e8f0, background color: #6b7a90, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
-    "html": "<span class=\"inline-flex items-ce...\" title=\"Assessment: Not Asse...\" data-testid=\"wb-status-assessment\" data-dim=\"asses"
-   }
-  ],
+  "axe_nodes": [],
   "custom_items": []
  },
  {
   "page": "control-detail-fips",
   "theme": "dark",
   "size": "1280x800",
-  "axe": 1,
+  "axe": 0,
   "custom": 0,
-  "axe_nodes": [
-   {
-    "target": ".bg-slate-300",
-    "summary": "Element has insufficient color contrast of 3.54 (foreground color: #e2e8f0, background color: #6b7a90, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1",
-    "html": "<span class=\"inline-flex items-ce...\" title=\"Assessment: Not Asse...\" data-testid=\"wb-status-assessment\" data-dim=\"asses"
-   }
-  ],
+  "axe_nodes": [],
   "custom_items": []
  },
  {

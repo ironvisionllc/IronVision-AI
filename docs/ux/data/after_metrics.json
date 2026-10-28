@@ -2,7 +2,7 @@
  "base": "https://aegis-rmf-demo.preview.emergentagent.com",
  "persona": "ISSO (demo sandbox)",
  "phase": "after",
- "fresh_system": "UXB7AA",
+ "fresh_system": "UXB44C",
  "results": [
   {
    "task": "register",
@@ -28,7 +28,7 @@
    "clicks": 4,
    "page_changes": 1,
    "fields": 3,
-   "scripted_seconds": 4.2,
+   "scripted_seconds": 4.1,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
@@ -44,7 +44,7 @@
    "clicks": 5,
    "page_changes": 1,
    "fields": 1,
-   "scripted_seconds": 4.9,
+   "scripted_seconds": 4.8,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
@@ -60,15 +60,15 @@
    "clicks": 6,
    "page_changes": 2,
    "fields": 2,
-   "scripted_seconds": 9.0,
-   "next_action_shown": false,
+   "scripted_seconds": 7.1,
+   "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
    "notes": [],
    "paths": [
     "/rmf/select",
     "/import-center",
-    "/systems/87084be0-354a-46ed-a848-645777cf6b17/emass-import/6bd4c287-f377-4e83-80d2-5bcd90bd4b69"
+    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/emass-import/9e99a78f-fd1d-4b5b-8a0a-e417e178604b"
    ]
   },
   {
@@ -77,7 +77,7 @@
    "clicks": 5,
    "page_changes": 2,
    "fields": 2,
-   "scripted_seconds": 10.9,
+   "scripted_seconds": 11.0,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
@@ -85,9 +85,9 @@
     "skipped (absent): [data-testid^=queue-open-]"
    ],
    "paths": [
-    "/systems/87084be0-354a-46ed-a848-645777cf6b17/emass-import/6bd4c287-f377-4e83-80d2-5bcd90bd4b69",
-    "/systems/87084be0-354a-46ed-a848-645777cf6b17/controls",
-    "/systems/87084be0-354a-46ed-a848-645777cf6b17/controls/ac-1"
+    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/emass-import/9e99a78f-fd1d-4b5b-8a0a-e417e178604b",
+    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/controls",
+    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/controls/ac-1"
    ]
   },
   {
@@ -96,13 +96,13 @@
    "clicks": 4,
    "page_changes": 2,
    "fields": 1,
-   "scripted_seconds": 5.1,
+   "scripted_seconds": 5.0,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
    "notes": [],
    "paths": [
-    "/systems/87084be0-354a-46ed-a848-645777cf6b17/controls/ac-1",
+    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/controls/ac-1",
     "/evidence-sources",
     "/evidence-sources#add-evidence"
    ]
@@ -113,7 +113,7 @@
    "clicks": 5,
    "page_changes": 3,
    "fields": 1,
-   "scripted_seconds": 5.8,
+   "scripted_seconds": 5.7,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
@@ -122,43 +122,41 @@
     "/evidence-sources#add-evidence",
     "/rmf/assess",
     "/test-results",
-    "/systems/87084be0-354a-46ed-a848-645777cf6b17/import-center"
+    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/import-center"
    ]
   },
   {
    "task": "finding",
    "label": "Review a finding",
-   "clicks": 3,
-   "page_changes": 1,
+   "clicks": 5,
+   "page_changes": 3,
    "fields": 1,
-   "scripted_seconds": 17.2,
-   "next_action_shown": false,
-   "completed": false,
-   "blocked_at": "not found: [data-testid^=queue-open-]",
+   "scripted_seconds": 4.8,
+   "next_action_shown": true,
+   "completed": true,
+   "blocked_at": null,
    "notes": [],
    "paths": [
-    "/systems/87084be0-354a-46ed-a848-645777cf6b17/import-center",
-    "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a/controls"
+    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/import-center",
+    "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a/controls",
+    "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a/controls/ra-5",
+    "/findings/9aa17293-6177-41f9-9772-eab329cb7b76"
    ]
   },
   {
    "task": "poam",
    "label": "Create/update a POA&M (from the finding)",
-   "clicks": 5,
-   "page_changes": 3,
-   "fields": 1,
-   "scripted_seconds": 11.1,
-   "next_action_shown": false,
+   "clicks": 2,
+   "page_changes": 1,
+   "fields": 0,
+   "scripted_seconds": 2.8,
+   "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
-   "notes": [
-    "skipped (absent): [data-testid^=add-to-poam-]"
-   ],
+   "notes": [],
    "paths": [
-    "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a/controls",
-    "/rmf/authorize",
-    "/poams",
-    "/poams/9b811910-16a2-4bd8-a148-b207a33a1203"
+    "/findings/9aa17293-6177-41f9-9772-eab329cb7b76",
+    "/poams/9bc95c25-ae0e-4d79-a035-bea5eaa8127e"
    ]
   },
   {
@@ -173,7 +171,7 @@
    "blocked_at": null,
    "notes": [],
    "paths": [
-    "/poams/9b811910-16a2-4bd8-a148-b207a33a1203",
+    "/poams/9bc95c25-ae0e-4d79-a035-bea5eaa8127e",
     "/rmf/authorize"
    ]
   },
@@ -201,7 +199,7 @@
    "clicks": 5,
    "page_changes": 1,
    "fields": 3,
-   "scripted_seconds": 4.7,
+   "scripted_seconds": 4.6,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
