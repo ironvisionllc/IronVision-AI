@@ -81,3 +81,16 @@ def test_rbac_sca_read_only_and_tenant_isolation(client, ctx, signup_on):  # noq
     assert client.get(ctx["m"], headers=other).status_code == 404
     assert client.post(ctx["m"], json={"action": "restore", "all": True}, headers=other).status_code == 404
     assert client.get(f"/api/v1/systems/{ctx['sid']}/imported-data", headers=other).status_code == 404
+
+
+def test_delete_everything_keeps_system_then_undo(client, ctx):
+    v = client.get(ctx["m"], headers=ctx["h"]).json()
+    ids = [e["id"] for e in v["entries"] if e["actions"]]
+    r = client.post(ctx["m"], json={"action": "restore", "ids": ids, "force": True}, headers=ctx["h"]).json()
+    assert r["ok"] == len(ids) and r["failed"] == 0
+    assert client.get(f"/api/v1/systems/{ctx['sid']}", headers=ctx["h"]).status_code == 200, "system shell kept"
+    after = client.get(ctx["m"], headers=ctx["h"]).json()
+    assert all(e["state"] != "applied" for e in after["entries"] if e["id"] in ids)
+    assert client.post(f"{ctx['m']}/{r['op']['op_id']}/undo", headers=ctx["h"]).status_code == 200
+    back = {e["id"]: e for e in client.get(ctx["m"], headers=ctx["h"]).json()["entries"]}
+    assert any(back[i]["state"] == "applied" for i in ids if "|*" not in i)

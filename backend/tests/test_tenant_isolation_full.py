@@ -44,9 +44,10 @@ PARAM_MODEL = {"system_id": "System", "asset_id": "Asset", "assignment_id": "Rol
                "provider_id": "CommonControlProvider", "att_id": "Attestation", "policy_id": "Policy", "cov_id": "PolicyRequirementCoverage",
                "pf_id": "PolicyFinding", "user_id": "User", "map_id": "FindingControlMap", "change_id": "EmassChange",
                "record_id": "CategorizationRecord", "response_id": "PtaResponse", "wid": "TrWorkbook", "rid": "TrRow", "eid": "TrExport",
-               "did": "InventoryDiscrepancy", "cid": "AssetCorrelation", "workbook_id": "TrWorkbook", "strategy_id": "IscmStrategy"}
+               "did": "InventoryDiscrepancy", "cid": "AssetCorrelation", "workbook_id": "TrWorkbook", "strategy_id": "IscmStrategy", "flag_id": "ReviewFlag"}
 LITERAL = {"control_id": "ac-2", "model": "ssp", "kind": "ssp", "action": "accept", "slug": "user-guide", "overlay_key": "cnssi-privacy-low",
-           "ext": "pdf", "name": "x", "report_type": "poam", "request_type": "poam_closure", "event_id": str(uuid.uuid4())}
+           "ext": "pdf", "name": "x", "report_type": "poam", "request_type": "poam_closure", "event_id": str(uuid.uuid4()), "import_kind": "emass",
+           "op_id": "abc123"}
 
 
 def _owner_clause(Mdl, a: dict):

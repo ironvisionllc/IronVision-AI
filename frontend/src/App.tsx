@@ -81,6 +81,7 @@ function Shell() {
           <Route path="/systems/:id/migration-report" element={<MigrationReportPage />} />
           <Route path="/import-center" element={<ImportCenterPage />} />
           <Route path="/import-center/manage/:importId" element={<ManageImportPage />} />
+          <Route path="/import-center/manage/:kind/:importId" element={<ManageImportPage />} />
           <Route path="/systems/:id/import-center/manage/:importId" element={<ManageImportPage />} />
           <Route path="/systems/:id/import-center" element={<ImportCenterPage />} />
           <Route path="/emass-import" element={<EmassImportPage />} />

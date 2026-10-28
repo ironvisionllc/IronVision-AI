@@ -8,6 +8,7 @@ import { useApi, Row } from "@/lib/useApi";
 import { useActiveSystemId } from "@/components/rmf/Stepper";
 import { downloadFile } from "@/lib/download";
 import { SourceBadge } from "@/components/inventory/SourceBadge";
+import { ImportedCheck, ImportedDeleteBar, ImportedMark, useImported, useSelection } from "@/components/common/Imported";
 
 function poll(reload: () => void) { let n = 0; const t = setInterval(() => { reload(); if (++n >= 15) clearInterval(t); }, 3000); }
 
@@ -103,17 +104,21 @@ function Discrepancies({ sid, canWrite, reload }: { sid: string; canWrite: boole
   </div>);
 }
 
-function Tables({ o }: { o: Row }) {
+function Tables({ o, reload }: { o: Row; reload: () => void }) {
+  const sid = useActiveSystemId();
+  const hw = useImported(sid, "asset"), sw = useImported(sid, "software"); const isel = useSelection();
+  const done = () => { isel.clear(); hw.reload(); sw.reload(); reload(); };
   return (<div className="grid gap-3 lg:grid-cols-2">
+    <div className="lg:col-span-2"><ImportedDeleteBar selected={isel.sel} items={{ ...hw.items, ...sw.items }} onDone={done} testId="inv-delete-imported" /></div>
     <div className="rounded border border-slate-200 p-3" data-testid="inv-hardware"><div className="mb-1 text-sm font-medium">Hardware ({o.hardware.length}) · scan-only hosts ({o.scan_observed.length})</div>
       <TableScroll><table className="w-full text-[11px]"><thead><tr className="text-left text-slate-500"><th>Machine</th><th>IP</th><th>Serial / MAC</th><th>OS</th><th>Source</th><th>Findings</th></tr></thead><tbody>
         {[...o.hardware, ...o.scan_observed].map((a: Row) => <tr key={a.id} className={`border-t border-slate-100 ${a.is_inventory ? "" : "text-slate-500"}`} data-testid={`inv-asset-${a.name}`}>
-          <td>{a.name}{!a.is_inventory && (a.correlated_asset_id ? " (linked)" : " (scan only)")}</td><td>{[a.ip_address, ...a.ip_addresses.filter((x: string) => x !== a.ip_address)].filter(Boolean).join(", ")}</td>
+          <td><ImportedCheck id={a.id} info={hw.items[a.id]} checked={isel.sel.includes(a.id)} onChange={isel.toggle} />{a.name}<ImportedMark info={hw.items[a.id]} testId={`inv-imported-${a.name}`} />{!a.is_inventory && (a.correlated_asset_id ? " (linked)" : " (scan only)")}</td><td>{[a.ip_address, ...a.ip_addresses.filter((x: string) => x !== a.ip_address)].filter(Boolean).join(", ")}</td>
           <td>{a.serial_number || "–"}{a.mac_address ? ` / ${a.mac_address}` : ""}</td><td>{a.os || "–"}</td><td><SourceBadge label={a.source_label} collector={a.collector} /></td><td>{a.findings ? <Link className="underline" to={`/findings?asset=${a.id}`}>{a.findings}</Link> : 0}</td></tr>)}
       </tbody></table></TableScroll></div>
     <div className="rounded border border-slate-200 p-3" data-testid="inv-software"><div className="mb-1 text-sm font-medium">Software ({o.software.length})</div>
       <TableScroll><table className="w-full text-[11px]"><thead><tr className="text-left text-slate-500"><th>Vendor</th><th>Name</th><th>Version</th><th>Type</th><th>Source</th></tr></thead><tbody>
-        {o.software.map((s: Row) => <tr key={s.id} className="border-t border-slate-100"><td>{s.vendor}</td><td>{s.name}</td><td>{s.version}</td><td>{s.sw_type}</td><td><SourceBadge label={s.source_label} /></td></tr>)}
+        {o.software.map((s: Row) => <tr key={s.id} className="border-t border-slate-100" data-testid={`inv-sw-${s.id}`}><td><ImportedCheck id={s.id} info={sw.items[s.id]} checked={isel.sel.includes(s.id)} onChange={isel.toggle} />{s.vendor}<ImportedMark info={sw.items[s.id]} testId={`inv-sw-imported-${s.id}`} /></td><td>{s.name}</td><td>{s.version}</td><td>{s.sw_type}</td><td><SourceBadge label={s.source_label} /></td></tr>)}
       </tbody></table></TableScroll></div>
   </div>);
 }
@@ -127,6 +132,6 @@ export default function InventoryPage() {
   return (<div className="space-y-4 p-6" data-testid="inventory-page">
     <div><div className="text-[11px] uppercase text-slate-500">System boundary → HW/SW Inventory</div><h1 className="text-2xl font-semibold">Hardware &amp; software inventory</h1><Link className="btn-secondary mt-2 inline-block text-[12px]" to={`/systems/${sid}/emass-import`} data-testid="emass-import-entry">Import from eMASS</Link>
       <p className="text-sm text-slate-600">Import the eMASS HW/SW List, correlate STIG checklists and ACAS scans to assets, resolve discrepancies by proposal and approval, and export back into the same template.</p></div>
-    {o.data && <><Imports sid={sid} o={o.data} reload={o.reload} /><Correlations sid={sid} reload={o.reload} /><Discrepancies sid={sid} canWrite={o.data.can_write} reload={o.reload} /><Tables o={o.data} /></>}
+    {o.data && <><Imports sid={sid} o={o.data} reload={o.reload} /><Correlations sid={sid} reload={o.reload} /><Discrepancies sid={sid} canWrite={o.data.can_write} reload={o.reload} /><Tables o={o.data} reload={o.reload} /></>}
   </div>);
 }

@@ -1529,3 +1529,38 @@ class IscmProfile(CoreMixin, Base):
     match_value: Mapped[str] = mapped_column(String(2000), nullable=False)
     values: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+
+
+class ImportTrash(CoreMixin, Base):
+    """Snapshot of imported rows deleted via Manage imported data (with cascaded children and SET-NULL refs) – undo for 30 days."""
+    __tablename__ = "import_trash"
+    org_id: Mapped[uuid.UUID] = _fk("organizations.id")
+    system_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
+    import_kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    import_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    op_id: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    action: Mapped[str] = mapped_column(String(20), nullable=False)
+    entry_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    label: Mapped[str | None] = mapped_column(Text)
+    snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    deleted_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    restored_by: Mapped[str | None] = mapped_column(String(255))
+
+
+class ReviewFlag(CoreMixin, Base):
+    """'Needs re-review' on a human decision whose underlying imported data was deleted/restored. The decision itself is never removed."""
+    __tablename__ = "review_flags"
+    org_id: Mapped[uuid.UUID] = _fk("organizations.id")
+    system_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
+    entity_type: Mapped[str] = mapped_column(String(40), nullable=False)   # assessment | tr_row | categorization | iscm_strategy | inventory | poam | policy_mapping | finding
+    entity_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    label: Mapped[str] = mapped_column(Text, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    import_kind: Mapped[str | None] = mapped_column(String(20))
+    import_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    op_id: Mapped[str | None] = mapped_column(String(20), index=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="open")
+    resolved_by: Mapped[str | None] = mapped_column(String(255))
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolution: Mapped[str | None] = mapped_column(Text)

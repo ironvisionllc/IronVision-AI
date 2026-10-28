@@ -35,9 +35,32 @@ def _state(db: Session, imp: EmassImport) -> dict:
     return dict((imp.report or {}).get("manage_state") or {})
 
 
+REG_REQUIRED = {"name"}
+REG_LABEL = {"name": "Name", "acronym": "Acronym", "emass_id": "eMASS ID", "description": "Description", "organization_name": "Organization",
+             "mission_owner": "Mission owner"}
+
+
+def _reg_entries(db: Session, imp: EmassImport, state: dict) -> list[dict]:
+    """"Register a new system" path: registration values pre-filled from the file, shown as imported (clear / restore)."""
+    from app.models import System
+    s = db.get(System, imp.system_id) if imp.system_id else None
+    out = []
+    for k, v in ((imp.report or {}).get("registration_prefill") or {}).items():
+        if s is None or not hasattr(s, k):
+            continue
+        eid, cur = f"reg|{k}", getattr(s, k)
+        st = state.get(eid, "applied")
+        out.append({"id": eid, "key": "registration", "record": "System", "control_id": None, "destination": "Registration (System Details)", "field": k,
+                    "label": REG_LABEL.get(k, k), "prior": None, "imported": v, "current": cur, "created": True, "state": st,
+                    "changed_since_import": st == "applied" and cur != v,
+                    "actions": ["restore"] + ([] if k in REG_REQUIRED else ["clear"]) if (st == "applied" or cur != v) else []})
+    return out
+
+
 def entries(db: Session, imp: EmassImport) -> list[dict]:
-    """One entry per imported field (Control Information) or per record (PPSM / SLCM / Categorization)."""
+    """One entry per imported field (Control Information) or per record (PPSM / SLCM / Categorization); registration pre-fill fields."""
     out, state, reverted = [], _state(db, imp), set((imp.report or {}).get("reverted_keys") or [])
+    out += _reg_entries(db, imp, state)
     cache: dict[str, dict] = {}
     for r in (imp.report or {}).get("apply_results") or []:
         u = r.get("undo")
@@ -98,6 +121,22 @@ def _write_ci(db: Session, a: ControlAssignment, field: str, value, current, met
         impl.needs_reconsideration = True  # approved statement: the change must be re-reviewed
 
 
+def _flag_decision(db: Session, imp: EmassImport, e: dict, current) -> None:
+    """Record-level revert of data under an AO categorization / ISSM-approved strategy: the decision stays, flagged for re-review."""
+    from app.models import CategorizationRecord, IscmStrategy
+    from app.services import import_data as idm
+    why = f"Imported data reverted via Manage imported data ({imp.file_name}) – the decision is kept and needs re-review"
+    if e["destination"] == "Categorization":
+        rec = db.scalar(select(CategorizationRecord).where(CategorizationRecord.system_id == imp.system_id, CategorizationRecord.status == "approved")
+                        .order_by(CategorizationRecord.revision.desc()))
+        if rec:
+            idm.flag(db, imp.org_id, imp.system_id, "categorization", rec.id, f"AO-approved categorization rev {rec.revision}", why, "emass", imp.id, None)
+    if e["destination"] == "Continuous Monitoring Strategy":
+        st = db.scalar(select(IscmStrategy).where(IscmStrategy.system_id == imp.system_id))
+        if st and st.status == "approved":
+            idm.flag(db, imp.org_id, imp.system_id, "iscm_strategy", st.id, f"ISSM-approved ISCM strategy v{st.version}", why, "emass", imp.id, None)
+
+
 def act(db: Session, imp: EmassImport, current, meta: dict, ids: list[str], action: str, force: bool = False) -> dict:
     """Restore previous value / clear field / delete created data for the selected entries. Per-item result; failures don't stop others."""
     from app.services import emass_migration as em
@@ -120,12 +159,24 @@ def act(db: Session, imp: EmassImport, current, meta: dict, ids: list[str], acti
             continue
         try:
             with db.begin_nested():
+                if e["key"] == "registration":
+                    from app.models import System
+                    s = db.get(System, imp.system_id)
+                    prev = getattr(s, e["field"])
+                    setattr(s, e["field"], e["imported"] if action == "restore" else None)
+                    audit.record(db, action="system.updated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
+                                 entity_id=str(s.id), before={e["field"]: prev}, after={e["field"]: getattr(s, e["field"])}, details=src, **meta)
+                    log.append({"id": eid, "prev": prev, "system_field": e["field"]})
+                    state[eid] = "applied" if action == "restore" else "cleared"
+                    results.append({"id": eid, "ok": True, "state": state[eid]})
+                    continue
                 if e["field"] == "*":
                     if e["destination"] == "PPSM" and action == "delete":
                         row = db.get(PpsmEntry, uuid.UUID(undo_raw[e["key"]]["id"]))
                         snap = {c.key: getattr(row, c.key) for c in PpsmEntry.__table__.columns if c.key not in ("created_at", "updated_at")} if row else None
                     else:
                         snap = None
+                    _flag_decision(db, imp, e, current)
                     done = em.revert(db, imp, current, meta, [e["key"]])
                     if not done:
                         raise HTTPException(409, ((imp.report or {}).get("revert_skipped") or [{}])[-1].get("reason") or "Could not be reverted")
@@ -163,7 +214,10 @@ def undo(db: Session, imp: EmassImport, current, meta: dict, op_id: str) -> dict
     state, done, skipped = _state(db, imp), [], []
     src = {"source": f"Manage imported data – undo {op_id}", "import_id": str(imp.id), "import_sha256": imp.sha256}
     for x in op["entries"]:
-        if x.get("field"):
+        if x.get("system_field"):
+            from app.models import System
+            setattr(db.get(System, imp.system_id), x["system_field"], x["prev"])
+        elif x.get("field"):
             _write_ci(db, db.get(ControlAssignment, uuid.UUID(x["assignment_id"])), x["field"], x["prev"], current, meta, src)
         elif x.get("ppsm_row"):
             db.add(PpsmEntry(**{k: (uuid.UUID(v) if k in ("id", "system_id", "import_id", "updated_by") and v else v) for k, v in x["ppsm_row"].items()}))

@@ -165,7 +165,7 @@ async def detect(request: Request, file: UploadFile = File(...), system_id: uuid
 def _st(s: str | None) -> str:
     s = (s or "").lower()
     return ("queued" if s in ("queued", "received", "not_analyzed") else "processing" if s in ("processing", "running", "generating", "analyzing", "detecting")
-            else "needs review" if s in ("review", "detected", "mapped", "needs_review", "ready") else "applied" if s in ("applied", "imported", "analyzed", "processed", "generated", "completed", "current")
+            else "needs review" if s in ("review", "detected", "mapped", "needs_review", "ready") else "applied" if s in ("applied", "imported", "analyzed", "processed", "generated", "completed", "current", "registered")
             else "failed" if s in ("failed", "error", "rejected") else "reverted" if s == "reverted" else "discarded" if s == "discarded" else s)
 
 

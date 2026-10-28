@@ -18,6 +18,7 @@ import { PROCESSING_STARTED, ProcessingList } from "@/components/shell/Processin
 import { showNextStep } from "@/components/common/NextStep";
 import { StigDetail } from "@/components/evidence/StigDetail";
 import { SampleFilesLink } from "@/components/shell/Sandbox";
+import { ImportedCheck, ImportedDeleteBar, ImportedMark, useImported, useSelection } from "@/components/common/Imported";
 import { Gated } from "@/components/common/RoleGate";
 
 /** Upload rejection in plain language: what happened · how to fix it · accepted formats. */
@@ -205,6 +206,7 @@ export function IngestRunPage() {
   const { data, reload } = useApi<Row>(`/ingest-runs/${id}`);
   const [edit, setEdit] = useState<Row>({});
   const [err, setErr] = useState("");
+  const imp = useImported(data?.run?.system_id, "finding"); const isel = useSelection();
   if (!data) return null;
   const r = data.run;
   const unmapped = data.findings.filter((f: Row) => f.mapping_status === "unmapped");
@@ -247,10 +249,11 @@ export function IngestRunPage() {
         </Table>
       </Panel>
       <Panel title={`All findings in this run (${data.findings.length})`} testId="run-findings-panel">
+        <ImportedDeleteBar selected={isel.sel} items={imp.items} onDone={() => { isel.clear(); imp.reload(); reload(); }} testId="run-delete-imported" />
         <Table head={["Rule / plugin", "Title", "Asset", "Severity", "State", "Mapping", "Controls (grouped, CCIs)", "Observations", ""]}>
           {data.findings.map((f: Row) => (
-            <tr key={f.id}>
-              <td className="td font-mono text-[11px]">{f.vuln_id ?? f.rule_id}</td><td className="td text-[12px]">{f.title}{f.is_kev && <> <S v="critical" label="KEV" /></>}</td><td className="td text-[12px]">{f.asset_name}</td>
+            <tr key={f.id} data-testid={`run-finding-${f.id}`}>
+              <td className="td font-mono text-[11px]"><ImportedCheck id={f.id} info={imp.items[f.id]} checked={isel.sel.includes(f.id)} onChange={isel.toggle} />{f.vuln_id ?? f.rule_id}<ImportedMark info={imp.items[f.id]} testId={`run-imported-${f.id}`} /></td><td className="td text-[12px]">{f.title}{f.is_kev && <> <S v="critical" label="KEV" /></>}</td><td className="td text-[12px]">{f.asset_name}</td>
               <td className="td text-[12px]"><Sev v={f.cat ?? f.severity} /></td><td className="td"><S v={f.current_state} /></td><td className="td"><S v={f.mapping_status} /></td>
               <td className="td text-[11px]">{f.controls.map((m: Row) => <div key={m.control_id}><ControlLink systemId={r.system_id} controlId={m.control_id} /> {m.ccis.length > 0 && <span className="font-mono">via {m.ccis.join(", ")}</span>} <span className="text-slate-500">{m.review_status}</span></div>)}</td>
               <td className="td font-mono">{f.observation_count}</td>

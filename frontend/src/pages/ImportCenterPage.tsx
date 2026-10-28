@@ -70,7 +70,7 @@ function FileRow({ f, n, sid, types, preset, onDone }: { f: Row; n: number; sid:
     <tr className="border-t border-slate-100 align-top" data-testid={`ic-file-${n}`}>
       <td className="min-w-[180px] break-all py-2 pr-2 font-medium">{f.file_name}</td>
       <td className="pr-2">{f.type || f.candidates?.length || forced ? (
-        <select className="input w-auto" value={type} onChange={(e) => setType(e.target.value)} data-testid={`ic-type-${n}`}>
+        <select className="input w-auto max-w-[16rem]" value={type} onChange={(e) => setType(e.target.value)} data-testid={`ic-type-${n}`}>
           {Object.values(types).map((x: Row) => <option key={x.key} value={x.key} disabled={!x.allowed}>{x.label}{x.allowed ? "" : " (not permitted)"}</option>)}</select>)
         : <span className="text-rose-700" data-testid={`ic-unknown-${n}`}>{f.message}
           {f.override && <button className="ml-2 text-blue-800 underline" onClick={() => { setForced(true); setType(f.override); }} data-testid={`ic-force-${n}`}>{f.override_label}</button>}</span>}</td>
@@ -99,7 +99,7 @@ function History({ sid }: { sid?: string }) {
           <td className={STATUS_TONE[r.status] || ""} title={r.error || r.raw_status}>{r.status}</td>
           <td className="text-slate-600">{Object.entries(r.counts || {}).filter(([, v]) => typeof v === "number").slice(0, 3).map(([k, v]) => `${k.replace(/_/g, " ")} ${v}`).join(" · ")}</td>
           <td className="whitespace-nowrap"><Link className="text-blue-800 underline" to={r.link}>Open</Link>
-            {r.kind === "emass" && ["applied", "reverted"].includes(r.raw_status) && <Link className="ml-2 text-blue-800 underline" to={`/import-center/manage/${r.id}`} data-testid={`ic-manage-${r.id}`}>Manage imported data</Link>}
+            {(r.status === "applied" || r.raw_status === "reverted" || r.raw_status === "registered") && <Link className="ml-2 text-blue-800 underline" to={`/import-center/manage/${r.kind}/${r.id}`} data-testid={`ic-manage-${r.id}`}>Manage imported data</Link>}
             {r.retry && <button className="ml-2 underline" onClick={() => retry(r)} data-testid={`ic-retry-${r.id}`}>Retry</button>}</td></tr>)}</tbody></table></div>
       {!items.length && <p className="text-[12px] text-slate-500">No imports yet.</p>}
     </Panel>);
@@ -147,8 +147,8 @@ export default function ImportCenterPage() {
             <input type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ""; }} data-testid="ic-file-input" />
           </label>
           <p className="mt-2 text-[11px] text-slate-500" data-testid="ic-reference-note">{tdata?.reference_data_note} Control Information and POA&M are importable here; they are deferred only in the eMASS migration wizard.</p>
-          {!!files.length && <table className="mt-3 w-full text-[12px]" data-testid="ic-files"><thead><tr className="text-left text-slate-500"><th>File</th><th>Detected type (override)</th><th>Confidence</th><th>RMF step → destination</th><th>Records</th><th /></tr></thead>
-            <tbody>{files.map((f, n) => <FileRow key={n} f={f} n={n} sid={sid} types={types} preset={preset} onDone={() => setTick(tick + 1)} />)}</tbody></table>}
+          {!!files.length && <div className="mt-3 overflow-x-auto"><table className="w-full text-[12px]" data-testid="ic-files"><thead><tr className="text-left text-slate-500"><th>File</th><th>Detected type (override)</th><th>Confidence</th><th>RMF step → destination</th><th>Records</th><th /></tr></thead>
+            <tbody>{files.map((f, n) => <FileRow key={n} f={f} n={n} sid={sid} types={types} preset={preset} onDone={() => setTick(tick + 1)} />)}</tbody></table></div>}
         </Panel>
         <Panel title="Supported import types" testId="ic-types">
           <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>Type</th><th>RMF step</th><th>Destination</th><th>Your access</th></tr></thead>

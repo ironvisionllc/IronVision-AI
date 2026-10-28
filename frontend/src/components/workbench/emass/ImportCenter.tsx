@@ -7,6 +7,7 @@ import { Panel } from "@/components/common/Panel";
 import { downloadFile } from "@/lib/download";
 import { useAuth } from "@/context/AuthContext";
 import { TYPES } from "@/components/workbench/emass/ImportPrompt";
+import { ImportedCheck, ImportedDeleteBar, ImportedMark, useImported, useSelection } from "@/components/common/Imported";
 
 /** AI column assist: notice for everyone, toggle for eMASS admins (audited server-side). */
 export function AiSettingsPanel() {
@@ -71,14 +72,16 @@ export function ExportLinks({ systemId }: { systemId: string }) {
 }
 
 export function PpsmPanel({ systemId }: { systemId: string }) {
-  const { data } = useApi<Row>(`/systems/${systemId}/ppsm`);
+  const { data, reload } = useApi<Row>(`/systems/${systemId}/ppsm`);
   const items: Row[] = data?.items || [];
+  const imp = useImported(systemId, "ppsm"); const isel = useSelection();
   return (
     <Panel title={`PPSM boundary (${items.length})`} testId="ppsm-table">
       <div id="ppsm" />
+      <ImportedDeleteBar selected={isel.sel} items={imp.items} onDone={() => { isel.clear(); imp.reload(); reload(); }} testId="ppsm-delete-imported" />
       {items.length ? <table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>Port</th><th>Protocol</th><th>Data service</th><th>Boundaries</th><th>FQDN</th><th>Purpose</th><th>Source</th></tr></thead>
-        <tbody>{items.map((e) => <tr key={e.id} className="border-t border-slate-100 align-top" data-testid={`ppsm-row-${e.id}`}><td className="font-mono">{e.port}</td><td>{e.protocol}</td><td>{e.data_service}</td>
-          <td>{(e.boundaries || []).join("; ")}</td><td>{e.fqdn}</td><td>{e.purpose}</td><td className="text-slate-500">{e.source === "emass_import" ? `eMASS import · row ${e.source_row}` : e.source}</td></tr>)}</tbody></table>
+        <tbody>{items.map((e) => <tr key={e.id} className="border-t border-slate-100 align-top" data-testid={`ppsm-row-${e.id}`}><td className="font-mono"><ImportedCheck id={e.id} info={imp.items[e.id]} checked={isel.sel.includes(e.id)} onChange={isel.toggle} />{e.port}</td><td>{e.protocol}</td><td>{e.data_service}</td>
+          <td>{(e.boundaries || []).join("; ")}</td><td>{e.fqdn}</td><td>{e.purpose}</td><td className="text-slate-500">{e.source === "emass_import" ? `eMASS import · row ${e.source_row}` : e.source}<ImportedMark info={imp.items[e.id]} testId={`ppsm-imported-${e.id}`} /></td></tr>)}</tbody></table>
         : <p className="text-[12px] text-slate-500" data-testid="ppsm-empty">No PPSM rows yet – import the eMASS PPSM Boundaries template.</p>}
     </Panel>);
 }

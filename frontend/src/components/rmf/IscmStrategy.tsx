@@ -6,6 +6,7 @@ import { Row, useApi } from "@/lib/useApi";
 import { useAuth } from "@/context/AuthContext";
 import { Panel } from "@/components/common/Panel";
 import { Help } from "@/components/rmf/RolesEditor";
+import { ImportedDeleteBar, ImportedMark, useImported } from "@/components/common/Imported";
 
 const SLCM = ["slcm_criticality", "slcm_frequency", "slcm_method", "slcm_reporting", "slcm_tracking", "slcm_comments"];
 const STATUS: Record<string, string> = { draft: "Draft – not yet feeding controls", pending_approval: "Pending ISSM approval", approved: "Approved", rejected: "Returned by the ISSM" };
@@ -22,6 +23,7 @@ export function IscmStrategy({ sid }: { sid: string }) {
   const { can, user } = useAuth();
   const { data: d, reload } = useApi<Row>(`/systems/${sid}/iscm`);
   const { data: promo, reload: reloadPromo } = useApi<Row>(`/systems/${sid}/iscm/promote-preview`);
+  const imp = useImported(sid, "strategy");
   const [f, setF] = useState<Row>({ defaults: {}, profiles: [] });
   const [busy, setBusy] = useState("");
   useEffect(() => { if (d) setF(d.strategy ? { ...d.strategy } : { narrative: "", scope: "", defaults: {}, profiles: [], reporting: [], review_activities: [], evidence_requirements: [] }); }, [d]);
@@ -47,6 +49,8 @@ export function IscmStrategy({ sid }: { sid: string }) {
         <Help text="Effective value per control: per-control override → first matching profile → system default. Inherited and Not Applicable controls have no SLCM values (eMASS rule). Exports (eMASS xlsx, OSCAL SSP, sync payload) always use the effective value." /></p>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px]" data-testid="iscm-status">
         <span className={`rounded px-2 py-0.5 ${s?.status === "approved" ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}>{s ? `${STATUS[s.status]} · v${s.version}` : "No strategy yet"}</span>
+        <ImportedMark info={imp.items.strategy} testId="iscm-imported" />
+        {!ro && <ImportedDeleteBar selected={imp.items.strategy ? ["strategy"] : []} items={imp.items} onDone={() => { imp.reload(); reload(); }} testId="iscm-delete-imported" label="Remove imported draft" />}
         {s?.approved_snapshot && <span data-testid="iscm-feeds">Feeds eMASS SLCM fields for <b>{d.feeds.controls}</b> of {d.feeds.total} controls · {d.feeds.overrides} with per-control overrides</span>}
         {s?.approved_by && <span className="text-slate-500">Approved by {s.approved_by.persona_email} {s.approved_at?.slice(0, 10)}</span>}
         {s?.is_synthetic && <span className="text-slate-500">SYNTHETIC demo strategy</span>}

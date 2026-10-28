@@ -82,6 +82,9 @@ export function RegisterSystemPage() {
       .filter(([, v]) => (v as unknown) !== "" && v !== undefined));
     try {
       const r = await api.post<Row>("/systems", body);
+      if (emassPrefill?.import_id) {  // "Register a new system" path: the pre-filled values are recorded as imported (Manage imported data)
+        try { await api.post(`/emass-imports/${emassPrefill.import_id}/registered`, { system_id: r.data.id, fields: emassPrefill.system || {} }); } catch { /* registration itself succeeded */ }
+      }
       if (copyFrom) {
         const c = (await api.post<Row>(`/systems/${r.data.id}/copy-setup`, { source_system_id: copyFrom.id })).data;
         toast.success(`Copied from ${copyFrom.acronym || copyFrom.name}: ${c.overlays.length} overlay(s), ${c.tailoring.length} tailoring decision(s), ${c.odps} ODP value(s)${c.iscm ? ", ISCM strategy (draft)" : ""}, ${c.policies} policy link(s)`);

@@ -5,6 +5,7 @@ import { Row, useApi } from "@/lib/useApi";
 import { Panel } from "@/components/common/Panel";
 import { deniedText } from "@/components/common/RoleGate";
 import { Counter, EField, OtherSelect, residualHint } from "@/components/workbench/emass/fields";
+import { ImportedDeleteBar, ImportedMark, useImported } from "@/components/common/Imported";
 
 const PLAN_TEXT = ["responsible_entities", "slcm_criticality", "slcm_reporting", "slcm_tracking"];
 const SLCM = ["slcm_criticality", "slcm_frequency", "slcm_method", "slcm_reporting", "slcm_tracking", "slcm_comments"];
@@ -26,6 +27,8 @@ export function EmassPanels({ systemId, controlId, onSaved }: { systemId: string
   const key = d ? `${controlId}|${d.updated_at}|${d.implementation_status}` : "";
   useEffect(() => { if (d) { setSt(d.implementation_status); setV({ ...d.values }); setAcc(new Set()); setErr({}); } }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setSug(null); }, [controlId]);
+  const imp = useImported(systemId, "emass_field");
+  const impTools = (k: string) => { const info = imp.items[`${controlId}|${k}`]; return info ? <><ImportedMark info={info} testId={`emass-imported-${k}`} />{!ro && <ImportedDeleteBar selected={[`${controlId}|${k}`]} items={imp.items} onDone={() => { imp.reload(); reload(); onSaved(); }} testId={`emass-delete-imported-${k}`} label="Remove imported value" />}</> : null; };
   if (!d) return null;
   const o = d.options, ro = !d.can_edit, locked = st === "Inherited";
   const req: string[] = o.required[st] || [];
@@ -57,7 +60,7 @@ export function EmassPanels({ systemId, controlId, onSaved }: { systemId: string
       : k === "estimated_completion_date" ? <input type="date" className="input w-full" value={val} disabled={ro || locked} onChange={(e) => set(k, e.target.value)} data-testid={`emass-${k}`} />
       : PLAN_TEXT.includes(k) ? <OtherSelect field={k} value={val} onChange={(x) => set(k, x)} disabled={ro || locked} max={max} />
       : <><textarea className="input w-full" rows={k === "slcm_comments" ? 3 : 2} maxLength={max} value={val} disabled={ro || locked} onChange={(e) => set(k, e.target.value)} data-testid={`emass-${k}`} /><Counter v={val} max={max} testId={`emass-count-${k}`} /></>;
-    return <EField key={k} k={k} label={o.labels[k]} required={req.includes(k)} missing={req.includes(k) && !String(val).trim()} sug={ro ? undefined : sugFor(k)} onAccept={() => accept(k)}>{input}{SLCM.includes(k) && <SlcmChip k={k} />}</EField>;
+    return <EField key={k} k={k} label={o.labels[k]} extra={impTools(k)} required={req.includes(k)} missing={req.includes(k) && !String(val).trim()} sug={ro ? undefined : sugFor(k)} onAccept={() => accept(k)}>{input}{SLCM.includes(k) && <SlcmChip k={k} />}</EField>;
   };
   const SlcmChip = ({ k }: { k: string }) => {
     const src = d.slcm_source?.[k] || "", sv = d.strategy_values?.[k];
@@ -93,10 +96,10 @@ export function EmassPanels({ systemId, controlId, onSaved }: { systemId: string
       </Panel>
       <Panel title="eMASS Risk Assessment" testId="emass-risk-panel">
         {locked && <div className="mb-2 rounded bg-slate-50 px-3 py-2 text-[12px]" data-testid="emass-risk-locked">Risk Assessment cannot be edited while the control is Inherited (eMASS rule).</div>}
-        <div className="grid gap-3 md:grid-cols-3">{RISK_ENUMS.map((k) => <EField key={k} k={k} label={o.labels[k]} sug={ro || locked ? undefined : sugFor(k)} onAccept={() => accept(k)}>
+        <div className="grid gap-3 md:grid-cols-3">{RISK_ENUMS.map((k) => <EField key={k} k={k} label={o.labels[k]} extra={impTools(k)} sug={ro || locked ? undefined : sugFor(k)} onAccept={() => accept(k)}>
           <select className="input w-full" value={v[k] ?? ""} disabled={ro || locked} onChange={(e) => set(k, e.target.value)} data-testid={`emass-${k}`}><option value="">— select —</option>{o.levels.map((x: string) => <option key={x}>{x}</option>)}</select></EField>)}</div>
         {hint && <div className="mt-2 text-[11px] text-slate-600" data-testid="emass-residual-hint">Computed suggestion (not applied): Likelihood {v.likelihood} × Impact {v.impact} → Residual Risk Level <b>{hint}</b> (NIST SP 800-30 style lookup).</div>}
-        <div className="mt-3 grid gap-3 md:grid-cols-2">{RISK_TEXT.map((k) => <EField key={k} k={k} label={o.labels[k]} sug={ro || locked ? undefined : sugFor(k)} onAccept={() => accept(k)}>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">{RISK_TEXT.map((k) => <EField key={k} k={k} label={o.labels[k]} extra={impTools(k)} sug={ro || locked ? undefined : sugFor(k)} onAccept={() => accept(k)}>
           <textarea className="input w-full" rows={2} maxLength={2000} value={v[k] ?? ""} disabled={ro || locked} onChange={(e) => set(k, e.target.value)} data-testid={`emass-${k}`} /><Counter v={v[k] ?? ""} max={2000} testId={`emass-count-${k}`} /></EField>)}</div>
         {err.risk && <div className="mt-2 text-[12px] text-rose-700" role="alert" data-testid="emass-risk-error">{err.risk}</div>}
         {!ro && !locked && <button className="btn-primary mt-3" disabled={!!busy} onClick={() => run("risk")} data-testid="emass-risk-save">{busy === "risk" ? "Saving…" : "Save Risk Assessment"}</button>}

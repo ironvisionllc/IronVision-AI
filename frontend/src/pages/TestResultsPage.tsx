@@ -7,6 +7,7 @@ import { ImportButton } from "@/components/import/ImportButton";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
+import { ImportedCheck, ImportedDeleteBar, ImportedMark, useImported, useSelection } from "@/components/common/Imported";
 import { useActiveSystemId } from "@/components/rmf/Stepper";
 import { showNextStep } from "@/components/common/NextStep";
 import { PROCESSING_STARTED } from "@/components/shell/Processing";
@@ -117,6 +118,7 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
   const items: Row[] = rows.data?.items || [];
   const [open, setOpen] = useState<string | null>(null);
   const [approving, setApproving] = useState<Row[] | null>(null);
+  const imp = useImported(wb.system_id, "tr_row"); const isel = useSelection();
   const bulk = async () => { try { const r = await api.post<Row>(`/tr/workbooks/${wb.id}/analyze`, sel.length ? { row_ids: sel } : { all_matched: true });
     toast.success(`Evidence analysis queued for ${r.data.rows} row(s) – open a row’s analysis to see the result`); } catch (e) { toast.error(errorMessage(e)); } };
   return (<div className="rounded border border-slate-200 p-3" data-testid="tr-review">
@@ -124,7 +126,8 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
       <select className="input py-0" value={state} onChange={(e) => setState(e.target.value)} data-testid="tr-filter-state"><option value="">Status: all</option>{Object.keys(STATE_LABEL).map((k) => <option key={k} value={k}>{STATE_LABEL[k]}</option>)}</select>
       <select className="input py-0" value={match} onChange={(e) => setMatch(e.target.value)} data-testid="tr-filter-match"><option value="">Mapping: all</option><option value="ambiguous,unmatched">Needs mapping review</option><option value="matched,resolved">Matched</option></select>
       <input className="input w-20 py-0" placeholder="Family" value={fam} onChange={(e) => setFam(e.target.value)} data-testid="tr-filter-family" />
-      <button className="btn-secondary py-0" onClick={bulk} data-testid="tr-bulk-analyze">{sel.length ? `Analyze evidence for ${sel.length} selected` : "Analyze evidence for all mapped rows"}</button></div>
+      <button className="btn-secondary py-0" onClick={bulk} data-testid="tr-bulk-analyze">{sel.length ? `Analyze evidence for ${sel.length} selected` : "Analyze evidence for all mapped rows"}</button>
+      <ImportedDeleteBar selected={isel.sel} items={imp.items} onDone={() => { isel.clear(); imp.reload(); rows.reload(); reload(); }} testId="tr-delete-imported" /></div>
     {!wb.can_approve && <div className="mb-2 rounded bg-slate-100 p-2 text-[12px]" role="note" data-testid="tr-locked">Locked: only an assessor (SCA role) can approve or set a Compliance Status. You can review the proposals and edit the Test Results text.</div>}
     {wb.can_approve && <div className="mb-2 flex flex-wrap items-center gap-2 text-[12px]" data-testid="tr-bulk"><input className="input w-72" placeholder="Justification for the selected rows" value={just} onChange={(e) => setJust(e.target.value)} data-testid="tr-bulk-just" />
       <label className="flex items-center gap-1"><input type="checkbox" checked={useSug} onChange={(e) => setUseSug(e.target.checked)} data-testid="tr-bulk-use-suggestion" />Use the evidence suggestion as my determination</label>
@@ -135,7 +138,7 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
       {items.map((r) => { const v = { ...r.proposed, ...(r.final || {}) };
         return (<Fragment key={r.id}><tr className="border-t border-slate-100 align-top" data-testid={`tr-row-${r.row}`}>
           <td><input type="checkbox" disabled={!wb.can_approve} checked={sel.includes(r.id)} onChange={() => setSel(sel.includes(r.id) ? sel.filter((x) => x !== r.id) : [...sel, r.id])} data-testid={`tr-check-${r.row}`} /></td>
-          <td className="font-mono">{r.row}</td>
+          <td className="font-mono"><ImportedCheck id={r.id} info={imp.items[r.id]} checked={isel.sel.includes(r.id)} onChange={isel.toggle} />{r.row}<ImportedMark info={imp.items[r.id]} testId={`tr-imported-${r.row}`} /></td>
           <td><div className="font-medium">{r.ap_acronym || "–"}</div><div className="text-slate-500">{r.cci_id || "no CCI"}</div>
             {["ambiguous", "unmatched"].includes(r.match_status) && <div className="text-amber-800" data-testid={`tr-match-${r.row}`}>{r.match_reason}<div><Resolve wb={wb} r={r} reload={rows.reload} /></div></div>}
             {(r.flags || []).includes("derived_ap") && <div className="text-[10px] text-slate-500">AP number derived – verify in eMASS</div>}</td>

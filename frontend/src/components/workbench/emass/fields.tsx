@@ -30,12 +30,13 @@ export function Counter({ v, max, testId }: { v: string; max: number; testId: st
 }
 
 /** Label + required marker + inline suggestion (accept per field). */
-export function EField({ k, label, required, missing, sug, onAccept, children }: { k: string; label: string; required?: boolean; missing?: boolean;
-  sug?: Row; onAccept?: () => void; children: ReactNode }) {
+export function EField({ k, label, required, missing, sug, onAccept, extra, children }: { k: string; label: string; required?: boolean; missing?: boolean;
+  sug?: Row; onAccept?: () => void; extra?: ReactNode; children: ReactNode }) {
   return (
     <label className="block text-[12px]" data-testid={`emass-field-${k}`}>
       <span className="font-medium">{label}{required && <span className="text-rose-700" title="Required by eMASS for this Implementation Status"> *</span>}</span>
       {missing && <span className="ml-1 rounded bg-rose-50 px-1 text-[10px] text-rose-800" data-testid={`emass-missing-${k}`}>required</span>}
+      {extra && <span className="ml-1 inline-flex flex-wrap items-center gap-1 align-middle" onClick={(e) => e.preventDefault()}>{extra}</span>}
       <div className="mt-1">{children}</div>
       {sug && <div className="mt-1 rounded border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] text-violet-900" data-testid={`emass-sug-${k}`}>
         Suggested: <b>{String(sug.value)}</b> <span className="text-violet-700">– {sug.reason}</span>
