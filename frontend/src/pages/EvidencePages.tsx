@@ -1,3 +1,4 @@
+import { CompletedNext } from "@/components/common/CompletedNext";
 import { usePaged } from "@/components/common/PageSize";
 import { EvidenceActions } from "@/components/evidence/EvidenceActions";
 import { ContentUpdatesPanel } from "@/pages/Phase4Pages";
@@ -220,6 +221,10 @@ export function IngestRunPage() {
       {r.status === "duplicate" && <div className="panel mb-4 border-sky-300 bg-sky-50 p-3 text-sm text-sky-900" data-testid="duplicate-notice">Duplicate upload: identical SHA-256 already ingested. Not re-processed or double-counted. Showing results of the original run.</div>}
       {data.evidence && <div className="mb-4 font-mono text-[11px] text-slate-600" data-testid="run-evidence-hash">evidence sha256 {data.evidence.sha256} · signature {data.evidence.signature_status} · integrity {data.evidence.integrity_status}</div>}
       {err && <div className="mb-3 text-sm text-rose-700" role="alert">{err}</div>}
+      {r.status !== "failed" && <CompletedNext kind="scan" next={data.findings.some((f: Row) => !f.poam_id && f.current_state === "open") ? { label: "Create POA&Ms for the open findings below", link: "#run-create-poam" } : { label: "Review the findings in Mapping review", link: "/mapping-review" }} testId="run-completed-next" />}
+      {data.findings.some((f: Row) => !f.poam_id && f.current_state === "open") && <Panel title="Create POA&M" eyebrow="Open findings from this run without a POA&M – nothing is created until you confirm each one" className="mb-4" testId="run-create-poam">
+        <div id="run-create-poam" className="space-y-1 text-[12px]">{data.findings.filter((f: Row) => !f.poam_id && f.current_state === "open").slice(0, 25).map((f: Row) => <div key={f.id} className="flex items-center gap-2">
+          <Link className="flex-1 truncate text-blue-800 underline" to={`/findings/${f.id}`}>{f.title || f.rule_id || f.id}</Link><AddToPoamButton findingId={f.id} onDone={reload} /></div>)}</div></Panel>}
       {["ckl", "cklb", "xccdf"].includes(r.file_format) && <StigDetail runId={r.duplicate_of_run_id ?? r.id} />}
       <Panel title={`Unmapped (${unmapped.length})`} eyebrow="These results are not linked to any NIST 800-53 control yet" className="mb-5" testId="unmapped-panel">
         {unmapped.length > 0 && <div className="mb-3 rounded bg-slate-50 p-3 text-[12px] text-slate-700" data-testid="unmapped-explainer">

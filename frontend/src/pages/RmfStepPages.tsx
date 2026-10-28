@@ -416,6 +416,16 @@ export function AuthorizePage() {
     </StepFrame>);
 }
 
+function StrategyAwaiting({ sid }: { sid: string }) {
+  const { data } = useApi<Row>(`/systems/${sid}/iscm`);
+  const st = data?.strategy;
+  if (!st || st.status === "approved" && !st.has_draft) return null;
+  const waiting = st.status === "pending_approval";
+  return <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid="monitor-strategy-awaiting">
+    {waiting ? "Monitoring schedules: the Continuous Monitoring Strategy is awaiting ISSM approval" : "Monitoring schedules: the Continuous Monitoring Strategy is a draft – submit it for ISSM approval"} (v{st.version}). Schedules below use the last approved strategy only.{" "}
+    <Link className="underline" to="/rmf/select">Open the strategy →</Link></div>;
+}
+
 export function MonitorPage() {
   const sid = useActiveSystemId();
   const { can } = useAuth();
@@ -424,6 +434,7 @@ export function MonitorPage() {
   const mt = s?.metrics ?? {};
   return (
     <StepFrame k="monitor" title="Step 7 · Monitor" purpose="Continuous monitoring (ConMon): keep evidence current, fix new findings and POA&Ms on time, and watch the authorization expiration date.">
+      {sid && <StrategyAwaiting sid={sid} />}
       {sid && <div className="mb-5"><SlcmDue sid={sid} /></div>}
       {s && <div className="mb-5 grid gap-3 md:grid-cols-3 xl:grid-cols-6" data-testid="monitor-stats">
         <Stat label="Controls with current evidence" value={`${mt.controls_with_current_evidence ?? 0} / ${mt.assigned_controls ?? 0}`} testId="mon-current" hint="Evidence collected within its freshness window" />

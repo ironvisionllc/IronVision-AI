@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { CompletedNext } from "@/components/common/CompletedNext";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
@@ -75,7 +76,7 @@ function FileRow({ f, n, sid, types, preset, onDone }: { f: Row; n: number; sid:
       <td className="pr-2" data-testid={`ic-confidence-${n}`}>{f.confidence}{f.ambiguous ? " – confirm" : ""}</td>
       <td className="pr-2">{t ? <><b>{t.step}</b><div className="text-[11px] text-slate-500">{t.dest}</div></> : "–"}</td>
       <td className="pr-2" data-testid={`ic-count-${n}`}>{f.record_count ?? "–"}</td>
-      <td className="whitespace-nowrap">{res ? <div className="text-[12px]" data-testid={`ic-result-${n}`}>{res.note}<br /><Link className="text-blue-800 underline" to={res.link} data-testid={`ic-open-${n}`}>Open review / results</Link>
+      <td className="whitespace-nowrap">{res ? <div className="text-[12px]" data-testid={`ic-result-${n}`}>{res.note}<br /><Link className="text-blue-800 underline" to={res.link} data-testid={`ic-open-${n}`}>Open review / results</Link><CompletedNext kind={type} counts={res.counts} next={res.link.includes("emass-import") ? { label: "Review the preview and apply the changes", link: res.link } : undefined} testId={`ic-next-${n}`} />
           {res.preview && !!res.preview.counts?.accepted && <button className="ml-2 underline" onClick={importPlan} data-testid={`ic-plan-import-${n}`}>Import accepted procedures</button>}</div>
         : t && (t.allowed ? <button className="btn-primary" disabled={busy || !sid} onClick={go} data-testid={`ic-import-${n}`}>{busy ? "Sending…" : sid ? "Import" : "Choose a system"}</button>
           : <span className="text-[12px] text-slate-500" data-testid={`ic-denied-${n}`}>{t.reason}</span>)}</td>

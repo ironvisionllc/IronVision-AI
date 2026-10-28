@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CompletedNext } from "@/components/common/CompletedNext";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/lib/api";
@@ -134,6 +135,7 @@ export default function EmassImportPage() {
         {imp.report_type === "slcm" && imp.report?.strategy_plan && <StrategyPlan plan={imp.report.strategy_plan} mode={slcmMode} setMode={setSlcmMode} editable={imp.status === "review"} />}
         {imp.report_type === "categorization" && imp.report?.proposal && <p className="rounded border border-blue-200 bg-blue-50 px-3 py-2 text-[12px] text-blue-900" data-testid="import-categorization-proposal">{imp.report.proposal}.
           {(imp.report.apply_results || []).filter((x: Row) => x.revision).map((x: Row) => <span key={x.revision}> {x.summary}. <Link className="underline" to="/rmf/categorize">Open Categorize →</Link></span>)}</p>}
+        {imp.status === "applied" && <CompletedNext kind={imp.report_type} counts={imp.counts} testId="import-completed-next" />}
         <Report imp={imp} />
         <ImportReview imp={{ ...imp, labels: LABELS }} onChange={setImp} />
       </div>}

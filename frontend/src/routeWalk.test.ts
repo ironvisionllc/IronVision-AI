@@ -4,7 +4,7 @@ import { NAV_ITEMS, activeNavId } from "@/lib/nav";
 
 // Route walk (COMPAT.md): every route in App.tsx stays defined, every nav item points at a route, every route has a nav owner.
 const app = fs.readFileSync(path.join(__dirname, "App.tsx"), "utf8");
-const routes = Array.from(app.matchAll(/path="([^"]+)"/g)).map((m) => m[1]);
+const routes = Array.from(app.matchAll(/path="([^"]+)"/g)).map((m) => m[1]).filter((r) => r !== "*" && r !== "/*");
 const LEGACY = ["/controls", "/catalog", "/systems", "/systems/new", "/systems/:id", "/systems/:id/controls", "/systems/:id/controls/:controlId", "/rmf/prepare", "/rmf/categorize",
   "/rmf/select", "/rmf/implement", "/rmf/assess", "/rmf/authorize", "/rmf/monitor", "/rmf-workflow", "/inheritance", "/inventory", "/ccis", "/policy-auditor", "/evidence-sources",
   "/evidence-ledger", "/reviews", "/test-results", "/mapping-review", "/poams", "/emass", "/traceability", "/import-center", "/portfolio", "/help", "/audit-log", "/admin", "/whitepaper"];

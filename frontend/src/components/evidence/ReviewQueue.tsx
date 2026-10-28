@@ -92,8 +92,9 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
       setSel([]); setJust(""); setEditTo(""); reload();
     } catch (e) { setErr(`Nothing was changed: ${errorMessage(e)}`); } finally { setBusy(false); }
   };
-  const tabs: [string, string][] = [["", `All open (${open.length})`], ["status", `Status suggestions (${open.filter((q) => q.kind === "status").length})`], ["policy_status", `Status suggestions from policy coverage (${open.filter((q) => q.kind === "policy_status").length})`], ["policy_map", `Policy mappings (${counts.policy_map})`],
-    ["finding_map", `STIG mappings (${counts.finding_map})`], ["sca", `Awaiting assessor (SCA) (${waiting.length})`]];
+  // 3 main tabs; "All", "from policy" and the SCA hand-off stay one click away (same filters, same testids)
+  const tabs: [string, string][] = [["policy_map", `Policy coverage (${counts.policy_map})`], ["finding_map", `STIG mappings (${counts.finding_map})`], ["status", `Status suggestions (${open.filter((q) => q.kind === "status").length})`],
+    ["", `All open (${open.length})`], ["policy_status", `Status from policy (${open.filter((q) => q.kind === "policy_status").length})`], ["sca", `Awaiting SCA (${waiting.length})`]];
   return (
     <>{sbs && <SideBySideReview policyId={sbs.p} controlId={sbs.c} canDecide={canMap} onClose={() => setSbs(null)} onChanged={reload} />}
     <Panel title={`Review queue (${open.length} open${waiting.length ? `, ${waiting.length} awaiting SCA` : ""})`} className="mb-5" testId="review-queue">
@@ -101,7 +102,7 @@ export function ReviewQueue({ sid, queue, counts, canMap, reload, setMsg, review
       <StatusNotes notes={statusNotes} />
       {!canMap && open.length > 0 && <div className="mb-2 rounded bg-slate-100 p-2 text-[12px] text-slate-700" role="note" data-testid="queue-view-only">You can view these items. {denyWhy}</div>}
       <div className="mb-2 flex flex-wrap items-center gap-2 text-[12px]">
-        {tabs.map(([k, l]) => <button key={k} className={`rounded px-2 py-0.5 ${kind === k ? "bg-brand-700 text-white" : k === "sca" && waiting.length ? "bg-amber-100 text-amber-900" : "bg-slate-100"}`} onClick={() => setKind(k)} data-testid={`queue-tab-${k || "all"}`}>{l}</button>)}
+        {tabs.map(([k, l], i) => <button key={k} className={`${i < 3 ? "rounded px-3 py-1 text-[13px] font-semibold" : "rounded px-2 py-0.5 text-[11px]"} ${kind === k ? "bg-brand-700 text-white" : k === "sca" && waiting.length ? "bg-amber-100 text-amber-900" : i < 3 ? "bg-slate-100" : "bg-white text-slate-600 ring-1 ring-slate-200"}`} onClick={() => setKind(k)} data-testid={`queue-tab-${k || "all"}`}>{l}</button>)}
         <span className="ml-auto"><PageSizeSelect value={size} onChange={setSize} testId="queue-page-size" /></span>
       </div>
       {kind === "sca" && <div className="mb-2 rounded bg-amber-50 p-2 text-[12px] text-amber-900" data-testid="queue-sca-explainer">
