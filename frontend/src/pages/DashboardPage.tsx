@@ -48,8 +48,8 @@ export default function DashboardPage() {
         <div className="min-w-0 flex-1"><div className="text-[11px] uppercase tracking-wide opacity-80">Continue where you left off</div>
           <div className="text-[15px] font-semibold">{last ? last.label : "Nothing opened yet on this browser"}</div>
           {data?.next_action && <div className="text-[12px] opacity-90">Recommended next: {data.next_action.label}</div>}</div>
-        {last ? <Link className="btn-secondary" to={last.path} data-testid="dash-continue-btn">Resume →</Link>
-          : data?.next_action && <Link className="btn-secondary" to={data.next_action.link} data-testid="dash-continue-btn">{data.next_action.label} →</Link>}
+        {last ? <Link className="btn border-white bg-white text-[#0f4f5f] hover:bg-sky-50" style={{ background: "#fff", color: "#0f4f5f" }} to={last.path} data-testid="dash-continue-btn">Resume →</Link>
+          : data?.next_action && <Link className="btn border-white" style={{ background: "#fff", color: "#0f4f5f" }} to={data.next_action.link} data-testid="dash-continue-btn">{data.next_action.label} →</Link>}
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" data-testid="dash-steps">
         {(data?.steps || []).map((st: Row) => {

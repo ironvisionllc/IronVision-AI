@@ -23,6 +23,7 @@ from check_layout_overflow import BASE, EMAIL, PW, act, ensure_systems, routes  
 
 OUT = "/app/docs/screenshots/contrast"
 AXE = "/app/frontend/node_modules/axe-core/axe.min.js"
+AXE_SRC = open(AXE).read()
 THEMES = os.environ.get("CONTRAST_THEMES", "dark,light").split(",")
 SIZES = [tuple(int(x) for x in s.split("x")) for s in os.environ.get("CONTRAST_SIZES", "1280x800,390x844").split(",")]
 ONLY = set(filter(None, os.environ.get("SHOT_PAGES", "").split(",")))
@@ -89,8 +90,9 @@ window.__ivc = (() => {
 
 
 async def page_checks(page) -> dict:
-    await page.add_script_tag(path=AXE)
-    axe = await page.evaluate("""async () => { const r = await axe.run(document, {runOnly: ['color-contrast'], resultTypes: ['violations']});
+    if not await page.evaluate("typeof axe !== 'undefined'"):
+        await page.evaluate(AXE_SRC)  # evaluate (not a <script> tag) so pages with a strict CSP are checked too
+    axe = await page.evaluate("""async () => { const r = await axe.run({exclude: [['[data-emergent-overlay-host]']]}, {runOnly: ['color-contrast'], resultTypes: ['violations']});
       return r.violations.flatMap(v => v.nodes.map(n => ({target: n.target.join(' '), summary: (n.any[0]||{}).message || '', html: n.html.slice(0, 120)}))); }""")
     await page.evaluate(LIB)
     n = await page.evaluate(f"__ivc.sample({SAMPLE})")

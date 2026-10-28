@@ -147,7 +147,10 @@ async def t_import_impl(m, ctx):
     await m.click("[data-testid=ic-import-0]")
     await m.click("[data-testid=ic-open-0]")
     await m.click("[data-testid=import-apply-btn]")
-
+    try:  # applying runs in the background; the completion message appears when it finishes
+        await m.page.wait_for_selector("[data-testid=import-completed-next], text=/next:/i", timeout=20000)
+    except Exception:
+        pass
 
 async def t_update_control(m, ctx):
     await m.nav("implement/Control Workbench")
@@ -185,10 +188,11 @@ async def t_test_results(m, ctx):
 async def t_finding(m, ctx):
     await m.system(ctx["ltp"])
     await m.nav("implement/Control Workbench")
-    if not await m.click("text=Open findings", opt=True):  # new layout: the control's Findings tab
+    if await m.page.locator("[data-testid=wb-summary-counts]").count():  # new layout: the control's Findings tab
         await m.click("button[data-testid^=queue-item-]")
         await m.click("[data-testid=wb-tab-findings]")
     else:
+        await m.click("text=Open findings")
         await m.click("[data-testid^=queue-open-]")
     await m.click("[data-testid^=wb-finding-link-], main a[href^='/findings/']")
 

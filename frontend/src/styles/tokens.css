@@ -33,7 +33,7 @@
   --iv-placeholder: #5f6b7d;
   --iv-disabled-bg: #eef1f5;
   --iv-disabled-text: #586274;
-  --iv-disabled-border: #8a96a8;
+  --iv-disabled-border: #7d8a9e;
   --iv-sb-bg: linear-gradient(180deg, #fafbfc 0%, #f3f6f9 100%);
   --iv-sb-border: rgba(226, 232, 240, 0.9);
   --iv-sb-text: #334155;
@@ -49,7 +49,7 @@
   --c-slate-200: 226 232 240;
   --c-slate-300: 203 213 225;
   --c-slate-400: 102 117 138;
-  --c-slate-500: 100 116 139;
+  --c-slate-500: 93 107 128;
   --c-slate-600: 71 85 105;
   --c-slate-700: 51 65 85;
   --c-slate-800: 30 41 59;
@@ -60,7 +60,7 @@
   --iv-slate-200: #E2E8F0;
   --iv-slate-300: #CBD5E1;
   --iv-slate-400: #66758A;
-  --iv-slate-500: #64748B;
+  --iv-slate-500: #5d6b80;
   --iv-slate-600: #475569;
   --iv-slate-700: #334155;
   --iv-slate-800: #1E293B;
@@ -198,7 +198,7 @@
   --iv-placeholder: #9aa6b8;
   --iv-disabled-bg: #253046;
   --iv-disabled-text: #a3afc1;
-  --iv-disabled-border: #6b7a90;
+  --iv-disabled-border: #7a879b;
   --iv-sb-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.8) 100%);
   --iv-sb-border: rgba(51, 65, 85, 0.5);
   --iv-sb-text: #cbd5e1;
@@ -212,7 +212,7 @@
   --c-slate-50: 23 32 51;
   --c-slate-100: 31 42 62;
   --c-slate-200: 51 65 85;
-  --c-slate-300: 71 85 105;
+  --c-slate-300: 107 122 144;
   --c-slate-400: 139 152 173;
   --c-slate-500: 148 163 184;
   --c-slate-600: 168 180 198;
@@ -282,6 +282,7 @@
 .dark :is(.bg-slate-400, .bg-slate-500, .bg-slate-600, .bg-slate-700, .bg-slate-800, .bg-slate-900, .bg-slate-950, .bg-gray-400, .bg-gray-500, .bg-gray-600, .bg-gray-700, .bg-gray-800, .bg-gray-900, .bg-gray-950, .bg-zinc-400, .bg-zinc-500, .bg-zinc-600, .bg-zinc-700, .bg-zinc-800, .bg-zinc-900, .bg-zinc-950, .bg-blue-400, .bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-blue-800, .bg-blue-900, .bg-blue-950, .bg-sky-400, .bg-sky-500, .bg-sky-600, .bg-sky-700, .bg-sky-800, .bg-sky-900, .bg-sky-950, .bg-cyan-400, .bg-cyan-500, .bg-cyan-600, .bg-cyan-700, .bg-cyan-800, .bg-cyan-900, .bg-cyan-950, .bg-teal-400, .bg-teal-500, .bg-teal-600, .bg-teal-700, .bg-teal-800, .bg-teal-900, .bg-teal-950, .bg-indigo-400, .bg-indigo-500, .bg-indigo-600, .bg-indigo-700, .bg-indigo-800, .bg-indigo-900, .bg-indigo-950, .bg-rose-400, .bg-rose-500, .bg-rose-600, .bg-rose-700, .bg-rose-800, .bg-rose-900, .bg-rose-950, .bg-red-400, .bg-red-500, .bg-red-600, .bg-red-700, .bg-red-800, .bg-red-900, .bg-red-950, .bg-orange-400, .bg-orange-500, .bg-orange-600, .bg-orange-700, .bg-orange-800, .bg-orange-900, .bg-orange-950, .bg-amber-400, .bg-amber-500, .bg-amber-600, .bg-amber-700, .bg-amber-800, .bg-amber-900, .bg-amber-950, .bg-yellow-400, .bg-yellow-500, .bg-yellow-600, .bg-yellow-700, .bg-yellow-800, .bg-yellow-900, .bg-yellow-950, .bg-emerald-400, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700, .bg-emerald-800, .bg-emerald-900, .bg-emerald-950, .bg-green-400, .bg-green-500, .bg-green-600, .bg-green-700, .bg-green-800, .bg-green-900, .bg-green-950, .bg-violet-400, .bg-violet-500, .bg-violet-600, .bg-violet-700, .bg-violet-800, .bg-violet-900, .bg-violet-950, .bg-purple-400, .bg-purple-500, .bg-purple-600, .bg-purple-700, .bg-purple-800, .bg-purple-900, .bg-purple-950):is(.text-white, .text-black, .text-slate-700, .text-slate-800, .text-slate-900, .text-slate-950), .dark :is(.bg-slate-400, .bg-slate-500, .bg-slate-600, .bg-slate-700, .bg-slate-800, .bg-slate-900, .bg-slate-950, .bg-gray-400, .bg-gray-500, .bg-gray-600, .bg-gray-700, .bg-gray-800, .bg-gray-900, .bg-gray-950, .bg-zinc-400, .bg-zinc-500, .bg-zinc-600, .bg-zinc-700, .bg-zinc-800, .bg-zinc-900, .bg-zinc-950, .bg-blue-400, .bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-blue-800, .bg-blue-900, .bg-blue-950, .bg-sky-400, .bg-sky-500, .bg-sky-600, .bg-sky-700, .bg-sky-800, .bg-sky-900, .bg-sky-950, .bg-cyan-400, .bg-cyan-500, .bg-cyan-600, .bg-cyan-700, .bg-cyan-800, .bg-cyan-900, .bg-cyan-950, .bg-teal-400, .bg-teal-500, .bg-teal-600, .bg-teal-700, .bg-teal-800, .bg-teal-900, .bg-teal-950, .bg-indigo-400, .bg-indigo-500, .bg-indigo-600, .bg-indigo-700, .bg-indigo-800, .bg-indigo-900, .bg-indigo-950, .bg-rose-400, .bg-rose-500, .bg-rose-600, .bg-rose-700, .bg-rose-800, .bg-rose-900, .bg-rose-950, .bg-red-400, .bg-red-500, .bg-red-600, .bg-red-700, .bg-red-800, .bg-red-900, .bg-red-950, .bg-orange-400, .bg-orange-500, .bg-orange-600, .bg-orange-700, .bg-orange-800, .bg-orange-900, .bg-orange-950, .bg-amber-400, .bg-amber-500, .bg-amber-600, .bg-amber-700, .bg-amber-800, .bg-amber-900, .bg-amber-950, .bg-yellow-400, .bg-yellow-500, .bg-yellow-600, .bg-yellow-700, .bg-yellow-800, .bg-yellow-900, .bg-yellow-950, .bg-emerald-400, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700, .bg-emerald-800, .bg-emerald-900, .bg-emerald-950, .bg-green-400, .bg-green-500, .bg-green-600, .bg-green-700, .bg-green-800, .bg-green-900, .bg-green-950, .bg-violet-400, .bg-violet-500, .bg-violet-600, .bg-violet-700, .bg-violet-800, .bg-violet-900, .bg-violet-950, .bg-purple-400, .bg-purple-500, .bg-purple-600, .bg-purple-700, .bg-purple-800, .bg-purple-900, .bg-purple-950) :is(.text-white, .text-black, .text-slate-700, .text-slate-800, .text-slate-900, .text-slate-950) { color: #0f172a; }
 /* `bg-white` is not a palette variable: in dark it must become the dark surface, or light text lands on white panels. */
 .dark .bg-white { background-color: rgb(30 41 59); }
+.dark mark { color: var(--iv-text); }
 .dark .bg-white\/50 { background-color: rgb(30 41 59 / 0.50); }
 .dark .bg-white\/60 { background-color: rgb(30 41 59 / 0.60); }
 .dark .bg-white\/70 { background-color: rgb(30 41 59 / 0.70); }

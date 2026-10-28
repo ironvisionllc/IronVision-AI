@@ -126,7 +126,7 @@
            transition: border-color 150ms ease, box-shadow 150ms ease; }
   .input::placeholder { color: var(--iv-placeholder); opacity: 1; }
   .input:focus { border-color: #2597B2; outline: none; box-shadow: 0 0 0 3px rgba(37, 151, 178, 0.22); }
-  .input:disabled { background: var(--iv-disabled-bg); color: var(--iv-disabled-text); border-style: dashed; border-color: var(--iv-disabled-border); cursor: not-allowed; }
+  .input:disabled { opacity: 1; background: var(--iv-disabled-bg); color: var(--iv-disabled-text); border-style: dashed; border-color: var(--iv-disabled-border); cursor: not-allowed; }
   select.input option { background: var(--iv-surface-solid); color: var(--iv-text); }
 
   /* surfaces */
