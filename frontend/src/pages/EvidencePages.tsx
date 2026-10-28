@@ -43,7 +43,7 @@ const UPLOAD_KINDS: [string, string][] = [
   ["SCAP / XCCDF results (.xml, incl. ARF)", "Automated SCAP Compliance Checker or OpenSCAP benchmark scans."],
   ["ACAS / Nessus (.nessus or CSV export)", "Vulnerability scans exported from ACAS / Tenable.sc / Nessus."],
   ["SARIF (.sarif / .json)", "Static code or container scans exported from a pipeline."],
-  ["Policy or procedure (.docx, .pdf)", "Sent to the Policy Auditor and mapped to the -1 policy controls."],
+  ["Policy or procedure (.docx, .pdf)", "Sent to the Policy Auditor and mapped to the policy (-1) controls of each family."],
 ];
 
 function UploadFilePanel({ sid, sources, types, onUploaded }: { sid: string; sources: Row[]; types: Row[]; onUploaded: () => void }) {

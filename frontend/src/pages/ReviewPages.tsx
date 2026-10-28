@@ -126,6 +126,8 @@ export function FindingPage() {
         {can("finding.map") && !f.disposition && f.current_state === "open" && <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={fp} data-testid="request-false-positive-btn">Request false positive</button>}
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" data-testid="finding-msg">{msg}</div>}
+      {f.current_state === "open" && <div className="mb-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-[13px] text-sky-900" data-testid="finding-next">
+        {data.poams.length ? <>Next: track the remediation in <Link className="font-semibold underline" to={`/poams/${data.poams[0].id}`}>{data.poams[0].human_id}</Link>.</> : "Next: use “Add to POA&M” above (or request a false positive if it does not apply)."}</div>}
       <div className="grid gap-5 xl:grid-cols-2">
         <ScoreBreakdown findingId={f.id} />
         <FindingMappingHistory findingId={f.id} />

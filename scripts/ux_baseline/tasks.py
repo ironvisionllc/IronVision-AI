@@ -163,7 +163,7 @@ async def t_update_control(m, ctx):
 
 async def t_evidence(m, ctx):
     p = "/tmp/SYNTHETIC_ux_evidence.json"
-    open(p, "w").write(json.dumps({"tool": "SYNTHETIC", "control": "AC-2", "result": "pass"}))
+    open(p, "w").write(json.dumps({"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "SYNTHETIC-scanner"}}, "results": []}]}))
     await m.nav("implement/Evidence – add")
     await m.click("[data-testid=add-source-btn]", opt=True)
     if await m.page.locator("[data-testid=upload-btn][disabled]").count() and await m.page.locator("[data-testid=upload-source-select] option").count() <= 1:  # old layout: a source had to be created first
