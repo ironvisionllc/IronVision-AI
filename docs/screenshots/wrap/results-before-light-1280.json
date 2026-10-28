@@ -1,0 +1,1846 @@
+[
+ {
+  "page": "rmf-workflow",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "systems",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "system-detail",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "portfolio",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "prepare",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "categorize",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "categorize-fips",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "select",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "select-fips",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "parameter-comparison",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "squeezed",
+    "el": "stat-baselines",
+    "text": "149 / 287 / 370",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "catalog-tree",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "squeezed",
+    "el": "stat-baselines",
+    "text": "149 / 287 / 370",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "catalog-tree-system",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "squeezed",
+    "el": "stat-baselines",
+    "text": "149 / 287 / 370",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "implement",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "workbench",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "control-detail",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "control-detail-fips",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "inheritance",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 6,
+  "by_check": {
+   "label-wrap": 3,
+   "clipped": 2,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "edit-provider-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Edit",
+    "w": 18
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "edit-provider-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Edit"
+   },
+   {
+    "check": "label-wrap",
+    "el": "crm-import-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Import CRM (CSV / Excel)",
+    "w": 10
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "crm-import-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Import CRM (CSV / Excel)"
+   },
+   {
+    "check": "squeezed",
+    "el": "provider-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "QA Cloud Provider East",
+    "w": 64
+   }
+  ]
+ },
+ {
+  "page": "inventory",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 4,
+  "by_check": {
+   "label-wrap": 4
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "source-badge",
+    "text": "Scan/checklist file import",
+    "w": 98
+   },
+   {
+    "check": "label-wrap",
+    "el": "mocked-badge",
+    "text": "MOCKED source \u00b7 On-prem collector (MOCK)",
+    "w": 118
+   },
+   {
+    "check": "label-wrap",
+    "el": "source-badge",
+    "text": "eMASS HW/SW import",
+    "w": 81
+   }
+  ]
+ },
+ {
+  "page": "ccis",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "policy-auditor",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "evidence-sources",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "assess",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "reviews",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "test-results",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 254,
+  "by_check": {
+   "label-wrap": 54,
+   "squeezed": 200
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-badge-ai-22",
+    "text": "AI suggestion applied, edited",
+    "w": 121
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-48",
+    "text": "Needs tester/date confirmation",
+    "w": 69
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-52",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-53",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-54",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-55",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-56",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-57",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-58",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-59",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-60",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-61",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-62",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-63",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-64",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-65",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-66",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-67",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-68",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-69",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-70",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-71",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-72",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-73",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-74",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-75",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-76",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-77",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-78",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-87",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-88",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-89",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-90",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-91",
+    "text": "Needs tester/date confirmation",
+    "w": 69
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-148",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-149",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-150",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-151",
+    "text": "Auto-suggested",
+    "w": 58
+   },
+   {
+    "check": "label-wrap",
+    "el": "tr-state-152",
+    "text": "Auto-suggested",
+    "w": 58
+   }
+  ]
+ },
+ {
+  "page": "mapping-review",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 24,
+  "by_check": {
+   "label-wrap": 24
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-ps:008a1e70-935d-48b7-99f8-c762b01c0355:ac-2.3",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-ps:0e787099-b77b-43af-b7f9-31bbe860b04e:ia-5",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:297929c8-9ef5-49bf-b4cd-56fa7db05ca0",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:c14bac45-acf1-4746-8602-0f65934532e7",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:db389707-efc1-4de3-b70f-96765fc2a60b",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:5c1fd077-f41a-4d7e-8e99-8ac151a9dd6b",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:32908cc5-d9ea-4765-8bc9-ac57aaeea908",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:31db88be-e814-4632-97e0-7866d7471d81",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:68c40dd9-6493-4d2d-8c58-212cda4c1b10",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:d0e754b5-9eaa-4654-9d95-4bfbb0bfdd60",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:fabdfa14-fae9-4d04-9cdf-8e97d45979da",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900140:cm-6",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900140:ac-17.2",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900101:cm-6",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900118:au-9",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900200:ac-8",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900210:ac-10",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900220:au-3",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-910001:ac-8",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-910002:cm-6",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900140:sc-13",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-930001:cm-6",
+    "text": "Approve",
+    "w": 27
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-930002:cm-6",
+    "text": "Approve",
+    "w": 27
+   }
+  ]
+ },
+ {
+  "page": "authorize",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 2
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "auth-open",
+    "text": "Submit package / record AO decision",
+    "w": 266
+   }
+  ]
+ },
+ {
+  "page": "authorization-package",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "poam",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "emass",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "monitor",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "evidence-ledger",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 60,
+  "by_check": {
+   "label-wrap": 1,
+   "clipped": 36,
+   "squeezed": 23
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-1175e704-d996-4940-93ef-11430e820f47",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-1175e704-d996-4940-93ef-11430e820f47",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-673f9091-7b4a-4d07-a622-9af1d0a8f08d",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-673f9091-7b4a-4d07-a622-9af1d0a8f08d",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-5e28a74b-8151-4cd0-a90b-859f33621965",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-5e28a74b-8151-4cd0-a90b-859f33621965",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-2f8473a1-89cd-407f-9a77-b850fb79b73b",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-2f8473a1-89cd-407f-9a77-b850fb79b73b",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-d797bdd6-191d-44d7-be76-cfa632b135de",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-d797bdd6-191d-44d7-be76-cfa632b135de",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-fa5c6911-9ad3-4e18-b652-151a9a5fd93e",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-fa5c6911-9ad3-4e18-b652-151a9a5fd93e",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-3dfe84ee-f376-4049-a876-0b324ee378e8",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-3dfe84ee-f376-4049-a876-0b324ee378e8",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-c5ec7edc-2133-4b2b-9652-86a80c2332f8",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-c5ec7edc-2133-4b2b-9652-86a80c2332f8",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-cc2cd7f0-8b19-42f4-9152-2cae1f3d4cff",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-cc2cd7f0-8b19-42f4-9152-2cae1f3d4cff",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-315fff59-0702-4125-ab54-e2437f3669ca",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-315fff59-0702-4125-ab54-e2437f3669ca",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-211460a8-29c8-4f8a-bcd6-d18d03c6eee0",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-211460a8-29c8-4f8a-bcd6-d18d03c6eee0",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-0a467525-ed74-47dc-a520-83d1343ac43a",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-0a467525-ed74-47dc-a520-83d1343ac43a",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-9e8fd0a2-6291-4518-a045-1a8b60b991b4",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-9e8fd0a2-6291-4518-a045-1a8b60b991b4",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-6dedf912-1990-4506-916b-f69104a86c1d",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-6dedf912-1990-4506-916b-f69104a86c1d",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-02ed34d4-df27-4eef-b29e-eb5ba9aa9462",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-02ed34d4-df27-4eef-b29e-eb5ba9aa9462",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-a8e6df39-5411-40fc-bc82-b0cdb327aef0",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-a8e6df39-5411-40fc-bc82-b0cdb327aef0",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-13818bc8-4a2f-4663-b9bd-56b54edcc1c3",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-13818bc8-4a2f-4663-b9bd-56b54edcc1c3",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-02552290-98fb-4966-8d36-f234d46b127f",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-02552290-98fb-4966-8d36-f234d46b127f",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-new.txt",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-mock-on_prem.json",
+    "text": "On-prem collector (MOCK) \u2013 mock collecti",
+    "w": 64
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-mock-on_prem.json",
+    "text": "On-prem collector (MOCK)",
+    "w": 53
+   }
+  ]
+ },
+ {
+  "page": "traceability",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "help",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "squeezed",
+    "el": "role-matrix",
+    "text": "Privacy Official",
+    "w": 58
+   }
+  ]
+ },
+ {
+  "page": "audit-log",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "permission portfoli",
+    "w": 70
+   }
+  ]
+ },
+ {
+  "page": "admin",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 3,
+  "by_check": {
+   "label-wrap": 3
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "ai-status-provider-model",
+    "text": "openrouter / anthropic/claude-sonnet-5.5",
+    "w": 270
+   },
+   {
+    "check": "label-wrap",
+    "el": "ai-status-mode",
+    "text": "AI-assisted (openrouter / anthropic/clau",
+    "w": 270
+   }
+  ]
+ },
+ {
+  "page": "docs",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "notifications",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "dashboard",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 6,
+  "by_check": {
+   "label-wrap": 6
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "dash-step-status-categorize",
+    "text": "Remaining work",
+    "w": 87
+   },
+   {
+    "check": "label-wrap",
+    "el": "dash-step-next-select",
+    "text": "Review baseline, overlays and tailoring",
+    "w": 201
+   },
+   {
+    "check": "label-wrap",
+    "el": "dash-step-next-implement",
+    "text": "Work on unimplemented controls",
+    "w": 201
+   },
+   {
+    "check": "label-wrap",
+    "el": "dash-step-next-authorize",
+    "text": "Prepare the authorization package",
+    "w": 201
+   },
+   {
+    "check": "label-wrap",
+    "el": "dash-step-next-monitor",
+    "text": "Review continuous monitoring",
+    "w": 201
+   }
+  ]
+ },
+ {
+  "page": "my-work",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "sca-workspace",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 61,
+  "by_check": {
+   "label-wrap": 61
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ac-2.1",
+    "text": "AC-2(1) Automated System Account Managem",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ac-2.2",
+    "text": "AC-2(2) Automated Temporary and Emergenc",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ac-2.13",
+    "text": "AC-2(13) Disable Accounts for High-risk ",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ac-6.1",
+    "text": "AC-6(1) Authorize Access to Security Fun",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ac-6.2",
+    "text": "AC-6(2) Non-privileged Access for Nonsec",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ac-17.4",
+    "text": "AC-17(4) Privileged Commands and Access",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ac-19.5",
+    "text": "AC-19(5) Full Device or Container-based ",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ac-20.2",
+    "text": "AC-20(2) Portable Storage Devices \u2014 Rest",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-au-5",
+    "text": "AU-5 Response to Audit Logging Process F",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-au-6",
+    "text": "AU-6 Audit Record Review, Analysis, and ",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-au-6.3",
+    "text": "AU-6(3) Correlate Audit Record Repositor",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-au-7",
+    "text": "AU-7 Audit Record Reduction and Report G",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-au-9.4",
+    "text": "AU-9(4) Access by Subset of Privileged U",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cm-2.2",
+    "text": "CM-2(2) Automation Support for Accuracy ",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cm-2.3",
+    "text": "CM-2(3) Retention of Previous Configurat",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cm-2.7",
+    "text": "CM-2(7) Configure Systems and Components",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cm-3.2",
+    "text": "CM-3(2) Testing, Validation, and Documen",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cm-3.4",
+    "text": "CM-3(4) Security and Privacy Representat",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cm-7.5",
+    "text": "CM-7(5) Authorized Software \u2014 Allow-by-e",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cm-8.1",
+    "text": "CM-8(1) Updates During Installation and ",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cm-8.3",
+    "text": "CM-8(3) Automated Unauthorized Component",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cm-12.1",
+    "text": "CM-12(1) Automated Tools to Support Info",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cp-2.3",
+    "text": "CP-2(3) Resume Mission and Business Func",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cp-9.1",
+    "text": "CP-9(1) Testing for Reliability and Inte",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-cp-10",
+    "text": "CP-10 System Recovery and Reconstitution",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ia-2.1",
+    "text": "IA-2(1) Multi-factor Authentication to P",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ia-2.8",
+    "text": "IA-2(8) Access to Accounts \u2014 Replay Resi",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ia-3",
+    "text": "IA-3 Device Identification and Authentic",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ia-7",
+    "text": "IA-7 Cryptographic Module Authentication",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ia-8.1",
+    "text": "IA-8(1) Acceptance of PIV Credentials fr",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ia-8.2",
+    "text": "IA-8(2) Acceptance of External Authentic",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ia-12.3",
+    "text": "IA-12(3) Identity Evidence Validation an",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ir-4.1",
+    "text": "IR-4(1) Automated Incident Handling Proc",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-pe-6.1",
+    "text": "PE-6(1) Intrusion Alarms and Surveillanc",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ra-5",
+    "text": "RA-5 Vulnerability Monitoring and Scanni",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-ra-5.2",
+    "text": "RA-5(2) Update Vulnerabilities to Be Sca",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-sa-4.2",
+    "text": "SA-4(2) Design and Implementation Inform",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-sa-4.9",
+    "text": "SA-4(9) Functions, Ports, Protocols, and",
+    "w": 258
+   },
+   {
+    "check": "label-wrap",
+    "el": "sca-item-sa-8",
+    "text": "SA-8 Security and Privacy Engineering Pr",
+    "w": 258
+   }
+  ]
+ },
+ {
+  "page": "import-center",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 5,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 4
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-inventory-3a0db808-ed2b-4012-9e34-973a4cbd2a3d",
+    "text": "QA Payroll System",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-tr-fbf13283-71f8-4a1a-bdc4-51524c0390af",
+    "text": "QA Payroll System",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-tr-ee5381b4-db1e-41a8-8f87-a7b81daec869",
+    "text": "QA Payroll System",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-tr-bffa1031-19dc-4f5d-8443-736c3e2913ca",
+    "text": "QA Payroll System",
+    "w": 74
+   }
+  ]
+ },
+ {
+  "page": "policy-detail",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 11,
+  "by_check": {
+   "label-wrap": 5,
+   "squeezed": 6
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "evidence-confidence-ac-2",
+    "text": "Medium \u00b7 direct evidence",
+    "w": 83
+   },
+   {
+    "check": "label-wrap",
+    "el": "evidence-confidence-ac-7",
+    "text": "Medium \u00b7 direct evidence",
+    "w": 83
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-confirm-ac-7",
+    "text": "Confirm",
+    "w": 48
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-reject-ac-7",
+    "text": "Reject mapping",
+    "w": 77
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-2.3",
+    "text": "inactivity_disable_days",
+    "w": 75
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "unsuccessful_logon_attempts",
+    "w": 75
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "logon_attempt_window_minutes",
+    "w": 75
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "lockout_minutes",
+    "w": 75
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "organization-defined value",
+    "w": 75
+   },
+   {
+    "check": "squeezed",
+    "el": "pf-missing_policy_requirement-ac-17",
+    "text": "rule_extractor",
+    "w": 56
+   }
+  ]
+ },
+ {
+  "page": "policy-side-by-side",
+  "theme": "light",
+  "size": "1280x800",
+  "count": 11,
+  "by_check": {
+   "label-wrap": 5,
+   "squeezed": 6
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "evidence-confidence-ac-2",
+    "text": "Medium \u00b7 direct evidence",
+    "w": 83
+   },
+   {
+    "check": "label-wrap",
+    "el": "evidence-confidence-ac-7",
+    "text": "Medium \u00b7 direct evidence",
+    "w": 83
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-confirm-ac-7",
+    "text": "Confirm",
+    "w": 48
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-reject-ac-7",
+    "text": "Reject mapping",
+    "w": 77
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-2.3",
+    "text": "inactivity_disable_days",
+    "w": 75
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "unsuccessful_logon_attempts",
+    "w": 75
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "logon_attempt_window_minutes",
+    "w": 75
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "lockout_minutes",
+    "w": 75
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "organization-defined value",
+    "w": 75
+   },
+   {
+    "check": "squeezed",
+    "el": "pf-missing_policy_requirement-ac-17",
+    "text": "rule_extractor",
+    "w": 56
+   }
+  ]
+ }
+]

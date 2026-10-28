@@ -1,3 +1,4 @@
+import { ActionBar } from "@/components/common/ActionBar";
 import { ReactNode } from "react";
 import { cn } from "@/lib/format";
 
@@ -19,7 +20,7 @@ export function Panel({ title, eyebrow, actions, children, className, testId }: 
             {eyebrow && <div className="eyebrow">{eyebrow}</div>}
             {title && <h2 className="font-heading text-[15px] font-semibold tracking-tight text-slate-900">{title}</h2>}
           </div>
-          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+          {actions && <ActionBar testId={`${testId ?? "panel"}-actions`}>{actions}</ActionBar>}
         </header>
       )}
       <div className="p-5">{children}</div>
@@ -34,7 +35,7 @@ export function PageHeader({ title, subtitle, children }: { title: string; subti
         <h1 className="t-headline text-slate-900" data-testid="page-title">{title}</h1>
         {subtitle && <p className="t-caption mt-1.5 max-w-3xl text-slate-600">{subtitle}</p>}
       </div>
-      {children}
+      {children && <ActionBar testId="page-actions">{children}</ActionBar>}
     </div>
   );
 }

@@ -26,7 +26,7 @@ export default function ScaWorkspacePage() {
     <div data-testid="sca-workspace-page">
       <PageHeader title="SCA workspace" subtitle="Independent assessment: select a control, review its evidence, record the determination, save and move to the next." />
       <GuidedPanel step="assess" />
-      <ol className="mb-4 flex gap-2" data-testid="sca-flow">{FLOW.map((f, i) => <li key={f} className={cn("flex-1 rounded-lg px-2 py-1.5 text-center text-[12px] font-semibold",
+      <ol className="mb-4 flex flex-wrap gap-2" data-testid="sca-flow">{FLOW.map((f, i) => <li key={f} className={cn("min-w-[10rem] flex-1 whitespace-nowrap rounded-lg px-2 py-1.5 text-center text-[12px] font-semibold",
         (controlId ? (i <= 2) : i === 0) ? "bg-sky-700 text-white" : "bg-slate-100 text-slate-600")}>{f}</li>)}</ol>
       {trs.length > 0 && <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] text-sky-900" data-testid="sca-tr-imports">
         Imported test results ({trs.length} workbook{trs.length > 1 ? "s" : ""}, historical – they never change a determination by themselves):{" "}
@@ -35,7 +35,7 @@ export default function ScaWorkspacePage() {
         <Panel title={`Queue – not assessed (${queue.length})`} testId="sca-queue">
           <ul className="max-h-[620px] overflow-y-auto text-[12px]">{queue.slice(0, 400).map((a) => <li key={a.control_id}>
             <button className={cn("w-full border-b border-slate-100 px-2 py-1.5 text-left hover:bg-sky-50", a.control_id === controlId && "bg-sky-50 font-semibold")} onClick={() => nav(`/assess/workspace/${a.control_id}`)} data-testid={`sca-item-${a.control_id}`}>
-              <span className="font-mono text-sky-800">{a.label}</span> <span className="text-slate-600">{a.title}</span></button></li>)}</ul>
+              <span className="block font-mono text-sky-800">{a.label}</span><span className="block text-slate-600">{a.title}</span></button></li>)}</ul>
         </Panel>
         {!controlId || !d ? <div className="panel p-6 text-[13px] text-slate-500" data-testid="sca-empty">Select a control from the queue.</div> : (
           <div className="space-y-3" data-testid="sca-control">

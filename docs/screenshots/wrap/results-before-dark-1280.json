@@ -1,0 +1,587 @@
+[
+ {
+  "page": "rmf-workflow",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "systems",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "system-detail",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "portfolio",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "prepare",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "categorize",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "categorize-fips",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "select",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "select-fips",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "parameter-comparison",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "catalog",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "squeezed",
+    "el": "stat-baselines",
+    "text": "149 / 287 / 370",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "catalog-tree",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "squeezed",
+    "el": "stat-baselines",
+    "text": "149 / 287 / 370",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "catalog-tree-system",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "squeezed",
+    "el": "stat-baselines",
+    "text": "149 / 287 / 370",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "implement",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "workbench",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "control-detail",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "control-detail-fips",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
+ },
+ {
+  "page": "inheritance",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 6,
+  "by_check": {
+   "label-wrap": 3,
+   "clipped": 2,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "edit-provider-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Edit",
+    "w": 18
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "edit-provider-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Edit"
+   },
+   {
+    "check": "label-wrap",
+    "el": "crm-import-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Import CRM (CSV / Excel)",
+    "w": 10
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "crm-import-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Import CRM (CSV / Excel)"
+   },
+   {
+    "check": "squeezed",
+    "el": "provider-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "QA Cloud Provider East",
+    "w": 64
+   }
+  ]
+ },
+ {
+  "page": "inventory",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 4,
+  "by_check": {
+   "label-wrap": 4
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "label-wrap",
+    "el": "source-badge",
+    "text": "Scan/checklist file import",
+    "w": 98
+   },
+   {
+    "check": "label-wrap",
+    "el": "mocked-badge",
+    "text": "MOCKED source \u00b7 On-prem collector (MOCK)",
+    "w": 118
+   },
+   {
+    "check": "label-wrap",
+    "el": "source-badge",
+    "text": "eMASS HW/SW import",
+    "w": 81
+   }
+  ]
+ },
+ {
+  "page": "ccis",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "policy-auditor",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "evidence-sources",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "assess",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "reviews",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "test-results",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "mapping-review",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "authorize",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "authorization-package",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "poam",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "emass",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "monitor",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "evidence-ledger",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "traceability",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "help",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "audit-log",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "admin",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "docs",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "notifications",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "dashboard",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "my-work",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "sca-workspace",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "import-center",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "policy-detail",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "policy-side-by-side",
+  "theme": "dark",
+  "size": "1280x800",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ }
+]

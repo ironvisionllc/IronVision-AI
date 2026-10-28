@@ -68,7 +68,14 @@
   .panel { min-width: 0; }
   [data-testid="main-content"] { overflow-wrap: break-word; }
   [data-testid="main-content"] .grid > *, [data-testid="main-content"] .flex-1, [data-testid="main-content"] .flex-col > * { min-width: 0; }
-  [data-testid="main-content"] :is(.font-mono, code, pre, td, dd) { overflow-wrap: anywhere; }
+  /* break long words/IDs only where they would overflow – `anywhere` also shrank min-content, so table columns and flex
+     items squeezed until text stacked one word (or one character) per line instead of the table scrolling */
+  [data-testid="main-content"] :is(.font-mono, code, pre, td, dd) { overflow-wrap: break-word; }
+  /* labels never wrap and never shrink below their content (buttons, tabs, menu items, chips, badges, status labels) */
+  :is(button, [role=tab], [role=menuitem], [role=switch]):not(.w-full):not(:has(div, p, ul, table, br, .block)) { white-space: nowrap; }
+  :is([data-testid*="chip"], [data-testid*="badge"], [data-testid*="state-"], [data-testid*="confidence-"]):is(span, a, b),
+  span:is(.rounded-full, .rounded):is(.px-1, .px-1\.5, .px-2, .px-2\.5) { white-space: nowrap; }
+  :is(.btn, [role=tab], [role=menuitem]) { flex-shrink: 0; }
   [data-testid="main-content"] pre { white-space: pre-wrap; }
   .iv-table-scroll { max-width: 100%; overflow-x: auto; scrollbar-width: thin; scrollbar-color: rgba(100, 116, 139, 0.55) transparent; }
   .iv-table-scroll::-webkit-scrollbar { height: 8px; }
@@ -98,12 +105,20 @@
   .th button { font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; }
   thead tr:first-child .th:last-child { border-top-right-radius: 0.625rem; }
   .td { @apply px-3 py-2 align-top text-[13px] text-slate-700; line-height: 1.5; border-bottom: 1px solid var(--iv-border); }
+  /* Tables never squeeze columns: IDs, dates and statuses stay on one line, text columns keep a readable width (≈14–24ch) and
+     the table scrolls horizontally – inside .iv-table-scroll, or the table itself when it has no scroll wrapper. */
+  [data-testid="main-content"] td { min-width: 9ch; }
+  [data-testid="main-content"] td:not(.font-mono):not(:has(> :is(input, button, a, span, b):only-child)) { min-width: 14ch; }
+  [data-testid="main-content"] td:is(:nth-child(2), :nth-child(3)):not(.font-mono):not(:has(> :is(input, button, a, span, b):only-child)) { min-width: 24ch; }
+  [data-testid="main-content"] td:has(> :is(input[type=checkbox], input[type=radio]):only-child) { min-width: 0; }
+  [data-testid="main-content"] :is(td.font-mono, td > .font-mono:only-child, td time, td > [data-testid*="status"]:only-child) { white-space: nowrap; }
+  [data-testid="main-content"] table:not(.iv-table-scroll *):not(.overflow-x-auto *):not(.iv-prose *) { display: block; max-width: 100%; overflow-x: auto; }
   tbody tr { transition: background-color 120ms ease; }
   tbody tr:hover > .td { background: rgba(37, 151, 178, 0.04); }
 
   /* buttons */
   .btn { @apply inline-flex items-center gap-2 px-3 py-1.5 text-sm; font-family: var(--iv-font-heading); font-weight: 600; line-height: 1.4; border-radius: var(--iv-radius-btn);
-         border: 1px solid transparent; transition: background-color 150ms ease, box-shadow 150ms ease, color 150ms ease, border-color 150ms ease; }
+         border: 1px solid transparent; white-space: nowrap; transition: background-color 150ms ease, box-shadow 150ms ease, color 150ms ease, border-color 150ms ease; }
   /* disabled: readable label, dashed boundary – clearly disabled without fading to invisible (reason tooltips unchanged) */
   .btn:disabled, .btn[aria-disabled="true"] { background: var(--iv-disabled-bg) !important; color: var(--iv-disabled-text) !important; border: 1px dashed var(--iv-disabled-border) !important;
     cursor: not-allowed; box-shadow: none !important; filter: none; opacity: 1; }
@@ -174,6 +189,7 @@
 .iv-prose pre code { background: transparent; border: 0; padding: 0; color: inherit; font-size: inherit; }
 .iv-prose table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 13px; }
 .iv-prose th { text-align: left; font-family: var(--iv-font-heading); font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--iv-text-muted); background: var(--iv-surface-sunken); }
-.iv-prose th, .iv-prose td { border: 1px solid var(--iv-border); padding: 0.4rem 0.65rem; vertical-align: top; }
+.iv-prose th, .iv-prose td { border: 1px solid var(--iv-border); padding: 0.4rem 0.65rem; vertical-align: top; min-width: 16ch; }
+.iv-prose td code, .iv-prose th { white-space: nowrap; }
 .iv-prose blockquote { border-left: 3px solid #2597B2; background: rgba(37, 151, 178, 0.06); padding: 0.6rem 0.9rem; border-radius: 0 0.5rem 0.5rem 0; }
 .iv-prose hr { border: 0; border-top: 1px solid var(--iv-border); margin: 1.5rem 0; }

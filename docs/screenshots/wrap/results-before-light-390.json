@@ -1,0 +1,387 @@
+[
+ {
+  "page": "rmf-workflow",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "systems",
+  "theme": "light",
+  "size": "390x844",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 2
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "import-emass-btn",
+    "text": "eMASS sync / import",
+    "w": 76
+   },
+   {
+    "check": "label-wrap",
+    "el": "register-system-btn",
+    "text": "Register system",
+    "w": 107
+   }
+  ]
+ },
+ {
+  "page": "system-detail",
+  "theme": "light",
+  "size": "390x844",
+  "count": 1,
+  "by_check": {
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "squeezed",
+    "el": "system-overview",
+    "text": "Not authorized",
+    "w": 56
+   }
+  ]
+ },
+ {
+  "page": "portfolio",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "prepare",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "categorize",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "categorize-fips",
+  "theme": "light",
+  "size": "390x844",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "cat-current-status",
+    "text": "Legacy \u2013 recorded before approvals, revi",
+    "w": 279
+   }
+  ]
+ },
+ {
+  "page": "select",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "select-fips",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "parameter-comparison",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog-tree",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "catalog-tree-system",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "implement",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "workbench",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "control-detail",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "control-detail-fips",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "inheritance",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "inventory",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "ccis",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "policy-auditor",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "evidence-sources",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "assess",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "reviews",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "test-results",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "mapping-review",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "authorize",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "authorization-package",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "poam",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "emass",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "monitor",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "evidence-ledger",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "traceability",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "help",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "audit-log",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "admin",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "docs",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "notifications",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "dashboard",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "my-work",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "sca-workspace",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "import-center",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "policy-detail",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "policy-side-by-side",
+  "theme": "light",
+  "size": "390x844",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ }
+]

@@ -1,0 +1,2527 @@
+[
+ {
+  "page": "rmf-workflow",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "systems",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "system-detail",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "portfolio",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "prepare",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "categorize",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "categorize-fips",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "select",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "select-fips",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "parameter-comparison",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "catalog",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "catalog-tree",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "catalog-tree-system",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "implement",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "workbench",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "control-detail",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "control-detail-fips",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "inheritance",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 6,
+  "by_check": {
+   "label-wrap": 3,
+   "clipped": 2,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "label-wrap",
+    "el": "edit-provider-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Edit",
+    "w": 18
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "edit-provider-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Edit"
+   },
+   {
+    "check": "label-wrap",
+    "el": "crm-import-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Import CRM (CSV / Excel)",
+    "w": 10
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "crm-import-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "Import CRM (CSV / Excel)"
+   },
+   {
+    "check": "squeezed",
+    "el": "provider-5b1f23e4-a8fc-4334-a654-539ea40745b8",
+    "text": "QA Cloud Provider East",
+    "w": 64
+   }
+  ]
+ },
+ {
+  "page": "inventory",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "ccis",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "policy-auditor",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "evidence-sources",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "assess",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 0,
+  "by_check": {},
+  "items": []
+ },
+ {
+  "page": "reviews",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "test-results",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "mapping-review",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 33,
+  "by_check": {
+   "label-wrap": 33
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-ps:008a1e70-935d-48b7-99f8-c762b01c0355:ac-2.3",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-ps:0e787099-b77b-43af-b7f9-31bbe860b04e:ia-5",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-sbs-pm:297929c8-9ef5-49bf-b4cd-56fa7db05ca0",
+    "text": "Review side by side",
+    "w": 88
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:297929c8-9ef5-49bf-b4cd-56fa7db05ca0",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-sbs-pm:c14bac45-acf1-4746-8602-0f65934532e7",
+    "text": "Review side by side",
+    "w": 88
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:c14bac45-acf1-4746-8602-0f65934532e7",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-sbs-pm:db389707-efc1-4de3-b70f-96765fc2a60b",
+    "text": "Review side by side",
+    "w": 88
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:db389707-efc1-4de3-b70f-96765fc2a60b",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-sbs-pm:5c1fd077-f41a-4d7e-8e99-8ac151a9dd6b",
+    "text": "Review side by side",
+    "w": 88
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:5c1fd077-f41a-4d7e-8e99-8ac151a9dd6b",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-sbs-pm:32908cc5-d9ea-4765-8bc9-ac57aaeea908",
+    "text": "Review side by side",
+    "w": 88
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:32908cc5-d9ea-4765-8bc9-ac57aaeea908",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-sbs-pm:31db88be-e814-4632-97e0-7866d7471d81",
+    "text": "Review side by side",
+    "w": 88
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:31db88be-e814-4632-97e0-7866d7471d81",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-sbs-pm:68c40dd9-6493-4d2d-8c58-212cda4c1b10",
+    "text": "Review side by side",
+    "w": 88
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:68c40dd9-6493-4d2d-8c58-212cda4c1b10",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-sbs-pm:d0e754b5-9eaa-4654-9d95-4bfbb0bfdd60",
+    "text": "Review side by side",
+    "w": 88
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:d0e754b5-9eaa-4654-9d95-4bfbb0bfdd60",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-sbs-pm:fabdfa14-fae9-4d04-9cdf-8e97d45979da",
+    "text": "Review side by side",
+    "w": 88
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-pm:fabdfa14-fae9-4d04-9cdf-8e97d45979da",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900140:cm-6",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900140:ac-17.2",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900101:cm-6",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900118:au-9",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900200:ac-8",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900210:ac-10",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900220:au-3",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-910001:ac-8",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-910002:cm-6",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-900140:sc-13",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-930001:cm-6",
+    "text": "Approve",
+    "w": 26
+   },
+   {
+    "check": "label-wrap",
+    "el": "queue-approve-fm:V-930002:cm-6",
+    "text": "Approve",
+    "w": 26
+   }
+  ]
+ },
+ {
+  "page": "authorize",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "authorization-package",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "poam",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 2,
+  "by_check": {
+   "label-wrap": 1,
+   "clipped": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "poam-sort-status",
+    "text": "STATUS"
+   }
+  ]
+ },
+ {
+  "page": "emass",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 7,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 6
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "squeezed",
+    "el": "emass-sum-proposed",
+    "text": "queue: proposed",
+    "w": 59
+   },
+   {
+    "check": "squeezed",
+    "el": "emass-sum-pending_approval",
+    "text": "queue: pending approval",
+    "w": 59
+   },
+   {
+    "check": "squeezed",
+    "el": "emass-sum-approved",
+    "text": "queue: approved",
+    "w": 59
+   },
+   {
+    "check": "squeezed",
+    "el": "emass-sum-pending_retry",
+    "text": "queue: pending retry",
+    "w": 59
+   },
+   {
+    "check": "squeezed",
+    "el": "emass-sum-conflict",
+    "text": "queue: conflict",
+    "w": 59
+   },
+   {
+    "check": "squeezed",
+    "el": "emass-sum-succeeded",
+    "text": "queue: succeeded",
+    "w": 59
+   }
+  ]
+ },
+ {
+  "page": "monitor",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "evidence-ledger",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 60,
+  "by_check": {
+   "label-wrap": 1,
+   "clipped": 36,
+   "squeezed": 23
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-1175e704-d996-4940-93ef-11430e820f47",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-1175e704-d996-4940-93ef-11430e820f47",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-673f9091-7b4a-4d07-a622-9af1d0a8f08d",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-673f9091-7b4a-4d07-a622-9af1d0a8f08d",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-5e28a74b-8151-4cd0-a90b-859f33621965",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-5e28a74b-8151-4cd0-a90b-859f33621965",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-2f8473a1-89cd-407f-9a77-b850fb79b73b",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-2f8473a1-89cd-407f-9a77-b850fb79b73b",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-d797bdd6-191d-44d7-be76-cfa632b135de",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-d797bdd6-191d-44d7-be76-cfa632b135de",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-fa5c6911-9ad3-4e18-b652-151a9a5fd93e",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-fa5c6911-9ad3-4e18-b652-151a9a5fd93e",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-3dfe84ee-f376-4049-a876-0b324ee378e8",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-3dfe84ee-f376-4049-a876-0b324ee378e8",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-c5ec7edc-2133-4b2b-9652-86a80c2332f8",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-c5ec7edc-2133-4b2b-9652-86a80c2332f8",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-cc2cd7f0-8b19-42f4-9152-2cae1f3d4cff",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-cc2cd7f0-8b19-42f4-9152-2cae1f3d4cff",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-315fff59-0702-4125-ab54-e2437f3669ca",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-315fff59-0702-4125-ab54-e2437f3669ca",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-211460a8-29c8-4f8a-bcd6-d18d03c6eee0",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-211460a8-29c8-4f8a-bcd6-d18d03c6eee0",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-0a467525-ed74-47dc-a520-83d1343ac43a",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-0a467525-ed74-47dc-a520-83d1343ac43a",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-9e8fd0a2-6291-4518-a045-1a8b60b991b4",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-9e8fd0a2-6291-4518-a045-1a8b60b991b4",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-6dedf912-1990-4506-916b-f69104a86c1d",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-6dedf912-1990-4506-916b-f69104a86c1d",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-02ed34d4-df27-4eef-b29e-eb5ba9aa9462",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-02ed34d4-df27-4eef-b29e-eb5ba9aa9462",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-a8e6df39-5411-40fc-bc82-b0cdb327aef0",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-a8e6df39-5411-40fc-bc82-b0cdb327aef0",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-13818bc8-4a2f-4663-b9bd-56b54edcc1c3",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-13818bc8-4a2f-4663-b9bd-56b54edcc1c3",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "ev-actions-02552290-98fb-4966-8d36-f234d46b127f",
+    "text": "Actions \u25be"
+   },
+   {
+    "check": "clipped",
+    "why": "outside viewport",
+    "el": "demo-backdate-02552290-98fb-4966-8d36-f234d46b127f",
+    "text": "Demo: \u221245d"
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-new.txt",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-mock-on_prem.json",
+    "text": "On-prem collector (MOCK) \u2013 mock collecti",
+    "w": 64
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-mock-on_prem.json",
+    "text": "On-prem collector (MOCK)",
+    "w": 53
+   }
+  ]
+ },
+ {
+  "page": "traceability",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 3,
+  "by_check": {
+   "label-wrap": 2,
+   "squeezed": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "label-wrap",
+    "el": "trace-export",
+    "text": "Export CSV",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "traceability-panel",
+    "text": "Policy-mapped only",
+    "w": 63
+   }
+  ]
+ },
+ {
+  "page": "help",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 41,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 40
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "squeezed",
+    "el": "role-matrix",
+    "text": "Security Control Assessor",
+    "w": 59
+   },
+   {
+    "check": "squeezed",
+    "el": "role-matrix",
+    "text": "Authorizing Official",
+    "w": 68
+   },
+   {
+    "check": "squeezed",
+    "el": "role-matrix",
+    "text": "DevSecOps Engineer",
+    "w": 71
+   },
+   {
+    "check": "squeezed",
+    "el": "role-matrix",
+    "text": "Leadership Viewer",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "role-matrix",
+    "text": "Privacy Official",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-catalog.read",
+    "text": "Browse reference content (controls, base",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-system.read",
+    "text": "View systems in scope",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-system.write",
+    "text": "Changing system records, roles, categori",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-evidence.submit",
+    "text": "Submit evidence for controls",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-poam.manage",
+    "text": "Creating or editing POA&M items",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-assessment.perform",
+    "text": "Recording assessment results (Satisfied ",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-assessment.perform",
+    "text": "assessment.perform",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-authorization.decide",
+    "text": "Recording an authorization decision (ATO",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-authorization.decide",
+    "text": "authorization.decide",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-risk.accept",
+    "text": "Accepting residual risk",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-portfolio.read",
+    "text": "Viewing the portfolio / leadership dashb",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-audit.read",
+    "text": "Reading the audit log",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-admin.health.read",
+    "text": "View platform health and jobs",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-admin.health.read",
+    "text": "admin.health.read",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-admin.users.manage",
+    "text": "Manage users and role assignments",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-admin.users.manage",
+    "text": "admin.users.manage",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-admin.content.load",
+    "text": "Loading reference content and official o",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-admin.content.load",
+    "text": "admin.content.load",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-admin.ai.test",
+    "text": "Run AI provider smoke tests",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-system.register",
+    "text": "Registering a new system",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-system.roles.manage",
+    "text": "Assigning people to system roles",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-system.roles.manage",
+    "text": "system.roles.manage",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-source.manage",
+    "text": "Connecting tools and creating evidence s",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-ingest.upload",
+    "text": "Uploading scan, checklist or policy file",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-finding.map",
+    "text": "Approving, rejecting or editing mappings",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-implementation.write",
+    "text": "Changing implementation status or writin",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-implementation.write",
+    "text": "implementation.write",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-comment.write",
+    "text": "Adding reviewer comments",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-evidence.verify",
+    "text": "Running evidence integrity checks",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-demo.tools",
+    "text": "Demo-only tools (reset demo data, adjust",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-content.apply",
+    "text": "Applying content updates (STIG / KEV / C",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-emass.queue",
+    "text": "Queuing eMASS changes",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-emass.admin",
+    "text": "Configure the eMASS connector and failur",
+    "w": 43
+   },
+   {
+    "check": "squeezed",
+    "el": "matrix-risk.admin",
+    "text": "Edit operational prioritization weights ",
+    "w": 43
+   }
+  ]
+ },
+ {
+  "page": "audit-log",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 21,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 20
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:33:05Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "permission portfoli",
+    "w": 42
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:33:04Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:33:03Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:33:02Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:32:52Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:32:48Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:32:19Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:32:17Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:30:05Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:30:03Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:21:23Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:21:22Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:21:21Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:21:01Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:20:58Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:20:17Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:20:15Z",
+    "w": 38
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-table",
+    "text": "2026-10-28 02:11:14Z",
+    "w": 38
+   }
+  ]
+ },
+ {
+  "page": "admin",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 51,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 50
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18300",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18299",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18298",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18297",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18296",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18295",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18294",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18293",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18292",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18291",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18290",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18289",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18288",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18287",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18286",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18285",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18284",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18283",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18282",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18281",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18280",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18279",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18278",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18277",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18276",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18275",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18274",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18273",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18221",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18220",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18219",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18218",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18217",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18216",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18215",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18214",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18213",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18212",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18211",
+    "text": "Alex Rivera (ISSO persona)",
+    "w": 44
+   }
+  ]
+ },
+ {
+  "page": "docs",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "notifications",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "dashboard",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "my-work",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "sca-workspace",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   }
+  ]
+ },
+ {
+  "page": "import-center",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 45,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 44
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-ingest-f30bae09-707e-44c5-ad47-39af22499d60",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-ingest-7bcac729-e970-4aa9-9156-4a42986b70eb",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-ingest-30494321-e268-419e-9976-2605a5d18075",
+    "text": "STIG Checklist (CKL)",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-ingest-30494321-e268-419e-9976-2605a5d18075",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-ingest-0ba97171-47f6-4d6f-a6b3-8d93a33345a0",
+    "text": "STIG Checklist (CKL)",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-ingest-0ba97171-47f6-4d6f-a6b3-8d93a33345a0",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-inventory-3a0db808-ed2b-4012-9e34-973a4cbd2a3d",
+    "text": "eMASS Hardware/Software List",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-inventory-3a0db808-ed2b-4012-9e34-973a4cbd2a3d",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-tr-fbf13283-71f8-4a1a-bdc4-51524c0390af",
+    "text": "eMASS Test Result Import template",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-tr-fbf13283-71f8-4a1a-bdc4-51524c0390af",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-tr-ee5381b4-db1e-41a8-8f87-a7b81daec869",
+    "text": "eMASS Test Result Import template",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-tr-ee5381b4-db1e-41a8-8f87-a7b81daec869",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-tr-bffa1031-19dc-4f5d-8443-736c3e2913ca",
+    "text": "eMASS Test Result Import template",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-tr-bffa1031-19dc-4f5d-8443-736c3e2913ca",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-008a1e70-935d-48b7-99f8-c762b01c0355",
+    "text": "Policy / procedure document",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-008a1e70-935d-48b7-99f8-c762b01c0355",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-cff64397-3001-493a-8608-d402e56c99e1",
+    "text": "Policy / procedure document",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-cff64397-3001-493a-8608-d402e56c99e1",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-58eb281b-bc86-46fa-8b41-80b5191c4f6b",
+    "text": "Policy / procedure document",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-58eb281b-bc86-46fa-8b41-80b5191c4f6b",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-b86a9b96-7e43-47c1-ad31-19908245d346",
+    "text": "Policy / procedure document",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-b86a9b96-7e43-47c1-ad31-19908245d346",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-87ed68b2-618c-4aae-8640-6bffeb53b022",
+    "text": "Policy / procedure document",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-87ed68b2-618c-4aae-8640-6bffeb53b022",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-0e787099-b77b-43af-b7f9-31bbe860b04e",
+    "text": "Policy / procedure document",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-0e787099-b77b-43af-b7f9-31bbe860b04e",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-ingest-4e0b842a-4107-44f5-96ff-e877aaf8b7e6",
+    "text": "STIG Checklist (CKL)",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-ingest-4e0b842a-4107-44f5-96ff-e877aaf8b7e6",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-37eb5e2a-6014-426f-89c8-53cfaeb5597e",
+    "text": "Policy / procedure document",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-37eb5e2a-6014-426f-89c8-53cfaeb5597e",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-ingest-73513041-645a-4850-97c1-3650f24e4348",
+    "text": "STIG Checklist (CKL)",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-ingest-73513041-645a-4850-97c1-3650f24e4348",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-b320df15-c774-4394-8d1e-62a538d70c89",
+    "text": "Policy / procedure document",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-b320df15-c774-4394-8d1e-62a538d70c89",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-a8b3a498-14f2-4886-a81d-43bab3b5b3c3",
+    "text": "Policy / procedure document",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-a8b3a498-14f2-4886-a81d-43bab3b5b3c3",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-31f72752-0f50-46e1-9d46-f096e41de273",
+    "text": "Policy / procedure document",
+    "w": 76
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-31f72752-0f50-46e1-9d46-f096e41de273",
+    "text": "QA Payroll System",
+    "w": 61
+   },
+   {
+    "check": "squeezed",
+    "el": "ic-hist-policy-93257cea-fc4b-48f2-b535-069733a66f44",
+    "text": "Policy / procedure document",
+    "w": 76
+   }
+  ]
+ },
+ {
+  "page": "policy-detail",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 52,
+  "by_check": {
+   "label-wrap": 34,
+   "squeezed": 18
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "label-wrap",
+    "el": "evidence-confidence-ac-2",
+    "text": "Medium \u00b7 direct evidence",
+    "w": 83
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-sbs-ac-2",
+    "text": "Review side by side",
+    "w": 103
+   },
+   {
+    "check": "label-wrap",
+    "el": "evidence-confidence-ac-7",
+    "text": "Medium \u00b7 direct evidence",
+    "w": 83
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-sbs-ac-7",
+    "text": "Review side by side",
+    "w": 103
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-confirm-ac-7",
+    "text": "Confirm",
+    "w": 39
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-reject-ac-7",
+    "text": "Reject mapping",
+    "w": 59
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-37d9042d-eda2-4edb-b6c7-963f9cecd30a",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-37d9042d-eda2-4edb-b6c7-963f9cecd30a",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-37d9042d-eda2-4edb-b6c7-963f9cecd30a",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-aec97a13-ba8c-49b5-bdf0-b27b25231ac2",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-aec97a13-ba8c-49b5-bdf0-b27b25231ac2",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-aec97a13-ba8c-49b5-bdf0-b27b25231ac2",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-f15e6b57-46dc-49bc-a7cb-7679f9c4e3d7",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-f15e6b57-46dc-49bc-a7cb-7679f9c4e3d7",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-f15e6b57-46dc-49bc-a7cb-7679f9c4e3d7",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-a32f22b0-a775-45ab-a0e4-d619bf34584c",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-a32f22b0-a775-45ab-a0e4-d619bf34584c",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-a32f22b0-a775-45ab-a0e4-d619bf34584c",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-cb650686-7c03-41d4-812e-bb5bacdb9165",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-cb650686-7c03-41d4-812e-bb5bacdb9165",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-cb650686-7c03-41d4-812e-bb5bacdb9165",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-a156920f-4031-40d1-ae4b-496c01412e03",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-a156920f-4031-40d1-ae4b-496c01412e03",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-a156920f-4031-40d1-ae4b-496c01412e03",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-feb6d941-4234-4832-88cc-00cb4e658447",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-feb6d941-4234-4832-88cc-00cb4e658447",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-feb6d941-4234-4832-88cc-00cb4e658447",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-b5ffee83-73ff-4b4b-a9f0-37ad61d38e0d",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-b5ffee83-73ff-4b4b-a9f0-37ad61d38e0d",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-b5ffee83-73ff-4b4b-a9f0-37ad61d38e0d",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-772e4708-f426-44fc-af75-ce03a98e6a81",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-772e4708-f426-44fc-af75-ce03a98e6a81",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-772e4708-f426-44fc-af75-ce03a98e6a81",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-2.3",
+    "text": "inactivity_disable_days",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "unsuccessful_logon_attempts",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "logon_attempt_window_minutes",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "lockout_minutes",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "organization-defined value",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "pf-missing_policy_requirement-ac-17",
+    "text": "Missing requirement",
+    "w": 49
+   }
+  ]
+ },
+ {
+  "page": "policy-side-by-side",
+  "theme": "dark",
+  "size": "768x1024",
+  "count": 52,
+  "by_check": {
+   "label-wrap": 34,
+   "squeezed": 18
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 85
+   },
+   {
+    "check": "label-wrap",
+    "el": "evidence-confidence-ac-2",
+    "text": "Medium \u00b7 direct evidence",
+    "w": 83
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-sbs-ac-2",
+    "text": "Review side by side",
+    "w": 103
+   },
+   {
+    "check": "label-wrap",
+    "el": "evidence-confidence-ac-7",
+    "text": "Medium \u00b7 direct evidence",
+    "w": 83
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-sbs-ac-7",
+    "text": "Review side by side",
+    "w": 103
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-confirm-ac-7",
+    "text": "Confirm",
+    "w": 39
+   },
+   {
+    "check": "label-wrap",
+    "el": "mapping-reject-ac-7",
+    "text": "Reject mapping",
+    "w": 59
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-37d9042d-eda2-4edb-b6c7-963f9cecd30a",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-37d9042d-eda2-4edb-b6c7-963f9cecd30a",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-37d9042d-eda2-4edb-b6c7-963f9cecd30a",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-aec97a13-ba8c-49b5-bdf0-b27b25231ac2",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-aec97a13-ba8c-49b5-bdf0-b27b25231ac2",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-aec97a13-ba8c-49b5-bdf0-b27b25231ac2",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-f15e6b57-46dc-49bc-a7cb-7679f9c4e3d7",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-f15e6b57-46dc-49bc-a7cb-7679f9c4e3d7",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-f15e6b57-46dc-49bc-a7cb-7679f9c4e3d7",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-a32f22b0-a775-45ab-a0e4-d619bf34584c",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-a32f22b0-a775-45ab-a0e4-d619bf34584c",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-a32f22b0-a775-45ab-a0e4-d619bf34584c",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-cb650686-7c03-41d4-812e-bb5bacdb9165",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-cb650686-7c03-41d4-812e-bb5bacdb9165",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-cb650686-7c03-41d4-812e-bb5bacdb9165",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-a156920f-4031-40d1-ae4b-496c01412e03",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-a156920f-4031-40d1-ae4b-496c01412e03",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-a156920f-4031-40d1-ae4b-496c01412e03",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-feb6d941-4234-4832-88cc-00cb4e658447",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-feb6d941-4234-4832-88cc-00cb4e658447",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-feb6d941-4234-4832-88cc-00cb4e658447",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-b5ffee83-73ff-4b4b-a9f0-37ad61d38e0d",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-b5ffee83-73ff-4b4b-a9f0-37ad61d38e0d",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-b5ffee83-73ff-4b4b-a9f0-37ad61d38e0d",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-review-772e4708-f426-44fc-af75-ce03a98e6a81",
+    "text": "Request review",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-link-772e4708-f426-44fc-af75-ce03a98e6a81",
+    "text": "Link to control",
+    "w": 90
+   },
+   {
+    "check": "label-wrap",
+    "el": "pf-map-control-772e4708-f426-44fc-af75-ce03a98e6a81",
+    "text": "Map to control",
+    "w": 90
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-2.3",
+    "text": "inactivity_disable_days",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "unsuccessful_logon_attempts",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "logon_attempt_window_minutes",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "lockout_minutes",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "value-ac-7",
+    "text": "organization-defined value",
+    "w": 74
+   },
+   {
+    "check": "squeezed",
+    "el": "pf-missing_policy_requirement-ac-17",
+    "text": "Missing requirement",
+    "w": 49
+   }
+  ]
+ }
+]

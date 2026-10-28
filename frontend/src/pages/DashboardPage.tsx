@@ -62,7 +62,7 @@ export default function DashboardPage() {
               <div className="mt-2 text-[12px] text-slate-700">{st.summary}</div>
               {st.progress && <div className="mt-1 text-[11px] text-slate-500">{st.progress}</div>}
               <div className="mt-1 text-[11px] text-slate-500">{w.length ? `Awaiting: ${w.map((r: Row) => r.assigned_role.toUpperCase()).join(", ")} (${w.length})` : "No pending approvals"} · Roles: {ROLES[st.key]}</div>
-              {st.status !== "complete" && <Link className="btn-primary mt-2 inline-flex items-center gap-1 !py-1 text-[12px]" to={st.next_action.link} data-testid={`dash-step-next-${st.key}`}>{st.next_action.label}<ArrowRight className="h-3 w-3" /></Link>}
+              {st.status !== "complete" && <Link className="mt-2 inline-flex items-start gap-1 text-[12px] font-semibold text-blue-800 underline underline-offset-2" to={st.next_action.link} data-testid={`dash-step-next-${st.key}`}>{st.next_action.label}<ArrowRight className="h-3 w-3" /></Link>}
               {st.status === "complete" && <Link className="btn-secondary mt-2 inline-flex !py-1 text-[12px]" to={st.next_action.link}>View</Link>}
             </div>);
         })}

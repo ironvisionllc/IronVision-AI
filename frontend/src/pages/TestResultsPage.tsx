@@ -169,7 +169,7 @@ function Exports({ wb, reload }: { wb: Row; reload: () => void }) {
   };
   const dl = (url: string, name: string, label: string) => downloadFile(url, name, label);
   return (<div className="rounded border border-slate-200 p-3" data-testid="tr-exports">
-    <div className="mb-2 flex items-center gap-2"><span className="text-sm font-medium">4 · Export</span><button className="btn-primary" onClick={run} data-testid="tr-export">Export approved rows to the workbook</button>
+    <div className="mb-2 flex flex-wrap items-center gap-2"><span className="text-sm font-medium">4 · Export</span><button className="btn-primary" onClick={run} data-testid="tr-export">Export approved rows to the workbook</button>
       <span className="text-[11px] text-slate-600">Only approved rows are written; everything else in the workbook stays byte-identical.</span></div>
     <TableScroll><table className="w-full text-[12px]"><tbody>{(wb.exports || []).map((e: Row) => <tr key={e.id} className="border-t border-slate-100" data-testid={`tr-export-${e.version}`}>
       <td>v{e.version}</td><td>{new Date(e.created_at).toLocaleString()}</td><td>{e.exported_by}</td><td>{e.counts?.written_rows} rows · {e.changed_cells} cells</td>
