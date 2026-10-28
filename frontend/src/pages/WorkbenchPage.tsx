@@ -8,6 +8,7 @@ import { useApi, Row } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { BaselinePill } from "@/components/common/StatusPill";
 import { S, Sev, Stat, Table } from "@/components/common/Bits";
+import { StatusChip } from "@/components/common/StatusChip";
 import { AccessDenied } from "@/components/common/AccessDenied";
 import { cn, fmtDate } from "@/lib/format";
 import { AddToPoamButton, PoamLink } from "@/components/common/Workflow";
@@ -81,6 +82,7 @@ const WB_FILTERS: [string, string, string[]][] = [
   ["emass_status", "eMASS status", ["Planned", "Implemented", "Inherited", "Not Applicable", "Manually Inherited"]],
   ["emass_missing", "Missing required eMASS fields", ["yes", "no"]],
 ];
+const PRIMARY = ["implementation_status", "assessment_status"];
 const FILTER_KEYS = ["family", ...WB_FILTERS.map(([k]) => k), "policy_mapping", "policy", "policy_coverage"];
 const PM: [string, string][] = [["mapped", "Mapped to a policy"], ["not_mapped", "Not mapped"], ["proposed", "Proposed (awaiting review)"]];
 const PC: [string, string][] = [["met", "All requirements met"], ["partial", "Partially met"], ["gaps", "Gaps (any MISSING)"]];
@@ -93,7 +95,11 @@ export function WorkbenchFilters({ params, set, sid }: { params: URLSearchParams
     <div className="grid grid-cols-2 gap-2 border-b border-slate-200 p-3" data-testid="workbench-filters">
       <select className="input" value={params.get("family") ?? ""} onChange={(e) => set("family", e.target.value)} data-testid="filter-family" aria-label="Family">
         <option value="">All families</option>{(fam || []).map((f) => <option key={f.family_id} value={f.family_id}>{`${f.family_id.toUpperCase()} – ${f.family_title}`}</option>)}</select>
-      {WB_FILTERS.map(([k, l, vals]) => <select key={k} className="input" value={params.get(k) ?? ""} onChange={(e) => set(k, e.target.value)} data-testid={`filter-${k}`} aria-label={l}>
+      {WB_FILTERS.filter(([k]) => PRIMARY.includes(k)).map(([k, l, vals]) => <select key={k} className="input" value={params.get(k) ?? ""} onChange={(e) => set(k, e.target.value)} data-testid={`filter-${k}`} aria-label={l}>
+        <option value="">{`${l}: all`}</option>{vals.map((v) => <option key={v} value={v}>{`${l}: ${v.replace(/_/g, " ")}`}</option>)}</select>)}
+      <details className="col-span-2 text-[12px]" data-testid="wb-more-filters" open={WB_FILTERS.some(([k]) => !PRIMARY.includes(k) && !!params.get(k)) || !!params.get("policy_mapping") || !!params.get("policy")}>
+        <summary className="cursor-pointer text-slate-600">More filters</summary><div className="mt-2 grid grid-cols-2 gap-2">
+      {WB_FILTERS.filter(([k]) => !PRIMARY.includes(k)).map(([k, l, vals]) => <select key={k} className="input" value={params.get(k) ?? ""} onChange={(e) => set(k, e.target.value)} data-testid={`filter-${k}`} aria-label={l}>
         <option value="">{`${l}: all`}</option>{vals.map((v) => <option key={v} value={v}>{`${l}: ${v.replace(/_/g, " ")}`}</option>)}</select>)}
       {sid && <>
         <select className="input" value={params.get("policy_mapping") ?? ""} onChange={(e) => set("policy_mapping", e.target.value)} data-testid="filter-policy_mapping" aria-label="Policy mapping">
@@ -106,6 +112,7 @@ export function WorkbenchFilters({ params, set, sid }: { params: URLSearchParams
           {(fc?.policy || []).map((p: Row) => <label key={p.id} className="block"><input type="checkbox" checked={pols.includes(p.id)} data-testid={`filter-policy-${p.id}`}
             onChange={(e) => set("policy", (e.target.checked ? [...pols, p.id] : pols.filter((x) => x !== p.id)).join(","))} /> {p.title} v{p.version} ({p.count})</label>)}
         </details></>}
+      </div></details>
     </div>);
 }
 
@@ -114,13 +121,16 @@ export default function WorkbenchPage() {
   const nav = useNavigate();
   const { select } = useSystems();
   const [params, setParams] = useSearchParams();
-  const [all, setAll] = useState(false);
+  const [all, setAll] = useState(true);
   const [size, setSize] = usePageSize("workbench");
   const [page, setPage] = useState(0);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [bulk, setBulk] = useState(false);
   const { can } = useAuth();
   useEffect(() => { if (id) select(id); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const saveKey = `iv.wb.filters.${id}`;
+  useEffect(() => { const saved = localStorage.getItem(saveKey); if (!params.toString() && saved) setParams(new URLSearchParams(saved), { replace: true }); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const q = new URLSearchParams(params); q.delete("tab"); if (q.toString()) localStorage.setItem(saveKey, q.toString()); else localStorage.removeItem(saveKey); }, [params, saveKey]);
   const filters = Object.fromEntries(FILTER_KEYS.filter((k) => params.get(k)).map((k) => [k, params.get(k) as string]));
   const filtered = Object.keys(filters).length > 0;
   const setFilter = (k: string, v: string) => setParams((prev) => { const p = new URLSearchParams(prev); if (v) p.set(k, v); else p.delete(k); return p; }, { replace: true });
@@ -133,8 +143,6 @@ export default function WorkbenchPage() {
     <div data-testid="workbench-page">
       <PageHeader title="Control Workbench" subtitle="Work through your system's controls for the ATO: set each control's status, write how it is implemented, attach evidence, and see what is still open. Pick a control from the list on the left to start.">
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/workbench/controls?${new URLSearchParams({ ...filters, fmt: "csv" })}`, "controls.csv", "Control list")} data-testid="wb-export-controls" title="CSV of the controls matching the active filters">Export controls (CSV)</button>
-        <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/parameters.csv`, "parameter-comparison.csv", "Parameter comparison")} data-testid="wb-export-parameters" title="System-wide CSV: every policy value next to the system's defined value (ODP), overlay values and the latest observed value">Export parameter comparison</button>
-        <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/emass/implementation-plan.xlsx`, "eMASS-formatted-implementation-plan.xlsx", "eMASS-formatted Implementation Plan")} data-testid="wb-export-emass-plan" title="eMASS-formatted, compatibility pending human verification">eMASS plan (xlsx)</button>
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${id}/emass/implementation-plan/validation?fmt=csv`, "emass-validation.csv", "eMASS validation report")} data-testid="wb-export-emass-validation" title="Rows missing required eMASS fields">eMASS validation</button>
         <Link className="btn-secondary" to={`/systems/${id}/import-center?type=control_information`} data-testid="wb-import-emass-btn" title="Opens the Import Center pre-set to eMASS Control Information / Implementation Plan">Import…</Link>
         <Link to="/catalog" className="btn-secondary" data-testid="open-catalog-btn" title="Browse every NIST SP 800-53 Rev 5 control and baseline">Reference catalog</Link>
@@ -193,11 +201,16 @@ export default function WorkbenchPage() {
   );
 }
 
+const WB_TABS: [string, (d: Row) => string][] = [["requirements", () => "Requirements"], ["implementation", () => "Implementation"],
+  ["evidence", (d) => `Evidence & Policies (${d.evidence.length})`], ["assessment", () => "Assessment"], ["findings", (d) => `Findings & POA&M (${d.open_findings.length + d.poams.length})`], ["monitoring", () => "Monitoring"]];
+
 function ControlPanel({ systemId, controlId, onChange }: { systemId: string; controlId: string; onChange: () => void }) {
   const { can } = useAuth();
   const { data: d, reload, error, denied } = useApi<Row>(`/systems/${systemId}/workbench/controls/${controlId}`);
   const [comment, setComment] = useState("");
   const [msg, setMsg] = useState("");
+  const [sp, setSp] = useSearchParams();
+  const tab = sp.get("tab") || "implementation";
   if (denied) return <AccessDenied denied={denied} area="this control" />;
   if (error) return <div className="panel p-6 text-sm text-rose-700">{error}</div>;
   if (!d) return null;
@@ -211,8 +224,9 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
         <h2 className="mt-1 text-lg font-semibold">{c.title}</h2>
         {a.selection_basis && <div className="mt-1 text-[12px] text-slate-600" data-testid="wb-selection-basis">{a.selection_basis}</div>}
         <div className="mt-3 flex flex-wrap gap-2" data-testid="wb-statuses">
-          <S v={a.implementation_status} label="Implementation" testId="wb-status-implementation" /><S v={a.assessment_status} label="Assessment" testId="wb-status-assessment" />
-          <S v={a.monitoring_status} label="Monitoring" testId="wb-status-monitoring" /><S v={a.evidence_freshness_status} label="Evidence freshness" testId="wb-status-freshness" />
+          <StatusChip dim="implementation" v={a.implementation_status} showDim testId="wb-status-implementation" /><StatusChip dim="assessment" v={a.assessment_status} showDim testId="wb-status-assessment" />
+          <S v={a.monitoring_status} label="Monitoring" testId="wb-status-monitoring" /><StatusChip dim="freshness" v={a.evidence_freshness_status} showDim testId="wb-status-freshness" />
+          {d.open_findings.length > 0 && <span className="rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-semibold text-rose-800" data-testid="wb-status-findings">{d.open_findings.length} open finding(s)</span>}
         </div>
         {a.reason_details.length > 0 && <div className="mt-2 text-[11px] text-slate-600" data-testid="wb-score-breakdown">Priority {a.priority_score}: {a.reason_details.map((r: Row) => `${r.description} (+${r.points})`).join(" · ")}</div>}
         <ControlPolicyCoverage items={d.policy_coverage || []} />
@@ -221,6 +235,10 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
           {n.fields.map((f: Row, i: number) => <div key={i} className="mt-1"><b>{f.label}</b> (p. {f.page}): {f.text}</div>)}</details>)}
         <div className="mt-1 text-[11px] text-slate-400">Last eMASS sync: {d.emass_sync}</div>
       </Panel>
+      <div className="flex flex-wrap gap-1 border-b border-slate-200" role="tablist" data-testid="wb-tabs">{WB_TABS.map(([k, l]) =>
+        <button key={k} role="tab" aria-selected={tab === k} onClick={() => setSp((p) => { const n = new URLSearchParams(p); n.set("tab", k); return n; }, { replace: true })}
+          className={cn("px-3 py-2 text-[13px] font-semibold", tab === k ? "border-b-2 border-sky-700 text-sky-900" : "text-slate-500")} data-testid={`wb-tab-${k}`}>{l(d)}</button>)}</div>
+      {tab === "evidence" && <>{(d.pending_reviews || []).length > 0 && <Link to="/mapping-review" className="block rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] text-sky-900" data-testid="wb-pending-suggestions">{d.pending_reviews.length} pending mapping/status suggestion(s) for this control → Mapping review</Link>}
       <Panel title="Supporting evidence" testId="wb-evidence">
         <div className="mb-2 flex flex-wrap gap-3 text-[12px]" data-testid="wb-evidence-summary">{d.evidence_summary.map((s: Row) => <span key={s.source_type} className="rounded border border-slate-200 px-2 py-1">{s.source_type === "stig_checklist" ? "STIG" : "ACAS"}: {s.assets_scanned} assets scanned, {s.failed_rules} failed rules, {s.passed_checks} passing checks</span>)}</div>
         <Table head={["Evidence", "Source", "Collected", "Age", "State", "SHA-256"]}>
@@ -228,13 +246,15 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
             <td className="td font-mono text-[11px]">{Math.floor((Date.now() - new Date(e.collected_at).getTime()) / 86400000)}d</td><td className="td"><S v={e.state} /></td><td className="td font-mono text-[11px]">{e.sha256.slice(0, 12)}…</td></tr>)}
         </Table>
       </Panel>
-      <Panel title={`Open findings (${d.open_findings.length})`} testId="wb-open-findings-table">
+      <MappedPoliciesPanel d={d} /></>}
+      {tab === "findings" && <><Panel title={`Open findings (${d.open_findings.length})`} testId="wb-open-findings-table">
         <Table head={["Rule", "Requirement", "Severity", "Asset", "Mapping provenance", "Action"]}>
           {d.open_findings.map((f: Row) => <tr key={f.id}><td className="td font-mono text-[11px]">{f.vuln_id ?? f.rule_id}</td><td className="td text-[12px]">{f.title}{f.is_kev && <> <S v="critical" label="KEV" /></>}</td>
             <td className="td text-[12px]"><Sev v={f.cat ?? f.severity} /></td><td className="td text-[12px]">{f.asset_name}</td><td className="td text-[11px]">{f.mapping.source}{f.mapping.cci_id && ` (${f.mapping.cci_id})`} · {f.mapping.review_status}</td><td className="td"><Link className="mr-1 text-[11px] text-blue-800 underline" to={`/findings/${f.id}`} data-testid={`wb-finding-link-${f.id}`}>view</Link>{f.poam ? <span className="text-[11px]" data-testid={`wb-finding-linked-${f.id}`}>Linked: <PoamLink id={f.poam.id} humanId={f.poam.human_id} /></span> : <AddToPoamButton findingId={f.id} onDone={reload} />}</td></tr>)}
         </Table>
       </Panel>
-      {d.policy_parameters?.length > 0 && <Panel title="Policy & parameters" testId="wb-policy-parameters">
+      <Panel title="POA&Ms for this control" testId="wb-poams">{d.poams.length === 0 ? <div className="text-[12px] text-slate-500">None</div> : d.poams.map((p: Row) => <div key={p.id} className="text-[12px]"><PoamLink id={p.id} humanId={p.human_id} /> {p.weakness} <StatusChip dim="poam" v={p.status} /> due {p.due_date ?? "—"}</div>)}</Panel></>}
+      {tab === "requirements" && d.policy_parameters?.length > 0 && <Panel title="Policy & parameters" testId="wb-policy-parameters">
         <Table head={["Parameter", "Organization-defined value (source)", "Observed value (source)", "Result", "Policy finding / POA&M"]}>
           {d.policy_parameters.map((p: Row) => <tr key={p.parameter} data-testid={`wb-param-${p.parameter}`}><td className="td text-[12px]">{p.parameter.replace(/_/g, " ")}</td>
             <td className="td text-[12px]"><b>{p.odp_value}</b><div className="text-[10px] text-slate-500">{p.odp_source}</div></td>
@@ -244,14 +264,14 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
               {p.poams.map((x: Row) => <div key={x.id}><PoamLink id={x.id} humanId={x.human_id} /></div>)}</td></tr>)}
         </Table>
       </Panel>}
+      {tab === "implementation" && <>
       <StatusSection systemId={systemId} controlId={controlId} d={d} reload={() => { reload(); onChange(); }} />
-      <RequirementCounts systemId={systemId} controlId={controlId} />
-      <MappedPoliciesPanel d={d} />
-      {d.cnssi_parameters && <CnssiParams sid={systemId} cid={controlId} p={d.cnssi_parameters} reload={reload} />}
       <ImplementationPanel systemId={systemId} controlId={controlId} d={d} reload={() => { reload(); onChange(); }} />
-      <EmassPanels systemId={systemId} controlId={controlId} onSaved={() => { reload(); onChange(); }} />
-      <Panel title="POA&Ms for this control" testId="wb-poams">{d.poams.length === 0 ? <div className="text-[12px] text-slate-500">None</div> : d.poams.map((p: Row) => <div key={p.id} className="text-[12px]"><PoamLink id={p.id} humanId={p.human_id} /> {p.weakness} <S v={p.status} /> due {p.due_date ?? "—"}</div>)}</Panel>
-      <Panel title="SCA assessment" testId="wb-assessment-panel"><AssessmentPanel systemId={systemId} controlId={controlId} objectives={c.objectives} onDone={() => { reload(); onChange(); }} /></Panel>
+      <details className="panel p-3" data-testid="wb-advanced-emass"><summary className="cursor-pointer text-[13px] font-semibold">Advanced eMASS fields <span className="font-normal text-slate-500">(designation, SLCM, N/A justification, completion dates, CCP)</span></summary>
+        <div className="mt-3"><EmassPanels systemId={systemId} controlId={controlId} onSaved={() => { reload(); onChange(); }} /></div></details></>}
+      {tab === "assessment" && <Panel title="SCA assessment" testId="wb-assessment-panel"><AssessmentPanel systemId={systemId} controlId={controlId} objectives={c.objectives} onDone={() => { reload(); onChange(); }} /></Panel>}
+      {tab === "requirements" && <><RequirementCounts systemId={systemId} controlId={controlId} />
+      {d.cnssi_parameters && <CnssiParams sid={systemId} cid={controlId} p={d.cnssi_parameters} reload={reload} />}
       <Panel title="Catalog: statement, parameters, objectives, CCIs" testId="wb-catalog">
         <pre className="whitespace-pre-wrap font-sans text-[13px] text-slate-800" data-testid="wb-statement">{(d.statement_segments || [{ text: c.statement }]).map((s: Row, i: number) => s.text !== undefined ? <span key={i}>{s.text}</span> :
           s.value ? <mark key={i} className="rounded bg-emerald-50 px-0.5 text-emerald-900" title={`${s.original} · ${s.source}`} data-testid={`odp-filled-${s.odp_id}`}>{s.value}</mark> :
@@ -260,11 +280,13 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
         {c.enhancements.length > 0 && <div className="mt-3 text-[12px]"><b>Enhancements:</b> {c.enhancements.map((e: Row) => e.label).join(", ")}</div>}
         <div className="mt-3 text-[12px]"><b>Objectives:</b> {c.objectives.filter((o: Row) => o.prose).length}</div>
         <div className="mt-3 text-[12px]" data-testid="wb-cci-list"><b>CCIs</b> ({d.cci_provenance.source} {d.cci_provenance.version}, sha {d.cci_provenance.sha256?.slice(0, 12)}…): {c.ccis.map((x: Row) => x.cci_id).join(", ")}</div>
-      </Panel>
-      <Panel title="Reviewer comments" testId="wb-comments">
+      </Panel></>}
+      {tab === "monitoring" && <Panel title="Monitoring" testId="wb-monitoring"><div className="text-[12px]">Monitoring status: <S v={a.monitoring_status} /> · Evidence: <StatusChip dim="freshness" v={a.evidence_freshness_status} /> · Last eMASS sync: {d.emass_sync}</div>
+        <Link className="mt-2 inline-block text-[12px] text-blue-800 underline" to="/rmf/monitor">Monitoring schedules (Step 7) →</Link></Panel>}
+      {tab === "implementation" && <Panel title="Reviewer comments" testId="wb-comments">
         {d.comments.map((m: Row) => <div key={m.id} className="border-b border-slate-100 py-1 text-[12px]"><b>{m.author_email}</b> {fmtDate(m.created_at)}: {m.body}</div>)}
         <Gated perm="comment.write"><div className="mt-2 flex gap-2"><input className="input" value={comment} onChange={(e) => setComment(e.target.value)} data-testid="wb-comment-input" /><button className="btn-secondary" disabled={!comment} onClick={addComment} data-testid="wb-comment-btn">Comment</button></div></Gated>
-      </Panel>
+      </Panel>}
     </div>
   );
 }

@@ -18,6 +18,7 @@ export function PackageDocuments({ systemId, acronym, kinds = ["ssp", "sar", "ra
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${systemId}/documents/${k}?format=docx`, `${acronym}_${k.toUpperCase()}_DRAFT.docx`, label)} data-testid={`doc-${k}-docx`}>DOCX</button>
         <button className="btn-secondary" onClick={() => downloadFile(`/systems/${systemId}/documents/${k}?format=pdf`, `${acronym}_${k.toUpperCase()}_DRAFT.pdf`, label)} data-testid={`doc-${k}-pdf`}>PDF</button>
         {k !== "rar" && <span className="text-[11px] text-slate-500">OSCAL JSON: use “OSCAL exports” above ({k === "ssp" ? "system-security-plan" : "assessment-results"})</span>}
+        {k === "ssp" && <button className="btn-secondary" onClick={() => downloadFile(`/systems/${systemId}/emass/implementation-plan.xlsx`, `${acronym}_eMASS-implementation-plan.xlsx`, "eMASS-formatted Implementation Plan")} data-testid="pkg-export-emass-plan" title="eMASS-formatted Implementation Plan (moved here from the Control Workbench)">eMASS Implementation Plan (xlsx)</button>}
       </div>
       {chk[k] && <div className="mt-1 text-[12px]" data-testid={`doc-${k}-status`}><b className={chk[k].missing.length ? "text-amber-800" : "text-emerald-800"}>{chk[k].status}</b>
         {chk[k].missing.length > 0 ? <ul className="list-disc pl-5">{chk[k].missing.map((m: string, i: number) => <li key={i} data-testid={`doc-${k}-missing-${i}`}>{m}</li>)}</ul>
