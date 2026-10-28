@@ -186,7 +186,7 @@ async def t_finding(m, ctx):
     await m.system(ctx["ltp"])
     await m.nav("implement/Control Workbench")
     if not await m.click("text=Open findings", opt=True):  # new layout: the control's Findings tab
-        await m.click("[data-testid^=queue-item-]")
+        await m.click("button[data-testid^=queue-item-]")
         await m.click("[data-testid=wb-tab-findings]")
     else:
         await m.click("[data-testid^=queue-open-]")

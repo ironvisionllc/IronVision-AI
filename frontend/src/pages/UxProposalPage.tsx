@@ -61,6 +61,18 @@ const BACKLOG = [
   ["R6", "Guided Mode; connectedness gaps (ACAS → POA&M suggestion, strategy-awaiting notice, suggestions on the control)"],
   ["R7", "Saved filters, ⌘K search, Help merge"],
 ];
+const IMPLEMENTED: [string, string][] = [
+  ["dashboard", "System dashboard: 7 step cards with status, “Continue where you left off”, pending approvals"],
+  ["navigation", "Navigation: My Work · Systems · Import Center · Help · Admin, then the 7 RMF steps (header opens the step, chevron expands)"],
+  ["mywork_isso", "My Work – ISSO"], ["mywork_sca", "My Work – SCA (assessment work only)"], ["mywork_issm", "My Work – ISSM (approvals)"], ["mywork_ao", "My Work – AO (decisions)"],
+  ["workbench", "Control Workbench: list + 3 primary filters (more collapsed), 6 control tabs, glossary status chips"],
+  ["import_center", "Import Center: detect → route → “Completed – next: …”"],
+  ["mapping_review", "Mapping Review: 3 main tabs (policy coverage, STIG mappings, status suggestions)"],
+  ["sca_workspace", "SCA assessment workspace: queue, test-result imports, determination in one place"],
+  ["generate_ssp", "Authorize › Package & documents: SSP validation and download (eMASS plan export moved here)"],
+  ["guided_off", "Guided Mode off (default)"], ["guided_on", "Guided Mode on: purpose, why, what you need, who, what's next"],
+];
+const AFTER: [string, number, number, number, string][] = [];
 
 function Table({ head, rows, testId }: { head: string[]; rows: (string | number)[][]; testId: string }) {
   return (
@@ -109,6 +121,12 @@ export default function UxProposalPage() {
           {MOCKUPS.map(([k, c]) => <Shot key={k} src={`${P}/mockups/${k}.png`} caption={c} testId={`ux-mockup-${k}`} />)}</Section>
         <Section title="Before / after – the 6 priority areas" id="before-after">
           {BEFORE_AFTER.map((k) => <Shot key={k} src={`${P}/before_after/${k}.png`} caption={`${k.replace("_", " ")}: current UI (left) vs proposal (right)`} testId={`ux-before-after-${k}`} />)}</Section>
+        <Section title="Implemented – R1 to R7 (actual screens of the running app, synthetic sandbox)" id="implemented">
+          <p className="text-[13px] text-slate-600">The proposal above was approved and built in seven releases. These are screenshots of the implemented app, not mockups.
+            Data, permissions, separation of duties, SCA independence, AO authority, human approval of AI, audit and tenant isolation are unchanged.</p>
+          <Table head={["Task", "Clicks before → after", "Page changes before → after", "Fields before → after", "Next action before → after"]}
+            rows={AFTER.map(([t, ...a], i) => [t, `${METRICS[i][1]} → ${a[0]}`, `${METRICS[i][2]} → ${a[1]}`, `${METRICS[i][3]} → ${a[2]}`, `${METRICS[i][4]} → ${a[3]}`])} testId="ux-after-metrics-table" />
+          {IMPLEMENTED.map(([k, c]) => <Shot key={k} src={`${P}/implemented/${k}.png`} caption={c} testId={`ux-implemented-${k}`} />)}</Section>
       </main>
     </div>);
 }

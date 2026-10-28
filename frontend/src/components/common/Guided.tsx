@@ -16,11 +16,11 @@ export function useGuided(): [boolean, (on: boolean) => void, boolean] {
   return [v === "on", set, v === null];
 }
 
-export function GuidedToggle() {
+export function GuidedToggle({ testId = "guided-toggle" }: { testId?: string }) {
   const [on, set] = useGuided();
   return <button type="button" className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${on ? "border-violet-300 bg-violet-50 text-violet-800" : "border-slate-300 text-slate-600"}`}
-    onClick={() => set(!on)} aria-pressed={on} data-testid="guided-toggle" title="Guided mode explains each step: purpose, what you need, who does it and what comes next">
-    <Compass className="mr-1 inline h-3 w-3" aria-hidden />Guided mode: {on ? "on" : "off"}</button>;
+    onClick={() => set(!on)} aria-pressed={on} aria-label={`Guided mode: ${on ? "on" : "off"}`} data-testid={testId} title="Guided mode explains each step: purpose, what you need, who does it and what comes next">
+    <Compass className="inline h-3 w-3 md:mr-1" aria-hidden /><span className="hidden md:inline">Guided mode: {on ? "on" : "off"}</span></button>;
 }
 
 export function GuidedFirstLogin() {

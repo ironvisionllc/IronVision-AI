@@ -9,6 +9,7 @@ import { STEP_STATUS, useActiveSystemId, useRmfSteps } from "@/components/rmf/St
 import type { Row } from "@/lib/useApi";
 import { deniedText, showDenied } from "@/components/common/RoleGate";
 import { RecentlyViewed } from "@/components/shell/Recent";
+import { GuidedToggle } from "@/components/common/Guided";
 
 const APP_VERSION = process.env.REACT_APP_VERSION || "";
 
@@ -58,6 +59,7 @@ export function Sidebar() {
             </div>);
         })}
         <RecentlyViewed />
+        <div className="px-5 py-2 sm:hidden" data-testid="sidebar-guided"><GuidedToggle testId="guided-toggle-mobile" /></div>
       </nav>
       {APP_VERSION && <div className="iv-sb-muted border-t px-5 py-1.5 text-[10px]" style={{ borderColor: "var(--iv-sb-border)" }} data-testid="sidebar-footer">v{APP_VERSION}</div>}
     </aside>

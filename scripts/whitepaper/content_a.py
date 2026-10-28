@@ -101,9 +101,10 @@ PART_A = [
     IMG(S + "signup-demo/04-role-switcher-open.png", "Sandbox persona switcher ('Acting as') in the header", 88),
     PB,
     H1("4", "RMF lifecycle coverage (NIST SP 800-37 Rev. 2)"),
-    P("The RMF overview ('Getting started') and the per-system stepper compute a status for each of the seven steps from live data. A "
+    P("The system dashboard, the RMF navigation and the per-system stepper compute a status for each of the seven steps from live data. A "
       "status is never typed in by hand. Each step reports one of **not started**, **needs attention** or **complete**, with the criteria "
-      "behind it, a progress counter and the single next action with a deep link."),
+      "behind it, a progress counter and the single next action with a deep link. Every import and analysis ends with "
+      "'Completed – next: …' pointing to the step that uses the result."),
     TABLE(["Step", "What IronVision AI does", "'Complete' when"], [
         ["1 Prepare", "Key roles (AO, ISSM, ISSO, System Owner, SCA, Privacy Official …) assigned per system, with role history; system boundary and description.",
          "All required key roles are filled"],
@@ -126,7 +127,9 @@ PART_A = [
     PB,
     H1("5", "Screen-by-screen guide"),
     P("Each entry describes one page in the application: its purpose, who uses it, the key actions, what it produces and the guardrails "
-      "that apply. Routes are given for orientation. Navigation follows the RMF steps (Start, 1 Prepare … 7 Monitor, Tools)."),
+      "that apply. Routes are given for orientation. Navigation: My Work, Systems, Import Center, Help and Admin, then the seven RMF steps "
+      "of the selected system (1 Prepare … 7 Monitor). Clicking a step opens its main page; the chevron lists the step's pages. "
+      "Every older route still works and opens the same page inside its step."),
     H2("5.1 Access"),
     SCREEN("Login, demo and sign-up (/login)",
            "Sign in with the configured provider (local password in development and demo, OIDC/Keycloak in deployed environments), open the "
@@ -137,6 +140,20 @@ PART_A = [
            "Sign-up is off in production. New sandboxes start empty."),
     IMG(S + "login-light.png", "Login page", 80),
     H2("5.2 Start"),
+    SCREEN("My Work (/my-work)",
+           "Role-based home: what is waiting for the current role – statements and suggestions (ISSO), assessment requests and retests (SCA), "
+           "strategy, package and review approvals (ISSM), authorization decisions (AO).", "All roles",
+           "Open an item; it opens the record in its RMF step.", "None (read-only aggregation of existing queues).",
+           "Shows only items the role may act on; approvals stay with the approving role (separation of duties, SCA independence, AO authority)."),
+    SCREEN("System dashboard (/dashboard)",
+           "One page per system: seven step cards with live status, 'Continue where you left off', pending approvals and the next action.",
+           "All roles", "Open a step; continue the last record.", "None (read-only).", "Statuses are computed, never edited."),
+    SCREEN("Guided Mode (header toggle)",
+           "Per user and off by default; offered once at first login. Adds to every step its purpose, why it matters, what you need, who does it "
+           "and what comes next.", "All roles", "Switch on or off at any time.", "None.",
+           "Same data, permissions and workflow rules as the streamlined mode – only explanations are added."),
+    IMG("/app/docs/ux/screens/implemented/dashboard.png", "System dashboard with the RMF navigation", 92),
+    IMG("/app/docs/ux/screens/implemented/guided_on.png", "Guided Mode on (Categorize)", 92),
     SCREEN("Getting started – RMF overview (/rmf-workflow)",
            "Live seven-step overview for the active system, with criteria and the next action.", "All roles",
            "Follow the next-action link; open any step.", "Step statuses, progress counters.", "Statuses are computed, never edited."),
@@ -192,8 +209,10 @@ PART_A = [
     SCREEN("Implementation progress (/rmf/implement)", "Progress of implementation statuses and statements across the system's controls.",
            "ISSO, System Owner", "Filter by status or family; open the workbench.", "Counts consistent with the stepper.", "Read-only summary."),
     SCREEN("Control Workbench (/controls, /systems/:id/controls/:controlId)",
-           "The ISSO's main workspace: one control at a time with status, implementation statement, parameters, inheritance, evidence, "
-           "mapped policies, CCIs, findings and assessment.", "ISSO, System Owner, SCA (assessment section)",
+           "The ISSO's main workspace: the control list (two primary filters, more filters collapsed, saved per system) beside one control "
+           "in six tabs – Requirements, Implementation, Evidence & Policies, Assessment, Findings & POA&M, Monitoring. Status chips use one "
+           "glossary (implementation, policy coverage, assessment determination, authorization, evidence freshness, POA&M) with tooltips; "
+           "advanced eMASS fields are collapsed, not removed.", "ISSO, System Owner, SCA (assessment tab)",
            "Save implementation status; write or AI-draft a statement (grounded in evidence, policies and POA&Ms); submit it for review; "
            "attach evidence; view policy mappings and coverage.",
            "Versioned implementation statements, review requests, eMASS Implementation Plan and Risk Assessment fields.",
@@ -210,11 +229,12 @@ PART_A = [
            "recognises System Details, Test Results, POA&M and Hardware/Software List exports by their headers (each labelled compatibility "
            "pending verification against a real eMASS export), asks whether to update the current system, register a new one or pick an existing "
            "one, and shows one grouped review; Test Results stay proposals pending SCA approval and POA&Ms match by eMASS ID, then control + weakness.",
-           "eMASS-formatted Implementation Plan xlsx (compatibility pending human verification), validation report, OSCAL SSP props/remarks, "
+           "eMASS-formatted Implementation Plan xlsx (exported from the migration report and Authorize › Package & documents; the parameter "
+           "comparison CSV is in Select › Tailoring & parameters; compatibility pending human verification), validation report, OSCAL SSP props/remarks, "
            "MOCKED eMASS sync payload with eMASS API field names.",
            "One implementation status (eMASS status is derived from it). Inherited controls are read-only and their Risk Assessment cannot be edited. "
            "Suggestions are never saved automatically; accepted values are audited as AI- or rule-assisted. AI never sets compliance or test results."),
-    IMG(S + "controls-workbench-cm6-light.png", "Control Workbench (CM-6)", 92),
+    IMG("/app/docs/ux/screens/implemented/workbench.png", "Control Workbench: list and control tabs", 92),
     SCREEN("Inheritance (/inheritance)",
            "Common and hybrid control inheritance from providers (data centres, cloud platforms, enclaves).", "ISSO, ISSM",
            "Add or edit providers with package, authorization type and expiry; import a customer responsibility matrix (CRM); bulk "
@@ -244,6 +264,13 @@ PART_A = [
                    "external system, and its records are labelled 'MOCKED source · <collector>'. File import is the real ingestion path."),
     IMG(S + "sme-final/04-stig-run-detail.png", "STIG ingest run detail", 90),
     H2("5.7 Step 5 – Assess"),
+    SCREEN("SCA assessment workspace (/assess/workspace)",
+           "The SCA's single place to work: the assessment queue, imported Test Result workbooks waiting for review and the determination "
+           "for the selected control with its implementation statement and evidence.", "SCA",
+           "Pick a control; review statement and evidence; record the determination; open the next one.",
+           "Assessment determinations (existing assessment service).",
+           "Only the SCA records determinations; the workspace reuses the existing permissions and SCA independence rules."),
+    IMG("/app/docs/ux/screens/implemented/sca_workspace.png", "SCA assessment workspace", 90),
     SCREEN("Assessment progress (/rmf/assess)", "Assessment coverage across the system's controls.", "SCA, ISSM",
            "Filter; open controls to assess.", "Counts consistent with the stepper.", "Read-only summary."),
     SCREEN("Reviews (/reviews, /reviews/:id)",
@@ -261,8 +288,8 @@ PART_A = [
            "sets Compliance Status, Tested By or Date Tested."),
     IMG(S + "tr/07_ai_evidence_analysis.png", "Test Results: AI evidence analysis on a row (suggestion only)", 90),
     SCREEN("Mapping Review (/mapping-review)",
-           "One queue for status suggestions, policy proposals, unmapped findings and asset correlations, with a side-by-side view of "
-           "the source passage and the control requirement.", "ISSO, ISSM",
+           "One queue in three main tabs – policy coverage, STIG mappings, status suggestions (plus All, status-from-policy and awaiting SCA) – "
+           "with a side-by-side view of the source passage and the control requirement. Pending suggestions are also shown on the control.", "ISSO, ISSM",
            "Accept or reject proposals; map unmapped rules (with optional AI suggestion); disposition with justification.",
            "Human-approved mappings.", "AI suggestions are proposals; dispositions create reviews."),
     IMG(S + "rmf-accuracy/11_side_by_side_review.png", "Mapping Review: side-by-side source passage and control requirement", 90),
