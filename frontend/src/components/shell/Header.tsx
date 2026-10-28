@@ -1,3 +1,4 @@
+import { GuidedToggle } from "@/components/common/Guided";
 import { BookOpen, LogOut, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ActingAs, SandboxChip } from "@/components/shell/Sandbox";
@@ -22,7 +23,7 @@ export function Header() {
         </div>
       </div>
       <div className="flex min-w-0 flex-nowrap items-center gap-1.5 sm:gap-2.5">
-        <div className="hidden min-w-0 lg:block"><GlobalSearch /></div>
+        <div className="hidden min-w-0 lg:block"><GlobalSearch /></div><GuidedToggle />
         {user.auth_is_simulated && (
           <span data-testid="dev-auth-indicator" title="Dev auth – simulated, not CAC/PIV" className="hidden items-center gap-1.5 whitespace-nowrap rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 2xl:inline-flex">
             <ShieldAlert className="h-3 w-3" aria-hidden /> Dev auth – simulated, not CAC/PIV

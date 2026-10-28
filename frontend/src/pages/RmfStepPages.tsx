@@ -10,6 +10,7 @@ import { useSystems } from "@/context/SystemContext";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { NeedSystem, Stat } from "@/components/common/Bits";
 import { showNextStep } from "@/components/common/NextStep";
+import { GuidedPanel } from "@/components/common/Guided";
 import { NextActionButton, STEP_STATUS, StepChips, useActiveSystemId, useRmfSteps } from "@/components/rmf/Stepper";
 import { Help, RolesEditor, rolesFromHolders } from "@/components/rmf/RolesEditor";
 import { CategorizeForm, catBody, catFromSystem } from "@/components/rmf/CategorizeForm";
@@ -41,7 +42,8 @@ function StepFrame({ k, title, purpose, children }: { k: string; title: string; 
   if (!sid) return <NeedSystem />;
   return (
     <div data-testid={`rmf-page-${k}`}>
-      <PageHeader title={title} subtitle={purpose}>{data && <NextActionButton data={data} />}</PageHeader>
+      <PageHeader title={title} subtitle={purpose}>{step && step.status !== "complete" && <NextActionButton data={{ next_action: { ...step.next_action, step: step.label } }} />}</PageHeader>
+      <GuidedPanel step={k} />
       {data && <StepChips steps={data.steps} />}
       {step && <div className={cn("mb-5 rounded-md border p-4 text-[13px]", STEP_STATUS[step.status]?.chip)} data-testid="step-status">
         <div className="flex flex-wrap items-center gap-2"><b data-testid="step-status-label">{STEP_STATUS[step.status]?.label}</b>

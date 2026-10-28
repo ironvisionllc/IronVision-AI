@@ -7,10 +7,11 @@ import { cn } from "@/lib/format";
 import { useSystems } from "@/context/SystemContext";
 import { useAuth } from "@/context/AuthContext";
 
-export const STEP_STATUS: Record<string, { label: string; dot: string; chip: string }> = {
-  complete: { label: "Complete", dot: "bg-emerald-500", chip: "border-emerald-300 bg-emerald-50 text-emerald-900" },
-  needs_attention: { label: "Needs attention", dot: "bg-amber-500", chip: "border-amber-300 bg-amber-50 text-amber-900" },
-  not_started: { label: "Not started", dot: "bg-slate-300", chip: "border-slate-200 bg-white text-slate-600" },
+export const STEP_STATUS: Record<string, { label: string; dot: string; chip: string; short: string }> = {
+  complete: { label: "Complete", dot: "bg-emerald-500", chip: "border-emerald-300 bg-emerald-50 text-emerald-900", short: "Done" },
+  needs_attention: { label: "Remaining work", dot: "bg-sky-600", chip: "border-sky-300 bg-sky-50 text-sky-900", short: "Open" },
+  awaiting: { label: "Awaiting another role", dot: "bg-amber-500", chip: "border-amber-300 bg-amber-50 text-amber-900", short: "Waiting" },
+  not_started: { label: "Not started", dot: "bg-slate-300", chip: "border-slate-200 bg-white text-slate-600", short: "–" },
 };
 const STEP_PATH: Record<string, string> = { prepare: "/rmf/prepare", categorize: "/rmf/categorize", select: "/rmf/select", implement: "/rmf/implement",
   assess: "/rmf/assess", authorize: "/rmf/authorize", monitor: "/rmf/monitor" };

@@ -9,10 +9,13 @@ import { Breadcrumbs } from "@/components/shell/Breadcrumbs";
 import { DeniedDialog } from "@/components/common/RoleGate";
 import { ProcessingWatcher } from "@/components/shell/Processing";
 import { useAuth } from "@/context/AuthContext";
+import { useTrackVisits } from "@/components/shell/Recent";
+import { GuidedFirstLogin } from "@/components/common/Guided";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [nav, setNav] = useState(false);
   const { user } = useAuth();
+  useTrackVisits();
   return (
     <div className="flex h-full flex-col" data-testid="app-shell">
       {user && (user.is_sandbox || user.auth_is_simulated) && <SyntheticBanner />}
@@ -21,6 +24,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <NextStepBanner />
       <DeniedDialog />
       <ProcessingWatcher />
+      <GuidedFirstLogin />
       <div className="relative flex min-h-0 flex-1">
         <button className="absolute left-2 top-2 z-30 rounded-md border border-slate-200 bg-white p-1.5 lg:hidden" onClick={() => setNav(!nav)} aria-label="Toggle navigation" data-testid="nav-toggle"><Menu size={16} /></button>
         <div className={`${nav ? "absolute inset-y-0 left-0 z-20 flex shadow-xl" : "hidden"} lg:static lg:flex`} onClick={() => setNav(false)}><Sidebar /></div>

@@ -11,6 +11,9 @@ import AdminPage from "@/pages/AdminPage";
 import WhitepaperPage from "@/pages/WhitepaperPage";
 import UxProposalPage from "@/pages/UxProposalPage";
 import DemoVideoPage from "@/pages/DemoVideoPage";
+import DashboardPage from "@/pages/DashboardPage";
+import MyWorkPage from "@/pages/MyWorkPage";
+import ScaWorkspacePage from "@/pages/ScaWorkspacePage";
 import DocsCenterPage from "@/pages/DocsCenterPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import LeadershipPage from "@/pages/LeadershipPage";
@@ -59,7 +62,11 @@ function Shell() {
     <SystemProvider>
       <AppShell>
         <Routes>
-          <Route path="/" element={<Navigate to="/controls" replace />} />
+          <Route path="/" element={<Navigate to="/my-work" replace />} />
+          <Route path="/my-work" element={<MyWorkPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/assess/workspace" element={<ScaWorkspacePage />} />
+          <Route path="/assess/workspace/:controlId" element={<ScaWorkspacePage />} />
           <Route path="/controls" element={<ControlsEntry />} />
           <Route path="/catalog" element={<ControlsPage />} />
           <Route path="/portfolio" element={<LeadershipPage />} />
