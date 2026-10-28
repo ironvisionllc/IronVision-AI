@@ -474,7 +474,7 @@ export function TraceabilityPage() {
   return (
     <div data-testid="traceability-page">
       <PageHeader title="Traceability matrix" subtitle="Every assigned control with its origin, implementation statement, evidence, open findings, POA&Ms and assessment – one row per control." />
-      <Panel testId="traceability-panel" actions={<div className="flex items-center gap-2">
+      <Panel testId="traceability-panel" actions={<div className="flex flex-wrap items-center gap-2">
           <label className="text-[11px]"><input type="checkbox" checked={!!tf.mapped_only} onChange={(e) => { setT("mapped_only", e.target.checked ? "true" : ""); setPage(0); }} data-testid="trace-mapped-only" /> Policy-mapped only</label>
           <select className="input w-48 py-0.5 text-[11px]" value={tf.policy || ""} onChange={(e) => { setT("policy", e.target.value); setPage(0); }} data-testid="trace-policy"><option value="">All policies</option>{(fc?.policy || []).map((p: Row) => <option key={p.id} value={p.id}>{p.title} v{p.version} ({p.count})</option>)}</select>
           <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => downloadFile(`/systems/${sid}/traceability?${new URLSearchParams({ ...tf, fmt: "csv" })}`, "traceability.csv", "Traceability matrix")} data-testid="trace-export">Export CSV</button><input className="input w-64" placeholder="Search controls, statuses…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} data-testid="trace-search" /><PageSizeSelect value={size} onChange={(n) => { setSize(n); setPage(0); }} testId="trace-page-size" /></div>}>

@@ -193,7 +193,7 @@ export function EmassPage() {
       </PageHeader>
       <EmassStatusBanner st={data.status} />
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="emass-msg">{msg}</div>}
-      <div className="mb-5 grid grid-cols-3 gap-3 md:grid-cols-7">{Object.entries(sm).map(([k, v]) => <Stat key={k} label={`queue: ${k.replace(/_/g, " ")}`} value={String(v)} testId={`emass-sum-${k}`} />)}</div>
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7">{Object.entries(sm).map(([k, v]) => <Stat key={k} label={`queue: ${k.replace(/_/g, " ")}`} value={String(v)} testId={`emass-sum-${k}`} />)}</div>
       <Panel title={`POA&M eMASS state · pending sync ${data.pending_emass_sync}`} eyebrow={data.pending_definition} className="mb-5" testId="emass-poam-states">
         <div className="flex flex-wrap gap-2 text-[12px]">{data.poam_states.map((p: Row) => <Link key={p.id} to={`/poams/${p.id}`} className="rounded border border-slate-200 px-2 py-1" data-testid={`emass-poam-${p.human_id}`}><b className="font-mono">{p.human_id}</b> {p.label}{p.remote_id ? ` (${p.remote_id})` : ""}</Link>)}</div>
       </Panel>

@@ -47,6 +47,7 @@ MEASURE = r"""() => {
     if (el.matches('[data-testid*="status"]:not(button):not([role=tab])') && !chipLike(el)) continue;  // plain status values (text) are not chips
     if (el.closest('table') && el.tagName === 'TD') continue;
     const text = el.innerText.trim();
+    if (text.includes('\n')) continue;  // multi-line content by design (tree rows, cards) – not a label
     if (text.length > 40 || el.querySelector('div, p, ul, table')) continue;  // card-like links/buttons with paragraphs are not labels
     const r = el.getBoundingClientRect();
     if (lines(el) > 1) out.push({ check: 'label-wrap', el: id(el), text: text.slice(0, 40), w: Math.round(r.width) });

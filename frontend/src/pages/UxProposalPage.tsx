@@ -99,7 +99,9 @@ function Shot({ src, caption, testId }: { src: string; caption: string; testId: 
 export default function UxProposalPage() {
   const [after, setAfter] = useState<AfterRow[]>([]);
   const [contrast, setContrast] = useState<Contrast | null>(null);
+  const [wrap, setWrap] = useState<Contrast | null>(null);
   useEffect(() => {
+    fetch(`${P}/wrap/summary.json`).then((r) => (r.ok ? r.json() : null)).then((d) => d && setWrap(d)).catch(() => undefined);
     fetch(`${P}/implemented/after_metrics.json`).then((r) => (r.ok ? r.json() : null)).then((d) => d && setAfter(d.results)).catch(() => undefined);
     fetch(`${P}/contrast/summary.json`).then((r) => (r.ok ? r.json() : null)).then((d) => d && setContrast(d)).catch(() => undefined);
   }, []);
@@ -138,7 +140,11 @@ export default function UxProposalPage() {
           <h3 className="t-title mt-8 text-slate-900">Night-mode contrast (WCAG 2.2 AA) – fixed at the token level</h3>
           <p className="mt-1 text-[13px] text-slate-600">axe-core colour-contrast plus computed contrast of resting, hover and keyboard-focus states, every route, dark and light, 1280 and 390 wide.</p>
           {contrast && <Table head={["Run", "Violations before", "Violations after"]} rows={Object.keys(contrast.before).map((k) => [k, contrast.before[k], contrast.after[k]])} testId="ux-contrast-table" />}
-          {contrast?.worst.map((k) => <Shot key={k} src={`${P}/contrast/${k}.png`} caption={`${k} – dark mode, before (left) / after (right)`} testId={`ux-contrast-${k}`} />)}</Section>
+          {contrast?.worst.map((k) => <Shot key={k} src={`${P}/contrast/${k}.png`} caption={`${k} – dark mode, before (left) / after (right)`} testId={`ux-contrast-${k}`} />)}
+          <h3 className="t-title mt-8 text-slate-900">Labels on one line, no squeezed columns</h3>
+          <p className="mt-1 text-[13px] text-slate-600">Wrapped button/tab/chip labels, clipped buttons and text squeezed under ~12 characters – every route, 1280 / 768 / 390, dark and light.</p>
+          {wrap && <Table head={["Run", "Findings before", "Findings after"]} rows={Object.keys(wrap.before).map((k) => [k, wrap.before[k], wrap.after[k]])} testId="ux-wrap-table" />}
+          {wrap?.worst.map((k) => <Shot key={k} src={`${P}/wrap/${k}.png`} caption={`${k} – narrow screen, before (left) / after (right)`} testId={`ux-wrap-${k}`} />)}</Section>
       </main>
     </div>);
 }

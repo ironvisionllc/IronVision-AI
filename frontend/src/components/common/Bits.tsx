@@ -53,7 +53,7 @@ export function Stat({ label, value, testId, hint }: { label: string; value: Rea
   return (
     <div className="panel px-4 py-3.5" data-testid={testId}>
       <div className="eyebrow !text-[10px]">{label}</div>
-      <div className="mt-1 font-heading text-2xl font-bold tracking-tight text-slate-900">{value ?? "—"}</div>
+      <div className="mt-1 whitespace-nowrap font-heading text-2xl font-bold tracking-tight text-slate-900">{value ?? "—"}</div>
       {hint && <div className="text-[11px] leading-snug text-slate-500">{hint}</div>}
     </div>
   );

@@ -111,6 +111,8 @@
   [data-testid="main-content"] td:not(.font-mono):not(:has(> :is(input, button, a, span, b):only-child)) { min-width: 14ch; }
   [data-testid="main-content"] td:is(:nth-child(2), :nth-child(3)):not(.font-mono):not(:has(> :is(input, button, a, span, b):only-child)) { min-width: 24ch; }
   [data-testid="main-content"] td:has(> :is(input[type=checkbox], input[type=radio]):only-child) { min-width: 0; }
+  [data-testid="main-content"] th { min-width: 12ch; }
+  [data-testid$="-actions"] label:has(> :is(input[type=checkbox], input[type=radio])) { white-space: nowrap; }
   [data-testid="main-content"] :is(td.font-mono, td > .font-mono:only-child, td time, td > [data-testid*="status"]:only-child) { white-space: nowrap; }
   [data-testid="main-content"] table:not(.iv-table-scroll *):not(.overflow-x-auto *):not(.iv-prose *) { display: block; max-width: 100%; overflow-x: auto; }
   tbody tr { transition: background-color 120ms ease; }
