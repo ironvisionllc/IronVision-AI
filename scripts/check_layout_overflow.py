@@ -103,6 +103,24 @@ async def act(page, how: str | None) -> None:
         await page.wait_for_timeout(800)
 
 
+async def ui_login(page) -> None:
+    await page.goto(BASE + "/login")
+    await page.fill("input[type=email]", EMAIL)
+    await page.fill("input[type=password]", PW)
+    await page.keyboard.press("Enter")
+    await page.wait_for_url(lambda u: "/login" not in u, timeout=30000)
+
+
+async def goto_authed(page, url: str) -> bool:
+    """Navigate; if the session expired (redirect to /login) sign in again and retry once. False = still not signed in."""
+    await page.goto(url)
+    await page.wait_for_load_state("domcontentloaded")
+    if "/login" in page.url and "/login" not in url:
+        await ui_login(page)
+        await page.goto(url)
+    return "/login" not in page.url or "/login" in url
+
+
 async def main(tag: str) -> None:
     os.makedirs(OUT, exist_ok=True)
     tok = httpx.post(f"{BASE}/api/v1/auth/login", json={"email": EMAIL, "password": PW}, timeout=60).json()["access_token"]
@@ -122,7 +140,8 @@ async def main(tag: str) -> None:
                 if ((w, h) == MOBILE and name not in MOBILE_PAGES) or (ONLY and name not in ONLY):
                     continue
                 await page.evaluate(f"localStorage.setItem('aegis.selected_system', '{sid}')")
-                await page.goto(BASE + path)
+                if not await goto_authed(page, BASE + path):
+                    raise SystemExit(f"not signed in at {path} – results would measure the login page")
                 try:
                     await page.wait_for_selector("[data-testid=main-content] h1, [data-testid=main-content] h2", timeout=20000)
                     await page.wait_for_load_state("networkidle", timeout=15000)

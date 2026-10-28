@@ -19,7 +19,7 @@ import httpx
 from playwright.async_api import async_playwright
 
 sys.path.insert(0, os.path.dirname(__file__))
-from check_layout_overflow import BASE, EMAIL, PW, act, ensure_systems, routes  # noqa: E402
+from check_layout_overflow import BASE, EMAIL, PW, act, ensure_systems, goto_authed, routes  # noqa: E402
 
 OUT = "/app/docs/screenshots/contrast"
 RAW = os.environ.get("CONTRAST_RAW", "/tmp/contrast_raw")  # raw per-route screenshots, not committed
@@ -140,7 +140,8 @@ async def main(tag: str) -> None:
                     if ONLY and name not in ONLY:
                         continue
                     await page.evaluate(f"localStorage.setItem('aegis.selected_system', '{sid}')")
-                    await page.goto(BASE + path)
+                    if not await goto_authed(page, BASE + path):  # a session that expired mid-run must not measure the login page
+                        raise SystemExit(f"not signed in at {path}")
                     try:
                         await page.wait_for_selector("[data-testid=main-content] h1, [data-testid=main-content] h2", timeout=20000)
                         await page.wait_for_load_state("networkidle", timeout=15000)

@@ -129,7 +129,9 @@ PART_A = [
     P("Each entry describes one page in the application: its purpose, who uses it, the key actions, what it produces and the guardrails "
       "that apply. Routes are given for orientation. Navigation: My Work, Systems, Import Center, Help and Admin, then the seven RMF steps "
       "of the selected system (1 Prepare … 7 Monitor). Clicking a step opens its main page; the chevron lists the step's pages. "
-      "Every older route still works and opens the same page inside its step."),
+      "Every older route still works and opens the same page inside its step. Both themes meet WCAG 2.2 AA contrast (text 4.5:1, "
+      "controls, borders and focus rings 3:1, readable disabled labels) and button, tab and chip labels never wrap – toolbars move whole "
+      "buttons to the next line or into a 'More' menu on phones, and wide tables scroll instead of squeezing columns."),
     H2("5.1 Access"),
     SCREEN("Login, demo and sign-up (/login)",
            "Sign in with the configured provider (local password in development and demo, OIDC/Keycloak in deployed environments), open the "
