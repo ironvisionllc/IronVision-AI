@@ -86,3 +86,13 @@
 - .txt/.md classified as policy only with policy-like content (score >= 3); otherwise 'Not recognised' + 'Import as policy anyway' override.
 - Select shows 'Categorization changed – review baseline' notice/review flag after AO approval; baseline never auto-changed (FIPS); CNSSI keeps its proposal flow.
 - Full serial suite (8 sequential shards, -n 0): 876 passed, 117 skipped, 0 failed. Tenant suites: sweep 4/4, full 1/1.
+
+## 2026-10-28 – UX redesign R1–R7 (UI/workflow only, nothing deployed)
+- R1 navigation: My Work · Systems · Import Center · Help · Admin + 7 RMF steps (header opens step, chevron expands); old routes kept (route-walk test `frontend/src/routeWalk.test.ts`); system dashboard, My Work per role, recently viewed.
+- R2 Workbench: list + 2 primary filters (rest under "More filters", saved per system), 6 control tabs, glossary status chips; removed `wb-export-emass-plan` + parameter-comparison buttons (now `param-compare-export` in Select step 4, `pkg-export-emass-plan` in Authorize › Package & documents; migration report exports unchanged).
+- R3/R4/R6 connectedness: "Completed – next: …" after every import/analysis, SCA workspace, ISSM-approval notice for SLCM strategy, mapping suggestions on the control, Create-POA&M step on scan runs, next-step hints (finding, POA&M, package), one-off evidence upload without a source.
+- R6 Guided Mode (per user, off by default, first-login prompt); R7 ⌘K search, Help topics + status glossary.
+- Night-mode contrast (token level) – `scripts/check_contrast.py`: 2941 → 0 violations. Wrap/squeeze (shared CSS + ActionBar "More ▾") – `scripts/check_wrap.py`: 4128 → 0. Overflow 147/147.
+- Task metrics (12 walks): clicks 56→54, page changes 21→23, fields 19→17, next action 6/12→12/12, completed 12/12 (`docs/ux/METRICS_AFTER.md`).
+- Backend serial suite (8 shards + acceptance, -n 0): 889 passed, 116 skipped, 0 failed after fixing stale LTP/MPP ids in live tests.
+- Backlog: R5 registration de-dup not changed (registration already has no information-type fields); Guided preference stored per user in the browser (localStorage), not server-side.
