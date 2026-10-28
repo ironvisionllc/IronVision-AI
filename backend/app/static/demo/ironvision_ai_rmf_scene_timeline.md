@@ -5,171 +5,158 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are m
 ## Scene 1 · Intro & Login
 
 - **Start / end:** 0:00.0 – 0:20.0
-- **Screens:** Intro card (synthetic-data notice) → login page → Explore demo → RMF overview
-- **Actions:** Intro card fades out; cursor points at brand and the 'Synthetic data · shared demo workspace' caption; clicks Explore demo; points at the SYNTHETIC banner and the 'Acting as' persona switcher.
-- **Production notes:** Intro card is an authored HTML branding card (not a UI mockup). Sign-in itself is cut (load time removed).
+- **Screens:** Intro card (synthetic-data notice) → login → Explore the demo → RMF overview
+- **Actions:** Intro card; points at brand and the synthetic-data caption; clicks Explore the demo; points at the SYNTHETIC banner and the persona switcher (ISSO).
+- **Production notes:** Intro card is an authored HTML branding card. Sign-in load time is cut.
 
 | Time | On-screen event |
 |---|---|
 | 0:00.0 | `open intro.html` |
 | 0:05.9 | `open /login` |
-| 0:15.0 | `click [data-testid="demo-login-btn"]` |
-| 0:15.7 | `open /rmf-workflow` |
+| 0:14.2 | `click [data-testid="demo-login-btn"]` |
+| 0:14.8 | `persona isso` |
+| 0:15.9 | `open /rmf-workflow` |
 
 **Narration**
 
-- 0:00.0–0:06.0: This is IronVision AI: human-approved AI for the NIST Risk Management Framework.
-- 0:06.5–0:13.0: Everything here runs in a shared demonstration workspace with synthetic data, one click from sign-in.
-- 0:13.5–0:20.0: Personas let one presenter act as ISSO, assessor and AO, and every action stays labelled.
+- 0:00.0–0:06.0: IronVision AI: human-approved AI for the NIST Risk Management Framework.
+- 0:06.5–0:13.0: This is a shared demonstration workspace with synthetic data only, one click from sign-in.
+- 0:13.5–0:20.0: Personas let one presenter act as ISSO, assessor or AO; the active role is always shown.
 
-## Scene 2 · RMF Command Center
+## Scene 2 · Command center & navigation
 
 - **Start / end:** 0:20.0 – 0:45.0
-- **Screens:** Getting started · RMF overview; Portfolio / Leadership (as ISSM persona)
-- **Actions:** Cursor walks the 7 step cards and the stepper, Ongoing activities and Next action; persona switch to ISSM; Portfolio cards (authorized, KEV), Waiting on your decision, operational priority score.
-- **Production notes:** Persona switches are cut; the header shows the active persona at all times.
+- **Screens:** RMF overview (LTP)
+- **Actions:** Walks the 7 step cards and Next action; points at Import Center and Policies in the RMF-ordered navigation and the system selector; opens the Import Center.
+- **Production notes:** Persona and system were set before the scene (cut).
 
 | Time | On-screen event |
 |---|---|
-| 0:33.0 | `persona issm` |
-| 0:34.2 | `click [data-testid="nav-portfolio"]` |
+| 0:38.7 | `click nav [data-testid="nav-import-center"]` |
 
 **Narration**
 
-- 0:20.0–0:31.0: The RMF overview is the command center: all seven NIST 800-37 steps, computed from live records, with the criteria behind every status.
-- 0:31.0–0:36.0: Ongoing work and the single next action are always one click away.
-- 0:36.0–0:45.0: As the ISSM, the portfolio shows authorizations, CAT I and KEV exposure, overdue POA&Ms, and what is waiting on you.
+- 0:20.0–0:31.0: The RMF overview is the command center: all seven NIST 800-37 steps, computed from live records.
+- 0:31.0–0:38.0: Navigation follows the RMF steps, with the Import Center and Policies one click away.
+- 0:38.0–0:45.0: Every screen works on the selected system, shown at the top.
 
-## Scene 3 · Prepare / Categorize / Select
+## Scene 3 · Import Center
 
 - **Start / end:** 0:45.0 – 1:35.0
-- **Screens:** Register system form; Step 1 Prepare – key roles (LTP); Step 2 Categorize (LTP, FIPS 199); Step 2 Categorize (TEG, CNSSI 1253 M-H-L); Step 3 Select (TEG)
-- **Actions:** Types an example system name (form not submitted); points at key-role pickers and the NSS question; Prepare shows the missing SCA; FIPS 199 selection and summary; system switch to the synthetic NSS 'Tactical Edge Gateway'; CNSSI 1253 + NSS = Yes, Privacy Overlay prompt, scrolls the C/I/A and approval sections; Select counts (CNSSI baseline for M-H-L) and parameter comparison.
-- **Production notes:** TEG was created for the demo (synthetic) and its categorization approved by the AO persona beforehand (audited). The registration form is not submitted.
+- **Screens:** System Import Center; eMASS import review
+- **Actions:** Uploads SYNTHETIC_LTP_ControlInfo.xlsx; type detected; Import; opens the review; points at Accept all conflict-free changes; Apply.
+- **Production notes:** The file is a synthetic 3-row Control Information export. The apply wait is cut.
 
 | Time | On-screen event |
 |---|---|
-| 0:45.0 | `persona isso` |
-| 0:45.1 | `open /systems/new` |
-| 0:45.9 | `click [data-testid="reg-name"]` |
-| 0:56.1 | `click [data-testid="nav-rmf-prepare"]` |
-| 1:02.9 | `click [data-testid="nav-rmf-categorize"]` |
-| 1:25.5 | `click [data-testid="nav-rmf-select"]` |
+| 0:48.1 | `upload SYNTHETIC_LTP_ControlInfo.xlsx` |
+| 0:53.5 | `click [data-testid="ic-import-0"]` |
+| 0:57.9 | `click [data-testid="ic-result-0"] a` |
+| 1:06.6 | `click [data-testid="import-accept-safe"]` |
+| 1:11.4 | `click [data-testid="import-apply-btn"]` |
 
 **Narration**
 
-- 0:45.0–0:56.0: Prepare and Categorize start at registration: name the system, assign the RMF key roles, and answer whether it is a National Security System.
-- 0:56.0–1:02.0: Step one tracks every required role. Here, the assessor is still missing.
-- 1:02.0–1:08.0: Federal systems use FIPS 199: information types roll up to a high-water mark.
-- 1:08.0–1:16.0: For a national security system, CNSSI 1253 keeps confidentiality, integrity and availability separate, and prompts for the Privacy Overlay.
-- 1:16.0–1:25.0: Integrity was raised to High with a recorded rationale, and the change waited for the AO's approval before it took effect.
-- 1:25.5–1:35.0: Select then applies the CNSSI 1253 baseline: five hundred fifty-nine controls, each traced to its source table, plus overlays, tailoring and parameters.
+- 0:45.0–0:56.0: The Import Center takes eMASS workbooks, test results, inventories, scans and policies, and detects each file's type.
+- 0:56.0–1:06.0: Here a synthetic eMASS Control Information export is imported into the current system.
+- 1:06.0–1:20.0: Review shows every change before it lands: current value, imported value, and anything that needs a decision.
+- 1:20.0–1:35.0: Conflict-free changes are accepted in one step and applied through the normal save paths, with full audit.
 
-## Scene 4 · Implement & AI
+## Scene 4 · Manage imported data
 
 - **Start / end:** 1:35.0 – 2:20.0
-- **Screens:** Control Workbench – AC-2 (LTP); Mapping review side-by-side
-- **Actions:** Control header, scrolls to supporting evidence and mapped policies; clicks 'Generate draft' (live OpenRouter call; the ~12 s wait is cut); points at the AI-draft label, citations and 'Request review'; opens Policy mappings → side-by-side review; points at requirement, policy passage, Accept.
-- **Production notes:** The AI draft is generated live and not saved; nothing is accepted in Mapping review.
+- **Screens:** Import Center history; Manage imported data; scan run findings
+- **Actions:** Opens Manage imported data from history; sections and Imported-from chips; selects a field; Delete everything this import created; Undo from History; scan run shows Imported-from chips and the multi-select delete bar (not clicked).
+- **Production notes:** After recording the demo import is reverted in full (audited).
 
 | Time | On-screen event |
 |---|---|
-| 1:36.0 | `open /systems/53ce70f2-6c09-4c0e-a7e5-03770d64e81a/controls/ac-2` |
-| 1:48.2 | `click [data-testid="ai-generate-btn"]` |
-| 1:58.2 | `open /mapping-review` |
-| 1:59.3 | `click [data-testid="queue-tab-policy_map"]` |
-| 2:01.8 | `click [data-testid^="queue-sbs-"]` |
+| 1:35.0 | `open /import-center` |
+| 1:39.4 | `click [data-testid^="ic-hist-emass-"]:has-text("SYNTHETIC_LTP_ControlInfo.xlsx") [data-testid^="ic-manage-"]` |
+| 1:50.2 | `click [data-testid^="mid-select-"]` |
+| 1:54.5 | `click [data-testid="mid-delete-everything"]` |
+| 1:59.8 | `click [data-testid^="mid-undo-"]` |
+| 2:03.4 | `open /ingest-runs/20f9864f-ee1d-4664-9586-9fcad887f375` |
+| 2:07.7 | `click [data-testid^="imp-select-"]` |
 
 **Narration**
 
-- 1:35.5–1:47.5: Implementation happens in the Control Workbench. For AC-2, the ISSO sees status, supporting evidence with hashes and freshness, open findings and mapped policies in one place.
-- 1:48.0–1:58.0: AI can draft the statement, grounded in that evidence with validated citations. It is labelled as AI and never auto-approved.
-- 1:58.5–2:20.0: Mapping Review puts the control requirement next to the exact policy passage. Automated matching and AI only propose; a person accepts, rejects or overrides with a justification. Nothing changes a compliance record until a human decides.
+- 1:35.0–1:46.0: Manage imported data shows everything one import populated, grouped by section, with the value before and after.
+- 1:46.0–1:57.0: Restore, clear or delete per field, per section, or everything the import created. The system itself is kept.
+- 1:57.0–2:08.0: Every operation can be undone for thirty days, and approved decisions are never removed, only flagged for re-review.
+- 2:08.0–2:20.0: Destination screens mark imported rows with their source file, with multi-select delete and undo.
 
-## Scene 5 · Assess
+## Scene 5 · Policy Auditor – no silent misses
 
 - **Start / end:** 2:20.0 – 3:05.0
-- **Screens:** Evidence Sources; ingest run ltp_db-server-01.ckl (STIG); ingest run ltp_weekly_scan.nessus (ACAS); Step 5 Assess; eMASS Test Results; SCA approval dialog
-- **Actions:** Upload kinds and MOCK/DEMO connector note; STIG and ACAS findings with control mappings; assessment progress; TR export mode and AI evidence analysis on row 41 (pre-generated); persona SCA opens Approve → Date tested / Tested by fields; dialog cancelled.
-- **Production notes:** The TR workbook is the blank eMASS template imported into the demo workspace; AI analysis of rows 41/42 was generated before recording (live provider). No row is approved.
+- **Screens:** Policy detail (Access Control Policy)
+- **Actions:** Coverage checklist; keyword-only/needs manual review labels, confidence, candidate passages; reading report warnings; Found it here (not sent).
+- **Production notes:** Shows the stored analysis; no AI call is made during recording.
 
 | Time | On-screen event |
 |---|---|
-| 2:20.0 | `open /evidence-sources` |
-| 2:26.0 | `open /ingest-runs/72751da6-7493-4013-99b7-5b765a9b5d28` |
-| 2:31.6 | `open /ingest-runs/0f6b0076-70b4-488f-8848-767071afd121` |
-| 2:36.2 | `click [data-testid="nav-rmf-assess"]` |
-| 2:39.0 | `open /test-results` |
-| 2:43.2 | `click [data-testid="tr-open-analysis-41"]` |
-| 2:49.1 | `persona sca` |
-| 2:49.2 | `open /test-results` |
-| 2:50.4 | `click [data-testid="tr-approve-41"]` |
+| 2:20.0 | `open /policy-auditor/e8568b6c-88cf-443b-a461-a85f80f119f9` |
+| 2:29.8 | `click [data-testid="coverage-toggle-ac-2"]` |
 
 **Narration**
 
-- 2:20.0–2:26.0: Evidence arrives as STIG, SCAP, ACAS or Nessus files. Live connectors here are mocked.
-- 2:26.0–2:36.0: Each ingest run is hashed, deduplicated and mapped through CCIs to NIST 800-53 controls, including this Log4j finding from an ACAS scan.
-- 2:36.5–2:49.0: Test Results imports the eMASS Test Result template and is designed to preserve it. Rows are proposed from assessments, scans and evidence; AI explains each row.
-- 2:49.5–3:05.0: Only the Security Control Assessor approves a result, and must record who actually tested and when. AI never sets compliance status, tester or test date.
+- 2:20.0–2:32.0: The Policy Auditor checks each policy against every control requirement, reading the whole document.
+- 2:32.0–2:44.0: No silent misses: a requirement is only reported missing after a second look finds nothing.
+- 2:44.0–2:55.0: Otherwise it says needs manual review, with confidence and the closest candidate passages.
+- 2:55.0–3:05.0: If the reviewer finds the language, Found it here records the passage for a human mapping decision.
 
-## Scene 6 · Authorize
+## Scene 6 · Assess & Authorize
 
 - **Start / end:** 3:05.0 – 3:45.0
-- **Screens:** Authorization package (ISSO view); POA&M list; Authorization package (AO view)
-- **Actions:** SSP summary, POA&Ms, OSCAL exports, 'Authorization decision (AO only)'; POA&M cards and KEV/CAT I row, MOCK eMASS note; persona AO: decision form, selects ATO with conditions, types a rationale, points at Record (not clicked).
-- **Production notes:** Package was submitted (ISSO persona) and endorsed (ISSM persona) before recording so the AO form is reachable. No decision is recorded.
+- **Screens:** Scan run (ltp_weekly_scan.nessus); Authorization package; POA&M
+- **Actions:** Findings mapped to controls; package POA&Ms and OSCAL exports; AO-only decision panel; POA&M list.
+- **Production notes:** No decision is recorded.
 
 | Time | On-screen event |
 |---|---|
-| 3:05.0 | `persona isso` |
-| 3:05.1 | `open /systems/53ce70f2-6c09-4c0e-a7e5-03770d64e81a/authorization` |
-| 3:15.9 | `click [data-testid="nav-poam"]` |
-| 3:24.2 | `persona ao` |
-| 3:24.2 | `open /systems/53ce70f2-6c09-4c0e-a7e5-03770d64e81a/authorization` |
-| 3:29.6 | `click [data-testid="authz-rationale"]` |
+| 3:05.0 | `open /ingest-runs/20f9864f-ee1d-4664-9586-9fcad887f375` |
+| 3:11.2 | `open /systems/0e65c746-fca5-49e2-b0a4-07b2fab17ee6/authorization` |
+| 3:21.1 | `click nav [data-testid="nav-poam"]` |
 
 **Narration**
 
-- 3:05.0–3:16.0: The authorization package brings together the SSP, assessment results, POA&Ms and risk acceptances, with OSCAL exports. The ISSO can submit it, but the decision is AO-only.
-- 3:16.0–3:24.0: POA&Ms rank risk, flag KEV and CAT I items, and show sync status with a mocked eMASS connector.
-- 3:24.0–3:45.0: After ISSM endorsement, the Authorizing Official records the decision: ATO, ATO with conditions, IATT or denial, with rationale and expiration. Separation of duties is enforced; no one approves their own work, and in a real organization that means a different person.
+- 3:05.0–3:16.0: Scan findings arrive hashed, deduplicated and mapped through CCIs to NIST 800-53 controls.
+- 3:16.0–3:30.0: The authorization package brings the SSP, assessment results, POA&Ms and OSCAL exports together.
+- 3:30.0–3:45.0: The decision is AO-only: the ISSO submits, the ISSM endorses, and separation of duties is enforced.
 
 ## Scene 7 · Continuous Monitoring
 
 - **Start / end:** 3:45.0 – 4:25.0
-- **Screens:** Step 7 Monitor; Evidence Ledger; Traceability matrix; Audit log (filtered 'review')
-- **Actions:** Monitor stat cards; Evidence Ledger with Verify integrity and the hashed ledger table; traceability row AC-17(2); audit log filtered to review actions.
-- **Production notes:** Audit log is filtered so no client-IP detail is on screen.
+- **Screens:** Step 7 Monitor; Evidence Ledger; Traceability
+- **Actions:** Monitor stat cards; ledger with Verify integrity and hashes; traceability count.
+- **Production notes:** The audit log is not shown (it lists client IP details).
 
 | Time | On-screen event |
 |---|---|
-| 3:45.0 | `persona isso` |
-| 3:45.1 | `open /rmf/monitor` |
-| 3:53.1 | `click [data-testid="mon-go-ledger"]` |
-| 4:00.1 | `open /traceability` |
-| 4:05.7 | `open /audit-log (filtered: review)` |
+| 3:45.0 | `open /rmf/monitor` |
+| 3:54.9 | `click [data-testid="mon-go-ledger"]` |
+| 4:06.1 | `open /traceability` |
 
 **Narration**
 
-- 3:45.0–3:53.0: Continuous monitoring watches evidence freshness, CAT I findings, CISA KEV and overdue POA&Ms.
-- 3:53.0–4:00.0: The Evidence Ledger keeps every artifact with its SHA-256 hash, provenance and versions.
-- 4:00.0–4:05.5: Traceability links each control to evidence, findings, POA&Ms and assessment.
-- 4:06.0–4:25.0: And every action, including each review and approval, lands in a hash-chained, append-only audit log you can verify and export.
+- 3:45.0–3:55.0: Continuous monitoring watches evidence freshness, CAT I findings, CISA KEV and overdue POA&Ms.
+- 3:55.5–4:10.0: The Evidence Ledger keeps every artifact with its SHA-256 hash, provenance and versions.
+- 4:10.0–4:25.0: Traceability links each control to evidence, findings, POA&Ms and assessments.
 
 ## Scene 8 · Closing
 
 - **Start / end:** 4:25.0 – 5:00.0
 - **Screens:** RMF overview; closing card
-- **Actions:** Returns to the RMF overview; branded closing card fades in and holds.
-- **Production notes:** Closing card is an authored HTML branding card with the existing logo and brand colours.
+- **Actions:** Returns to the RMF overview; closing card fades in and holds.
+- **Production notes:** Authored HTML branding card.
 
 | Time | On-screen event |
 |---|---|
 | 4:25.0 | `open /rmf-workflow` |
-| 4:33.0 | `open closing.html` |
+| 4:38.0 | `open closing.html` |
 
 **Narration**
 
-- 4:25.0–4:33.0: From preparation to continuous monitoring, the whole lifecycle stays in one place.
-- 4:33.5–4:46.0: IronVision AI: human-approved AI for the NIST Risk Management Framework. AI does the heavy lifting; people keep the authority.
-- 4:46.5–4:56.0: Get audit-ready, and stay audit-ready. Request your demo today.
+- 4:25.0–4:38.0: From preparation to continuous monitoring, the whole lifecycle stays in one place.
+- 4:38.5–4:50.0: IronVision AI: AI does the heavy lifting; people keep the authority.
+- 4:50.5–4:59.5: Get audit-ready, and stay audit-ready. Request your demo today.

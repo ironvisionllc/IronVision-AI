@@ -11,11 +11,31 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 BASE = "https://aegis-rmf-demo.preview.emergentagent.com"
-LTP, TEG = "53ce70f2-6c09-4c0e-a7e5-03770d64e81a", "279595b1-7f99-4d22-9487-f95502906c68"
-TR_ROW = 41
 ZOOM = 1.25
 OUT = Path("/tmp/demo_rec")
 CARDS = Path(__file__).resolve().parent / "cards"
+IMPORT_FILE = Path("/tmp/SYNTHETIC_LTP_ControlInfo.xlsx")
+
+
+def lookup() -> dict:
+    """IDs change whenever the shared SYNTHETIC demo is re-seeded – resolve them by name at recording time."""
+    import httpx
+    c = httpx.Client(base_url=BASE + "/api/v1", timeout=60)
+    r = c.post("/auth/demo-login", json={})
+    if r.status_code == 429:
+        import os
+        r = c.post("/auth/login", json={"email": "demo@ironvision.ai", "password": os.environ.get("DEMO_PASSWORD", "IronVisionDemo!2026")})
+    h = {"Authorization": "Bearer " + r.json()["access_token"]}
+    s = c.get("/systems", headers=h).json()
+    s = s.get("items", s) if isinstance(s, dict) else s
+    ltp = next(x["id"] for x in s if x.get("acronym") == "LTP")
+    pol = next(p["id"] for p in c.get("/policies", headers=h).json()["policies"] if p["title"] == "Access Control Policy")
+    hist = c.get("/import-center/history", headers=h).json()["items"]
+    scan = next(r["id"] for r in hist if r["kind"] == "ingest" and r["file_name"] == "ltp_weekly_scan.nessus")
+    return {"LTP": ltp, "POLICY": pol, "SCAN": scan}
+
+
+IDS: dict = {}
 
 CURSOR_JS = """
 (() => {
@@ -69,6 +89,10 @@ R = Rec()
 
 
 async def main():
+    IDS.update(lookup())
+    import record_demo as _rd  # scenes import the module copy, not __main__
+    _rd.IDS.update(IDS)
+    print("ids", IDS, flush=True)
     OUT.mkdir(exist_ok=True)
     (OUT / "frames").mkdir(exist_ok=True)
     async with async_playwright() as pw:
@@ -205,6 +229,10 @@ class Actions:
         R.stop()
         await self.p.locator('[data-testid="system-selector-select"]').select_option(sid)
         await self.settle(reload_sel, 1.2)
+
+    async def upload(self, sel, path):
+        self.ev("upload " + Path(path).name)
+        await self.p.set_input_files(sel, str(path))
 
     def mark(self, n, name):
         R.scenes.append({"scene": n, "name": name, "start": round(R.vt(), 2)})

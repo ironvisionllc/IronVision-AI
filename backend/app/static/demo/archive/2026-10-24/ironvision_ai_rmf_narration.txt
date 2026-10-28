@@ -1,0 +1,90 @@
+IronVision AI – RMF product demo · narration (ElevenLabs-ready)
+Voice: conversational, authoritative; federal cyber audience; ~140–150 wpm.
+Each block: Scene #, Block #, Start, Target End, then the exact text to speak. Leave silence between blocks.
+
+Scene 1 | Block 1 | Start 0:00.0 | Target End 0:06.0 | 12 words
+This is IronVision AI: human-approved AI for the NIST Risk Management Framework.
+
+Scene 1 | Block 2 | Start 0:06.5 | Target End 0:13.0 | 15 words
+Everything here runs in a shared demonstration workspace with synthetic data, one click from sign-in.
+
+Scene 1 | Block 3 | Start 0:13.5 | Target End 0:20.0 | 15 words
+Personas let one presenter act as ISSO, assessor and AO, and every action stays labelled.
+
+Scene 2 | Block 4 | Start 0:20.0 | Target End 0:31.0 | 22 words
+The RMF overview is the command center: all seven NIST 800-37 steps, computed from live records, with the criteria behind every status.
+
+Scene 2 | Block 5 | Start 0:31.0 | Target End 0:36.0 | 12 words
+Ongoing work and the single next action are always one click away.
+
+Scene 2 | Block 6 | Start 0:36.0 | Target End 0:45.0 | 20 words
+As the ISSM, the portfolio shows authorizations, CAT I and KEV exposure, overdue POA&Ms, and what is waiting on you.
+
+Scene 3 | Block 7 | Start 0:45.0 | Target End 0:56.0 | 23 words
+Prepare and Categorize start at registration: name the system, assign the RMF key roles, and answer whether it is a National Security System.
+
+Scene 3 | Block 8 | Start 0:56.0 | Target End 1:02.0 | 12 words
+Step one tracks every required role. Here, the assessor is still missing.
+
+Scene 3 | Block 9 | Start 1:02.0 | Target End 1:08.0 | 13 words
+Federal systems use FIPS 199: information types roll up to a high-water mark.
+
+Scene 3 | Block 10 | Start 1:08.0 | Target End 1:16.0 | 19 words
+For a national security system, CNSSI 1253 keeps confidentiality, integrity and availability separate, and prompts for the Privacy Overlay.
+
+Scene 3 | Block 11 | Start 1:16.0 | Target End 1:25.0 | 21 words
+Integrity was raised to High with a recorded rationale, and the change waited for the AO's approval before it took effect.
+
+Scene 3 | Block 12 | Start 1:25.5 | Target End 1:35.0 | 22 words
+Select then applies the CNSSI 1253 baseline: five hundred fifty-nine controls, each traced to its source table, plus overlays, tailoring and parameters.
+
+Scene 4 | Block 13 | Start 1:35.5 | Target End 1:47.5 | 26 words
+Implementation happens in the Control Workbench. For AC-2, the ISSO sees status, supporting evidence with hashes and freshness, open findings and mapped policies in one place.
+
+Scene 4 | Block 14 | Start 1:48.0 | Target End 1:58.0 | 20 words
+AI can draft the statement, grounded in that evidence with validated citations. It is labelled as AI and never auto-approved.
+
+Scene 4 | Block 15 | Start 1:58.5 | Target End 2:20.0 | 36 words
+Mapping Review puts the control requirement next to the exact policy passage. Automated matching and AI only propose; a person accepts, rejects or overrides with a justification. Nothing changes a compliance record until a human decides.
+
+Scene 5 | Block 16 | Start 2:20.0 | Target End 2:26.0 | 14 words
+Evidence arrives as STIG, SCAP, ACAS or Nessus files. Live connectors here are mocked.
+
+Scene 5 | Block 17 | Start 2:26.0 | Target End 2:36.0 | 22 words
+Each ingest run is hashed, deduplicated and mapped through CCIs to NIST 800-53 controls, including this Log4j finding from an ACAS scan.
+
+Scene 5 | Block 18 | Start 2:36.5 | Target End 2:49.0 | 26 words
+Test Results imports the eMASS Test Result template and is designed to preserve it. Rows are proposed from assessments, scans and evidence; AI explains each row.
+
+Scene 5 | Block 19 | Start 2:49.5 | Target End 3:05.0 | 25 words
+Only the Security Control Assessor approves a result, and must record who actually tested and when. AI never sets compliance status, tester or test date.
+
+Scene 6 | Block 20 | Start 3:05.0 | Target End 3:16.0 | 26 words
+The authorization package brings together the SSP, assessment results, POA&Ms and risk acceptances, with OSCAL exports. The ISSO can submit it, but the decision is AO-only.
+
+Scene 6 | Block 21 | Start 3:16.0 | Target End 3:24.0 | 18 words
+POA&Ms rank risk, flag KEV and CAT I items, and show sync status with a mocked eMASS connector.
+
+Scene 6 | Block 22 | Start 3:24.0 | Target End 3:45.0 | 41 words
+After ISSM endorsement, the Authorizing Official records the decision: ATO, ATO with conditions, IATT or denial, with rationale and expiration. Separation of duties is enforced; no one approves their own work, and in a real organization that means a different person.
+
+Scene 7 | Block 23 | Start 3:45.0 | Target End 3:53.0 | 13 words
+Continuous monitoring watches evidence freshness, CAT I findings, CISA KEV and overdue POA&Ms.
+
+Scene 7 | Block 24 | Start 3:53.0 | Target End 4:00.0 | 13 words
+The Evidence Ledger keeps every artifact with its SHA-256 hash, provenance and versions.
+
+Scene 7 | Block 25 | Start 4:00.0 | Target End 4:05.5 | 10 words
+Traceability links each control to evidence, findings, POA&Ms and assessment.
+
+Scene 7 | Block 26 | Start 4:06.0 | Target End 4:25.0 | 20 words
+And every action, including each review and approval, lands in a hash-chained, append-only audit log you can verify and export.
+
+Scene 8 | Block 27 | Start 4:25.0 | Target End 4:33.0 | 12 words
+From preparation to continuous monitoring, the whole lifecycle stays in one place.
+
+Scene 8 | Block 28 | Start 4:33.5 | Target End 4:46.0 | 19 words
+IronVision AI: human-approved AI for the NIST Risk Management Framework. AI does the heavy lifting; people keep the authority.
+
+Scene 8 | Block 29 | Start 4:46.5 | Target End 4:56.0 | 9 words
+Get audit-ready, and stay audit-ready. Request your demo today.

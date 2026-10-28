@@ -22,8 +22,11 @@ def main():
     (REC / "concat.txt").write_text("\n".join(lines) + "\n")
     OUT.parent.mkdir(parents=True, exist_ok=True)
 
+    srt = OUT.parent / "ironvision_ai_rmf_captions.srt"  # burned-in captions (silent video); written by build_docs.py first
+    style = "FontName=DejaVu Sans,FontSize=12,PrimaryColour=&H00FFFFFF,BackColour=&H99101820,BorderStyle=4,Outline=0,Shadow=0,MarginV=26"
+    subs = f",subtitles={srt}:force_style='{style}'" if srt.exists() else ""
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(REC / "concat.txt"),
-           "-vf", "scale=1920:1080:flags=lanczos,fps=30,format=yuv420p", "-an",
+           "-vf", f"scale=1920:1080:flags=lanczos{subs},fps=30,format=yuv420p", "-an",
            "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p",
            "-r", "30", "-t", f"{end:.3f}", "-movflags", "+faststart", str(OUT)]
     subprocess.run(cmd, check=True)
