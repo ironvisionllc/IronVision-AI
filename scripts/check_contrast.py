@@ -100,16 +100,19 @@ async def page_checks(page) -> dict:
     custom = []
     for i in range(n):
         loc = page.locator(f"[data-ivc='{i}']")
-        custom += await loc.evaluate("(el) => __ivc.measure(el, 'rest')")
+        try:
+            custom += await loc.evaluate("(el) => __ivc.measure(el, 'rest')", timeout=3000)
+        except Exception:
+            continue  # element re-rendered away (e.g. a dismissed prompt) – nothing left to measure
         try:
             await loc.hover(timeout=1500)
             await page.wait_for_timeout(160)  # transitions are 150 ms
-            custom += await loc.evaluate("(el) => __ivc.measure(el, 'hover')")
-            if await loc.evaluate("(el) => !el.disabled && el.tabIndex >= 0 && !el.matches('.rounded-full.h-2, [data-testid^=nav-step-status-]')"):
+            custom += await loc.evaluate("(el) => __ivc.measure(el, 'hover')", timeout=3000)
+            if await loc.evaluate("(el) => !el.disabled && el.tabIndex >= 0 && !el.matches('.rounded-full.h-2, [data-testid^=nav-step-status-]')", timeout=3000):
                 await page.keyboard.press("Shift")  # keyboard modality → programmatic focus gets :focus-visible
                 await loc.focus(timeout=1500)
                 await page.wait_for_timeout(160)
-                custom += await loc.evaluate("(el) => __ivc.measure(el, 'focus')")
+                custom += await loc.evaluate("(el) => __ivc.measure(el, 'focus')", timeout=3000)
         except Exception:
             pass  # element moved/covered – resting state still measured
     await page.mouse.move(0, 0)
