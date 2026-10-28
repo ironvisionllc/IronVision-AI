@@ -1,6 +1,7 @@
 """Tester round 3: general evidence upload from a control (documents, not scan-only), keyword-only stored rows never read "missing",
 lenient Workbench list params (no 422 on empty/unknown queue or limit)."""
 import io
+import re
 import uuid
 
 import pytest
@@ -82,12 +83,24 @@ def test_old_keyword_only_missing_row_reads_as_needs_manual_review(client, orgs)
         db.commit()
 
 
-def test_seeded_sandbox_has_no_keyword_only_missing_rows():
+def test_seed_path_produces_no_keyword_only_missing_rows(orgs, monkeypatch):
+    """Same call the sandbox seed makes (seed_phase3: rmf.analyze_policy, deterministic, no AI) on the shipped sample policy."""
+    from pathlib import Path
+
+    from app.services import rmf
+    monkeypatch.setenv("POLICY_ANALYZER", "v-current")
+    a, _ = orgs
+    data = (Path(__file__).resolve().parents[2] / "samples" / "policies" / "access_control_policy.txt").read_text()
     with SessionLocal() as db:
-        from sqlalchemy import text
-        n = db.execute(text("select count(*) from policy_requirement_coverage where status='missing' and concept<>'profile-ai' "
-                            "and control_id !~ '^[a-z]{2}-1$'")).scalar()
-    assert n == 0
+        p = Policy(org_id=uuid.UUID(a["org_id"]), title="Access Control Policy", policy_key=f"seed-{uuid.uuid4().hex[:6]}", version=1,
+                   status="current", text_content=data, system_ids=[a["sid"]], analysis={})
+        db.add(p)
+        db.flush()
+        rmf.analyze_policy(db, p)
+        db.commit()
+        rows = db.query(PolicyRequirementCoverage).filter(PolicyRequirementCoverage.policy_id == p.id).all()
+    bad = [r.requirement_id for r in rows if r.status == "missing" and r.concept != "profile-ai" and not re.fullmatch(r"[a-z]{2}-1", r.control_id)]
+    assert not bad, bad
 
 
 @pytest.mark.parametrize("q", ["queue=", "queue=undefined", "limit=", "limit=abc", "queue=true&limit=5000"])

@@ -122,6 +122,7 @@ def test_cached_ai_path_gives_identical_results(monkeypatch, client, signup_on):
     fake = FakeSvc()
     monkeypatch.setattr("app.services.ai.service.get_ai_service", lambda: fake)
     monkeypatch.setenv("POLICY_ANALYZER", "v2")
+    monkeypatch.setenv("POLICY_AI_WHOLE_DOC", "0")  # FakeSvc answers the retrieval prompt (2.3.0)
     text = rmf.extract_text(FIX.name, FIX.read_bytes())
     t = _signup(client, f"r4c-{uuid.uuid4().hex[:6]}@example.com", "R4 cache Org")
     org = uuid.UUID(client.get("/api/v1/auth/me", headers=auth(t["access_token"])).json()["org_id"])
