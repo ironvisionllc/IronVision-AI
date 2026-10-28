@@ -2,161 +2,223 @@
 
 Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are measured from the recording (event log of the recorder).
 
-## Scene 1 · Intro & Login
+## Scene 1 · Intro & sign-in
 
-- **Start / end:** 0:00.0 – 0:20.0
-- **Screens:** Intro card (synthetic-data notice) → login → Explore the demo → RMF overview
-- **Actions:** Intro card; points at brand and the synthetic-data caption; clicks Explore the demo; points at the SYNTHETIC banner and the persona switcher (ISSO).
-- **Production notes:** Intro card is an authored HTML branding card. Sign-in load time is cut.
+- **Start / end:** 0:00.0 – 0:14.0
+- **Screens:** Intro card, /login
+- **Actions:** Explore the demo; act as ISSO; select LTP
+- **Production notes:** Persona emails masked in every frame
 
 | Time | On-screen event |
 |---|---|
 | 0:00.0 | `open intro.html` |
-| 0:05.9 | `open /login` |
-| 0:14.2 | `click [data-testid="demo-login-btn"]` |
-| 0:14.8 | `persona isso` |
-| 0:15.9 | `open /rmf-workflow` |
+| 0:04.9 | `open /login` |
+| 0:08.7 | `click [data-testid="demo-login-btn"]` |
+| 0:09.3 | `persona isso` |
 
 **Narration**
 
-- 0:00.0–0:06.0: IronVision AI: human-approved AI for the NIST Risk Management Framework.
-- 0:06.5–0:13.0: This is a shared demonstration workspace with synthetic data only, one click from sign-in.
-- 0:13.5–0:20.0: Personas let one presenter act as ISSO, assessor or AO; the active role is always shown.
+- 0:00.0–0:05.0: IronVision AI – human-approved AI for the NIST Risk Management Framework
+- 0:05.0–0:14.0: Shared SYNTHETIC demo workspace · sign in and act as the ISSO persona
 
-## Scene 2 · Command center & navigation
+## Scene 2 · Dashboard, RMF steps, Guided Mode
 
-- **Start / end:** 0:20.0 – 0:45.0
-- **Screens:** RMF overview (LTP)
-- **Actions:** Walks the 7 step cards and Next action; points at Import Center and Policies in the RMF-ordered navigation and the system selector; opens the Import Center.
-- **Production notes:** Persona and system were set before the scene (cut).
+- **Start / end:** 0:14.0 – 0:39.5
+- **Screens:** /dashboard, /rmf/categorize
+- **Actions:** Point at the 7 RMF steps; Guided Mode on → panel → off
+- **Production notes:** —
 
 | Time | On-screen event |
 |---|---|
-| 0:38.7 | `click nav [data-testid="nav-import-center"]` |
+| 0:14.0 | `open /dashboard` |
+| 0:29.1 | `click [data-testid="guided-toggle"]` |
+| 0:30.5 | `open /rmf/categorize` |
+| 0:38.5 | `click [data-testid="guided-toggle"]` |
 
 **Narration**
 
-- 0:20.0–0:31.0: The RMF overview is the command center: all seven NIST 800-37 steps, computed from live records.
-- 0:31.0–0:38.0: Navigation follows the RMF steps, with the Import Center and Policies one click away.
-- 0:38.0–0:45.0: Every screen works on the selected system, shown at the top.
+- 0:14.0–0:25.0: System dashboard: the 7 RMF steps with live status and the next action
+- 0:25.0–0:39.0: Guided Mode explains each step: purpose, why it matters, who acts, what's next
 
 ## Scene 3 · Import Center
 
-- **Start / end:** 0:45.0 – 1:35.0
-- **Screens:** System Import Center; eMASS import review
-- **Actions:** Uploads SYNTHETIC_LTP_ControlInfo.xlsx; type detected; Import; opens the review; points at Accept all conflict-free changes; Apply.
-- **Production notes:** The file is a synthetic 3-row Control Information export. The apply wait is cut.
+- **Start / end:** 0:39.5 – 1:02.0
+- **Screens:** /systems/:id/import-center, review page
+- **Actions:** Upload SYNTHETIC Control Information; detect; review; accept safe; apply
+- **Production notes:** Synthetic workbook
 
 | Time | On-screen event |
 |---|---|
-| 0:48.1 | `upload SYNTHETIC_LTP_ControlInfo.xlsx` |
-| 0:53.5 | `click [data-testid="ic-import-0"]` |
-| 0:57.9 | `click [data-testid="ic-result-0"] a` |
-| 1:06.6 | `click [data-testid="import-accept-safe"]` |
-| 1:11.4 | `click [data-testid="import-apply-btn"]` |
+| 0:39.5 | `open /systems/0e65c746-fca5-49e2-b0a4-07b2fab17ee6/import-center` |
+| 0:40.4 | `upload SYNTHETIC_LTP_ControlInfo.xlsx` |
+| 0:44.6 | `click [data-testid="ic-import-0"]` |
+| 0:47.9 | `click [data-testid="ic-result-0"] a` |
+| 0:54.2 | `click [data-testid="import-accept-safe"]` |
+| 0:57.4 | `click [data-testid="import-apply-btn"]` |
 
 **Narration**
 
-- 0:45.0–0:56.0: The Import Center takes eMASS workbooks, test results, inventories, scans and policies, and detects each file's type.
-- 0:56.0–1:06.0: Here a synthetic eMASS Control Information export is imported into the current system.
-- 1:06.0–1:20.0: Review shows every change before it lands: current value, imported value, and anything that needs a decision.
-- 1:20.0–1:35.0: Conflict-free changes are accepted in one step and applied through the normal save paths, with full audit.
+- 0:39.0–0:50.0: Import Center: drop eMASS, STIG, Nessus, PPSM or policy files – each is detected and routed
+- 0:50.0–1:02.0: Review before apply: safe changes are accepted, conflicts wait for a person
 
 ## Scene 4 · Manage imported data
 
-- **Start / end:** 1:35.0 – 2:20.0
-- **Screens:** Import Center history; Manage imported data; scan run findings
-- **Actions:** Opens Manage imported data from history; sections and Imported-from chips; selects a field; Delete everything this import created; Undo from History; scan run shows Imported-from chips and the multi-select delete bar (not clicked).
-- **Production notes:** After recording the demo import is reverted in full (audited).
+- **Start / end:** 1:02.0 – 1:24.0
+- **Screens:** /import-center/manage/:id
+- **Actions:** Sections; delete everything; Undo
+- **Production notes:** System shell kept
 
 | Time | On-screen event |
 |---|---|
-| 1:35.0 | `open /import-center` |
-| 1:39.4 | `click [data-testid^="ic-hist-emass-"]:has-text("SYNTHETIC_LTP_ControlInfo.xlsx") [data-testid^="ic-manage-"]` |
-| 1:50.2 | `click [data-testid^="mid-select-"]` |
-| 1:54.5 | `click [data-testid="mid-delete-everything"]` |
-| 1:59.8 | `click [data-testid^="mid-undo-"]` |
-| 2:03.4 | `open /ingest-runs/20f9864f-ee1d-4664-9586-9fcad887f375` |
-| 2:07.7 | `click [data-testid^="imp-select-"]` |
+| 1:02.0 | `open /import-center` |
+| 1:03.1 | `click [data-testid^="ic-hist-emass-"]:has-text("SYNTHETIC_LTP_ControlInfo.xlsx") [data-testid^="ic-manage-"]` |
+| 1:10.1 | `click [data-testid="mid-delete-everything"]` |
+| 1:14.8 | `click [data-testid^="mid-undo-"]` |
 
 **Narration**
 
-- 1:35.0–1:46.0: Manage imported data shows everything one import populated, grouped by section, with the value before and after.
-- 1:46.0–1:57.0: Restore, clear or delete per field, per section, or everything the import created. The system itself is kept.
-- 1:57.0–2:08.0: Every operation can be undone for thirty days, and approved decisions are never removed, only flagged for re-review.
-- 2:08.0–2:20.0: Destination screens mark imported rows with their source file, with multi-select delete and undo.
+- 1:02.0–1:13.0: Manage imported data: every applied import, grouped by section, with provenance
+- 1:13.0–1:24.0: Delete everything an import created – the system stays – and undo for 30 days
 
-## Scene 5 · Policy Auditor – no silent misses
+## Scene 5 · Control Workbench & evidence
 
-- **Start / end:** 2:20.0 – 3:05.0
-- **Screens:** Policy detail (Access Control Policy)
-- **Actions:** Coverage checklist; keyword-only/needs manual review labels, confidence, candidate passages; reading report warnings; Found it here (not sent).
-- **Production notes:** Shows the stored analysis; no AI call is made during recording.
+- **Start / end:** 1:24.0 – 1:52.0
+- **Screens:** /systems/:id/controls/ac-2
+- **Actions:** Evidence tab → Attach evidence → upload → Completed – next
+- **Production notes:** Synthetic .txt evidence
 
 | Time | On-screen event |
 |---|---|
-| 2:20.0 | `open /policy-auditor/e8568b6c-88cf-443b-a461-a85f80f119f9` |
-| 2:29.8 | `click [data-testid="coverage-toggle-ac-2"]` |
+| 1:24.0 | `open /systems/0e65c746-fca5-49e2-b0a4-07b2fab17ee6/controls/ac-2` |
+| 1:30.2 | `click [data-testid="wb-tab-evidence"]` |
+| 1:32.5 | `click [data-testid="wb-attach-evidence-btn"]` |
+| 1:41.3 | `upload SYNTHETIC_AC-2_quarterly_account_review.txt` |
 
 **Narration**
 
-- 2:20.0–2:32.0: The Policy Auditor checks each policy against every control requirement, reading the whole document.
-- 2:32.0–2:44.0: No silent misses: a requirement is only reported missing after a second look finds nothing.
-- 2:44.0–2:55.0: Otherwise it says needs manual review, with confidence and the closest candidate passages.
-- 2:55.0–3:05.0: If the reviewer finds the language, Found it here records the passage for a human mapping decision.
+- 1:24.0–1:38.0: Control Workbench: status, statement, evidence and assessment for one control
+- 1:38.0–1:52.0: Attach evidence from inside the control: upload → linked → “Completed – next”
 
-## Scene 6 · Assess & Authorize
+## Scene 6 · Policy Auditor
 
-- **Start / end:** 3:05.0 – 3:45.0
-- **Screens:** Scan run (ltp_weekly_scan.nessus); Authorization package; POA&M
-- **Actions:** Findings mapped to controls; package POA&Ms and OSCAL exports; AO-only decision panel; POA&M list.
-- **Production notes:** No decision is recorded.
+- **Start / end:** 1:52.0 – 2:28.0
+- **Screens:** /policy-auditor/:id
+- **Actions:** RA-1 met rows with verified quotes; candidates; reading report; Found it here
+- **Production notes:** Stored AI result copied from an existing SYNTHETIC analysis – no new AI call
 
 | Time | On-screen event |
 |---|---|
-| 3:05.0 | `open /ingest-runs/20f9864f-ee1d-4664-9586-9fcad887f375` |
-| 3:11.2 | `open /systems/0e65c746-fca5-49e2-b0a4-07b2fab17ee6/authorization` |
-| 3:21.1 | `click nav [data-testid="nav-poam"]` |
+| 1:52.0 | `open /policy-auditor/7d1b5b13-8b4d-4606-8d24-5666300cf43d` |
+| 1:58.4 | `click [data-testid="coverage-toggle-ac-2"]` |
 
 **Narration**
 
-- 3:05.0–3:16.0: Scan findings arrive hashed, deduplicated and mapped through CCIs to NIST 800-53 controls.
-- 3:16.0–3:30.0: The authorization package brings the SSP, assessment results, POA&Ms and OSCAL exports together.
-- 3:30.0–3:45.0: The decision is AO-only: the ISSO submits, the ISSM endorses, and separation of duties is enforced.
+- 1:52.0–2:04.0: Policy Auditor: a stored AI analysis – every 'met' needs an exact, verified policy quote
+- 2:04.0–2:16.0: No silent misses: unclear requirements show candidate passages for a human to decide
+- 2:16.0–2:28.0: Reading report: what was read, whole-document check, second look, “Found it here”
 
-## Scene 7 · Continuous Monitoring
+## Scene 7 · Mapping Review
 
-- **Start / end:** 3:45.0 – 4:25.0
-- **Screens:** Step 7 Monitor; Evidence Ledger; Traceability
-- **Actions:** Monitor stat cards; ledger with Verify integrity and hashes; traceability count.
-- **Production notes:** The audit log is not shown (it lists client IP details).
+- **Start / end:** 2:28.0 – 2:44.0
+- **Screens:** /mapping-review
+- **Actions:** Review-needed note; queue items; approve buttons (not clicked)
+- **Production notes:** —
 
 | Time | On-screen event |
 |---|---|
-| 3:45.0 | `open /rmf/monitor` |
-| 3:54.9 | `click [data-testid="mon-go-ledger"]` |
-| 4:06.1 | `open /traceability` |
+| 2:28.0 | `open /mapping-review` |
 
 **Narration**
 
-- 3:45.0–3:55.0: Continuous monitoring watches evidence freshness, CAT I findings, CISA KEV and overdue POA&Ms.
-- 3:55.5–4:10.0: The Evidence Ledger keeps every artifact with its SHA-256 hash, provenance and versions.
-- 4:10.0–4:25.0: Traceability links each control to evidence, findings, POA&Ms and assessments.
+- 2:28.0–2:44.0: Mapping Review: every automatic link or suggestion waits for a person to approve
 
-## Scene 8 · Closing
+## Scene 8 · SCA workspace
 
-- **Start / end:** 4:25.0 – 5:00.0
-- **Screens:** RMF overview; closing card
-- **Actions:** Returns to the RMF overview; closing card fades in and holds.
-- **Production notes:** Authored HTML branding card.
+- **Start / end:** 2:44.0 – 3:14.0
+- **Screens:** /assess/workspace
+- **Actions:** SCA persona records a determination → Saved – moved to next control → Undo
+- **Production notes:** Human determination only
 
 | Time | On-screen event |
 |---|---|
-| 4:25.0 | `open /rmf-workflow` |
-| 4:38.0 | `open closing.html` |
+| 2:44.0 | `persona sca` |
+| 2:44.1 | `open /assess/workspace` |
+| 2:47.5 | `click [data-testid^="sca-item-"]` |
+| 2:51.3 | `click [data-testid="sca-determination"] input[type=checkbox]` |
+| 2:52.7 | `click [data-testid="method-examine"]` |
+| 2:56.1 | `click [data-testid="assessment-save"]` |
+| 3:01.3 | `click [data-testid="sca-moved-undo"]` |
 
 **Narration**
 
-- 4:25.0–4:38.0: From preparation to continuous monitoring, the whole lifecycle stays in one place.
-- 4:38.5–4:50.0: IronVision AI: AI does the heavy lifting; people keep the authority.
-- 4:50.5–4:59.5: Get audit-ready, and stay audit-ready. Request your demo today.
+- 2:44.0–2:59.0: SCA workspace: the assessor records the determination – AI never does
+- 2:59.0–3:14.0: “Saved – moved to next control”, with Undo
+
+## Scene 9 · Authorize & eMASS exports
+
+- **Start / end:** 3:14.0 – 3:46.0
+- **Screens:** /systems/:id/authorization, /test-results
+- **Actions:** Package, OSCAL, eMASS Implementation Plan; TR export mode + history
+- **Production notes:** Deterministic TR export
+
+| Time | On-screen event |
+|---|---|
+| 3:14.0 | `persona issm` |
+| 3:14.1 | `open /systems/0e65c746-fca5-49e2-b0a4-07b2fab17ee6/authorization` |
+| 3:25.7 | `open /test-results` |
+
+**Narration**
+
+- 3:14.0–3:30.0: Authorize package: SSP/SAR/RAR drafts, OSCAL and the eMASS Implementation Plan
+- 3:30.0–3:46.0: eMASS Test Results export: pre-populated or blank-template mode, with validation
+
+## Scene 10 · Monitoring
+
+- **Start / end:** 3:46.0 – 4:04.0
+- **Screens:** /rmf/monitor, /traceability
+- **Actions:** Monitor tiles; traceability count
+- **Production notes:** —
+
+| Time | On-screen event |
+|---|---|
+| 3:46.0 | `open /rmf/monitor` |
+| 3:52.8 | `open /traceability` |
+
+**Narration**
+
+- 3:46.0–4:04.0: Continuous monitoring and traceability across controls, evidence and findings
+
+## Scene 11 · Themes & phone
+
+- **Start / end:** 4:04.0 – 4:44.0
+- **Screens:** /dashboard, /rmf-workflow, phone card
+- **Actions:** Light → dark → light; live 390 px dark capture
+- **Production notes:** Phone frame is a live capture
+
+| Time | On-screen event |
+|---|---|
+| 4:04.0 | `open /dashboard` |
+| 4:06.2 | `click [data-testid="theme-toggle-btn"]` |
+| 4:09.9 | `open /rmf-workflow` |
+| 4:14.1 | `click [data-testid="theme-toggle-btn"]` |
+| 4:17.4 | `open phone.html` |
+
+**Narration**
+
+- 4:04.0–4:17.0: Light and dark themes
+- 4:17.0–4:44.0: Works at phone width
+
+## Scene 12 · Closing
+
+- **Start / end:** 4:44.0 – 5:00.0
+- **Screens:** Closing card
+- **Actions:** —
+- **Production notes:** —
+
+| Time | On-screen event |
+|---|---|
+| 4:44.0 | `open closing.html` |
+
+**Narration**
+
+- 4:44.0–5:00.0: IronVision AI · Get audit-ready. Stay audit-ready.

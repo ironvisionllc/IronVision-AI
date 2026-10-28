@@ -105,3 +105,4 @@
 - Demo video re-recorded (300 s, 1920x1080/30fps H.264, burned-in captions, no AI calls); old version archived under static/demo/archive/2026-10-24.
 - Whitepaper v1.1 (50 pp PDF + DOCX): 25 fresh SYNTHETIC screenshots, Import Center/Manage/no-silent-misses content; old version archived.
 - Backlog: optional re-record hiding persona email in header; Excel/eMASS human verification of exports.
+- 2026-10-28 (later): Demo video re-recorded per review – 12 scenes incl. dashboard + 7 RMF steps, Guided Mode, Workbench Attach evidence, stored-AI Policy Auditor result (copied, no AI call), Mapping Review, SCA determination + Undo, Authorize/eMASS exports, light↔dark, phone width; persona e-mails masked; whitepaper screenshots re-taken with masking; shared demo re-seeded afterwards (prep_v2.py --reset).

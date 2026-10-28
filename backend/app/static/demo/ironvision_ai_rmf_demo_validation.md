@@ -1,25 +1,44 @@
 # IronVision AI – RMF product demo · validation report
 
-Recording date: 28 Oct 2026 · environment: preview deployment, shared **Explore Demo** sandbox tenant (SYNTHETIC data only) · **no AI calls were made during recording.** The Policy Auditor scene shows a stored keyword-only analysis; the AC-2/AC-7 mappings were confirmed beforehand by the ISSO persona in Mapping Review, which runs only the deterministic check at no cost.
+Recording date: 2026-10-28 (re-recorded after review). Source: shared SYNTHETIC demo workspace on the preview host. **No AI calls were made.**
 
-Previous version (24 Oct 2026) archived unlinked under `static/demo/archive/2026-10-24/`.
+## File
 
-## 1. Technical QA (evidence)
-
-| Check | Result |
+| Property | Value |
 |---|---|
-| Container / codec | MP4, H.264 High profile, yuv420p |
-| Resolution / frame rate | 1920×1080, 30 fps constant |
-| Duration | 300.03 s |
-| Audio | **No audio stream**: `ffprobe -select_streams a` returns 0 streams; encoded with `-an` |
-| Captions | Burned in (silent video) from `ironvision_ai_rmf_captions.srt` (27 blocks, each inside its scene window). The SRT is also published. |
-| Size / bitrate | 13,056,551 bytes · ≈348 kb/s |
-| Fast start | `moov` atom before `mdat`, so playback starts progressively |
-| Metadata | Only `major_brand/minor_version/compatible_brands/encoder=Lavf59.27.100`. No title, author, location, host or e-mail tags. |
-| iPhone Safari serving | `GET /api/v1/public/demo/ironvision_ai_rmf_demo.mp4` with `Range: bytes=0-1023` → **206**, `Content-Type: video/mp4`, `Accept-Ranges: bytes`, `Content-Range: bytes 0-1023/13056551`, `Content-Disposition: inline` |
+| File | ironvision_ai_rmf_demo.mp4 (served at /demo-video) |
+| Duration | 300.000 s (9,000 frames) |
+| Video | H.264 High, 1920×1080, 30 fps, yuv420p, faststart (moov before mdat) |
+| Audio | none (silent) |
+| Captions | burned in + ironvision_ai_rmf_captions.srt (22 blocks, ≤ 2.55 words/s) |
+| Size | 14,658,937 bytes (~391 kbit/s) |
+| Container tags | major_brand isom, encoder Lavf only – no title/author/location/host metadata |
+| Delivery | HTTP 206 byte ranges, Content-Type video/mp4 (iPhone Safari compatible) |
 
-## 2. Content QA
-- Scenes: intro → RMF command center and RMF-ordered navigation → Import Center (detect, review, accept conflict-free, apply) → **Manage imported data** (sections, before/imported/now values, "Imported from" chips, Delete everything, Undo) → **Policy Auditor no-silent-misses** (keyword-only "needs manual review" labels, confidence, reading report, Found it here) → scan findings with import markers → authorization package (AO-only) → continuous monitoring, Evidence Ledger, traceability → closing card.
-- Data: SYNTHETIC only. The imported file is `SYNTHETIC_LTP_ControlInfo.xlsx` (3 rows). Persona names are fictional. Mock integrations appear with their "mock collection" labels.
-- The audit log page is not shown, because it lists client IP details. No secrets, hostnames or test e-mails appear in the frames.
-- Cleanup: after recording, the demo import was reverted in full through Manage imported data (audited).
+## Storyline (scene starts measured from the recorder)
+
+| # | Scene | Start |
+|---|---|---|
+| 1 | Intro, Explore-the-demo sign-in, ISSO persona | 0:00 |
+| 2 | System dashboard + the 7 RMF steps, Guided Mode on/off | 0:14 |
+| 3 | Import Center: detect → review → accept safe → apply | 0:39.5 |
+| 4 | Manage imported data: sections, delete everything → 30-day Undo | 1:02 |
+| 5 | Control Workbench (AC-2): Attach evidence → upload → “Completed – next” | 1:24 |
+| 6 | Policy Auditor: stored AI analysis – met rows with verified quotes, candidate passages, reading report, Found it here | 1:52 |
+| 7 | Mapping Review queue | 2:28 |
+| 8 | SCA workspace: human determination → “Saved – moved to next control” → Undo | 2:44 |
+| 9 | Authorize package (SSP/SAR/RAR, OSCAL, eMASS Implementation Plan) + TR export mode/history | 3:14 |
+| 10 | Continuous monitoring + traceability | 3:46 |
+| 11 | Light ↔ dark switch; live 390 px phone capture (dark) | 4:04 |
+| 12 | Closing card | 4:44 |
+
+## Data and privacy
+
+- All content is SYNTHETIC. Persona e-mail addresses are masked to “Demo persona” in every frame by an init script in the recorder (verified on /my-work, /import-center, /audit-log, /systems: 0 addresses remain).
+- Policy Auditor scene: an existing stored AI result for the SYNTHETIC `ac_raven` fixture was copied into the demo workspace (no new model call); its reading-report extraction stats were computed from the same fixture file.
+- Demo-only preparation (prep_v2.py): copied policy result; blank eMASS TR template uploaded, rows generated deterministically and exported once.
+- After recording and screenshots the shared demo was re-seeded (same as the nightly reset), removing the import, the attached evidence, the SCA determination, the copied policy and the TR workbook.
+
+## Reproduce
+
+`python3 scripts/demo_video/prep_v2.py` → `record_demo.py` → `build_docs.py` → `assemble.py` → `prep_v2.py --reset`

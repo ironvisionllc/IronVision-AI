@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+@font-face{font-family:Jakarta;src:url('../../../frontend/public/fonts/PlusJakartaSans-700.woff2');font-weight:700}
+@font-face{font-family:Inter;src:url('../../../frontend/public/fonts/Inter-400.woff2');font-weight:400}
+html,body{margin:0;height:100%}
+body{font-family:Inter,Arial,sans-serif;background:#0B1F26;color:#E8F6F9;display:flex;align-items:center;justify-content:center;gap:110px;opacity:0}
+body.show{animation:in .8s ease-out both}
+@keyframes in{from{opacity:0}to{opacity:1}}
+.phone{width:400px;height:866px;border-radius:56px;background:#05080A;padding:14px;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 2px #2b3a40}
+.phone img{width:390px;height:844px;border-radius:44px;display:block;object-fit:cover;object-position:top}
+.txt{max-width:560px}
+h2{font-family:Jakarta,Inter;font-size:52px;margin:0 0 22px;color:#fff}
+p{font-size:28px;line-height:1.45;color:#BFE7F0;margin:0 0 16px}
+</style></head><body>
+<div class="phone"><img src="phone_shot.png" alt="IronVision AI at phone width"></div>
+<div class="txt"><h2>Works at phone width</h2>
+<p>Same app at 390&nbsp;px in dark mode: navigation collapses, tables scroll, actions stay reachable.</p>
+<p>Live capture from the SYNTHETIC demo workspace.</p></div>
+</body></html>

@@ -14,17 +14,16 @@ BASE = "https://aegis-rmf-demo.preview.emergentagent.com"
 ZOOM = 1.25
 OUT = Path("/tmp/demo_rec")
 CARDS = Path(__file__).resolve().parent / "cards"
-IMPORT_FILE = Path("/tmp/SYNTHETIC_LTP_ControlInfo.xlsx")
+IMPORT_FILE = Path(__file__).resolve().parent / "fixtures" / "SYNTHETIC_LTP_ControlInfo.xlsx"
+EVIDENCE_FILE = Path(__file__).resolve().parent / "fixtures" / "SYNTHETIC_AC-2_quarterly_account_review.txt"
 
 
 def lookup() -> dict:
     """IDs change whenever the shared SYNTHETIC demo is re-seeded – resolve them by name at recording time."""
     import httpx
     c = httpx.Client(base_url=BASE + "/api/v1", timeout=60)
-    r = c.post("/auth/demo-login", json={})
-    if r.status_code == 429:
-        import os
-        r = c.post("/auth/login", json={"email": "demo@ironvision.ai", "password": os.environ.get("DEMO_PASSWORD", "IronVisionDemo!2026")})
+    import os  # password login: keeps the per-network demo-login budget for the on-screen click
+    r = c.post("/auth/login", json={"email": "demo@ironvision.ai", "password": os.environ.get("DEMO_PASSWORD", "IronVisionDemo!2026")})
     h = {"Authorization": "Bearer " + r.json()["access_token"]}
     s = c.get("/systems", headers=h).json()
     s = s.get("items", s) if isinstance(s, dict) else s
@@ -32,7 +31,8 @@ def lookup() -> dict:
     pol = next(p["id"] for p in c.get("/policies", headers=h).json()["policies"] if p["title"] == "Access Control Policy")
     hist = c.get("/import-center/history", headers=h).json()["items"]
     scan = next(r["id"] for r in hist if r["kind"] == "ingest" and r["file_name"] == "ltp_weekly_scan.nessus")
-    return {"LTP": ltp, "POLICY": pol, "SCAN": scan}
+    pai = next(p["id"] for p in c.get("/policies", headers=h).json()["policies"] if p["title"].startswith("AC Policy – Raven"))
+    return {"LTP": ltp, "POLICY": pol, "POLICY_AI": pai, "SCAN": scan}
 
 
 IDS: dict = {}
@@ -57,6 +57,21 @@ CURSOR_JS = """
   new MutationObserver(() => mk()).observe(document, {childList: true, subtree: true});
 })();
 """ % {"z": ZOOM}
+
+MASK_JS = r"""
+(() => {
+  const EM = /[\w.+-]+@[A-Za-z][\w-]*(\.[A-Za-z][\w-]*)+/g;
+  const scrub = () => {
+    if (!document.body) return;
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = w.nextNode())) { if (n.nodeValue.indexOf('@') >= 0 && n.nodeValue.search(EM) >= 0) n.nodeValue = n.nodeValue.replace(EM, 'Demo persona'); }
+    document.querySelectorAll('[title*="@"]').forEach((e) => e.setAttribute('title', e.getAttribute('title').replace(EM, 'Demo persona')));
+  };
+  new MutationObserver(scrub).observe(document, {childList: true, subtree: true, characterData: true});
+  document.addEventListener('DOMContentLoaded', scrub);
+})();
+"""
 
 
 class Rec:
@@ -99,6 +114,7 @@ async def main():
         b = await pw.chromium.launch()
         ctx = await b.new_context(viewport={"width": 1920, "height": 1080})
         await ctx.add_init_script(CURSOR_JS)
+        await ctx.add_init_script(MASK_JS)
         page = await ctx.new_page()
         cdp = await ctx.new_cdp_session(page)
 

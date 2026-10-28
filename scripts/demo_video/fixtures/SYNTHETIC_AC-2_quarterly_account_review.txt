@@ -1,0 +1,14 @@
+SYNTHETIC DEMONSTRATION DATA - NOT A REAL SYSTEM
+Logistics Tracking Platform (LTP) - Quarterly account review, Q3 FY2026
+
+Control: AC-2 Account Management
+Reviewer: ISSO (demo persona)
+Scope: 42 application accounts, 6 privileged accounts, 3 service accounts
+
+Results
+- 42 of 42 accounts matched an approved access request.
+- 2 accounts inactive > 35 days were disabled (AC-2(3)).
+- 0 shared accounts found.
+- Privileged accounts re-certified by the system owner.
+
+Next review due: Q4 FY2026

@@ -8,7 +8,7 @@ import sys
 from playwright.async_api import async_playwright
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "demo_video"))
-from record_demo import BASE, lookup  # noqa: E402
+from record_demo import BASE, MASK_JS, lookup  # noqa: E402
 
 OUT = "/app/docs/screenshots/wp-2026-10"
 
@@ -16,9 +16,7 @@ OUT = "/app/docs/screenshots/wp-2026-10"
 def stig_run():
     import httpx
     c = httpx.Client(base_url=BASE + "/api/v1", timeout=60)
-    r = c.post("/auth/demo-login", json={})
-    if r.status_code == 429:
-        r = c.post("/auth/login", json={"email": "demo@ironvision.ai", "password": os.environ.get("DEMO_PASSWORD", "IronVisionDemo!2026")})
+    r = c.post("/auth/login", json={"email": "demo@ironvision.ai", "password": os.environ.get("DEMO_PASSWORD", "IronVisionDemo!2026")})
     h = {"Authorization": "Bearer " + r.json()["access_token"]}
     hist = c.get("/import-center/history", headers=h).json()["items"]
     return next((x["id"] for x in hist if x["kind"] == "ingest" and x["file_name"].endswith((".ckl", ".cklb"))), None)
@@ -30,7 +28,9 @@ async def main():
     L, P = ids["LTP"], ids["POLICY"]
     async with async_playwright() as pw:
         b = await pw.chromium.launch()
-        page = await (await b.new_context(viewport={"width": 1440, "height": 900})).new_page()
+        ctx = await b.new_context(viewport={"width": 1440, "height": 900})
+        await ctx.add_init_script(MASK_JS)  # persona e-mails → "Demo persona" in every screenshot
+        page = await ctx.new_page()
 
         async def shot(name, path=None, wait="main", action=None):
             try:
