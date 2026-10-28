@@ -40,6 +40,8 @@ def insecure_production(env: Mapping[str, str]) -> list[str]:
     if (env.get("APP_ENV") or "development") != "production" or _true(env.get("ALLOW_INSECURE_PRODUCTION")):
         return []
     errs = []
+    if _true(env.get("PREVIEW_KEEP_ROLE_ACCOUNTS")):
+        errs.append("PREVIEW_KEEP_ROLE_ACCOUNTS is a preview-only test switch (keeps the synthetic role accounts active)")
     if "dev_password" in providers(env):
         errs.append("AUTH_PROVIDERS contains dev_password in production")
     if _true(env.get("SEED_DEMO_DATA")):

@@ -220,3 +220,41 @@ What these runs taught us:
 - Sending the whole document in every batch is only cheap for small policies. The design is now adaptive:
   - ≤ 60k characters: whole document per batch.
   - Larger documents: retrieved sections per batch, plus the hybrid index filling anything keyword screening missed (nothing is excluded), plus the cached whole document only for the focused second look on MISSING verdicts.
+
+## No silent misses – approved runs B + A (2026-10-28, 14:38–14:51 UTC, preview only)
+
+Actual spend comes from the OpenRouter key usage counter (`/api/v1/key` `usage`, delta from 14:38). Per-run token costs use list price, with tokens taken from the provider usage fields.
+
+**B – RA/AC/SC with the warm-cache fix, with and without the xx-1 AI check.** Total actual: **$1.88** (token-based $1.66).
+
+| run | wall s | main pass s | second look s | calls | input | cached read | cache write | output | token cost | truncated |
+|---|---|---|---|---|---|---|---|---|---|---|
+| RA, xx-1 AI off | 122.0 | 118.8 | 0.01 | 15 | 165,806 | 133,060 | 0 | 16,376 | $0.256 | 5 |
+| RA, xx-1 AI on (+38 reqs) | 69.6 | 65.8 | 0.01 | 9 | 138,071 | 106,448 | 0 | 23,450 | $0.319 | 1 |
+| AC, xx-1 AI off | 43.8 | 39.6 | 3.01 | 8 | 58,647 | 29,448 | 9,565 | 22,548 | $0.295 | 0 |
+| AC, xx-1 AI on (+36 reqs) | 44.3 | 39.7 | 3.25 | 9 | 69,197 | 43,921 | 0 | 26,754 | $0.327 | 0 |
+| SC, xx-1 AI off | 42.5 | 38.1 | 3.53 | 6 | 43,492 | 19,668 | 9,583 | 15,725 | $0.214 | 0 |
+| SC, xx-1 AI on (+38 reqs) | 46.0 | 42.6 | 2.32 | 8 | 59,037 | 39,085 | 0 | 20,167 | $0.249 | 0 |
+
+- The xx-1 AI check runs in the same parallel batch pool, so it adds no sequential step.
+  - Time: AC +0.5 s and SC +3.5 s. RA is not comparable, because its xx-1-off run was slowed by 5 truncation splits.
+  - Cost: +$0.03 to $0.06 per policy (+11% to +25%).
+  - The xx-1 second look added 0 s: no xx-1 requirement was left "missing", so nothing was escalated.
+- Quality on the gold set: recall stayed 1.0 and precision was unchanged (RA 0.987, AC 0.890, SC 0.887). Exact match for RA went 0.731 → 0.776, AC 0.732 → 0.727, SC 0.775 → 0.834.
+- xx-1 subset (gold: 38/36/38 requirements, all labelled met):
+  - Without AI, the checklist gave 31/33/35 met and the rest partial "needs review".
+  - With AI, all 38/36/38 were met. False gaps fell from 13 to 0.
+  - Caveat: this gold set has **no xx-1 gap cases**. It only measures false gaps, not misses.
+- Latency regression vs the earlier retrieval-only runs (22–28 s). With the whole document in every call, 25-requirement batches give long answers (and truncation splits on RA), plus a sequential warm-up call.
+  - Fixed in code, not yet re-measured: whole-document batches of 10 requirements, a warm-up call of at most 3 items, and the second look in parallel after one warm call.
+
+**A – one adaptive p284 run: ABORTED by the $9 hard stop.**
+- The guard checked every 30 s and killed the run at a cumulative $9.20. Billing lag then brought the final figure to **$9.87**, so the overshoot was **$0.87**. This run alone: about **$7.8**.
+- Before the abort: 277 calls of the retrieval prompt 2.3.0 (184 completed, **93 truncated**), 1,222,728 input and 554,995 output tokens. The run did not finish.
+- Why so much more than the old v2 p284 ($3.64, 103 calls, about 278k output):
+  - (1) The xx-1 controls added about 650 requirements to the AI.
+  - (2) The index fill adds requirements that were previously not examined.
+  - (3) 34% of calls were truncated, so they were split and asked again. Output per call averaged about 1.9–2.1k tokens, against a 160-tokens-per-requirement budget. Truncation is the main waste.
+- Not run again. See the note to root for zero-cost fixes and a revised estimate.
+
+Account: `usage_daily` for 2026-10-28 is $33.43.

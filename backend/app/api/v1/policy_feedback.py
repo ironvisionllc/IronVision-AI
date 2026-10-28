@@ -18,6 +18,7 @@ from app.services.policy_profile import find_quote
 
 router = APIRouter()
 FEEDBACK = "policy.missed_language_feedback"
+RETRACTED = "policy.missed_language_feedback_retracted"
 
 
 class FoundIn(BaseModel):
@@ -61,6 +62,9 @@ def export_feedback(db: Session = Depends(get_db), current: CurrentUser = Depend
     pids = [str(x) for x in db.scalars(select(Policy.id).where(Policy.org_id == current.user.org_id))]  # tenant scope via the policy
     rows = db.scalars(select(AuditEvent).where(AuditEvent.action == FEEDBACK, AuditEvent.entity_id.in_(pids or ["-"]))
                       .order_by(AuditEvent.occurred_at)).all()
+    retracted = {i for ev in db.scalars(select(AuditEvent).where(AuditEvent.action == RETRACTED, AuditEvent.entity_id.in_(pids or ["-"])))
+                 for i in (ev.details or {}).get("retracted", [])}  # the audit log is append-only: retraction is a new event
+    rows = [r for r in rows if str(r.id) not in retracted]
     gold = {"source": "missed-language feedback (Found it here / Use this passage)",
             "requirements": [{"control_id": r.details["control_id"], "requirement_id": r.details.get("requirement_id"), "label": "met",
                               "quote": r.details["quote"], "policy_sha256": r.details.get("policy_sha256"), "recorded_at": r.occurred_at.isoformat()}

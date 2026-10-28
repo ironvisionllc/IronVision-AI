@@ -113,3 +113,65 @@ def test_workbench_list_params_are_lenient(client, orgs, q):
     a, _ = orgs
     r = client.get(f"/api/v1/systems/{a['sid']}/workbench/controls?{q}", headers=a["isso"])
     assert r.status_code == 200 and isinstance(r.json(), list)
+
+
+def _ac1_policy(a, text):
+    from app.models import PolicyControlMap
+    with SessionLocal() as db:
+        p = Policy(org_id=uuid.UUID(a["org_id"]), title="Access Control Policy", policy_key=f"xx1-{uuid.uuid4().hex[:6]}", version=1,
+                   status="current", text_content=text, system_ids=[a["sid"]], analysis={})
+        db.add(p)
+        db.flush()
+        db.add(PolicyControlMap(policy_id=p.id, org_id=p.org_id, control_id="ac-1", status="mapped", source="explicit_id", confidence="High"))
+        db.commit()
+        return p.id
+
+
+XX1_TEXT = ("1. Purpose\nThis access control policy establishes the purpose and scope of access control for the system.\n"
+            "2. Roles\nThe ISSM is designated to manage the access control policy and procedures.\n")
+
+
+def test_xx1_without_ai_is_never_missing(orgs, monkeypatch):
+    from app.services import policy_coverage as pc
+    a, _ = orgs
+    pid = _ac1_policy(a, XX1_TEXT)
+    with SessionLocal() as db:
+        p = db.get(Policy, pid)
+        rows = pc.analyze(db, p, use_ai=False)
+        db.commit()
+        assert rows and not [r for r in rows if r.status == "missing"]
+        low = [r for r in rows if r.status == "partial" and r.reason.startswith(pc.XX1_ONLY)]
+        assert low and all(r.confidence == "Low" for r in low)
+
+
+def test_xx1_ai_missing_with_checklist_hit_needs_manual_review(orgs):
+    from app.services import policy_coverage as pc
+    a, _ = orgs
+    pid = _ac1_policy(a, XX1_TEXT)
+    with SessionLocal() as db:
+        p = db.get(Policy, pid)
+        reqs = pc.requirements(db, "ac-1")
+        sents = pc._sentences(XX1_TEXT)
+        det = {q["id"]: pc.evaluate_req(XX1_TEXT, sents, "ac-1", q, "Access Control")[1] for q in reqs}
+        hit = next(i for i, r in det.items() if r["status"] != "missing" and r.get("snippets"))
+        ai = {q["id"]: {"status": "missing", "quote": None, "rationale": "not found", "second_look": "none"} for q in reqs}
+        rows = {r.requirement_id: r for r in pc.analyze(db, p, use_ai=True, ai_prefetched={"ac-1": ai})}
+        db.commit()
+    r = rows[hit]
+    assert r.status == "partial" and r.confidence == "Low" and r.reason.startswith("Needs manual review")
+    assert r.snippets and all(s.get("candidate") for s in r.snippets)
+
+
+def test_stored_xx1_missing_reads_as_needs_manual_review(client, orgs):
+    a, _ = orgs
+    pid = _ac1_policy(a, XX1_TEXT)
+    with SessionLocal() as db:
+        db.add(PolicyRequirementCoverage(org_id=uuid.UUID(a["org_id"]), policy_id=pid, policy_version=1, control_id="ac-1", requirement_type="cci",
+                                         requirement_id="CCI-000002", label="CCI-000002", text="Disseminate the access control policy",
+                                         concept="disseminate", status="missing", confidence="Medium", reason="The policy is not stated to be disseminated.",
+                                         needs="State dissemination.", source="deterministic"))
+        db.commit()
+    d = client.get(f"/api/v1/policies/{pid}", headers=a["isso"]).json()
+    rows = [r for c in d["coverage"] for r in c["requirements"] if r["control_id"] == "ac-1"]
+    assert rows and all(r["status"] != "missing" and r["effective"] != "missing" for r in rows)
+    assert rows[0]["reason"].startswith("AI unavailable for this control – policy-element checklist only")

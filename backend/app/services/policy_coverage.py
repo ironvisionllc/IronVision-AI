@@ -413,6 +413,14 @@ def is_xx1(control_id: str) -> bool:
     return bool(re.fullmatch(r"[a-z]{2}-1", control_id))
 
 
+def xx1_ai() -> bool:
+    """xx-1 policy/procedure controls also get the AI check (v2, whole cached document); the policy-element checklist stays as fallback."""
+    return os.environ.get("POLICY_AI_XX1", "1") != "0"
+
+
+XX1_ONLY = "AI unavailable for this control – policy-element checklist only, needs manual review."
+
+
 def evaluate_req(text: str, sents: list, control_id: str, req: dict, fam: str) -> tuple[str, dict]:
     if not is_xx1(control_id):
         r = pp.evaluate(text, sents, control_id, req["text"], lambda hits: _snip(text, hits))
@@ -457,8 +465,9 @@ def prefetch_ai(db: Session, policy: Policy, control_ids, in_scope: int | None =
         raise RuntimeError("prefetch_ai needs a session without pending writes")
     text, org_id = policy.text_content or "", policy.org_id
     sents = _sentences(text)
-    todo = [(cid, *_stage1(db, text, sents, cid)) for cid in sorted(set(control_ids)) if not is_xx1(cid)]
-    if analyzer() == "v2":
+    v2_on = analyzer() == "v2"
+    todo = [(cid, *_stage1(db, text, sents, cid)) for cid in sorted(set(control_ids)) if not is_xx1(cid) or (v2_on and xx1_ai())]
+    if v2_on:
         from app.services import policy_analyzer_v2 as v2
         from app.services.content.loader import active_catalog_id
         titles, catalog, pid = dict(db.execute(select(Control.control_id, Control.title)).all()), active_catalog_id(db), policy.id
@@ -520,10 +529,18 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
             out.extend(c for c in old.values() if c.control_id == m.control_id)
             continue
         ttl = titles.get(m.control_id, "")
-        if m.control_id in ai_by_ctl and not is_xx1(m.control_id):
+        if m.control_id in ai_by_ctl and (not is_xx1(m.control_id) or xx1_ai()):
             ai = ai_by_ctl[m.control_id]
+            det = [(r["status"], list(r.get("snippets") or [])) for _, r in results]
             merged = [(c, pp.apply_ai(text, {**r, "_req": (req["text"], ttl)}, ai.get(req["id"]))) for req, (c, r) in zip(reqs, results)]
             results = [("profile-ai" if r.get("basis") == "ai" else c, r) for c, r in merged]
+            if is_xx1(m.control_id):  # the policy-element checklist is the candidate finder: AI "missing" vs checklist hit → manual review
+                for (c, r), (dst, dsn) in zip(results, det):
+                    if c == "profile-ai" and r["status"] == "missing" and dst != "missing" and dsn:
+                        r["status"], r["confidence"] = "partial", "Low"
+                        r["reason"] = ("Needs manual review – the AI found no statement, but the policy-element checklist matched the candidate "
+                                       "passage(s) shown. " + (r.get("reason") or ""))[:2000]
+                        r["snippets"] = [{**x, "candidate": True} for x in dsn[:3]]
         for req, (concept, r) in zip(reqs, results):
             r.pop("_req", None)
             if not is_xx1(m.control_id):
@@ -531,9 +548,13 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
             if f"{m.control_id}|{req['id']}" in not_examined and r["status"] != "met":
                 r["reason"] = ("Not examined by AI: no policy section was retrieved for this requirement, so it is not addressed by the retrieved "
                                "content (not a pass, fail or N/A). " + (r.get("reason") or ""))[:2000]
-            if not is_xx1(m.control_id) and concept != "profile-ai" and r["status"] != "met":  # no AI verdict: never "language not present"
+            if concept != "profile-ai" and r["status"] != "met":  # no AI verdict: never "language not present"
+                was_missing = r["status"] == "missing"
                 r["status"], r["confidence"] = "partial", "Low"
-                r["reason"] = (KEYWORD_ONLY + " " + (r.get("reason") or "").replace("No sentence addresses this requirement.", "No keyword match was found.")).strip()[:2000]
+                lead = XX1_ONLY if is_xx1(m.control_id) else KEYWORD_ONLY
+                r["reason"] = (lead + " " + (r.get("reason") or "").replace("No sentence addresses this requirement.", "No keyword match was found.")).strip()[:2000]
+                if is_xx1(m.control_id) and was_missing and r.get("needs"):
+                    r["needs"] = ("Manual review needed (checklist only): " + r["needs"])[:2000]
                 sib = next((rr.get("snippets") for _, rr in results if rr is not r and rr.get("snippets")), None)
                 if not r.get("snippets") and sib:  # an AI batch that dropped this item: show the control's closest verified passage as the candidate
                     r["snippets"] = sib[:3]
@@ -658,7 +679,7 @@ def ai_refine(text: str, control_id: str, reqs: list, results: list, org_id, sta
 
 def effective(c: PolicyRequirementCoverage) -> str:
     """Coverage comes from the policy text only; covered-elsewhere/linked annotations are shown separately and never turn MISSING into MET."""
-    if c.status == "missing" and c.concept != "profile-ai" and not is_xx1(c.control_id):
+    if c.status == "missing" and c.concept != "profile-ai":
         return "partial"  # keyword-only result: never "language not present" (needs manual review)
     return c.status
 
@@ -667,7 +688,7 @@ def display(c: PolicyRequirementCoverage) -> dict:
     """Read-time view of a stored row: a keyword-only "missing" (stored before the relabel) is shown as partial/Low, needs manual review."""
     if effective(c) == c.status:
         return {}
-    return {"status": "partial", "confidence": "Low", "reason": f"{KEYWORD_ONLY} {(c.reason or '').replace('No sentence addresses this requirement.', 'No keyword match was found.')}".strip()}
+    return {"status": "partial", "confidence": "Low", "reason": f"{XX1_ONLY if is_xx1(c.control_id) else KEYWORD_ONLY} {(c.reason or '').replace('No sentence addresses this requirement.', 'No keyword match was found.')}".strip()}
 
 
 def basis_label(c: PolicyRequirementCoverage) -> str:

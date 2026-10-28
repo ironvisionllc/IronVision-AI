@@ -340,6 +340,7 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog, 
     max_reqs, max_ctx = env_int("POLICY_AI_BATCH_REQS", 25), env_int("POLICY_AI_BATCH_CHARS", 16000)
     if whole:
         max_ctx = 10 ** 9  # the full document is in every call: batch by requirements only; hints are trimmed in Run.call
+        max_reqs = env_int("POLICY_AI_WHOLE_BATCH_REQS", 10)  # smaller answers per call → no truncation splits, more parallelism
     groups: dict = {}  # section affinity: requirements sharing a primary section travel together (small incremental re-runs)
     for item, top in examined + verify:
         groups.setdefault((item["family"], top[0]), []).append((item, top))
@@ -360,7 +361,7 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog, 
               verification_sample=len(verify), batches=len(batches), screening_s=round(t1 - t0, 2))
     for k_ in ("calls", "cache_hits", "reused_requirements", "retries", "truncated", "failed_batches", "invalid_items", "reasked", "citation_section_fixed",
                "tokens_in", "tokens_out", "tokens_cached", "tokens_cache_write", "prompt_cache_hits", "second_look_candidates", "second_look_ai",
-               "second_look_found", "second_look_confirmed_absent", "index_filled"):
+               "second_look_found", "second_look_confirmed_absent", "index_filled", "second_look_ai_xx1"):
         st.setdefault(k_, 0)
     st["whole_document"] = whole
     run = Run(svc, org_id, policy_id, svc.provider.model if svc.provider else None, str(catalog), secs, st, document=doc if whole else None)
@@ -390,16 +391,20 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog, 
 
     workers = env_int("POLICY_AI_WORKERS", 16)
     first = []
-    if run.document and len(batches) > 1:  # warm the prompt cache with one call; the parallel rest then read the cached document
-        first = [one(batches[0])]
-        batches_rest = batches[1:]
+    if run.document and len(batches) > 1:  # warm the prompt cache with one SMALL call; the parallel rest then read the cached document
+        b0, rest0 = batches[0][0][:3], batches[0][0][3:]
+        first = [one((b0, batches[0][1]))]
+        batches_rest = ([(rest0, batches[0][1])] if rest0 else []) + batches[1:]
     else:
         batches_rest = batches
     with ThreadPoolExecutor(max_workers=workers) as ex:
         for res in first + list(ex.map(one, batches_rest)):
             for (cid, rid), v in res.items():
                 out.setdefault(cid, {})[rid] = v
+    t_main = time.perf_counter()
     second_look(run, idx, todo, out, titles, st)
+    st["main_pass_s"], st["second_look_s"] = round(t_main - started, 2), round(time.perf_counter() - t_main, 2)
+    st["xx1_requirements"] = sum(len(reqs) for cid, reqs, _ in todo if re.fullmatch(r"[a-z]{2}-1", cid))
     covered = set(range(len(secs))) if whole or (st["second_look_ai"] and run.full_doc) else {i for _, sidx in batches for i in sidx}
     st["chunks_total"], st["chunks_covered"] = len(secs), len(covered)
     st["uncovered_sections"] = [secs[i]["heading"] for i in range(len(secs)) if i not in covered][:50]
@@ -429,10 +434,16 @@ def second_look(run: "Run", idx, todo: list, out: dict, titles: dict, st) -> Non
                                  "family": cid.split("-")[0]})
     if not escalate or not run.full_doc:  # without the whole document in the call an absence cannot be confirmed
         return
-    for i in range(0, len(escalate), 25):
-        chunk = escalate[i:i + 25]
-        st["second_look_ai"] += len(chunk)
-        res = run.call(chunk, [], prompt=PROMPT_SECOND, doc=run.full_doc)
+    from concurrent.futures import ThreadPoolExecutor
+    n = env_int("POLICY_AI_SECOND_BATCH_REQS", 15)
+    chunks = [escalate[i:i + n] for i in range(0, len(escalate), n)]
+    st["second_look_ai"] += len(escalate)
+    st["second_look_ai_xx1"] += sum(1 for x in escalate if re.fullmatch(r"[a-z]{2}-1", x["control_id"]))
+    ask = lambda c: (c, run.call(c, [], prompt=PROMPT_SECOND, doc=run.full_doc))  # noqa: E731
+    done = [ask(chunks[0])]  # the first call writes the document to the prompt cache; the rest run in parallel and read it
+    with ThreadPoolExecutor(max_workers=env_int("POLICY_AI_WORKERS", 16)) as ex:
+        done += list(ex.map(ask, chunks[1:]))
+    for chunk, res in done:
         for it in chunk:
             k = (it["control_id"], it["requirement_id"])
             v2, v = res.get(k), out[it["control_id"]][it["requirement_id"]]

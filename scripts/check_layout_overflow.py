@@ -21,7 +21,7 @@ MOBILE = (390, 844)
 if os.environ.get("SHOT_SIZES"):  # e.g. SHOT_SIZES=768x1024,1280x800,1440x900 (390 = MOBILE, always run for MOBILE_PAGES)
     SIZES = [tuple(int(x) for x in s.split("x")) for s in os.environ["SHOT_SIZES"].split(",")]
 ONLY = set(filter(None, os.environ.get("SHOT_PAGES", "").split(",")))  # optional subset of page names
-MOBILE_PAGES = {"dashboard", "my-work", "sca-workspace", "import-center", "catalog", "catalog-tree", "catalog-tree-system", "select", "admin", "workbench", "parameter-comparison", "mapping-review", "policy-detail", "test-results", "audit-log"}
+MOBILE_PAGES = {"dashboard", "my-work", "sca-workspace", "import-center", "catalog", "catalog-tree", "catalog-tree-system", "select", "admin", "workbench", "parameter-comparison", "mapping-review", "policy-detail", "policy-requirement-cards", "test-results", "audit-log"}
 SHOTS = {"select", "admin"}
 
 MEASURE = """() => {
@@ -78,7 +78,8 @@ def routes(ids: dict) -> list[tuple[str, str, str, str | None]]:
          ("dashboard", "/dashboard", n, None), ("my-work", "/my-work", n, None), ("sca-workspace", "/assess/workspace", f, None),
          ("import-center", "/import-center", f, None)]
     if p:
-        r += [("policy-detail", f"/policy-auditor/{p}", f, None), ("policy-side-by-side", f"/policy-auditor/{p}", f, "mapping-sbs")]
+        r += [("policy-detail", f"/policy-auditor/{p}", f, None), ("policy-side-by-side", f"/policy-auditor/{p}", f, "mapping-sbs"),
+              ("policy-requirement-cards", f"/policy-auditor/{p}", f, "req-expand")]
     return r
 
 
@@ -96,6 +97,11 @@ async def act(page, how: str | None) -> None:
             await b.click()
     elif how == "params":
         await page.locator("[data-testid=param-compare]").scroll_into_view_if_needed()
+    elif how == "req-expand":  # requirement checklist: table ≥768px, stacked cards below
+        b = page.locator("[data-testid^=coverage-toggle-]").first
+        await b.wait_for(timeout=20000)
+        await b.click()
+        await page.wait_for_selector("[data-testid^=req-table-]", timeout=15000)
     elif how in ("mapping-sbs", "queue-sbs"):
         b = page.locator(f"[data-testid^={how}-]").first
         if await b.count():

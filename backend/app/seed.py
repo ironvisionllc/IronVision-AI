@@ -81,6 +81,24 @@ def retire_role_accounts(db: Session) -> None:
     db.flush()
 
 
+def keep_role_accounts() -> bool:
+    """PREVIEW ONLY: keep the 8 synthetic role accounts active for the pytest/acceptance suites (never set in staging/production)."""
+    return os.environ.get("PREVIEW_KEEP_ROLE_ACCOUNTS", "").lower() in ("1", "true") and os.environ.get("APP_ENV") == "development"
+
+
+def reactivate_role_accounts(db: Session) -> int:
+    """Preview: re-activate the synthetic @aegisrmf.demo role accounts and clear their login lockouts."""
+    from app.models import LoginAttempt
+
+    n = 0
+    for u in db.scalars(select(User).where(User.email.like(f"%@{DEMO_DOMAIN}"), User.is_active.is_(False))):
+        u.is_active = True
+        n += 1
+    db.query(LoginAttempt).filter(LoginAttempt.identifier.like(f"%@{DEMO_DOMAIN}%")).delete(synchronize_session=False)
+    db.flush()
+    return n
+
+
 def demo_password() -> str:
     """STAGING_DEMO_PASSWORD overrides DEMO_USER_PASSWORD; outside development the publicly documented password is refused."""
     s = get_settings()
@@ -138,7 +156,10 @@ def run() -> None:
             db.commit()
             if org.sandbox_status != "ready" and db.scalar(select(ContentVersion.id).where(ContentVersion.content_type == "oscal_catalog").limit(1)):
                 sbx.provision(db, org.id)
-            retire_role_accounts(db)
+            if keep_role_accounts():
+                log.info("PREVIEW_KEEP_ROLE_ACCOUNTS: %d synthetic role account(s) re-activated (preview only)", reactivate_role_accounts(db))
+            else:
+                retire_role_accounts(db)
             log.info("Demo seed complete (single demo account %s with a private sandbox)", sbx.DEMO_EMAIL)
         elif demo_deployment_launcher():
             ensure_reference_content(db)  # Keycloak demo deployment: ONLY the synthetic demo sandbox, no role accounts, no password

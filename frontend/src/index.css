@@ -79,6 +79,15 @@
   [data-testid="main-content"] pre { white-space: pre-wrap; }
   .iv-table-scroll { max-width: 100%; overflow-x: auto; scrollbar-width: thin; scrollbar-color: rgba(100, 116, 139, 0.55) transparent; }
   .iv-table-scroll::-webkit-scrollbar { height: 8px; }
+  /* Policy requirement checklist: stacked cards below 768px (ID first, then status/confidence, requirement, evidence, actions) */
+  @media (max-width: 767px) {
+    .iv-table-scroll:has(> .iv-req-cards) { overflow-x: visible; }
+    .iv-req-cards thead { display: none; }
+    .iv-req-cards, .iv-req-cards tbody { display: block; width: 100%; }
+    .iv-req-cards tr { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.5rem 0; overflow-wrap: anywhere; }
+    .iv-req-cards td { display: block; width: auto; padding: 0 !important; text-align: left !important; }
+    .iv-req-cards td:nth-child(2) { order: -1; font-weight: 600; }
+  }
   .iv-table-scroll::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.55); border-radius: 4px; }
   .iv-sticky-first :is(th, td):first-child { position: sticky; left: 0; z-index: 1; background: var(--iv-card); }
   [role="dialog"] { max-width: calc(100vw - 2rem); overflow-x: auto; }
