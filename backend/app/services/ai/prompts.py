@@ -252,7 +252,7 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
         "Return ONLY JSON: {\"items\": [{\"control_id\": str, \"requirement_id\": str, \"status\": \"met\"|\"partial\"|\"missing\", "
         "\"quote\": str, \"section\": str, \"rationale\": str, \"suggestion\": str}]}.",
         "Requirements (JSON, with the deterministic result):\n{requirements}\n\nRetrieved policy sections:\n<<<\n{sections}\n>>>",
-        CoverageBatchOutput, 6000),
+        CoverageBatchOutput, 6000, reasoning_effort="low"),
     ("policy.coverage_refine", "2.4.0"): PromptTemplate(
         "policy.coverage_refine", "2.4.0",
         "You assess whether an organizational policy addresses each listed NIST SP 800-53A assessment objective / DISA CCI. "
@@ -268,7 +268,7 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
         "\"quote\": str, \"section\": str, \"rationale\": str, \"suggestion\": str}]}.",
         "Whole policy document:\n<<<\n{document}\n>>>\n\nSearch hints – passages most likely relevant (read first):\n{sections}\n\n"
         "Requirements (JSON, with the deterministic result):\n{requirements}",
-        CoverageBatchOutput, 6000),
+        CoverageBatchOutput, 6000, reasoning_effort="low"),
     ("policy.coverage_second_look", "1.0.0"): PromptTemplate(
         "policy.coverage_second_look", "1.0.0",
         "Second look. Each requirement below was judged MISSING by a first pass. Search the WHOLE policy document (sections labelled "
@@ -278,7 +278,7 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
         "rationale max 15 words; suggestion empty. Return ONLY JSON: {\"items\": [{\"control_id\": str, \"requirement_id\": str, \"status\": "
         "\"met\"|\"partial\"|\"missing\", \"quote\": str, \"section\": str, \"rationale\": str, \"suggestion\": str}]}.",
         "Whole policy document:\n<<<\n{document}\n>>>\n\nSearch hints:\n{sections}\n\nRequirements (JSON):\n{requirements}",
-        CoverageBatchOutput, 4000),
+        CoverageBatchOutput, 4000, reasoning_effort="low"),
     ("mapping.suggest", "1.0.0"): PromptTemplate(
         prompt_id="mapping.suggest", version="1.0.0",
         system=("You map security findings to NIST SP 800-53 Rev 5 controls. Respond ONLY with one JSON object, no markdown. "
