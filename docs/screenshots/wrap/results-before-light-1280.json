@@ -105,9 +105,18 @@
   "page": "categorize-fips",
   "theme": "light",
   "size": "1280x800",
-  "count": 0,
-  "by_check": {},
-  "items": []
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
  },
  {
   "page": "select",
@@ -147,9 +156,18 @@
   "page": "parameter-comparison",
   "theme": "light",
   "size": "1280x800",
-  "count": 0,
-  "by_check": {},
-  "items": []
+  "count": 1,
+  "by_check": {
+   "label-wrap": 1
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   }
+  ]
  },
  {
   "page": "catalog",
@@ -295,10 +313,9 @@
   "page": "inheritance",
   "theme": "light",
   "size": "1280x800",
-  "count": 6,
+  "count": 4,
   "by_check": {
    "label-wrap": 3,
-   "clipped": 2,
    "squeezed": 1
   },
   "items": [
@@ -315,22 +332,10 @@
     "w": 18
    },
    {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "edit-provider-5b1f23e4-a8fc-4334-a654-539ea40745b8",
-    "text": "Edit"
-   },
-   {
     "check": "label-wrap",
     "el": "crm-import-5b1f23e4-a8fc-4334-a654-539ea40745b8",
     "text": "Import CRM (CSV / Excel)",
     "w": 10
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "crm-import-5b1f23e4-a8fc-4334-a654-539ea40745b8",
-    "text": "Import CRM (CSV / Excel)"
    },
    {
     "check": "squeezed",
@@ -413,9 +418,103 @@
   "page": "evidence-sources",
   "theme": "light",
   "size": "1280x800",
-  "count": 0,
-  "by_check": {},
-  "items": []
+  "count": 15,
+  "by_check": {
+   "label-wrap": 1,
+   "squeezed": 14
+  },
+  "items": [
+   {
+    "check": "label-wrap",
+    "el": "guided-toggle",
+    "text": "Guided mode: off",
+    "w": 132
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-f30bae09-707e-44c5-ad47-39af22499d60",
+    "text": "On-prem collector (MOCK)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-f30bae09-707e-44c5-ad47-39af22499d60",
+    "text": "mock-on_prem.json",
+    "w": 26
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-7bcac729-e970-4aa9-9156-4a42986b70eb",
+    "text": "On-prem collector (MOCK)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-7bcac729-e970-4aa9-9156-4a42986b70eb",
+    "text": "mock-on_prem.json",
+    "w": 26
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-30494321-e268-419e-9976-2605a5d18075",
+    "text": "DISA STIG Checklists (uploads)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-30494321-e268-419e-9976-2605a5d18075",
+    "text": "qa-web_fqdn_SYNTHETIC.ckl",
+    "w": 26
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-0ba97171-47f6-4d6f-a6b3-8d93a33345a0",
+    "text": "DISA STIG Checklists (uploads)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-0ba97171-47f6-4d6f-a6b3-8d93a33345a0",
+    "text": "nat-gw_SYNTHETIC.ckl",
+    "w": 26
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-4e0b842a-4107-44f5-96ff-e877aaf8b7e6",
+    "text": "DISA STIG Checklists (uploads)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-73513041-645a-4850-97c1-3650f24e4348",
+    "text": "DISA STIG Checklists (uploads)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-09e3bf11-1d63-4364-b97f-5f6777fdc7b0",
+    "text": "DISA STIG Checklists (uploads)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-09e3bf11-1d63-4364-b97f-5f6777fdc7b0",
+    "text": "demo_linux_xccdf_results_SYNTHETIC.xml",
+    "w": 26
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-12368b93-0e18-46ef-9fad-addd26055882",
+    "text": "DISA STIG Checklists (uploads)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ingest-run-12368b93-0e18-46ef-9fad-addd26055882",
+    "text": "ltp_db-server-01.ckl",
+    "w": 26
+   }
+  ]
  },
  {
   "page": "assess",
@@ -707,9 +806,10 @@
   "page": "mapping-review",
   "theme": "light",
   "size": "1280x800",
-  "count": 24,
+  "count": 58,
   "by_check": {
-   "label-wrap": 24
+   "label-wrap": 24,
+   "squeezed": 34
   },
   "items": [
    {
@@ -855,6 +955,102 @@
     "el": "queue-approve-fm:V-930002:cm-6",
     "text": "Approve",
     "w": 27
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-ps:008a1e70-935d-48b7-99f8-c762b01c0355:ac-2.3",
+    "text": "Policy Auditor \u2013 CCI/objective coverage ",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-ps:008a1e70-935d-48b7-99f8-c762b01c0355:ac-2.3",
+    "text": "AC-2(3) Disable Accounts",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-ps:0e787099-b77b-43af-b7f9-31bbe860b04e:ia-5",
+    "text": "Policy Auditor \u2013 CCI/objective coverage ",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-ps:0e787099-b77b-43af-b7f9-31bbe860b04e:ia-5",
+    "text": "Authenticator content is protected from ",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:297929c8-9ef5-49bf-b4cd-56fa7db05ca0",
+    "text": "Policy Auditor control title \u201cRisk Asses",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:297929c8-9ef5-49bf-b4cd-56fa7db05ca0",
+    "text": "Risk Assessment Policy (synthetic)",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:c14bac45-acf1-4746-8602-0f65934532e7",
+    "text": "Policy Auditor explicit control ID in th",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:c14bac45-acf1-4746-8602-0f65934532e7",
+    "text": "AC-7 Unsuccessful Logon Attempts.",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:db389707-efc1-4de3-b70f-96765fc2a60b",
+    "text": "Policy Auditor control title \u201cRisk Asses",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:db389707-efc1-4de3-b70f-96765fc2a60b",
+    "text": "QA Payroll Risk Assessment Policy (RA-1)",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:5c1fd077-f41a-4d7e-8e99-8ac151a9dd6b",
+    "text": "Policy Auditor explicit control ID in th",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:5c1fd077-f41a-4d7e-8e99-8ac151a9dd6b",
+    "text": "IA-5 Authenticator management.",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:32908cc5-d9ea-4765-8bc9-ac57aaeea908",
+    "text": "Policy Auditor explicit control ID in th",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:32908cc5-d9ea-4765-8bc9-ac57aaeea908",
+    "text": "AC-2 Account Management.",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:31db88be-e814-4632-97e0-7866d7471d81",
+    "text": "Policy Auditor explicit control ID in th",
+    "w": 67
+   },
+   {
+    "check": "squeezed",
+    "el": "queue-item-pm:31db88be-e814-4632-97e0-7866d7471d81",
+    "text": "AC-7 Unsuccessful Logon Attempts.",
+    "w": 67
    }
   ]
  },
@@ -953,10 +1149,9 @@
   "page": "evidence-ledger",
   "theme": "light",
   "size": "1280x800",
-  "count": 60,
+  "count": 24,
   "by_check": {
    "label-wrap": 1,
-   "clipped": 36,
    "squeezed": 23
   },
   "items": [
@@ -965,222 +1160,6 @@
     "el": "guided-toggle",
     "text": "Guided mode: off",
     "w": 132
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-1175e704-d996-4940-93ef-11430e820f47",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-1175e704-d996-4940-93ef-11430e820f47",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-673f9091-7b4a-4d07-a622-9af1d0a8f08d",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-673f9091-7b4a-4d07-a622-9af1d0a8f08d",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-5e28a74b-8151-4cd0-a90b-859f33621965",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-5e28a74b-8151-4cd0-a90b-859f33621965",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-2f8473a1-89cd-407f-9a77-b850fb79b73b",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-2f8473a1-89cd-407f-9a77-b850fb79b73b",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-d797bdd6-191d-44d7-be76-cfa632b135de",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-d797bdd6-191d-44d7-be76-cfa632b135de",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-fa5c6911-9ad3-4e18-b652-151a9a5fd93e",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-fa5c6911-9ad3-4e18-b652-151a9a5fd93e",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-3dfe84ee-f376-4049-a876-0b324ee378e8",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-3dfe84ee-f376-4049-a876-0b324ee378e8",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-c5ec7edc-2133-4b2b-9652-86a80c2332f8",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-c5ec7edc-2133-4b2b-9652-86a80c2332f8",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-cc2cd7f0-8b19-42f4-9152-2cae1f3d4cff",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-cc2cd7f0-8b19-42f4-9152-2cae1f3d4cff",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-315fff59-0702-4125-ab54-e2437f3669ca",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-315fff59-0702-4125-ab54-e2437f3669ca",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-211460a8-29c8-4f8a-bcd6-d18d03c6eee0",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-211460a8-29c8-4f8a-bcd6-d18d03c6eee0",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-0a467525-ed74-47dc-a520-83d1343ac43a",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-0a467525-ed74-47dc-a520-83d1343ac43a",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-9e8fd0a2-6291-4518-a045-1a8b60b991b4",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-9e8fd0a2-6291-4518-a045-1a8b60b991b4",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-6dedf912-1990-4506-916b-f69104a86c1d",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-6dedf912-1990-4506-916b-f69104a86c1d",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-02ed34d4-df27-4eef-b29e-eb5ba9aa9462",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-02ed34d4-df27-4eef-b29e-eb5ba9aa9462",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-a8e6df39-5411-40fc-bc82-b0cdb327aef0",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-a8e6df39-5411-40fc-bc82-b0cdb327aef0",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-13818bc8-4a2f-4663-b9bd-56b54edcc1c3",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-13818bc8-4a2f-4663-b9bd-56b54edcc1c3",
-    "text": "Demo: \u221245d"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "ev-actions-02552290-98fb-4966-8d36-f234d46b127f",
-    "text": "Actions \u25be"
-   },
-   {
-    "check": "clipped",
-    "why": "outside viewport",
-    "el": "demo-backdate-02552290-98fb-4966-8d36-f234d46b127f",
-    "text": "Demo: \u221245d"
    },
    {
     "check": "squeezed",
@@ -1198,6 +1177,126 @@
     "check": "squeezed",
     "el": "ledger-row-mock-on_prem.json",
     "text": "On-prem collector (MOCK)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-qa-web_fqdn_SYNTHETIC.ckl",
+    "text": "qa-web_fqdn_SYNTHETIC.ckl",
+    "w": 64
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-qa-web_fqdn_SYNTHETIC.ckl",
+    "text": "DISA STIG Checklists (uploads)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-AC Standard 98bc.docx",
+    "text": "AC Standard 98bc.docx",
+    "w": 64
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-AC Standard 98bc.docx",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-AC Standard bb1b.docx",
+    "text": "AC Standard bb1b.docx",
+    "w": 64
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-AC Standard bb1b.docx",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-ac9913.txt",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-ac.txt",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-IA Standard QA.docx",
+    "text": "IA Standard QA.docx",
+    "w": 64
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-IA Standard QA.docx",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-qa-web.ckl",
+    "text": "DISA STIG Checklists (uploads)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-ra2.txt",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-ra1.txt",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-ra_policy_complete.docx",
+    "text": "ra_policy_complete.docx",
+    "w": 64
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-ra_policy_complete.docx",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-ra.txt",
+    "text": "Policy library / manual uploads",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-demo_linux_xccdf_results_SYNTHETIC.xml",
+    "text": "demo_linux_xccdf_results_SYNTHETIC.xml",
+    "w": 64
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-demo_linux_xccdf_results_SYNTHETIC.xml",
+    "text": "DISA STIG Checklists (uploads)",
+    "w": 53
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-ltp_db-server-01.ckl",
+    "text": "ltp_db-server-01.ckl",
+    "w": 64
+   },
+   {
+    "check": "squeezed",
+    "el": "ledger-row-ltp_db-server-01.ckl",
+    "text": "DISA STIG Checklists (uploads)",
     "w": 53
    }
   ]
@@ -1271,9 +1370,10 @@
   "page": "admin",
   "theme": "light",
   "size": "1280x800",
-  "count": 3,
+  "count": 46,
   "by_check": {
-   "label-wrap": 3
+   "label-wrap": 1,
+   "squeezed": 45
   },
   "items": [
    {
@@ -1283,16 +1383,238 @@
     "w": 132
    },
    {
-    "check": "label-wrap",
-    "el": "ai-status-provider-model",
-    "text": "openrouter / anthropic/claude-sonnet-5.5",
-    "w": 270
+    "check": "squeezed",
+    "el": "audit-row-18517",
+    "text": "35.193.209.116",
+    "w": 45
    },
    {
-    "check": "label-wrap",
-    "el": "ai-status-mode",
-    "text": "AI-assisted (openrouter / anthropic/clau",
-    "w": 270
+    "check": "squeezed",
+    "el": "audit-row-18516",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18515",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18514",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18513",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18512",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18511",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18510",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18509",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18508",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18507",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18506",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18505",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18504",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18503",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18502",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18501",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18500",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18499",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18498",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18497",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18496",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18495",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18494",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18493",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18492",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18491",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18490",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18489",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18488",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18487",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18486",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18485",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18484",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18483",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18482",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18481",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18480",
+    "text": "35.193.209.116",
+    "w": 45
+   },
+   {
+    "check": "squeezed",
+    "el": "audit-row-18479",
+    "text": "35.193.209.116",
+    "w": 45
    }
   ]
  },
@@ -1398,9 +1720,9 @@
   "page": "sca-workspace",
   "theme": "light",
   "size": "1280x800",
-  "count": 61,
+  "count": 6,
   "by_check": {
-   "label-wrap": 61
+   "label-wrap": 6
   },
   "items": [
    {
@@ -1411,146 +1733,8 @@
    },
    {
     "check": "label-wrap",
-    "el": "sca-item-ac-2.1",
-    "text": "AC-2(1) Automated System Account Managem",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ac-2.2",
-    "text": "AC-2(2) Automated Temporary and Emergenc",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ac-2.13",
-    "text": "AC-2(13) Disable Accounts for High-risk ",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ac-6.1",
-    "text": "AC-6(1) Authorize Access to Security Fun",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ac-6.2",
-    "text": "AC-6(2) Non-privileged Access for Nonsec",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
     "el": "sca-item-ac-17.4",
     "text": "AC-17(4) Privileged Commands and Access",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ac-19.5",
-    "text": "AC-19(5) Full Device or Container-based ",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ac-20.2",
-    "text": "AC-20(2) Portable Storage Devices \u2014 Rest",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-au-5",
-    "text": "AU-5 Response to Audit Logging Process F",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-au-6",
-    "text": "AU-6 Audit Record Review, Analysis, and ",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-au-6.3",
-    "text": "AU-6(3) Correlate Audit Record Repositor",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-au-7",
-    "text": "AU-7 Audit Record Reduction and Report G",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-au-9.4",
-    "text": "AU-9(4) Access by Subset of Privileged U",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cm-2.2",
-    "text": "CM-2(2) Automation Support for Accuracy ",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cm-2.3",
-    "text": "CM-2(3) Retention of Previous Configurat",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cm-2.7",
-    "text": "CM-2(7) Configure Systems and Components",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cm-3.2",
-    "text": "CM-3(2) Testing, Validation, and Documen",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cm-3.4",
-    "text": "CM-3(4) Security and Privacy Representat",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cm-7.5",
-    "text": "CM-7(5) Authorized Software \u2014 Allow-by-e",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cm-8.1",
-    "text": "CM-8(1) Updates During Installation and ",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cm-8.3",
-    "text": "CM-8(3) Automated Unauthorized Component",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cm-12.1",
-    "text": "CM-12(1) Automated Tools to Support Info",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cp-2.3",
-    "text": "CP-2(3) Resume Mission and Business Func",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-cp-9.1",
-    "text": "CP-9(1) Testing for Reliability and Inte",
     "w": 258
    },
    {
@@ -1561,86 +1745,20 @@
    },
    {
     "check": "label-wrap",
-    "el": "sca-item-ia-2.1",
-    "text": "IA-2(1) Multi-factor Authentication to P",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ia-2.8",
-    "text": "IA-2(8) Access to Accounts \u2014 Replay Resi",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ia-3",
-    "text": "IA-3 Device Identification and Authentic",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
     "el": "sca-item-ia-7",
     "text": "IA-7 Cryptographic Module Authentication",
     "w": 258
    },
    {
     "check": "label-wrap",
-    "el": "sca-item-ia-8.1",
-    "text": "IA-8(1) Acceptance of PIV Credentials fr",
+    "el": "sca-item-sa-10",
+    "text": "SA-10 Developer Configuration Management",
     "w": 258
    },
    {
     "check": "label-wrap",
-    "el": "sca-item-ia-8.2",
-    "text": "IA-8(2) Acceptance of External Authentic",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ia-12.3",
-    "text": "IA-12(3) Identity Evidence Validation an",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ir-4.1",
-    "text": "IR-4(1) Automated Incident Handling Proc",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-pe-6.1",
-    "text": "PE-6(1) Intrusion Alarms and Surveillanc",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ra-5",
-    "text": "RA-5 Vulnerability Monitoring and Scanni",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-ra-5.2",
-    "text": "RA-5(2) Update Vulnerabilities to Be Sca",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-sa-4.2",
-    "text": "SA-4(2) Design and Implementation Inform",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-sa-4.9",
-    "text": "SA-4(9) Functions, Ports, Protocols, and",
-    "w": 258
-   },
-   {
-    "check": "label-wrap",
-    "el": "sca-item-sa-8",
-    "text": "SA-8 Security and Privacy Engineering Pr",
+    "el": "sca-item-sr-3",
+    "text": "SR-3 Supply Chain Controls and Processes",
     "w": 258
    }
   ]
@@ -1691,10 +1809,10 @@
   "page": "policy-detail",
   "theme": "light",
   "size": "1280x800",
-  "count": 11,
+  "count": 12,
   "by_check": {
    "label-wrap": 5,
-   "squeezed": 6
+   "squeezed": 7
   },
   "items": [
    {
@@ -1726,6 +1844,12 @@
     "el": "mapping-reject-ac-7",
     "text": "Reject mapping",
     "w": 77
+   },
+   {
+    "check": "squeezed",
+    "el": "coverage-toggle-ac-2",
+    "text": "mapped show checklist",
+    "w": 66
    },
    {
     "check": "squeezed",
@@ -1769,10 +1893,10 @@
   "page": "policy-side-by-side",
   "theme": "light",
   "size": "1280x800",
-  "count": 11,
+  "count": 12,
   "by_check": {
    "label-wrap": 5,
-   "squeezed": 6
+   "squeezed": 7
   },
   "items": [
    {
@@ -1804,6 +1928,12 @@
     "el": "mapping-reject-ac-7",
     "text": "Reject mapping",
     "w": 77
+   },
+   {
+    "check": "squeezed",
+    "el": "coverage-toggle-ac-2",
+    "text": "mapped show checklist",
+    "w": 66
    },
    {
     "check": "squeezed",

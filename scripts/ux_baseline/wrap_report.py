@@ -66,8 +66,9 @@ open("/app/docs/ux/WRAP.md", "w").write(
     "switches, chips, badges and status labels; table cells get minimum widths (9ch IDs/dates/statuses on one line, 14–24ch text) and every table "
     "scrolls horizontally inside `TableScroll` (or itself when unwrapped); `ActionBar` in `PageHeader`/`Panel` wraps whole buttons and on phones keeps "
     "the first action with the rest in a labelled **More ▾** menu (still in the DOM, one click away).\n\n"
-    "Note: the *before* run counted buttons inside horizontally-scrolling tables as `clipped (outside viewport)`; the checker was then refined to treat "
-    "them as reachable (they scroll into view), so part of the `clipped` drop is measurement, not layout.\n\n"
+    "Note on the *before* numbers: the dark runs were taken live before the fix with the first version of the checker (it still counted buttons in "
+    "horizontally-scrolling tables as `clipped` and multi-line tree rows as wrapped labels). The light runs were re-measured with the final checker on a "
+    "build of the pre-fix commit `c107f4f` served against the same backend, so light before/after use identical rules.\n\n"
     "## By check\n\n" + "\n".join(crow) + "\n\n## By route\n\n" + "\n".join(rows) +
     "\n\n## Worst 6 screens (light, narrow) – before / after\n\n" + "\n".join(f"![{p}](screens/wrap/{p}.png)" for p in worst) + "\n")
 print("worst:", worst)

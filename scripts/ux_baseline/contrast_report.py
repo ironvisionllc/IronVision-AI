@@ -40,6 +40,9 @@ rows.append("| **Total** | " + " | ".join(f"{tot_b[r]} → **{tot_a[r]}**" for r
 os.makedirs(OUT, exist_ok=True)
 font = ImageFont.load_default()
 for p in worst:
+    if not (os.path.exists(f"{SHOTS}/before-dark-1280/{p}.png") and os.path.exists(f"{SHOTS}/after-dark-1280/{p}.png")):
+        print("raw screenshots missing – keeping the existing side-by-side for", p)
+        continue
     l, r = Image.open(f"{SHOTS}/before-dark-1280/{p}.png"), Image.open(f"{SHOTS}/after-dark-1280/{p}.png")
     w, h = l.size
     img = Image.new("RGB", (w * 2 + 24, h + 40), "#0b1220")

@@ -1,0 +1,26 @@
+{
+ "worst": [
+  "test-results",
+  "admin",
+  "mapping-review",
+  "policy-detail",
+  "policy-side-by-side",
+  "import-center"
+ ],
+ "before": {
+  "dark-1280": 29,
+  "dark-768": 401,
+  "dark-390": 1692,
+  "light-1280": 484,
+  "light-768": 1009,
+  "light-390": 1513
+ },
+ "after": {
+  "dark-1280": 0,
+  "dark-768": 0,
+  "dark-390": 0,
+  "light-1280": 0,
+  "light-768": 0,
+  "light-390": 0
+ }
+}
