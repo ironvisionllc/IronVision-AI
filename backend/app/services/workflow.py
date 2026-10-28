@@ -30,7 +30,8 @@ def validate_rules(rules: list) -> list[str]:
             errs.append(f"unknown request type {r.request_type}")
         if r.is_active and (r.org_id, r.request_type) in seen:
             errs.append(f"overlapping active rules for {r.request_type}")
-        seen[(r.org_id, r.request_type)] = r
+        if r.is_active:  # only active versions can overlap (inactive history versions are expected)
+            seen[(r.org_id, r.request_type)] = r
     return errs
 
 

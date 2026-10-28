@@ -11,9 +11,8 @@ pytestmark = pytest.mark.skipif(not os.environ.get("REACT_APP_BACKEND_URL"), rea
 
 
 def _demo():
-    r = requests.post(f"{BASE}/auth/demo-login", timeout=30)
-    assert r.status_code == 200, r.text
-    return r.json()["access_token"]
+    from tests.live_auth import demo_token
+    return demo_token(BASE)
 
 
 def _act(tok, role):
@@ -27,15 +26,29 @@ def tok():
     return _demo()
 
 
-@pytest.fixture(scope="module")
-def sid(tok):
+def _ltp(tok):
     s = requests.get(f"{BASE}/systems", headers={"Authorization": f"Bearer {tok}"}, timeout=30).json()
     s = s if isinstance(s, list) else s.get("items", [])
     return next(x["id"] for x in s if x.get("acronym") == "LTP")
 
 
 @pytest.fixture(scope="module")
-def isso(tok):
+def sid(tok):
+    sid = _ltp(tok)
+    q = [x for x in _queue(_act(tok, "isso"), sid) if x["kind"] == "status" and not x.get("awaiting_sca")]
+    if len(q) < 3:  # shared demo state consumed by earlier runs → re-seed the SYNTHETIC demo (the user-facing "Reset demo data")
+        r = requests.post(f"{BASE}/sandbox/reset", headers={"Authorization": f"Bearer {tok}"}, timeout=280)
+        assert r.status_code == 200, r.text
+        for _ in range(120):
+            if requests.get(f"{BASE}/sandbox/status", headers={"Authorization": f"Bearer {tok}"}, timeout=30).json().get("status") == "ready":
+                break
+            time.sleep(2)
+        sid = _ltp(tok)
+    return sid
+
+
+@pytest.fixture(scope="module")
+def isso(tok, sid):
     return _act(tok, "isso")
 
 

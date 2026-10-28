@@ -7,9 +7,8 @@ pytestmark = pytest.mark.skipif(not (BASE and SID), reason="live preview test: s
 
 @pytest.fixture(scope="module")
 def token():
-    r = requests.post(f"{BASE}/api/v1/auth/demo-login", json={})
-    assert r.status_code == 200, r.text
-    return r.json()["access_token"]
+    from tests.live_auth import demo_token
+    return demo_token(f"{BASE}/api/v1")
 
 @pytest.fixture
 def h(token):

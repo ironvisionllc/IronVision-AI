@@ -46,7 +46,7 @@ def test_ready():
     assert r.status_code == 200, r.text
     data = r.json()
     assert data.get("ready") is True
-    assert data.get("migration") == "0009", data
+    assert data.get("migration") and int(data["migration"]) >= 9, data  # head moves with every migration
 
 
 def test_metrics():
@@ -69,7 +69,7 @@ def test_auth_provider():
     assert "dev_password" in d.get("enabled_providers", [])
     assert d.get("dev_password_enabled") is True
     assert d.get("oidc_enabled") is False
-    assert isinstance(d.get("dev_accounts"), list) and len(d["dev_accounts"]) >= 1
+    assert isinstance(d.get("dev_accounts"), list) and d.get("demo_login_enabled") is True  # no public picker; shared demo account
 
 
 # ---------- Session lifecycle ----------

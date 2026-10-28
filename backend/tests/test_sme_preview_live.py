@@ -143,5 +143,5 @@ def test_export_params_csv_has_header(demo_tok):
     lines = r.text.splitlines()
     assert lines, "empty CSV"
     header = lines[0]
-    assert "row_type" in header and "policy" in header, f"header missing: {header}"
+    assert "Parameter ID" in header and "policy" in header, f"header missing: {header}"  # CSV = screen columns since bbb8d81
     assert len(lines) >= 2, "expected at least one data row"

@@ -9,7 +9,8 @@ pytestmark = pytest.mark.skipif(not os.environ.get("REACT_APP_BACKEND_URL"), rea
 
 
 def test_redecide_finding_map_is_skipped():
-    tok = requests.post(f"{BASE}/auth/demo-login", timeout=30).json()["access_token"]
+    from tests.live_auth import demo_token
+    tok = demo_token(BASE)
     h = {"Authorization": f"Bearer {tok}"}
     s = requests.get(f"{BASE}/systems", headers=h, timeout=30).json()
     sid = next(x["id"] for x in (s if isinstance(s, list) else s["items"]) if x["acronym"] == "LTP")

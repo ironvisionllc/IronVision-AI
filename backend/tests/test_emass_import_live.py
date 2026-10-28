@@ -78,7 +78,11 @@ def test_sample_upload_report(isso, sample):
     assert any(c == "RA-5" and "Completion" in f for c, f in inv)
     assert len(rep["invalid"]) == 4
     assert any(x["control"] == "IA-2(1)" and x["field"] == "Severity" for x in rep["blocked"])
-    assert any(x["control"] == "AU-2" and "N/A Justification" in x["issue"] for x in rep["required_issues"])
+    au2 = requests.get(f"{API}/systems/{SID}/workbench/controls/au-2/emass", headers=isso).json().get("values") or {}
+    if not str(au2.get("na_justification") or "").strip():  # shared demo state: a previous apply may already have filled the justification
+        # since the per-row status gate (20ff395) a status missing its required field is reported as "not applied – missing …"
+        assert any(x["control"] == "AU-2" and "N/A Justification" in x["missing"] for x in rep["status_not_applied"]) or \
+            any(x["control"] == "AU-2" and "N/A Justification" in x["issue"] for x in rep["required_issues"])
     assert any(x["control"] == "AC-2" for x in rep["duplicates"])
     pytest.imp_id = j["id"]
 
@@ -114,10 +118,12 @@ def test_sca_upload_403(sca, sample):
 
 
 def test_apply_and_audit(isso):
-    # accept AU-2 status (required issue) + ac-2 fields; reject at-2
+    # AU-2 status is blocked by the per-row status gate (N/A without justification): accepting it is refused with the actionable text
     r = requests.put(f"{API}/systems/{SID}/emass-imports/{pytest.imp_id}/decisions", headers=isso,
-                     json={"decisions": [{"control_id": "au-2", "field": "implementation_status", "decision": "accept"},
-                                         {"control_id": "at-2", "field": "*", "decision": "reject"}]})
+                     json={"decisions": [{"control_id": "au-2", "field": "implementation_status", "decision": "accept"}]})
+    assert r.status_code == 422 and "N/A Justification" in r.text
+    r = requests.put(f"{API}/systems/{SID}/emass-imports/{pytest.imp_id}/decisions", headers=isso,
+                     json={"decisions": [{"control_id": "at-2", "field": "*", "decision": "reject"}]})
     assert r.status_code == 200, r.text
     imp = r.json()
     ac2 = next(i for i in imp["items"] if i["control_id"] == "ac-2")
@@ -128,7 +134,7 @@ def test_apply_and_audit(isso):
     j = r.json()
     assert j["status"] == "applied"
     res = {x["control"]: x for x in j["results"]}
-    assert res["AU-2"]["failed"] and "N/A Justification" in res["AU-2"]["failed"]
+    assert not (res.get("AU-2") or {}).get("applied_status"), "blocked status never applied"
     assert "AT-2" not in res
     ac2_now = requests.get(f"{API}/systems/{SID}/workbench/controls/ac-2/emass", headers=isso).json()
     for k, v in accepted.items():

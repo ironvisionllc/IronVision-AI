@@ -250,7 +250,7 @@ def build(db: Session, s: System, parsed: dict) -> tuple[list[dict], dict]:
                     blocked = "Risk Assessment cannot be changed for an Inherited control (eMASS rule)"
                 elif f in ef.PLAN_FIELDS and inherited_now and str(cur.get(f) or "") != str(v):
                     blocked = "Inherited control – Implementation Plan values come from the providing system"
-            fields[f] = {"current": cur.get(f), "imported": v if not err else str(r["values"][f])[:200], "change": not err and str(cur.get(f) or "") != str(v),
+            fields[f] = {"current": cur.get(f), "imported": v if not err else str(r["values"][f])[:200], "change": not err and str(cur.get(f) or "").strip() != str(v).strip(),
                          "error": err, "blocked": blocked, "decision": None}
             if err:
                 rep["invalid"].append({"row": r["row"], "control": fmt_acronym(cid), "field": ef.FIELD_META[f][0], "value": str(r["values"][f])[:120], "error": err})

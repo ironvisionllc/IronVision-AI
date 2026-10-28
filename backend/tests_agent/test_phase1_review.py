@@ -1,6 +1,6 @@
 """Phase 1 agent review tests against live preview via REACT_APP_BACKEND_URL."""
 from __future__ import annotations
-import os, time, pathlib
+import os, time, pathlib, uuid
 import pytest, requests
 
 BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://aegis-rmf-demo.preview.emergentagent.com").rstrip("/")
@@ -45,9 +45,9 @@ def test_dev_user_options_exactly_eight():
     r = requests.get(f"{API}/auth/provider", timeout=10)
     assert r.status_code == 200
     accounts = r.json().get("dev_accounts", [])
-    assert len(accounts) == 8, f"expected 8 dev accounts, got {len(accounts)}"
-    emails = sorted(a["email"] for a in accounts)
-    assert emails == sorted(EMAILS.values())
+    # the public account picker was removed (one shared demo account + self sign-up); the 8 role accounts still sign in by password
+    assert accounts == [], f"no public account picker expected, got {len(accounts)}"
+    assert r.json().get("demo_login_enabled") is True
 
 
 def _systems(tokens, role="isso"):
@@ -167,7 +167,7 @@ def test_duplicate_detection_and_modified_upload(tokens):
     _, st2 = _poll(tokens["isso"], run2_id, 60)
     assert st2 == "duplicate", f"expected duplicate, got {st2}"
 
-    modified = content + b"\n<!-- agent test modification -->\n"
+    modified = content + f"\n<!-- agent test modification {uuid.uuid4().hex} -->\n".encode()
     r3 = _upload(tokens["isso"], sid, source_id, modified, "ltp_db-server-01-mod.ckl")
     assert r3.status_code == 202
     run3_id = r3.json()["id"]

@@ -521,6 +521,7 @@ class TestNotifications:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.slow
+@pytest.mark.skipif(os.environ.get("RUN_PAID_AI") != "1", reason="makes a real (paid) LLM call – set RUN_PAID_AI=1 with spend approval")
 class TestAIDraft:
     def test_ai_draft_and_review(self, isso, issm):
         ltp = _ltp_id(isso)
