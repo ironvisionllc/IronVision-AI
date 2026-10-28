@@ -146,7 +146,7 @@ export function PolicyAuditorPage() {
       </Panel></Gated>
       <Panel title="Policy library" testId="policy-library">
         <Table head={["Policy", "Version", "Status", "Owner", "Approved", "Review due", "Analysis", "Proposed / confirmed / dismissed"]}>
-          {data.policies.map((p: Row) => <tr key={p.id} data-testid={`policy-row-${p.policy_key}-v${p.version}`} className={cn(p.status === "superseded" && "opacity-60")}>
+          {data.policies.map((p: Row) => <tr key={p.id} data-testid={`policy-row-${p.policy_key}-v${p.version}`} className={cn(p.status === "superseded" && "iv-dimmed")}>
             <td className="td"><Link className="text-blue-800 hover:underline" to={`/policy-auditor/${p.id}`}>{p.title}</Link>{p.metadata_only && <div className="text-[10px] text-slate-400">metadata only (no document loaded)</div>}</td>
             <td className="td font-mono">v{p.version}</td><td className="td"><S v={p.review_status ?? p.status} testId={`policy-review-status-${p.policy_key}-v${p.version}`} /></td><td className="td text-[12px]">{p.owner}</td><td className="td font-mono text-[11px]">{p.approval_date ?? "—"}</td>
             <td className="td font-mono text-[11px]">{p.review_due ?? "—"}</td><td className="td"><S v={p.analysis_status} />{["queued", "processing"].includes(p.analysis_status) && <AnalysisProgress p={p.analysis?.progress} testId={`policy-progress-${p.policy_key}-v${p.version}`} />}{p.analysis_status === "analyzed" && p.analysis?.progress?.phase === "done" && <div className="text-[10px] text-slate-500" data-testid={`policy-completed-${p.policy_key}-v${p.version}`}>{p.analysis.progress.stage}</div>}</td><td className="td font-mono">{p.proposed} / {p.confirmed} / {p.dismissed}</td></tr>)}

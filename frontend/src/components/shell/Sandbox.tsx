@@ -34,7 +34,7 @@ export function ActingAs() {
     <label className={`flex min-w-0 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold text-white ${ROLE_COLOR[user.persona_role] ?? "bg-slate-700"}`} data-testid="acting-as"
       title={`${user.display_name} · ${user.email}\nSandbox persona – simulated identity, not acceptable for production separation of duties`}>
       <span className="hidden sm:inline">Acting as</span>
-      <select className="rounded bg-white/15 px-1 text-[11px] font-semibold text-white outline-none [field-sizing:content]" value={user.persona_role} disabled={busy} onChange={(e) => change(e.target.value)} data-testid="acting-as-select" aria-label="Acting as role">
+      <select className="rounded border border-current bg-black/15 px-1 text-[11px] font-semibold text-white [field-sizing:content]" value={user.persona_role} disabled={busy} onChange={(e) => change(e.target.value)} data-testid="acting-as-select" aria-label="Acting as role">
         {Object.entries(ROLE_SHORT).map(([k, v]) => <option key={k} value={k} className="text-slate-900">{v}</option>)}
       </select>
       <span className="hidden max-w-[140px] truncate font-medium md:inline" data-testid="acting-as-name">{name}</span>

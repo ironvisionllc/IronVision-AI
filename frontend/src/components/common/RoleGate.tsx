@@ -35,7 +35,7 @@ export function Gated({ perm, children, block }: { perm: string; children: React
   useEffect(() => { if (!matrix) loadRoleMatrix().then(() => force((n) => n + 1)); }, []);
   if (can(perm)) return <>{children}</>;
   return (
-    <span role="button" tabIndex={0} className={`${block ? "flex" : "inline-flex"} cursor-not-allowed items-center gap-1 opacity-60`} title={deniedText(perm)} data-testid={`gated-${perm}`}
+    <span role="button" tabIndex={0} className={`${block ? "flex" : "inline-flex"} cursor-not-allowed items-center gap-1 iv-dimmed`} title={deniedText(perm)} data-testid={`gated-${perm}`}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); showDenied(perm); }} onKeyDown={(e) => e.key === "Enter" && showDenied(perm)}>
       <fieldset disabled className="pointer-events-none contents">{children}</fieldset><Lock className="h-3 w-3 shrink-0 text-slate-500" aria-label="needs another role" />
     </span>);

@@ -58,7 +58,8 @@
   h1, h2, h3, h4, .font-heading { font-family: var(--iv-font-heading); letter-spacing: -0.015em; }
   code, pre, kbd, .font-mono { font-family: var(--iv-font-mono); }
   ::selection { background: rgba(37, 151, 178, 0.25); }
-  *:focus-visible { outline: 2px solid var(--iv-focus); outline-offset: 2px; }
+  /* one focus indicator for every control (3:1 in both themes); !important so `outline-none` utilities cannot hide it */
+  *:focus-visible { outline: 2px solid var(--iv-focus) !important; outline-offset: 2px; }
 }
 
 @layer components {
@@ -103,24 +104,29 @@
   /* buttons */
   .btn { @apply inline-flex items-center gap-2 px-3 py-1.5 text-sm; font-family: var(--iv-font-heading); font-weight: 600; line-height: 1.4; border-radius: var(--iv-radius-btn);
          border: 1px solid transparent; transition: background-color 150ms ease, box-shadow 150ms ease, color 150ms ease, border-color 150ms ease; }
-  .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; box-shadow: none; filter: saturate(0.4); }
+  /* disabled: readable label, dashed boundary – clearly disabled without fading to invisible (reason tooltips unchanged) */
+  .btn:disabled, .btn[aria-disabled="true"] { background: var(--iv-disabled-bg) !important; color: var(--iv-disabled-text) !important; border: 1px dashed var(--iv-disabled-border) !important;
+    cursor: not-allowed; box-shadow: none !important; filter: none; opacity: 1; }
   .btn-primary { @apply btn; background: var(--iv-grad-brand); color: #fff; box-shadow: 0 2px 8px rgba(37, 151, 178, 0.25); }
   .btn-primary:hover:not(:disabled) { background: var(--iv-grad-brand-hover); box-shadow: 0 4px 16px rgba(37, 151, 178, 0.4); }
-  .btn-secondary { @apply btn; background: var(--iv-surface-solid); color: var(--iv-text); border-color: var(--iv-border-strong); }
-  .btn-secondary:hover:not(:disabled) { border-color: rgb(var(--c-brand-400)); background: rgb(var(--c-brand-50)); color: rgb(var(--c-brand-800)); }
-  .btn-outline { @apply btn; background: transparent; color: rgb(var(--c-brand-700)); border-color: rgb(var(--c-brand-300)); }
-  .btn-outline:hover:not(:disabled) { background: rgb(var(--c-brand-50)); border-color: rgb(var(--c-brand-500)); }
+  .btn-secondary { @apply btn; background: var(--iv-surface-solid); color: var(--iv-text); border-color: var(--iv-control-border); }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--iv-outline-border); background: rgb(var(--c-brand-50)); color: rgb(var(--c-brand-800)); }
+  .btn-outline { @apply btn; background: transparent; color: rgb(var(--c-brand-700)); border-color: var(--iv-outline-border); }
+  .btn-outline:hover:not(:disabled) { background: rgb(var(--c-brand-50)); border-color: var(--iv-outline-border); }
   .btn-ghost { @apply btn; background: transparent; color: var(--iv-text-muted); }
   .btn-ghost:hover:not(:disabled) { background: rgba(37, 151, 178, 0.1); color: var(--iv-text); }
-  .btn-destructive { @apply btn; background: linear-gradient(135deg, #F04438, #D92D20); color: #fff; box-shadow: 0 2px 8px rgba(217, 45, 32, 0.25); }
-  .btn-destructive:hover:not(:disabled) { background: linear-gradient(135deg, #D92D20, #B42318); box-shadow: 0 4px 16px rgba(217, 45, 32, 0.35); }
+  .btn-destructive { @apply btn; background: var(--iv-grad-danger); color: #fff; box-shadow: 0 2px 8px rgba(217, 45, 32, 0.25); }
+  .btn-destructive:hover:not(:disabled) { background: var(--iv-grad-danger-hover); box-shadow: 0 4px 16px rgba(217, 45, 32, 0.35); }
+  /* dimmed rows/items (superseded, archived, not permitted, unavailable): muted but readable – replaces opacity fading */
+  .iv-dimmed { opacity: 1; }
+  .iv-dimmed, .iv-dimmed :not(svg):not(path) { color: var(--iv-disabled-text) !important; }
 
   /* forms */
-  .input { @apply w-full px-3 py-1.5 text-sm; border-radius: var(--iv-radius-btn); background: var(--iv-surface-solid); color: var(--iv-text); border: 1px solid var(--iv-border-strong);
+  .input { @apply w-full px-3 py-1.5 text-sm; border-radius: var(--iv-radius-btn); background: var(--iv-surface-solid); color: var(--iv-text); border: 1px solid var(--iv-control-border);
            transition: border-color 150ms ease, box-shadow 150ms ease; }
-  .input::placeholder { color: var(--iv-text-muted); opacity: 0.75; }
+  .input::placeholder { color: var(--iv-placeholder); opacity: 1; }
   .input:focus { border-color: #2597B2; outline: none; box-shadow: 0 0 0 3px rgba(37, 151, 178, 0.22); }
-  .input:disabled { opacity: 0.55; cursor: not-allowed; }
+  .input:disabled { background: var(--iv-disabled-bg); color: var(--iv-disabled-text); border-style: dashed; border-color: var(--iv-disabled-border); cursor: not-allowed; }
   select.input option { background: var(--iv-surface-solid); color: var(--iv-text); }
 
   /* surfaces */

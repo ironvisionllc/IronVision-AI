@@ -45,7 +45,7 @@ export default function DocsCenterPage() {
           {items.map((d) => (
             <Link key={d.slug} to={`/docs-center/${d.slug}`} data-testid={`docs-link-${d.slug}`} aria-current={d.slug === slug ? "page" : undefined}
               className={cn("flex items-start gap-2 rounded-lg px-3 py-2 text-[13px] transition-colors duration-150",
-                d.slug === slug ? "bg-blue-50 font-semibold text-blue-800" : "text-slate-700 hover:bg-slate-100", !d.available && "opacity-50")}>
+                d.slug === slug ? "bg-blue-50 font-semibold text-blue-800" : "text-slate-700 hover:bg-slate-100", !d.available && "iv-dimmed")}>
               <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               <span className="min-w-0"><span className="block leading-snug">{d.title}</span><span className="block font-mono text-[10px] text-slate-500">{d.path}</span></span>
             </Link>

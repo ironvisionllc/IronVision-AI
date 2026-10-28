@@ -219,7 +219,7 @@ function Row({ c, level, words, hit, sys, openId, onOpen, toggle, extra, dim }: 
   const r = sys?.get(c.control_id), ap = sys ? applicability(r) : null;
   return (
     <div className={cn("flex flex-wrap items-center gap-x-2 gap-y-1 py-1.5 pr-3 [content-visibility:auto] [contain-intrinsic-size:auto_40px]", level === 2 ? "pl-6 sm:pl-8" : "pl-3",
-      hit && "bg-amber-50", openId === c.control_id && "bg-blue-50", dim && "opacity-60")}>
+      hit && "bg-amber-50", openId === c.control_id && "bg-blue-50", dim && "iv-dimmed")}>
       {toggle}
       <button tabIndex={-1} onClick={() => onOpen(c.control_id)} className="flex min-h-[36px] min-w-0 flex-1 basis-[75%] flex-wrap items-center gap-x-2 text-left hover:underline sm:basis-auto" data-testid={`tree-open-${c.control_id}`}>
         <span className={cn("font-mono font-semibold", level === 2 ? "text-[13px] text-blue-900" : "text-[12px] text-blue-700")}>{idLabel(c)}</span>

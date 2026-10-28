@@ -29,7 +29,7 @@ export function SystemsPage() {
       <Panel testId="systems-table-panel">
         <Table head={["System", "eMASS ID", "Baseline", "Categorization", "Phase", "Authorization", "Assigned controls", "Open findings"]} testId="systems-table">
           {data?.map((s) => (
-            <tr key={s.id} data-testid={`system-row-${s.acronym}`} className={s.archived_at ? "opacity-60" : ""}>
+            <tr key={s.id} data-testid={`system-row-${s.acronym}`} className={s.archived_at ? "iv-dimmed" : ""}>
               <td className="td"><Link to={`/systems/${s.id}`} className="font-medium text-blue-800 hover:underline">{s.name}</Link> <span className="text-slate-400">{s.acronym}</span>
                 {s.archived_at && <span className="ml-1.5 rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-700" data-testid={`system-archived-${s.id}`}>Archived</span>}</td>
               <td className="td font-mono text-[12px]">{s.emass_id ?? "—"}</td><td className="td uppercase">{s.baseline_key}{s.overlay_keys?.length ? ` + ${s.overlay_keys.join(", ")}` : ""}</td>

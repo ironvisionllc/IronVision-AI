@@ -16,7 +16,7 @@ const APP_VERSION = process.env.REACT_APP_VERSION || "";
 function Item({ id, label, path, icon: Icon, perm, active, sub }: Row) {
   const { can } = useAuth();
   if (perm && !can(perm)) return (
-    <li><button type="button" className={cn("iv-nav-link group w-full cursor-not-allowed opacity-50", sub && "!pl-9 !text-[12px]")} data-testid={`nav-${id}`} title={deniedText(perm)} onClick={() => showDenied(perm)}>
+    <li><button type="button" className={cn("iv-nav-link group w-full cursor-not-allowed iv-dimmed", sub && "!pl-9 !text-[12px]")} data-testid={`nav-${id}`} title={deniedText(perm)} onClick={() => showDenied(perm)}>
       <Icon className="h-4 w-4 shrink-0 opacity-80" aria-hidden /><span className="flex-1 truncate text-left">{label}</span><Lock className="h-3 w-3" aria-label="needs another role" /></button></li>);
   return (
     <li><Link to={path} data-testid={`nav-${id}`} aria-current={active ? "page" : undefined} className={cn("iv-nav-link group", active && "is-active", sub && "!pl-9 !text-[12px]")}>
