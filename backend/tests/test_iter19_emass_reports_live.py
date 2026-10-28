@@ -5,11 +5,13 @@ from pathlib import Path
 import pytest
 import requests
 
+from tests.live_ids import system_id as live_system_id
+
 BASE = os.environ.get("REACT_APP_BACKEND_URL") or open("/app/frontend/.env").read().split("REACT_APP_BACKEND_URL=")[1].split()[0]
 API = BASE.rstrip("/") + "/api/v1"
 FIX = Path(__file__).parent / "fixtures" / "emass"
-LTP = "3630fca0-4fb1-45d5-b020-a93156344bb4"
-MPP = "3ce4a995-a789-4e0d-a2b2-d26c104cec29"
+LTP = live_system_id(API, "LTP", "3630fca0-4fb1-45d5-b020-a93156344bb4")
+MPP = live_system_id(API, "MPP", "3ce4a995-a789-4e0d-a2b2-d26c104cec29")
 
 
 @pytest.fixture(scope="module")

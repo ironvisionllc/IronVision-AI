@@ -119,7 +119,10 @@ async def goto_authed(page, url: str) -> bool:
         await ui_login(page)
         await page.goto(url)
     if await page.locator("[data-testid=guided-first-login-no]").count():  # first-login Guided Mode prompt would cover content
-        await page.click("[data-testid=guided-first-login-no]")
+        try:
+            await page.click("[data-testid=guided-first-login-no]", timeout=3000)
+        except Exception:
+            pass
     return "/login" not in page.url or "/login" in url
 
 

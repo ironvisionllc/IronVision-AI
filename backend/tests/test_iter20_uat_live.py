@@ -3,8 +3,10 @@ import os
 import pytest
 import requests
 
+from tests.live_ids import system_id as live_system_id
+
 BASE = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/") + "/api/v1"
-SID = "3630fca0-4fb1-45d5-b020-a93156344bb4"
+SID = live_system_id(BASE, "LTP", "3630fca0-4fb1-45d5-b020-a93156344bb4")
 FIX = os.path.join(os.path.dirname(__file__), "fixtures", "test_plan")
 pytestmark = pytest.mark.skipif(not os.environ.get("REACT_APP_BACKEND_URL"), reason="live only")
 
