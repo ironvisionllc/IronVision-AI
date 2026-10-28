@@ -22,11 +22,11 @@ export function StatsStrip({ stats }: { stats: ContentStats | null }) {
     ["CCI → Rev5 maps", stats.cci_rev5_mappings, "stat-cci-maps"],
   ];
   return (<>
-    <div className="panel mb-1 grid grid-cols-2 divide-slate-200 md:grid-cols-4 xl:grid-cols-8 xl:divide-x" data-testid="content-stats">
+    <div className="panel mb-1 grid grid-cols-2 divide-slate-200 md:grid-cols-4 2xl:grid-cols-8 2xl:divide-x" data-testid="content-stats">
       {items.map(([label, value, id]) => (
         <div key={id} className="px-4 py-3">
           <div className="eyebrow !text-[10px]">{label}</div>
-          <div className="mt-1 font-mono text-lg font-semibold text-slate-900" data-testid={id}>
+          <div className="mt-1 whitespace-nowrap font-mono text-lg font-semibold text-slate-900" data-testid={id}>
             {id === "stat-baselines" ? `${b.low ?? 0} / ${b.moderate ?? 0} / ${b.high ?? 0}` : value === undefined || value === null ? "…" : value.toLocaleString()}
           </div>
           {id === "stat-baselines" && <div className="text-[10px] text-slate-500">Privacy: {b.privacy ?? 0} · base + enhancements</div>}
