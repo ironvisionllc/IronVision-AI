@@ -1,0 +1,880 @@
+{
+ "system_id": "3cc4efdf-1b00-4051-bb84-b5a39167fe2a",
+ "base": "https://aegis-rmf-demo.preview.emergentagent.com",
+ "screens": {
+  "rmf_overview": {
+   "path": "/rmf-workflow",
+   "title": "Getting started \u00b7 RMF overview",
+   "buttons": 1,
+   "button_labels": [
+    "Next action: Assign key roles"
+   ],
+   "links": 21,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 0,
+   "panels": 0,
+   "headings": [
+    "Ongoing activities"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "systems": {
+   "path": "/systems",
+   "title": "Systems",
+   "buttons": 3,
+   "button_labels": [
+    "eMASS sync / import",
+    "Import\u2026",
+    "Register system"
+   ],
+   "links": 9,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 1,
+   "tables": 1,
+   "panels": 1,
+   "headings": [],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "register": {
+   "path": "/systems/new",
+   "title": "Register system",
+   "buttons": 3,
+   "button_labels": [
+    "Start from scratch\n\nName the system and pick its information types \u2013 the app derives the impact level and baseline.",
+    "Import an existing eMASS system\n\nUpload eMASS exports (System Details, Categorization, Test Results, SLCM, HW/SW, PPSM) in the Import Center; review every value before anything is saved.",
+    "Copy setup from an existing IronVision AI system\n\nReuse baseline, overlays, tailoring, ODP values, ISCM strategy/profiles and policy links. Assessments, evidence, POA&Ms, test results, approvals and inventory are never copied."
+   ],
+   "links": 2,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 0,
+   "panels": 1,
+   "headings": [
+    "How do you want to start?"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "system_detail": {
+   "path": "/systems/{sid}",
+   "title": "Logistics Tracking Platform",
+   "buttons": 39,
+   "button_labels": [
+    "Archive system",
+    "Import Center",
+    "Authorization package",
+    "Open control workbench (291)",
+    "Revoke",
+    "Add asset",
+    "Edit",
+    "Delete"
+   ],
+   "links": 5,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 2,
+   "panels": 3,
+   "headings": [
+    "Overview",
+    "System-scoped roles",
+    "Asset inventory (15)"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "prepare": {
+   "path": "/rmf/prepare",
+   "title": "Step 1 \u00b7 Prepare \u2013 key roles",
+   "buttons": 2,
+   "button_labels": [
+    "Next action: Assign key roles",
+    "Save roles"
+   ],
+   "links": 10,
+   "inputs": 0,
+   "selects": 10,
+   "checkboxes": 0,
+   "tables": 0,
+   "panels": 1,
+   "headings": [
+    "Key roles"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "categorize": {
+   "path": "/rmf/categorize",
+   "title": "Step 2 \u00b7 Categorize",
+   "buttons": 43,
+   "button_labels": [
+    "Next action: Assign key roles",
+    "Add",
+    "Remove",
+    "Save categorization"
+   ],
+   "links": 10,
+   "inputs": 3,
+   "selects": 6,
+   "checkboxes": 0,
+   "tables": 1,
+   "panels": 5,
+   "headings": [
+    "Framework, information types and impact",
+    "Mission and system type",
+    "Operating environment",
+    "Privacy",
+    "Categorization approval and history"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "select": {
+   "path": "/rmf/select",
+   "title": "Step 3 \u00b7 Select \u2013 baseline, overlays and tailoring",
+   "buttons": 33,
+   "button_labels": [
+    "Next action: Assign key roles",
+    "1. Categorization summary",
+    "2. Initial baseline \u2713",
+    "3. Overlays \u2713",
+    "4. Tailoring & parameters",
+    "5. Review & approve",
+    "Edit in Categorize",
+    "Next: initial baseline",
+    "Remove",
+    "+ Add profile",
+    "\u00d7",
+    "+ Add",
+    "Save draft",
+    "Make it the AC/AU/SC/AT/CM profile value",
+    "Make it the RA/SI profile value",
+    "Make it the AC/AU/CP/IA/SC profile value",
+    "Make it the AU/CM/RA/SC/SI profile value",
+    "Make it the AC/AT profile value",
+    "Make it the AU/SC/SI profile value",
+    "Make it the AC/AT/IA/SC profile value",
+    "Make it the AC/IA/SC profile value"
+   ],
+   "links": 12,
+   "inputs": 28,
+   "selects": 5,
+   "checkboxes": 0,
+   "tables": 0,
+   "panels": 2,
+   "headings": [
+    "Step 1 \u00b7 Categorization summary",
+    "Continuous Monitoring Strategy (ISCM) \u2013 SP 800-37 Task S-5"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "catalog": {
+   "path": "/catalog",
+   "title": "Controls Catalog",
+   "buttons": 25,
+   "button_labels": [
+    "Catalog tree",
+    "Flat list",
+    "Content versions",
+    "Expand all",
+    "Collapse all",
+    "AC\nAccess Control\n23 controls \u00b7 108 enhancements",
+    "AT\nAwareness and Training\n5 controls \u00b7 10 enhancements",
+    "AU\nAudit and Accountability\n15 controls \u00b7 41 enhancements",
+    "CA\nAssessment, Authorization, and Monitoring\n8 controls \u00b7 17 enhancements",
+    "CM\nConfiguration Management\n14 controls \u00b7 42 enhancements",
+    "CP\nContingency Planning\n12 controls \u00b7 37 enhancements",
+    "IA\nIdentification and Authentication\n13 controls \u00b7 46 enhancements",
+    "IR\nIncident Response\n9 controls \u00b7 31 enhancements",
+    "MA\nMaintenance\n7 controls \u00b7 21 enhancements",
+    "MP\nMedia Protection\n8 controls \u00b7 12 enhancements",
+    "PE\nPhysical and Environmental Protection\n22 controls \u00b7 29 enhancements",
+    "PL\nPlanning\n8 controls \u00b7 3 enhancements",
+    "PM\nProgram Management\n32 controls \u00b7 5 enhancements",
+    "PS\nPersonnel Security\n9 controls \u00b7 8 enhancements",
+    "PT\nPersonally Identifiable Information Processing and Transparency\n8 controls \u00b7 13 enhancements",
+    "RA\nRisk Assessment\n9 controls \u00b7 13 enhancements",
+    "SA\nSystem and Services Acquisition\n17 controls \u00b7 91 enhancements",
+    "SC\nSystem and Communications Protection\n47 controls \u00b7 92 enhancements",
+    "SI\nSystem and Information Integrity\n22 controls \u00b7 80 enhancements",
+    "SR\nSupply Chain Risk Management\n12 controls \u00b7 15 enhancements"
+   ],
+   "links": 2,
+   "inputs": 1,
+   "selects": 5,
+   "checkboxes": 1,
+   "tables": 0,
+   "panels": 1,
+   "headings": [],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "implement": {
+   "path": "/rmf/implement",
+   "title": "Step 4 \u00b7 Implement",
+   "buttons": 4,
+   "button_labels": [
+    "Next action: Assign key roles",
+    "Check missing information",
+    "DOCX",
+    "PDF"
+   ],
+   "links": 15,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 0,
+   "panels": 1,
+   "headings": [
+    "Generate SSP (DOCX, PDF)"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "workbench": {
+   "path": "/systems/{sid}/controls",
+   "title": "Control Workbench",
+   "buttons": 49,
+   "button_labels": [
+    "Export controls (CSV)",
+    "Export parameter comparison",
+    "eMASS plan (xlsx)",
+    "eMASS validation",
+    "Import\u2026",
+    "Reference catalog",
+    "All in system",
+    "Mine",
+    "CONTROLRA-5 Vulnerability Monitoring and Scanning",
+    "CONTROLSI-2 Flaw Remediation",
+    "CONTROLCM-6 Configuration Settings",
+    "CONTROLAC-17(2) Protection of Confidentiality and Integrity Using Encryption",
+    "CONTROLSC-13 Cryptographic Protection",
+    "CONTROLAU-9 Protection of Audit Information",
+    "POA&MP-0019 FIPS 140-validated cryptography not enabled on db-server-01",
+    "POA&MP-0030 Contingency plan not tested within the last year (CP-4) \u2013 manual review finding",
+    "CONTROLAC-2(3) Disable Accounts",
+    "ATTESTATIONAttestation CP-4 v1 due",
+    "POLICYAC-2(3) policy mismatch: 35 days vs 90 days (proposed)",
+    "POLICYAC-1 policy finding: Policy cites NIST SP 800-53 Rev 4; current catalog is Rev 5 (proposed)",
+    "POLICYAC-17 policy finding: Policy has no 'Remote access section' (proposed)",
+    "MILESTONEP-0019 milestone: Verify fix with rescan / review",
+    "MILESTONEP-0030 milestone: Verify fix with rescan / review",
+    "MILESTONEP-0015 milestone: Remediation scheduled in change window",
+    "POA&MP-0015 Apache Log4j RCE (Log4Shell, CVE-2021-44228 \u2013 CISA KEV) on app-server-02",
+    "MILESTONEP-0015 milestone: Verify fix with rescan / review",
+    "ATTESTATIONAttestation AT-2 v1 due",
+    "MILESTONEP-0022 milestone: Remediation scheduled in change window",
+    "MILESTONEP-0031 milestone: Remediation scheduled in change window",
+    "POA&MP-0022 SSH daemon permits direct root login on app-server-02",
+    "MILESTONEP-0022 milestone: Verify fix with rescan / review",
+    "POA&MP-0031 SSH Terrapin prefix truncation weakness on app-server-02",
+    "MILESTONEP-0031 milestone: Verify fix with rescan / review",
+    "AC\n38 \u25b8",
+    "AT\n6 \u25b8",
+    "AU\n16 \u25b8",
+    "CA\n10 \u25b8",
+    "CM\n23 \u25b8",
+    "CP\n21 \u25b8",
+    "IA\n12 \u25b8",
+    "IR\n7 \u25b8",
+    "MP\n1 \u25b8",
+    "PL\n7 \u25b8",
+    "PS\n9 \u25b8",
+    "RA\n9 \u25b8",
+    "SA\n17 \u25b8",
+    "SC\n19 \u25b8",
+    "SI\n16 \u25b8",
+    "SR\n12 \u25b8"
+   ],
+   "links": 25,
+   "inputs": 0,
+   "selects": 13,
+   "checkboxes": 15,
+   "tables": 0,
+   "panels": 0,
+   "headings": [],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "inheritance": {
+   "path": "/inheritance",
+   "title": "Inheritance & Attestations",
+   "buttons": 158,
+   "button_labels": [
+    "Add provider",
+    "Assign inherited/shared control",
+    "Bulk-set inheritance\u2026",
+    "Edit",
+    "Import CRM (CSV / Excel)",
+    "Upload evidence",
+    "Attest",
+    "Send reminder",
+    "History",
+    "Renew"
+   ],
+   "links": 145,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 3,
+   "panels": 3,
+   "headings": [
+    "Who covers what",
+    "Shared & inherited controls \u2013 provider vs system responsibility",
+    "Manual attestations"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "inventory": {
+   "path": "/inventory",
+   "title": "Hardware & software inventory",
+   "buttons": 4,
+   "button_labels": [
+    "Import from eMASS",
+    "Import\u2026",
+    "Export HW/SW list",
+    "Re-run checks"
+   ],
+   "links": 19,
+   "inputs": 0,
+   "selects": 1,
+   "checkboxes": 0,
+   "tables": 2,
+   "panels": 0,
+   "headings": [],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "ccis": {
+   "path": "/ccis",
+   "title": "CCI view",
+   "buttons": 3,
+   "button_labels": [
+    "Export CSV (current filters)",
+    "\u2039",
+    "\u203a"
+   ],
+   "links": 52,
+   "inputs": 3,
+   "selects": 4,
+   "checkboxes": 0,
+   "tables": 1,
+   "panels": 1,
+   "headings": [
+    "CCIs"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "policy_auditor": {
+   "path": "/policy-auditor",
+   "title": "Policy Auditor",
+   "buttons": 2,
+   "button_labels": [
+    "Upload with title & owner",
+    "Import\u2026"
+   ],
+   "links": 17,
+   "inputs": 2,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 1,
+   "panels": 2,
+   "headings": [
+    "Upload policy (PDF, DOCX, TXT)",
+    "Policy library"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "evidence_sources": {
+   "path": "/evidence-sources",
+   "title": "Evidence Sources",
+   "buttons": 38,
+   "button_labels": [
+    "Add evidence",
+    "Import\u2026 (Import Center)",
+    "Upload to the linked source",
+    "create a file source",
+    "Sample/test data (SYNTHETIC) \u2013 download sample STIG and ACAS files",
+    "Connect",
+    "Test connection",
+    "Run collection",
+    "Disable",
+    "View evidence",
+    "Enable"
+   ],
+   "links": 30,
+   "inputs": 2,
+   "selects": 3,
+   "checkboxes": 0,
+   "tables": 1,
+   "panels": 3,
+   "headings": [
+    "Upload a file",
+    "Connect a tool",
+    "Latest ingest"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "assess": {
+   "path": "/rmf/assess",
+   "title": "Step 5 \u00b7 Assess",
+   "buttons": 7,
+   "button_labels": [
+    "Next action: Assign key roles",
+    "Check missing information",
+    "DOCX",
+    "PDF"
+   ],
+   "links": 15,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 0,
+   "panels": 1,
+   "headings": [
+    "Generate SAR / RAR (DOCX, PDF)"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "reviews": {
+   "path": "/reviews",
+   "title": "Reviews",
+   "buttons": 4,
+   "button_labels": [
+    "ISSM0",
+    "Control Assessor0",
+    "Authorizing Official0",
+    "My requests"
+   ],
+   "links": 2,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 1,
+   "panels": 2,
+   "headings": [
+    "Who can decide what"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "test_results": {
+   "path": "/test-results",
+   "title": "eMASS Test Results",
+   "buttons": 3,
+   "button_labels": [
+    "Import from eMASS",
+    "Preview",
+    "Import\u2026"
+   ],
+   "links": 4,
+   "inputs": 1,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 0,
+   "panels": 0,
+   "headings": [],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "mapping_review": {
+   "path": "/mapping-review",
+   "title": "Mapping review",
+   "buttons": 51,
+   "button_labels": [
+    "All open (25)",
+    "Status suggestions (15)",
+    "Status suggestions from policy coverage (0)",
+    "Policy mappings (2)",
+    "STIG mappings (8)",
+    "Awaiting assessor (SCA) (0)",
+    "Approve selected",
+    "Reject selected",
+    "Edit selected",
+    "Approve",
+    "Review side by side",
+    "1 host \u25b8",
+    "Map manually",
+    "Out of scope / N/A (needs approval)",
+    "Accept as informational",
+    "AI: suggest"
+   ],
+   "links": 30,
+   "inputs": 2,
+   "selects": 1,
+   "checkboxes": 26,
+   "tables": 2,
+   "panels": 3,
+   "headings": [
+    "Review queue (25 open)",
+    "Pending review (0)",
+    "Unmapped open findings \u00b7 3 rules / 3 findings"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "authorize": {
+   "path": "/rmf/authorize",
+   "title": "Step 6 \u00b7 Authorize",
+   "buttons": 12,
+   "button_labels": [
+    "Next action: Assign key roles",
+    "Check missing information",
+    "DOCX",
+    "PDF",
+    "Change",
+    "Submit package / record AO decision"
+   ],
+   "links": 19,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 0,
+   "panels": 3,
+   "headings": [
+    "Generate SSP / SAR / RAR (DOCX, PDF)",
+    "Authorization package checklist",
+    "AO decision"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "authorization": {
+   "path": "/systems/{sid}/authorization",
+   "title": "Authorization package \u00b7 LTP",
+   "buttons": 14,
+   "button_labels": [
+    "Submit package for review",
+    "Check missing information",
+    "DOCX",
+    "PDF",
+    "Generate poam",
+    "Generate ssp",
+    "Generate assessment-plan",
+    "Generate assessment-results"
+   ],
+   "links": 9,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 0,
+   "panels": 8,
+   "headings": [
+    "Generate SSP / SAR / RAR (DOCX, PDF)",
+    "OSCAL exports (JSON, OSCAL 1.2.2, validated against official NIST schemas)",
+    "SSP summary",
+    "Assessment results (SCA)",
+    "Open POA&Ms (7)",
+    "Risk acceptances",
+    "Authorization decision (AO only)",
+    "Decision history"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "poams": {
+   "path": "/poams",
+   "title": "POA&M",
+   "buttons": 8,
+   "button_labels": [
+    "Import\u2026",
+    "RISK \u25b2",
+    "ITEM ID",
+    "SEVERITY",
+    "DUE",
+    "STATUS",
+    "Prev",
+    "Next"
+   ],
+   "links": 21,
+   "inputs": 1,
+   "selects": 3,
+   "checkboxes": 1,
+   "tables": 1,
+   "panels": 1,
+   "headings": [],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "emass_sync": {
+   "path": "/emass",
+   "title": "eMASS sync",
+   "buttons": 7,
+   "button_labels": [
+    "Compare local vs remote",
+    "Import metadata",
+    "Diff & history"
+   ],
+   "links": 9,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 1,
+   "panels": 3,
+   "headings": [
+    "POA&M eMASS state \u00b7 pending sync 3",
+    "Outbound change queue",
+    "Sync history"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "monitor": {
+   "path": "/rmf/monitor",
+   "title": "Step 7 \u00b7 Monitor",
+   "buttons": 8,
+   "button_labels": [
+    "Next action: Assign key roles",
+    "Needs attention",
+    "All",
+    "Overdue (0)",
+    "Never monitored (204)",
+    "Due \u2264 14 days (0)",
+    "On track (20)",
+    "No SLCM Frequency (6)"
+   ],
+   "links": 219,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 1,
+   "panels": 2,
+   "headings": [
+    "SLCM due / overdue (Continuous Monitoring execution)",
+    "ConMon schedule"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "evidence_ledger": {
+   "path": "/evidence-ledger",
+   "title": "Evidence Ledger",
+   "buttons": 68,
+   "button_labels": [
+    "Verify integrity",
+    "Preview diff & impact",
+    "Copy hash",
+    "Actions \u25be",
+    "Demo: \u221245d"
+   ],
+   "links": 102,
+   "inputs": 0,
+   "selects": 1,
+   "checkboxes": 0,
+   "tables": 3,
+   "panels": 2,
+   "headings": [
+    "Content updates (installed vs available)"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "traceability": {
+   "path": "/traceability",
+   "title": "Traceability matrix",
+   "buttons": 3,
+   "button_labels": [
+    "Export CSV",
+    "\u2039",
+    "\u203a"
+   ],
+   "links": 54,
+   "inputs": 1,
+   "selects": 2,
+   "checkboxes": 1,
+   "tables": 1,
+   "panels": 1,
+   "headings": [],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "import_center": {
+   "path": "/systems/{sid}/import-center",
+   "title": "Import Center",
+   "buttons": 0,
+   "button_labels": [],
+   "links": 21,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 2,
+   "panels": 3,
+   "headings": [
+    "Drop files",
+    "Supported import types",
+    "Import history (19)"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "emass_import": {
+   "path": "/systems/{sid}/emass-import",
+   "title": "eMASS Import Center",
+   "buttons": 6,
+   "button_labels": [
+    "Back to Control Workbench",
+    "Upload and detect",
+    "Download sample",
+    "SLCM worksheet",
+    "PPSM boundaries",
+    "Migration completion report"
+   ],
+   "links": 6,
+   "inputs": 1,
+   "selects": 1,
+   "checkboxes": 0,
+   "tables": 1,
+   "panels": 3,
+   "headings": [
+    "Upload eMASS exports",
+    "PPSM boundary (0)",
+    "Import history"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "migration_report": {
+   "path": "/systems/{sid}/migration-report",
+   "title": "Migration report \u2013 LTP",
+   "buttons": 4,
+   "button_labels": [
+    "Import Center",
+    "eMASS Implementation Plan (.xlsx)",
+    "eMASS SLCM worksheet \u2013 Final Results (.xlsx)",
+    "eMASS PPSM Boundaries export (.xlsx)"
+   ],
+   "links": 15,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 1,
+   "panels": 3,
+   "headings": [
+    "Coverage",
+    "Exports (eMASS layout, .xlsx)",
+    "Import sessions"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "portfolio": {
+   "path": "/portfolio",
+   "title": "",
+   "buttons": 3,
+   "button_labels": [
+    "Switch to ISSM",
+    "Switch to AO",
+    "Switch to Leadership"
+   ],
+   "links": 2,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 0,
+   "panels": 0,
+   "headings": [],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "help": {
+   "path": "/help",
+   "title": "Help: who can do what",
+   "buttons": 0,
+   "button_labels": [],
+   "links": 2,
+   "inputs": 1,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 1,
+   "panels": 1,
+   "headings": [],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "audit_log": {
+   "path": "/audit-log",
+   "title": "Audit log",
+   "buttons": 27,
+   "button_labels": [
+    "Export CSV",
+    "Export JSON",
+    "iscm 15",
+    "auth 1023",
+    "admin 2",
+    "ingest 6",
+    "leadership 1",
+    "system 55",
+    "inventory 17",
+    "implementation 7",
+    "ppsm 10",
+    "mapping_review 48",
+    "role 4",
+    "ai 22",
+    "document 18",
+    "poam 10",
+    "attestation 57",
+    "authz 53",
+    "tr 23",
+    "finding 2",
+    "categorization 2",
+    "control 15",
+    "sandbox 266",
+    "emass 737",
+    "review 16",
+    "Prev",
+    "Next"
+   ],
+   "links": 2,
+   "inputs": 5,
+   "selects": 2,
+   "checkboxes": 1,
+   "tables": 1,
+   "panels": 1,
+   "headings": [],
+   "nav_items": 29,
+   "scroll_height": 900
+  },
+  "admin": {
+   "path": "/admin",
+   "title": "Admin",
+   "buttons": 5,
+   "button_labels": [
+    "Refresh health",
+    "Call AO-only endpoint",
+    "Verify chain",
+    "Refresh audit events",
+    "Reset Demo Data"
+   ],
+   "links": 3,
+   "inputs": 0,
+   "selects": 0,
+   "checkboxes": 0,
+   "tables": 2,
+   "panels": 8,
+   "headings": [
+    "Platform health",
+    "RBAC enforcement demo",
+    "AI status",
+    "Worker jobs",
+    "Audit events",
+    "Users, security & AI administration",
+    "Reset demo data",
+    "Permission matrix"
+   ],
+   "nav_items": 29,
+   "scroll_height": 900
+  }
+ }
+}

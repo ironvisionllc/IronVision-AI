@@ -1,0 +1,212 @@
+{
+ "base": "https://aegis-rmf-demo.preview.emergentagent.com",
+ "persona": "ISSO (demo sandbox)",
+ "fresh_system": "UXB6E5",
+ "results": [
+  {
+   "task": "register",
+   "label": "Register a system",
+   "clicks": 6,
+   "page_changes": 2,
+   "fields": 3,
+   "scripted_seconds": 8.6,
+   "next_action_shown": true,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [],
+   "paths": [
+    "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a/controls",
+    "/systems",
+    "/systems/new"
+   ]
+  },
+  {
+   "task": "categorize",
+   "label": "Categorize",
+   "clicks": 4,
+   "page_changes": 1,
+   "fields": 3,
+   "scripted_seconds": 4.1,
+   "next_action_shown": true,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [],
+   "paths": [
+    "/rmf/select",
+    "/rmf/categorize"
+   ]
+  },
+  {
+   "task": "baseline",
+   "label": "Select a baseline",
+   "clicks": 5,
+   "page_changes": 1,
+   "fields": 1,
+   "scripted_seconds": 4.7,
+   "next_action_shown": true,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [],
+   "paths": [
+    "/rmf/categorize",
+    "/rmf/select"
+   ]
+  },
+  {
+   "task": "import_impl",
+   "label": "Import implementation info (Implementation Plan)",
+   "clicks": 6,
+   "page_changes": 2,
+   "fields": 2,
+   "scripted_seconds": 7.0,
+   "next_action_shown": false,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [],
+   "paths": [
+    "/rmf/select",
+    "/import-center",
+    "/systems/39953410-ffd3-431f-898c-7fc43bedd444/emass-import/fbce6844-6ba9-4a8b-b758-48fa2aa6778e"
+   ]
+  },
+  {
+   "task": "update_control",
+   "label": "Update a control",
+   "clicks": 6,
+   "page_changes": 2,
+   "fields": 2,
+   "scripted_seconds": 11.7,
+   "next_action_shown": false,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [
+    "skipped (absent): [data-testid^=queue-open-]"
+   ],
+   "paths": [
+    "/systems/39953410-ffd3-431f-898c-7fc43bedd444/emass-import/fbce6844-6ba9-4a8b-b758-48fa2aa6778e",
+    "/systems/39953410-ffd3-431f-898c-7fc43bedd444/controls",
+    "/systems/39953410-ffd3-431f-898c-7fc43bedd444/controls/ac-1"
+   ]
+  },
+  {
+   "task": "evidence",
+   "label": "Attach evidence",
+   "clicks": 7,
+   "page_changes": 2,
+   "fields": 3,
+   "scripted_seconds": 7.1,
+   "next_action_shown": false,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [],
+   "paths": [
+    "/systems/39953410-ffd3-431f-898c-7fc43bedd444/controls/ac-1",
+    "/evidence-sources",
+    "/evidence-sources#add-evidence"
+   ]
+  },
+  {
+   "task": "test_results",
+   "label": "Import test results",
+   "clicks": 4,
+   "page_changes": 2,
+   "fields": 1,
+   "scripted_seconds": 5.0,
+   "next_action_shown": false,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [],
+   "paths": [
+    "/evidence-sources#add-evidence",
+    "/test-results",
+    "/systems/39953410-ffd3-431f-898c-7fc43bedd444/import-center"
+   ]
+  },
+  {
+   "task": "finding",
+   "label": "Review a finding",
+   "clicks": 5,
+   "page_changes": 3,
+   "fields": 1,
+   "scripted_seconds": 4.8,
+   "next_action_shown": false,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [],
+   "paths": [
+    "/systems/39953410-ffd3-431f-898c-7fc43bedd444/import-center",
+    "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a/controls",
+    "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a/controls/ra-5",
+    "/findings/9aa17293-6177-41f9-9772-eab329cb7b76"
+   ]
+  },
+  {
+   "task": "poam",
+   "label": "Create/update a POA&M (from the finding)",
+   "clicks": 2,
+   "page_changes": 1,
+   "fields": 0,
+   "scripted_seconds": 2.8,
+   "next_action_shown": false,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [],
+   "paths": [
+    "/findings/9aa17293-6177-41f9-9772-eab329cb7b76",
+    "/poams/9bc95c25-ae0e-4d79-a035-bea5eaa8127e"
+   ]
+  },
+  {
+   "task": "ssp",
+   "label": "Generate an SSP",
+   "clicks": 3,
+   "page_changes": 1,
+   "fields": 0,
+   "scripted_seconds": 3.5,
+   "next_action_shown": true,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [],
+   "paths": [
+    "/poams/9bc95c25-ae0e-4d79-a035-bea5eaa8127e",
+    "/rmf/authorize"
+   ]
+  },
+  {
+   "task": "package",
+   "label": "Prepare an authorization package",
+   "clicks": 3,
+   "page_changes": 3,
+   "fields": 0,
+   "scripted_seconds": 9.5,
+   "next_action_shown": true,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [
+    "skipped (absent): [data-testid=submit-package-btn]"
+   ],
+   "paths": [
+    "/rmf/authorize",
+    "/systems",
+    "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a",
+    "/rmf/authorize"
+   ]
+  },
+  {
+   "task": "iscm",
+   "label": "Configure continuous monitoring",
+   "clicks": 5,
+   "page_changes": 1,
+   "fields": 3,
+   "scripted_seconds": 4.6,
+   "next_action_shown": true,
+   "completed": true,
+   "blocked_at": null,
+   "notes": [],
+   "paths": [
+    "/rmf/authorize",
+    "/rmf/select"
+   ]
+  }
+ ]
+}
