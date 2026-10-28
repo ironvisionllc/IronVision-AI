@@ -1,0 +1,102 @@
+Access Control (AC) Policy — DoD AWS Cloud System
+DEMONSTRATION TEMPLATE – SYNTHETIC. System: The Raven (DoD AWS cloud workload). Approver names are placeholders.
+Item | Value
+Document | Access Control (AC) Policy
+System | The Raven
+Version | 1.0
+Owner | ISSM (placeholder: J. Doe)
+Review cycle | At least annually
+1. Purpose
+This policy establishes access control requirements for The Raven at the system level. It addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance. (AC-1a.1(a))
+Management is committed to enforcing least privilege and accountable access for every user and service.
+2. Scope and Applicability
+This policy applies to all military, civilian and contractor personnel and to all service accounts that access The Raven, including the AWS management console, workloads, and CI/CD pipelines.
+3. Authority and References
+This policy is consistent with applicable laws, executive orders, directives, regulations, policies, standards and guidelines, including those listed below. (AC-1a.1(b))
+Reference | Relevance
+DoDI 8500.01 | Cybersecurity
+DoDI 8510.01 | RMF for DoD Systems
+NIST SP 800-53 Rev 5 | Control catalog
+DoD Cloud Computing SRG | Impact level and connection requirements
+4. Roles and Responsibilities
+Roles and their access control responsibilities are listed below. Coordination among the ISSM, ISSO, system owner and the AWS Cloud Service Provider is performed through the monthly security working group.
+Role | Responsibility
+ISSM | Designated official who manages the development, documentation and dissemination of this policy and its procedures
+ISSO | Account manager for The Raven; approves and reviews accounts
+System Owner | Defines authorized users and access authorizations
+5. Policy Management
+The ISSM is the designated official who manages the development, documentation, and dissemination of the access control policy and procedures. (AC-1b)
+Access control procedures are developed and documented to facilitate the implementation of this policy and the associated access controls. (AC-1a.2)
+This policy and the procedures are disseminated to all system owners, ISSOs, administrators and users of The Raven through the eMASS artifact library. (AC-1a)
+The policy shall be reviewed and updated at least annually and following significant system changes, security incidents or assessment findings. The procedures shall be reviewed and updated at least annually and following the same events. (AC-1c.1, AC-1c.2)
+6. Account Management (AC-2)
+Account types allowed for use are individual user, privileged administrator, service, and emergency accounts; shared, guest and anonymous accounts are prohibited. (AC-2a)
+The ISSO is assigned as account manager for all accounts of The Raven. (AC-2b)
+Conditions for group and role membership are defined in the access control procedures; membership requires a documented mission need. (AC-2c)
+For each account the authorized users, group and role membership, and access authorizations (privileges) and other attributes are specified in the access request record. (AC-2d)
+Requests to create accounts require approval by the System Owner and the ISSO. (AC-2e)
+Accounts are created, enabled, modified, disabled and removed in accordance with the access control procedures and the Account Lifecycle table below. (AC-2f)
+The use of accounts is monitored through AWS CloudTrail and IAM access analyzer reports. (AC-2g)
+Access to the system is authorized based on a valid access authorization, intended system usage, and mission or business functions. (AC-2i)
+Accounts are reviewed for compliance with account management requirements every 90 days. (AC-2j)
+A process is established for changing shared or group account authenticators when individuals are removed from the group; emergency account credentials are rotated after each use. (AC-2k)
+Account management processes are aligned with personnel termination and transfer processes. (AC-2l)
+Lifecycle event | Action | Time limit
+Approved request | Create and enable account | 2 business days
+Role change | Modify privileges | 1 business day
+Inactivity | Disable account | After 35 days of inactivity
+Departure | Remove account | Same day
+6.1 Account management enhancements
+Temporary and emergency accounts are automatically removed or disabled after 72 hours. (AC-2(2))
+Accounts are disabled within 24 hours when they have expired, are no longer associated with a user or individual, are in violation of organizational policy, or have been inactive for 35 days. (AC-2(3))
+AC-2(6) Dynamic Privilege Management is not selected for The Raven.
+AC-2(10) is withdrawn in Rev 5 (incorporated into AC-2k).
+7. Access Enforcement (AC-3)
+Approved authorizations for logical access to information and system resources are enforced in accordance with applicable access control policies by AWS IAM policies, security groups and application role checks. (AC-3)
+8. Least Privilege (AC-6)
+The principle of least privilege is employed, allowing only authorized accesses for users and processes acting on behalf of users that are necessary to accomplish assigned organizational tasks. (AC-6)
+Access is authorized to security functions and security-relevant information only for the ISSM, ISSO and privileged administrators; the security functions include IAM, KMS key policy, CloudTrail and GuardDuty configuration. (AC-6(1))
+Users of privileged accounts are required to use non-privileged accounts when accessing nonsecurity functions. (AC-6(2))
+9. Unsuccessful Logon Attempts (AC-7)
+A limit of three consecutive invalid logon attempts by a user during a 15-minute period is enforced. (AC-7a)
+10. System Use Notification (AC-8)
+The Raven displays the standard DoD Notice and Consent Banner before granting access, providing privacy and security notices consistent with applicable laws and policies, stating that users are accessing a U.S. Government system, that usage may be monitored, recorded and subject to audit, that unauthorized use is prohibited and subject to penalties, and that use indicates consent to monitoring and recording. (AC-8a)
+The notification message remains on the screen until users acknowledge the usage conditions and take explicit actions to log on. (AC-8b)
+11. Device Lock and Session Termination (AC-11, AC-12)
+Further access to the system is prevented by initiating a device lock after 15 minutes of inactivity, and the lock is retained until the user reestablishes access using established identification and authentication procedures. (AC-11a, AC-11b)
+A user session is automatically terminated after 8 hours or after 15 minutes of inactivity for privileged sessions. (AC-12)
+12. Remote Access (AC-17)
+Usage restrictions, configuration and connection requirements, and implementation guidance are established and documented for each type of remote access allowed: AWS Client VPN with FIPS 140-validated TLS and the AWS Systems Manager Session Manager for administrators. (AC-17a)
+Each type of remote access to the system is authorized by the ISSO prior to allowing such connections. (AC-17b)
+Remote access methods are monitored and controlled by automated mechanisms through VPN connection logs and CloudTrail session records. (AC-17(1))
+Cryptographic mechanisms (FIPS 140-validated TLS 1.2 or higher) are implemented to protect the confidentiality and integrity of remote access sessions. (AC-17(2))
+Remote accesses are routed through two authorized and managed network access control points (the VPN endpoints in the transit VPC). (AC-17(3))
+The execution of privileged commands and access to security-relevant information via remote access is authorized only for operational needs approved by the ISSM. (AC-17(4)a)
+AC-17(5), AC-17(7) and AC-17(8) are withdrawn.
+13. AWS Shared Responsibility and Inheritance
+Physical access to AWS data centers is inherited from the AWS GovCloud FedRAMP High authorization and is outside this policy.
+15. Control Traceability Matrix
+Every in-scope control maps to a section of this policy or is marked not selected, withdrawn or inherited.
+Control | Title | Section | Status
+AC-1 | Policy and Procedures | 1–5 | Addressed
+AC-2 | Account Management | 6 | Addressed
+AC-2(2) | Automated Temporary and Emergency Account Management | 6.1 | Addressed
+AC-2(3) | Disable Accounts | 6.1 | Addressed
+AC-2(6) | Dynamic Privilege Management | 6.1 | Not selected
+AC-2(10) | Shared and Group Account Credential Change | 6.1 | Withdrawn
+AC-3 | Access Enforcement | 7 | Addressed
+AC-6 | Least Privilege | 8 | Addressed
+AC-6(1) | Authorize Access to Security Functions | 8 | Addressed
+AC-6(2) | Non-privileged Access for Nonsecurity Functions | 8 | Addressed
+AC-7 | Unsuccessful Logon Attempts | 9 | Addressed
+AC-8 | System Use Notification | 10 | Addressed
+AC-11 | Device Lock | 11 | Addressed
+AC-12 | Session Termination | 11 | Addressed
+AC-17 | Remote Access | 12 | Addressed
+AC-17(1) | Monitoring and Control | 12 | Addressed
+AC-17(2) | Protection of Confidentiality and Integrity Using Encryption | 12 | Addressed
+AC-17(3) | Managed Access Control Points | 12 | Addressed
+AC-17(4) | Privileged Commands and Access | 12 | Addressed
+16. Approval
+Role | Name | Signature | Date
+Authorizing Official | Placeholder AO | (signed) | 2026-10-01

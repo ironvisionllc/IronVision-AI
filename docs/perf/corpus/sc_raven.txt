@@ -1,0 +1,94 @@
+System and Communications Protection (SC) Policy — DoD AWS Cloud System
+DEMONSTRATION TEMPLATE – SYNTHETIC. System: The Raven (DoD AWS cloud workload). Approver names are placeholders.
+Item | Value
+Document | System and Communications Protection (SC) Policy
+System | The Raven
+Version | 1.0
+Owner | ISSM (placeholder: J. Doe)
+1. Purpose
+This policy establishes system and communications protection requirements for The Raven. It addresses purpose, scope, roles, responsibilities, management commitment, coordination among organizational entities, and compliance. (SC-1a.1(a))
+2. Scope and Applicability
+This policy applies to all network, boundary, cryptographic and DNS components of The Raven in AWS GovCloud, and to all personnel who administer them.
+3. Authority and References
+This policy is consistent with applicable laws, executive orders, directives, regulations, policies, standards and guidelines. (SC-1a.1(b))
+Reference | Relevance
+DoDI 8510.01 | RMF
+CNSSP 15 | Use of public standards for secure information sharing
+DoD Cloud Computing SRG | BCAP and DoDIN connection
+4. Roles and Responsibilities
+The ISSM, ISSO, network engineer and the AWS Cloud Service Provider coordinate boundary changes through the change control board.
+Role | Responsibility
+ISSM | Designated official who manages the development, documentation and dissemination of this policy and its procedures
+Network Engineer | Maintains boundary protection devices and DNS
+Crypto Custodian | Manages KMS keys and certificates
+5. Policy Management
+The ISSM is the designated official who manages the development, documentation, and dissemination of the system and communications protection policy and procedures. (SC-1b)
+System and communications protection procedures are developed and documented to facilitate the implementation of this policy and the associated controls. (SC-1a.2)
+This policy and the procedures are disseminated to all system owners, ISSOs and network administrators through the eMASS artifact library. (SC-1a)
+The policy shall be reviewed and updated at least annually and following significant system changes, security incidents or assessment findings. The procedures shall be reviewed and updated at least annually and following the same events. (SC-1c.1, SC-1c.2)
+6. Denial-of-Service Protection (SC-5)
+The Raven protects against or limits the effects of volumetric and application-layer denial-of-service events using AWS Shield Advanced and AWS WAF rate-based rules. (SC-5a)
+7. Boundary Protection (SC-7)
+Communications at the external managed interfaces to the system and at key internal managed interfaces are monitored and controlled by AWS Network Firewall and security groups. (SC-7a)
+Connections to external networks or systems are made only through managed interfaces consisting of boundary protection devices arranged in accordance with the DoD Cloud Computing SRG; all DoDIN traffic traverses the BCAP. (SC-7c)
+The number of external network connections to the system is limited to the BCAP connection and the AWS Client VPN endpoint. (SC-7(3))
+For each external telecommunication service a managed interface is implemented, a traffic flow policy is established for each managed interface, the confidentiality and integrity of the information being transmitted across each interface is protected, each exception to the traffic flow policy is documented with a supporting mission or business need and duration of that need, exceptions are reviewed every 90 days and removed when no longer supported, unauthorized exchange of control plane traffic with external networks is prevented, information is published to enable remote networks to detect unauthorized control plane traffic, and unauthorized control plane traffic from external networks is filtered. (SC-7(4))
+Network communications traffic is denied by default and allowed by exception at managed interfaces. (SC-7(5))
+Split tunneling is prevented for remote devices connecting to the system unless the tunnel is securely provisioned using the approved VPN configuration. (SC-7(7))
+Interface | Device | Policy
+BCAP / DoDIN | AWS Network Firewall | Deny by default
+Internet egress | NAT + Network Firewall | Allow-list only
+8. Transmission Confidentiality and Integrity (SC-8)
+The confidentiality and integrity of transmitted information is protected. (SC-8)
+Cryptographic mechanisms (TLS 1.2 or higher with FIPS 140-validated modules) are implemented to prevent unauthorized disclosure of information and detect changes to information during transmission. (SC-8(1))
+SC-9 and SC-14 are withdrawn (incorporated into SC-8 and other controls).
+9. Network Disconnect (SC-10)
+The network connection associated with a communications session is terminated at the end of the session or after 15 minutes of inactivity. (SC-10)
+10. Cryptographic Key Establishment and Management (SC-12)
+Cryptographic keys are established and managed when cryptography is employed within the system in accordance with key generation and key storage requirements: keys are generated in AWS KMS FIPS 140-validated HSMs and stored only in KMS. (SC-12)
+11. Cryptographic Protection (SC-13)
+The cryptographic uses are identified as data in transit, data at rest and digital signatures, and the types of cryptography required for each use are FIPS 140-validated and NSA-approved cryptography where classified. (SC-13a, SC-13b)
+12. Public Key Infrastructure Certificates (SC-17)
+Public key certificates are issued under the DoD PKI certificate policy or obtained from an approved service provider, and only approved trust anchors are included in trust stores or certificate stores managed by the organization. (SC-17a, SC-17b)
+13. Secure Name / Address Resolution (SC-20, SC-21, SC-22)
+Additional data origin authentication and integrity verification artifacts are provided along with the authoritative name resolution data the system returns in response to external name/address resolution queries, using DNSSEC signing in Route 53. (SC-20a)
+Data origin authentication and data integrity verification on the name/address resolution responses the system receives from authoritative sources are requested and performed (DNSSEC validation in the Route 53 Resolver). (SC-21)
+The systems that collectively provide name/address resolution service are fault-tolerant and implement internal and external role separation. (SC-22)
+14. Session Authenticity (SC-23)
+The authenticity of communications sessions is protected by TLS with mutual authentication for service-to-service traffic. (SC-23)
+15. Protection of Information at Rest (SC-28)
+The confidentiality and integrity of all CUI, audit logs and backups at rest is protected. (SC-28)
+Cryptographic mechanisms (AWS KMS AES-256 encryption) are implemented to prevent unauthorized disclosure and modification of CUI, audit logs and backups at rest on EBS, S3 and RDS. (SC-28(1))
+16. Process Isolation (SC-39)
+A separate execution domain is maintained for each executing system process; this is inherited from the AWS Nitro hypervisor and supplemented by container isolation. (SC-39)
+17. Collaborative Computing Devices
+SC-15 is not selected for The Raven: the system has no collaborative computing devices.
+18. Control Traceability Matrix
+Every in-scope control maps to a section of this policy or is marked not selected, withdrawn or inherited.
+Control | Title | Section | Status
+SC-1 | Policy and Procedures | 1–5 | Addressed
+SC-5 | Denial-of-Service Protection | 6 | Addressed
+SC-7 | Boundary Protection | 7 | Addressed
+SC-7(3) | Access Points | 7 | Addressed
+SC-7(4) | External Telecommunications Services | 7 | Addressed
+SC-7(5) | Deny by Default — Allow by Exception | 7 | Addressed
+SC-7(7) | Split Tunneling for Remote Devices | 7 | Addressed
+SC-8 | Transmission Confidentiality and Integrity | 8 | Addressed
+SC-8(1) | Cryptographic Protection | 8 | Addressed
+SC-9 | Transmission Confidentiality | 8 | Withdrawn
+SC-10 | Network Disconnect | 9 | Addressed
+SC-12 | Cryptographic Key Establishment and Management | 10 | Addressed
+SC-13 | Cryptographic Protection | 11 | Addressed
+SC-14 | Public Access Protections | 8 | Withdrawn
+SC-15 | Collaborative Computing Devices and Applications | 17 | Not selected
+SC-17 | Public Key Infrastructure Certificates | 12 | Addressed
+SC-20 | Secure Name/Address Resolution Service (Authoritative Source) | 13 | Addressed
+SC-21 | Secure Name/Address Resolution Service (Recursive or Caching Resolver) | 13 | Addressed
+SC-22 | Architecture and Provisioning for Name/Address Resolution Service | 13 | Addressed
+SC-23 | Session Authenticity | 14 | Addressed
+SC-28 | Protection of Information at Rest | 15 | Addressed
+SC-28(1) | Cryptographic Protection | 15 | Addressed
+SC-39 | Process Isolation | 16 | Inherited (AWS)
+19. Approval
+Role | Name | Signature | Date
+Authorizing Official | Placeholder AO | (signed) | 2026-10-01

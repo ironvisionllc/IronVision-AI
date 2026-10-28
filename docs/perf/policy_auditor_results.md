@@ -185,3 +185,38 @@ Notes:
 | SC | 21.6 s | 0.917 | 1.000 | 0.848 | 0 | 18/18 | 1.0 | none |
 
 AC-8 CCI-002248 is now partial with manual review, so the AC gold gaps flagged are back to 24/24. There were 4 table-cell downgrades in AC.
+
+## No silent misses – spend log (2026-10-28, preview only)
+
+Prices: OpenRouter list price for anthropic/claude-sonnet-5.5. Input $2.00/M, output $10.00/M. Anthropic prompt cache: write 1.25× ($2.50/M), read 0.1× ($0.20/M). Token counts come from the provider usage fields (`prompt_tokens`, `completion_tokens`, `prompt_tokens_details.cached_tokens` / `cache_write_tokens`), logged per run in `v2.tokens_*`.
+
+| run | design | wall | AI calls | input | cached read | cache write | output | cost (actual tokens × list price) |
+|---|---|---|---|---|---|---|---|---|
+| cache probe (2 calls) | 12.5k-token prefix | – | 2 | 25,026 | 12,491 | 12,491 | 10 | ≈ $0.06 |
+| p284 whole-doc in every batch (ABORTED) | whole document per batch, 16 parallel, 70 truncation splits | ~20 min | 322 | 33,868,252 | not recorded (stats lost on abort) | not recorded | 396,901 | **≈ $10–17 estimated** (all reads ≈ $10.7; realistic with ~16 first-wave writes ≈ $14.6; the no-cache upper bound would be $71.7, but caching was verified working) |
+| RA before (retrieval only) | – | 22.4 s | 5 | 40,827 | 0 | 0 | 15,085 | $0.233 |
+| RA after (whole doc, cached) | before warm-first fix | 13.9 s | 23 | 365,323 | 93,142 | 212,896 | 15,801 | $0.827 |
+| AC before | – | 27.8 s | 8 | 31,823 | 0 | 4,657 | 20,688 | $0.273 |
+| AC after | before warm-first fix | 28.0 s | 8 | 58,647 | 4,657 | 34,356 | 23,153 | $0.358 |
+| SC before | – | 24.5 s | 6 | 24,287 | 0 | 4,666 | 14,500 | $0.196 |
+| SC after | warm-first | 44.4 s | 6 | 43,492 | 24,334 | 4,917 | 15,870 | $0.204 |
+| p284 adaptive (ABORTED by the spending guard) | retrieval + index fill + second look | ~3 min | 140 | 557,355 | n/a | n/a | 401,940 | ≈ $5.13 |
+
+Account check: OpenRouter `/api/v1/key` reports `usage_daily` = $23.15 for 2026-10-28 (UTC). That figure covers every call today on this key, including the RA re-analysis.
+
+Quality on the gold fixtures (builder-authored gold, NOT SME reviewed; `scripts/perf/score_ra.py`, `GOLD=` per fixture):
+
+| fixture | precision before → after | recall before → after | exact before → after | gold gaps flagged | false gaps on met | citation validity |
+|---|---|---|---|---|---|---|
+| RA | 0.987 → 0.987 | 1.000 → 1.000 | 0.724 → 0.744 | 4/4 | 0 | 1.0 |
+| AC | 0.890 → 0.890 | 1.000 → 1.000 | 0.706 → 0.737 | 24/24 | 0 | 1.0 |
+| SC | 0.887 → 0.887 | 1.000 → 1.000 | 0.801 → 0.808 | 18/18 | 0 | 1.0 |
+
+Coverage guard: after = 25/25, 17/17 and 17/17 chunks available to at least one check. Before (retrieval only), RA = 19/25.
+
+What these runs taught us:
+- With a 16-way parallel first wave, every call writes the cache: RA after shows 212,896 write tokens. The fix runs the first batch alone, then the rest in parallel. This is in code and was used for SC after.
+- In whole-document mode, batches are now sized by requirement count only, so there are fewer calls.
+- Sending the whole document in every batch is only cheap for small policies. The design is now adaptive:
+  - ≤ 60k characters: whole document per batch.
+  - Larger documents: retrieved sections per batch, plus the hybrid index filling anything keyword screening missed (nothing is excluded), plus the cached whole document only for the focused second look on MISSING verdicts.
