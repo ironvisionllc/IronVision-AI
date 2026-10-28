@@ -4,6 +4,7 @@ import asyncio
 import os
 import shutil
 
+import httpx
 from playwright.async_api import async_playwright
 
 BASE = os.environ.get("UX_BASE", "https://aegis-rmf-demo.preview.emergentagent.com").rstrip("/")
@@ -23,28 +24,48 @@ async def main():
         await page.keyboard.press("Enter")
         await page.wait_for_url(lambda u: "/login" not in u, timeout=60000)
         await page.evaluate("Object.keys(localStorage).filter(k => k.startsWith('iv.guided.')).forEach(k => localStorage.setItem(k, 'off'))")
+        tok = httpx.post(f"{BASE}/api/v1/auth/login", json={"email": EMAIL, "password": PW}, timeout=60).json()["access_token"]
+        ltp = next(s["id"] for s in httpx.get(f"{BASE}/api/v1/systems", headers={"Authorization": f"Bearer {tok}"}, timeout=60).json() if s["acronym"] == "LTP")
+        await page.evaluate(f"localStorage.setItem('aegis.selected_system', '{ltp}')")
+
+        async def go(path):
+            for _ in range(4):  # an in-flight client-side redirect can abort a navigation
+                try:
+                    await page.goto(BASE + path)
+                    return
+                except Exception:
+                    await page.wait_for_timeout(1500)
+            await page.goto(BASE + path)
 
         async def shot(name, path, wait=None, after=None):
-            await page.goto(BASE + path)
+            await go(path)
             await page.wait_for_load_state("networkidle")
+            if await page.locator("[data-testid=guided-first-login-no]").count():
+                await page.click("[data-testid=guided-first-login-no]", timeout=5000)
             if wait:
-                await page.wait_for_selector(wait, timeout=30000)
+                try:
+                    await page.wait_for_selector(wait, timeout=30000)
+                except Exception:
+                    print("wait failed", name, wait, page.url)
             if after:
                 await after()
             await page.wait_for_timeout(1200)
-            if await page.locator("[data-testid=guided-first-login-no]").count():
-                await page.click("[data-testid=guided-first-login-no]")
             await page.screenshot(path=f"{OUT}/{name}.png")
             print("shot", name)
 
         async def persona(role):
-            await page.goto(BASE + "/my-work")
-            await page.wait_for_selector("[data-testid=acting-as-select]")
+            await go("/my-work")
+            try:
+                await page.wait_for_selector("[data-testid=acting-as-select]:not([disabled])", timeout=30000)
+                await page.wait_for_timeout(1500)
+            except Exception:
+                print("no persona select at", page.url)
+                return
             await page.select_option("[data-testid=acting-as-select]", value=role)
             await page.wait_for_timeout(2500)
 
         await shot("dashboard", "/dashboard", "[data-testid=dashboard-page]")
-        await shot("navigation", "/rmf/select", "[data-testid=nav-step-select]")
+        await shot("navigation", "/rmf/select", "[data-testid=main-content] h1")
         for role in ("isso", "sca", "issm", "ao"):
             await persona(role)
             await shot(f"mywork_{role}", "/my-work", "[data-testid=my-work-page]")
