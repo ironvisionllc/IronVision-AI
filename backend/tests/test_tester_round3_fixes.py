@@ -83,11 +83,13 @@ def test_old_keyword_only_missing_row_reads_as_needs_manual_review(client, orgs)
         db.commit()
 
 
-def test_seed_path_produces_no_keyword_only_missing_rows(orgs, monkeypatch):
-    """Same call the sandbox seed makes (seed_phase3: rmf.analyze_policy, deterministic, no AI) on the shipped sample policy."""
+def test_seed_path_ships_no_keyword_only_missing_rows(orgs, monkeypatch):
+    """The demo seed (seed_phase3) analyses the sample Access Control policy deterministically (no AI). Same path here, with AC-2 mapped:
+    the checklist is built, and no row is a keyword-only "missing"."""
     from pathlib import Path
 
-    from app.services import rmf
+    from app.models import PolicyControlMap
+    from app.services import policy_coverage as pc
     monkeypatch.setenv("POLICY_ANALYZER", "v-current")
     a, _ = orgs
     data = (Path(__file__).resolve().parents[2] / "samples" / "policies" / "access_control_policy.txt").read_text()
@@ -96,9 +98,12 @@ def test_seed_path_produces_no_keyword_only_missing_rows(orgs, monkeypatch):
                    status="current", text_content=data, system_ids=[a["sid"]], analysis={})
         db.add(p)
         db.flush()
-        rmf.analyze_policy(db, p)
+        db.add(PolicyControlMap(policy_id=p.id, org_id=p.org_id, control_id="ac-2", status="mapped", source="explicit_id", confidence="High"))
+        db.flush()
+        pc.analyze(db, p, use_ai=False)
         db.commit()
         rows = db.query(PolicyRequirementCoverage).filter(PolicyRequirementCoverage.policy_id == p.id).all()
+    assert rows, "the checklist must be built for the mapped control"
     bad = [r.requirement_id for r in rows if r.status == "missing" and r.concept != "profile-ai" and not re.fullmatch(r"[a-z]{2}-1", r.control_id)]
     assert not bad, bad
 
