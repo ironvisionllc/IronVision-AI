@@ -171,3 +171,26 @@ Import Center → an applied import → **Manage imported data** (`/import-cente
 - eMASS mission types are not mapped to SP 800-60 information types automatically.
 - PPSM rows are not linked to HW/SW assets.
 - Compatibility with live eMASS exports beyond the supplied templates is pending verification.
+
+### Every import type (2026-10-28)
+Manage imported data covers every applied import in the Import Center history at `/import-center/manage/{kind}/{id}`:
+- **API:** `GET|POST /api/v1/imported-data/{import_kind}/{import_id}` and `POST …/undo/{op_id}`. `import_kind` is one of `emass`, `tr`, `inventory`, `ingest`, `policy`.
+- **Test Results / Test Plan:** each TR row can be deleted, or restored to its imported proposal (this clears a human edit or approval).
+  - An SCA-approved row needs confirmation. Its decision is flagged for re-review (`review_flags`), together with any SCA assessment on that control.
+  - Deleted rows are excluded from both eMASS TR export modes: the app writes nothing for them. In the filled-template mode, the template row keeps only what the uploaded file already had. In the blank-template mode, the row is not added at all.
+- **HW/SW inventory:** delete hardware assets and software items created by the import.
+  - Findings pointing at a deleted asset are kept, with the link cleared and restored on undo.
+  - If an inventory export exists or a discrepancy was approved, the inventory is flagged "needs re-review".
+- **Scan uploads** (STIG CKL/CKLB, SCAP, Nessus/ACAS, SARIF):
+  - You can delete the findings the upload created. Findings it only updated are read-only here.
+  - POA&Ms, dispositions and assessments on the mapped controls are kept and flagged. Approval requests linked to a deleted finding keep their decision; only the link is cleared.
+  - Deleting an evidence link removes the link only. Deleting the evidence file needs a separate confirmation (`confirm_file`); the file is removed logically and kept for retention.
+- **Policy uploads:** delete the whole policy (its status becomes `removed` and its mappings, coverage and findings are deleted) or single mappings.
+  - Human-approved mappings need confirmation. They are flagged, and the current implementations of those controls are marked for reconsideration.
+- **eMASS "Register a new system":** after registration, the values pre-filled from the file are linked to the import (`POST /emass-imports/{id}/registered`, status `registered`). They show as imported, and each can be cleared or restored; the name can only be restored.
+- **"Delete everything this import created"** removes or restores all of it but keeps the system. Deleting a system stays the existing archive action.
+- **Mechanics:** a deletion snapshots the row plus every cascaded child and every SET NULL reference (found from the foreign-key metadata) into `import_trash`, then deletes. Every list, dashboard and export therefore excludes the data, and undo re-inserts it within 30 days.
+  - Decision tables (approvals, assessments, authorization, POA&Ms, categorization, ISCM strategy, implementations, attestations) are never cascaded.
+- **Destination screens:** an "Imported from <file>" marker, plus row or multi-select Delete with confirmation and a 15-second Undo toast (30 days in Manage). Covered screens: Workbench eMASS fields, Test Results, HW/SW inventory, PPSM, scan-run findings and the ISCM strategy.
+  - The marker data comes from `GET /systems/{id}/imported-data/index?kind=…`.
+- **Re-review flags:** listed at `GET /systems/{id}/review-flags` and resolved at `POST /review-flags/{id}/resolve` (note required). Resolving needs the decision owner's permission, e.g. `assessment.perform` for SCA determinations or `authorization.decide` for the AO categorization.
