@@ -410,6 +410,11 @@ def apply_ai(text: str, row: dict, ai: dict | None) -> dict:
                    reason=("Required language not present – the whole document and a second look (AI + similarity search) found nothing. "
                            if conf else "Needs manual review – not confirmed absent by a second look. ") + (ai.get("rationale") or "")[:200])
         return row
+    if ai.get("status") == "partial" and row["status"] == "partial":  # AI and checklist agree: an AI verdict, not "unverified"
+        ok = verify_quote(text, ai.get("quote"))
+        row.update(basis="ai", confidence="Low", snippets=[{"text": ai["quote"][:300], "location": _loc(text, ai["quote"])}] if ok else (row.get("snippets") or []),
+                   reason=f"AI and checklist agree – partially addressed: {ai.get('rationale', '')[:300]} – manual review."
+                          + ("" if ok else " (AI quote not matched; checklist passage shown.)"))
     if ai.get("candidates") and row["status"] != "met":  # partial: show the closest other passages too
         row["snippets"] = (row.get("snippets") or [])[:1] + [{**c, "candidate": True} for c in ai["candidates"][:3]]
     if row["status"] == "met" and ai.get("status") in ("partial", "missing"):

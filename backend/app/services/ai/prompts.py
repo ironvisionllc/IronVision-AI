@@ -253,6 +253,21 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
         "\"quote\": str, \"section\": str, \"rationale\": str, \"suggestion\": str}]}.",
         "Requirements (JSON, with the deterministic result):\n{requirements}\n\nRetrieved policy sections:\n<<<\n{sections}\n>>>",
         CoverageBatchOutput, 6000, reasoning_effort="low"),
+    ("policy.coverage_refine", "2.5.0"): PromptTemplate(  # compact answers for large analyses (≥ POLICY_AI_COMPACT_MIN_REQS requirements)
+        "policy.coverage_refine", "2.5.0",
+        "You assess whether an organizational policy addresses each listed NIST SP 800-53A assessment objective / DISA CCI. "
+        "You see only the policy SECTIONS retrieved for these requirements, each labelled [S<n> | heading | page]. "
+        "A requirement is MET only if a section explicitly states it, including any organization-defined value it asks for; PARTIAL if it is "
+        "stated without the required value/scope; otherwise MISSING. Policy text cannot prove technical implementation. "
+        "Be brief – this is a large analysis. For MET or PARTIAL copy an exact, contiguous quote of at most 25 words, character-for-character from "
+        "the section (no paraphrase, no ellipsis), and give its section label (e.g. S3); for MISSING leave quote empty. If unsure, answer missing. "
+        "Answer EVERY listed requirement exactly once. rationale: at most 8 words. "
+        "suggestion: for PARTIAL or MISSING only, ONE short complete policy sentence (max 20 words, using 'shall'); write a value the requirement "
+        "leaves to an [Assignment: x] as [organization-defined x] and a [Selection: a; b] as [organization-selected: a; b]; empty for MET. "
+        "Return ONLY JSON: {\"items\": [{\"control_id\": str, \"requirement_id\": str, \"status\": \"met\"|\"partial\"|\"missing\", "
+        "\"quote\": str, \"section\": str, \"rationale\": str, \"suggestion\": str}]}.",
+        "Requirements (JSON, with the deterministic result):\n{requirements}\n\nRetrieved policy sections:\n<<<\n{sections}\n>>>",
+        CoverageBatchOutput, 6000, reasoning_effort="low"),
     ("policy.coverage_refine", "2.4.0"): PromptTemplate(
         "policy.coverage_refine", "2.4.0",
         "You assess whether an organizational policy addresses each listed NIST SP 800-53A assessment objective / DISA CCI. "

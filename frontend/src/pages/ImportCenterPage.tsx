@@ -99,6 +99,7 @@ function History({ sid }: { sid?: string }) {
           <td className={STATUS_TONE[r.status] || ""} title={r.error || r.raw_status}>{r.status}</td>
           <td className="text-slate-600">{Object.entries(r.counts || {}).filter(([, v]) => typeof v === "number").slice(0, 3).map(([k, v]) => `${k.replace(/_/g, " ")} ${v}`).join(" · ")}</td>
           <td className="whitespace-nowrap"><Link className="text-blue-800 underline" to={r.link}>Open</Link>
+            {r.kind === "emass" && ["applied", "reverted"].includes(r.raw_status) && <Link className="ml-2 text-blue-800 underline" to={`/import-center/manage/${r.id}`} data-testid={`ic-manage-${r.id}`}>Manage imported data</Link>}
             {r.retry && <button className="ml-2 underline" onClick={() => retry(r)} data-testid={`ic-retry-${r.id}`}>Retry</button>}</td></tr>)}</tbody></table></div>
       {!items.length && <p className="text-[12px] text-slate-500">No imports yet.</p>}
     </Panel>);

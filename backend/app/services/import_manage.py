@@ -2,7 +2,7 @@
 restore / clear / delete with a 30-day undo. Builds on the import's own provenance (apply_results[].undo) and the existing write paths
 (emass_fields.save_plan / save_risk, new draft Implementation versions, emass_migration.revert); every change is audited."""
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
@@ -141,7 +141,7 @@ def act(db: Session, imp: EmassImport, current, meta: dict, ids: list[str], acti
             results.append({"id": eid, "ok": False, "error": str(exc.detail)})
     op = None
     if log:
-        op = {"op_id": uuid.uuid4().hex[:12], "action": action, "at": datetime.now(timezone.utc).isoformat(), "by": current.user.email,
+        op = {"op_id": uuid.uuid4().hex[:12], "action": action, "at": datetime.now(UTC).isoformat(), "by": current.user.email,
               "entries": log, "undone": False}
         audit.record(db, action=f"import_data.{action}", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="emass_import",
                      entity_id=str(imp.id), after={"entries": [x["id"] for x in log], "op_id": op["op_id"]},
@@ -158,7 +158,7 @@ def undo(db: Session, imp: EmassImport, current, meta: dict, op_id: str) -> dict
         raise HTTPException(404, "Operation not found")
     if op["undone"]:
         raise HTTPException(409, "Already undone")
-    if datetime.now(timezone.utc) - datetime.fromisoformat(op["at"]) > timedelta(days=UNDO_DAYS):
+    if datetime.now(UTC) - datetime.fromisoformat(op["at"]) > timedelta(days=UNDO_DAYS):
         raise HTTPException(409, f"Undo is available for {UNDO_DAYS} days")
     state, done, skipped = _state(db, imp), [], []
     src = {"source": f"Manage imported data – undo {op_id}", "import_id": str(imp.id), "import_sha256": imp.sha256}

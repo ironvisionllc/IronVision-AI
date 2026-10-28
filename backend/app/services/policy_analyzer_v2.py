@@ -205,6 +205,14 @@ def _progress(policy_id, data: dict) -> None:
 
 
 PROMPT_WD = ("policy.coverage_refine", "2.4.0")
+PROMPT_COMPACT = ("policy.coverage_refine", "2.5.0")
+QUOTE_WORDS_COMPACT = 25
+
+
+def trim_quote(q: str, n: int) -> str:
+    """First n words of a quote, cut at a word boundary (keeps the exact characters, so a verbatim quote stays verbatim)."""
+    m = re.match(r"\s*(?:\S+\s+){%d}" % (n - 1) + r"\S+", q or "")
+    return m.group(0).strip() if m and len((q or "").split()) > n else (q or "").strip()
 PROMPT_SECOND = ("policy.coverage_second_look", "1.0.0")
 
 
@@ -213,6 +221,7 @@ class Run:
         self.svc, self.org, self.pid, self.model, self.catalog, self.secs, self.st = svc, org_id, policy_id, model, catalog, secs, stats
         self.document = document  # whole-document mode: the full rendered policy, sent as a cached prompt prefix on every batch
         self.full_doc = document   # the whole document for the focused second look (also cached)
+        self.compact = False       # large analyses: compact answer format (PROMPT_COMPACT)
         self.bucket = Bucket(env_int("POLICY_AI_RPM", 300), env_int("POLICY_AI_TPM", 2_000_000))
         self.lock = threading.Lock()
 
@@ -222,7 +231,7 @@ class Run:
 
         from app.services.ai.service import AIOutputTruncatedError
         doc = doc if doc is not None else self.document
-        prompt = prompt or (PROMPT_WD if doc else PROMPT)
+        prompt = prompt or (PROMPT_WD if doc else PROMPT_COMPACT if self.compact else PROMPT)
         key = _key(self.org, self.model, self.catalog + ("|" + ":".join(prompt) if doc else ""), items, self.secs if doc else secs)
         hit = _cache_get(self.org, key)
         if hit is not None:
@@ -239,7 +248,8 @@ class Run:
             try:
                 with self.lock:
                     self.st["calls"] += 1
-                res = asyncio.run(self.svc.run(*prompt, variables, max_tokens=min(8000, 160 * len(items) + 400),
+                per = 100 if prompt == PROMPT_COMPACT else 160
+                res = asyncio.run(self.svc.run(*prompt, variables, max_tokens=min(8000, per * len(items) + 400),
                                                cache_prefix_var="document" if doc else None))
                 u = getattr(res, "usage", None) or {}
                 with self.lock:
@@ -283,6 +293,8 @@ class Run:
                 with self.lock:
                     self.st["invalid_items"] += 1
                 continue
+            if prompt == PROMPT_COMPACT and it.quote:
+                it.quote = trim_quote(it.quote, QUOTE_WORDS_COMPACT)
             v = {"status": it.status, "quote": it.quote, "rationale": it.rationale[:400], "suggestion": (getattr(it, "suggestion", "") or "")[:400]}
             s = sec_by.get(it.section.strip().split()[0].strip("[]|") if it.section else "")
             if it.quote and it.status != "missing":
@@ -369,6 +381,9 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog, 
     st["whole_document"] = whole
     run = Run(svc, org_id, policy_id, svc.provider.model if svc.provider else None, str(catalog), secs, st, document=doc if whole else None)
     run.full_doc = doc if len(doc) <= env_int("POLICY_AI_DOC_MAX_CHARS", 400_000) else None
+    compact_min = env_int("POLICY_AI_COMPACT_MIN_REQS", 0)  # OFF by default (p284: −12 % output, truncation 1.5 % → 15.3 %)
+    run.compact = bool(compact_min) and not whole and len(examined) >= compact_min
+    st["compact"] = run.compact
     out: dict = {}
     done = Counter()
     started = time.perf_counter()

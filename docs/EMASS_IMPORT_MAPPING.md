@@ -141,6 +141,26 @@ Unchanged existing importer (name, acronym, eMASS ID, description, organization,
 
 The completion report is at `/systems/{id}/migration-report` (API `GET /systems/{id}/migration-report`). It shows coverage per file type, the sessions, exception counts and links into each RMF step.
 
+## Manage imported data
+Import Center → an applied import → **Manage imported data** (`/import-center/manage/{import_id}`). It is built on the import's own provenance (`apply_results[].undo`); nothing new is stored per field.
+
+- **View:** every imported field (Control Information) or record (PPSM, SLCM, strategy, categorization), grouped by destination. Each one shows the value before the import, the imported value and the current value, plus a "changed after the import" flag.
+  - API: `GET /api/v1/emass-imports/{id}/manage`.
+  - Per-system list: `GET /api/v1/systems/{id}/imported-data`.
+- **Actions:** restore previous value, clear field, or delete imported data (only for data the import created). Actions can apply to selected items, a whole group, or the whole import with exclusions.
+  - API: `POST /api/v1/emass-imports/{id}/manage {action, ids | all + exclude, force}`.
+  - Each item gets its own result, so one failure does not stop the others.
+  - A field edited after the import is skipped with `needs_confirm`. It is only overwritten with `force=true`, after the user clicks "Overwrite anyway".
+- **Safeguards:**
+  - Writes go through the normal save paths (validation, status mapping, audit).
+  - Implementation statements get a new draft version. If an approved statement is affected, it is flagged for re-review.
+  - Nothing is ever approved by this page, and evidence files are never touched.
+  - The compliance evaluation is recomputed, so dashboards, exports, eMASS and OSCAL reflect the change.
+- **Undo:** each operation can be undone for 30 days (`POST /api/v1/emass-imports/{id}/manage/{op_id}/undo`). Field values are put back and deleted PPSM rows are re-created. Record-level restores are undone by re-applying the file.
+- **Audit:** events `import_data.restore`, `import_data.clear`, `import_data.delete` and `import_data.undo` record the import id, SHA-256, entries and failures. The audit history is never deleted.
+- **RBAC and tenancy:** actions follow the import's section permissions; the SCA, for example, gets a read-only view. Another tenant's import returns 404.
+
+
 ## Deferred
 - **Control Information** and **POA&M** imports are deferred for the migration.
 - Their existing parsers, endpoints and tests are unchanged and keep working.

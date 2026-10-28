@@ -294,3 +294,23 @@ The whole-document runs include the xx-1 AI check (+36–38 requirements each) a
 - No other new false gaps.
 - The second look found candidate passages (the out-of-cycle review sentence) for all of them, so nothing was escalated to "confirmed absent". By design, "missing" is never claimed while a plausible passage exists.
 - Label bug found and fixed (no cost): 7 of the 9 said "AI unavailable" although the AI did answer. Its quote could not be verified, so the checklist result was used. New label: "AI answer could not be verified against the policy text (quote not found) – checklist result shown, needs manual review."
+
+## Approval 3: RA-1 trap re-run and p284 compact format (2026-10-28, 15:16–15:24 UTC, preview only)
+
+Caps: trap $0.50, p284 $5.00 (polled every 10 s, $1 margin → guard at +$4.00, per-call cap $0.50), ceiling $5.50.
+
+| step | actual | wall | calls | truncated | input | output | result |
+|---|---|---|---|---|---|---|---|
+| RA-1 trap v2 (roles-table designation removed) | **$0.385** | 18.2 s | 17 | 0 | 273,753 (208,464 cached) | 19,360 | finished |
+| p284 compact (prompt 2.5.0) | **$5.084 – ABORTED** (guard read +4.17; billing lag added +0.92 after the kill) | ~3.3 min, not finished | 190 | **29 (15.3 %)** + 7 time-outs | 837,539 | 380,389 | no results written |
+
+Approval total **$5.469 actual** (ceiling $5.50). The p284 step exceeded its own $5.00 cap by $0.08 because of billing lag. No further paid runs.
+
+RA-1 trap v2: recall 1.0, precision 0.91, exact 0.699, false gaps on met 0, gold gaps flagged 16/16. All 12 trap requirements were flagged (partial/Low, needs manual review). None were confirmed missing because the second look found candidate passages. Designated official: CCI-004605, 004606, 004607, 004608, 004609 and obj.b were all flagged. None were met; in the first trap run, 3 of these were met. Frequency: CCI-001039, 001040, 001043, 001044, obj.c.1-1 and obj.c.2-1 were all flagged. The 2 extra flags were CCI-002368/002369 (gold met → partial). Label re-measure: 10 of 14 non-met rows still said "AI answer could not be verified". Cause (fixed, no cost, unit-tested in `tests/test_policy_ai_agree_label.py`, not re-measured): when the AI answer "partial" agreed with the checklist's "partial", it fell through as "unverified". It is now an AI verdict ("AI and checklist agree – partially addressed").
+
+p284 compact, from the 154 completed calls in `ai_interactions` (pre-second-look AI verdicts; not the final stored result):
+- 2,892 requirements answered: met 1,296, partial 1,168, AI "missing" 428. Each AI "missing" still goes to the second look; confirmed-missing counts are unavailable because the run was aborted before that stage.
+- Quotes: 2,456 of 2,458 are verbatim. 77 exceeded 25 words; these are trimmed at word boundaries after parsing.
+- Spot check (20 random): all 13 quotes were verbatim. Verdicts were sensible: the fixture's garbled ODP text ("following annually", "as determined by the organization") was rated partial.
+- Output per call: median 2,425 tokens, against ~2,760 in the earlier p284 attempt (−12 %). The answers are dominated by verbatim quotes × ~18 items per batch, so truncation at the 2,900 token limit stayed high.
+- Conclusion: the compact format alone does not let p284 finish under $5.

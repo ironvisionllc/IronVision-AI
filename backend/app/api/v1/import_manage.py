@@ -7,9 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.v1.emass_import import _allowed, _org_imp
+from app.api.v1.records import get_system
 from app.db import get_db
 from app.models import EmassImport
-from app.api.v1.records import get_system
 from app.security.deps import CurrentUser, require_permission
 from app.services import audit
 from app.services import import_manage as im
@@ -62,11 +62,12 @@ def manage_act(import_id: uuid.UUID, body: ManageIn, request: Request, db: Sessi
     if imp.status not in ("applied", "reverted"):
         raise HTTPException(409, "Only an applied import has imported data to manage")
     v = _view(db, imp, current)
-    pool = [e for e in v["entries"] if body.action in e["actions"]] if body.all else [e for e in v["entries"] if e["id"] in set(body.ids or [])]
-    ro = [e for e in v["entries"] if e["id"] in set(body.ids or []) and e.get("read_only")]
+    pick = set(body.ids or [])
+    pool = [e for e in v["entries"] if not e.get("read_only") and (body.action in e["actions"] if body.all else e["id"] in pick)]
+    ro = [e for e in v["entries"] if e.get("read_only") and (body.all or e["id"] in pick)]
     if ro and not pool:
         raise HTTPException(403, ro[0]["read_only"])
-    ids = [e["id"] for e in pool if e["id"] not in set(body.exclude)] + [e["id"] for e in ro]
+    ids = [e["id"] for e in pool if e["id"] not in set(body.exclude)]
     if not ids:
         raise HTTPException(422, "Nothing selected")
     res = im.act(db, imp, current, audit.request_meta(request), ids, body.action, body.force)

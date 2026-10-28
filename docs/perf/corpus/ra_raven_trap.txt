@@ -8,7 +8,7 @@ Policy ID | IronVision-POL-RA-001
 Version | 0.1
 System | The Raven, eMASS ID: 123
 Owning organization | IronVision Program Office
-Policy owner | Information System Security Manager (ISSM)
+Role | Information System Security Manager (ISSM)
 Approving official | Authorizing Official (AO)
 Control source | NIST SP 800-53 Rev. 5, Risk Assessment (RA) family
 Demo categorization | Confidentiality Moderate, Integrity Moderate, Availability Moderate
@@ -60,7 +60,7 @@ Role | Risk assessment responsibilities
 Authorizing Official (AO) | Approves the security categorization. Sets risk tolerance. Accepts residual risk. Approves exceptions and POA&M extensions.
 Component CISO / Senior Information Security Officer | Issues this policy. Integrates system-level results into Component risk management.
 Information System Owner (ISO) / Program Manager | Funds and schedules assessments and remediation. Owns the POA&M. Leads criticality analysis.
-ISSM (policy owner) | Maintains this policy and procedures. Oversees risk assessments, vulnerability management, and reporting in eMASS.
+ISSM | Oversees risk assessments, vulnerability management, and reporting in eMASS.
 Information System Security Officer (ISSO) | Runs scans. Analyzes results. Tracks remediation. Maintains the Risk Assessment Report (RAR).
 Security Control Assessor (SCA) | Independently assesses RA controls and validates remediation evidence.
 Cloud / DevSecOps engineering team | Remediates findings. Keeps scanning integrated in the pipeline. Maintains infrastructure-as-code baselines.
@@ -73,8 +73,8 @@ The ISSM shall coordinate risk assessment activity across these roles through th
 5. Policy and Procedures Management
 Controls addressed: RA-1 (a, b, c)
 This policy and its supporting procedures shall be documented, disseminated, and kept current.
-The ISSM shall develop and maintain this system-level risk assessment policy, covering purpose, scope, roles, responsibilities, management commitment, coordination, and compliance. (RA-1a.1)
-The ISSM shall develop and maintain procedures that implement this policy and the RA controls. At minimum: a categorization procedure, a risk assessment procedure, a vulnerability management standard operating procedure, and a POA&M management procedure. (RA-1a.2)
+This system-level risk assessment policy covers purpose, scope, roles, responsibilities, management commitment, coordination, and compliance. (RA-1a.1)
+Procedures implement this policy and the RA controls. At minimum: a categorization procedure, a risk assessment procedure, a vulnerability management standard operating procedure, and a POA&M management procedure. (RA-1a.2)
 The policy and procedures shall be disseminated to the AO, ISO, ISSO, SCA, engineering team, CSSP liaison, and Privacy Officer, and posted in the The Raven eMASS artifact repository. (RA-1a)
 An out-of-cycle review of both shall follow any of these events: a significant system change, a change in categorization or impact level, a security incident affecting the system, a new or revised DoD, CNSS, or NIST issuance, or an assessment or audit finding against an RA control. (RA-1c.1, RA-1c.2)
 Each review shall be recorded in a revision history with the date, reviewer, and summary of change.
@@ -291,7 +291,7 @@ Role | Name | Signature | Date
 Authorizing Official | Momma Bear |  | 
 Component CISO | Pappa Bear |  | 
 Information System Owner | Sister Bear |  | 
-ISSM (policy owner) | Brother Bear |  | 
+ISSM | Brother Bear |  | 
 Component Privacy Officer | Baby Bear |  | 
 
 Version | Date | Author | Summary of change

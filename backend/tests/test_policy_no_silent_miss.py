@@ -125,3 +125,22 @@ def test_openrouter_cache_control_block():
     c = _user_content(r)
     assert c[0]["cache_control"] == {"type": "ephemeral"} and c[0]["text"] == "DOC-PREFIX" and c[1]["text"] == " rest"
     assert _user_content(AIRequest(system="s", user="plain")) == "plain"
+
+
+def test_compact_format_off_by_default_and_trims_quotes_verbatim_when_enabled(monkeypatch, svc):
+    monkeypatch.setenv("POLICY_AI_WHOLE_DOC", "0")
+    monkeypatch.delenv("POLICY_AI_COMPACT_MIN_REQS", raising=False)
+    assert not v2.analyze_ai(DOC, uuid.uuid4(), _org(), TODO, TITLES, "cat")[1]["compact"]
+    svc.calls.clear()
+    monkeypatch.setenv("POLICY_AI_COMPACT_MIN_REQS", "1")
+    out, st = v2.analyze_ai(DOC, uuid.uuid4(), _org(), TODO, TITLES, "cat")
+    assert st["compact"] and all(c["prompt"] in (v2.PROMPT_COMPACT, v2.PROMPT_SECOND) for c in svc.calls)
+    q = "The ISSO shall review  audit records weekly and report anomalies to the ISSM within 24 hours, using the SIEM, and retain records for one year."
+    t = v2.trim_quote(q, 25)
+    assert len(t.split()) == 25 and t in q and v2.trim_quote("short quote", 25) == "short quote"
+
+
+def test_normal_size_keeps_full_format(monkeypatch, svc):
+    monkeypatch.setenv("POLICY_AI_WHOLE_DOC", "0")
+    out, st = v2.analyze_ai(DOC, uuid.uuid4(), _org(), TODO, TITLES, "cat")
+    assert not st["compact"] and any(c["prompt"] == v2.PROMPT for c in svc.calls)
