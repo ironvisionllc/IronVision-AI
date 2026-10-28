@@ -35,7 +35,7 @@ export default function LoginPage() {
     api.get<AuthProviderInfo>("/auth/provider").then((r) => setInfo(r.data)).catch(() => setInfo(null));
   }, []);
 
-  if (user) return <Navigate to="/controls" replace />;
+  if (user) return <Navigate to="/my-work" replace />;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -44,7 +44,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
       sessionStorage.removeItem("aegis.switch_user");
-      navigate("/controls", { replace: true });
+      navigate("/my-work", { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -54,7 +54,7 @@ export default function LoginPage() {
 
   const demo = async () => {
     setBusy(true); setDemoErr("");
-    try { await demoLogin(); navigate("/controls", { replace: true }); } catch (err) { setDemoErr(errorMessage(err)); } finally { setBusy(false); }
+    try { await demoLogin(); navigate("/my-work", { replace: true }); } catch (err) { setDemoErr(errorMessage(err)); } finally { setBusy(false); }
   };
 
   return (

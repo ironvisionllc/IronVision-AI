@@ -148,6 +148,7 @@ export default function WorkbenchPage() {
         <Link to="/catalog" className="btn-secondary" data-testid="open-catalog-btn" title="Browse every NIST SP 800-53 Rev 5 control and baseline">Reference catalog</Link>
       </PageHeader>
       {sum && (
+        <details className="mb-3" data-testid="wb-summary-counts"><summary className="cursor-pointer text-[12px] font-semibold text-slate-600">Summary counts</summary>
         <>
           <div className="mb-1 text-[11px] text-slate-500" data-testid="overlap-note">{sum.overlapping_counts_note}</div>
           <div className="mb-1 text-[11px] text-slate-600" data-testid="wb-counts-reconciliation">{sum.counts.labels.reconciliation}</div>
@@ -161,7 +162,7 @@ export default function WorkbenchPage() {
             <Stat label="Open findings" value={sum.with_open_findings} testId="wb-open-findings" />
             <Stat label="Unmapped findings" value={sum.unmapped_findings} testId="wb-unmapped" hint="system-level queue item" />
           </div>
-        </>
+        </></details>
       )}
       <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
         <div className="panel" data-testid="isso-queue">

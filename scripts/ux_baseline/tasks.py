@@ -83,8 +83,12 @@ class Meter:
         return True
 
     async def nav(self, label):
-        """Sidebar navigation by its visible label."""
-        return await self.click(f"aside a:has-text('{label}'), nav a:has-text('{label}')")
+        """Sidebar navigation by its visible label. 'step/Label' = RMF-step layout: open the step first when its pages are collapsed."""
+        step, _, label = label.rpartition("/")
+        sel = f"aside a:has-text('{label}'), nav a:has-text('{label}')"
+        if step and not await self.page.locator(sel).first.is_visible():
+            await self.click(f"[data-testid=nav-step-{step}]")
+        return await self.click(sel)
 
     async def system(self, sid):
         await self.select("aside select", value=sid)
@@ -117,7 +121,7 @@ async def t_register(m, ctx):
 
 async def t_categorize(m, ctx):
     await m.system(ctx["sid"])
-    await m.nav("Categorization")
+    await m.nav("categorize/Information types")
     await m.fill("[data-testid=info-type-search]", "logistics")
     await m.click("[data-testid^=info-type-add-]")
     await m.fill("[data-testid=cat-rationale]", "SYNTHETIC baseline-measurement categorization", opt=True)
@@ -125,7 +129,7 @@ async def t_categorize(m, ctx):
 
 
 async def t_baseline(m, ctx):
-    await m.nav("Baseline, overlays & tailoring")
+    await m.nav("select/Baseline, tailoring")
     await m.click("button:has-text('Initial baseline')", opt=True)
     await m.select("[data-testid=select-baseline-key]", value="moderate")
     await m.click("[data-testid=select-apply-baseline]")
@@ -142,7 +146,7 @@ async def t_import_impl(m, ctx):
 
 
 async def t_update_control(m, ctx):
-    await m.nav("Control Workbench")
+    await m.nav("implement/Control Workbench")
     if not await m.click("[data-testid^=queue-open-]", opt=True):  # fresh system: empty work queue → pick from the control list
         await m.click("[data-testid=show-all-toggle]")  # the list is hidden until a filter or "All controls" is chosen
         await m.click("[data-testid^=queue-item-] button, [data-testid^=queue-item-] a, [data-testid^=queue-item-]")
@@ -155,7 +159,7 @@ async def t_update_control(m, ctx):
 async def t_evidence(m, ctx):
     p = "/tmp/SYNTHETIC_ux_evidence.json"
     open(p, "w").write(json.dumps({"tool": "SYNTHETIC", "control": "AC-2", "result": "pass"}))
-    await m.nav("Evidence Sources")
+    await m.nav("implement/Evidence – add")
     await m.click("[data-testid=add-source-btn]", opt=True)
     if await m.page.locator("[data-testid=upload-source-select] option").count() <= 1:  # fresh system: an evidence source must be created first
         await m.click("[data-testid=create-file-source-btn]")
@@ -167,7 +171,7 @@ async def t_evidence(m, ctx):
 
 
 async def t_test_results(m, ctx):
-    await m.nav("Test Results")
+    await m.nav("assess/Test results")
     await m.click("[data-testid=tr-upload-input]")  # the old button now opens the Import Center pre-set to Test Results
     await m.upload("[data-testid=ic-file-input]", [f"{FX}/SYNTHETIC_TRExport.xlsx"])
     await m.click("[data-testid=ic-import-0]")
@@ -175,7 +179,7 @@ async def t_test_results(m, ctx):
 
 async def t_finding(m, ctx):
     await m.system(ctx["ltp"])
-    await m.nav("Control Workbench")
+    await m.nav("implement/Control Workbench")
     await m.click("text=Open findings")
     await m.click("[data-testid^=queue-open-]")
     await m.click("[data-testid^=wb-finding-link-], main a[href^='/findings/']")
@@ -190,7 +194,7 @@ async def t_poam(m, ctx):
         await m.fill("[data-testid=poam-form-plan]", "SYNTHETIC remediation plan")
         await m.click("[data-testid=poam-form-submit]")
         return
-    await m.nav("POA&M")  # already linked → update the POA&M
+    await m.nav("authorize/POA&M")  # already linked → update the POA&M
     await m.click("[data-testid=poam-table] a")
     await m.click("[data-testid=poam-edit-btn]")
     await m.fill("[data-testid=poam-detail-page] textarea", "SYNTHETIC updated remediation plan", opt=True)
@@ -198,7 +202,7 @@ async def t_poam(m, ctx):
 
 
 async def t_ssp(m, ctx):
-    await m.nav("Authorization package")
+    await m.nav("authorize/Package & documents")
     await m.click("[data-testid=doc-ssp-check]")
     await m.click("[data-testid=doc-ssp-docx]")
 
@@ -212,7 +216,7 @@ async def t_package(m, ctx):
 
 async def t_iscm(m, ctx):
     await m.system(ctx["sid"])
-    await m.nav("Baseline, overlays & tailoring")
+    await m.nav("select/Baseline, tailoring")
     await m.fill("[data-testid=iscm-narrative]", "SYNTHETIC monitoring strategy for baseline measurement")
     await m.select("[data-testid=iscm-default-slcm_frequency], [data-testid$=slcm_frequency]", opt=True, index=1)
     await m.click("[data-testid=iscm-save]")
@@ -259,7 +263,7 @@ async def main():
             results.append(r)
             print(json.dumps({k: r[k] for k in ("task", "clicks", "page_changes", "fields", "scripted_seconds", "next_action_shown", "completed", "blocked_at")}))
         await b.close()
-    json.dump({"base": BASE, "persona": "ISSO (demo sandbox)", "fresh_system": ACRONYM, "results": results}, open(f"{OUT}/baseline_metrics.json", "w"), indent=1)
+    c.post(f"/systems/{ctx['sid']}/archive", json={"reason": "SYNTHETIC UX baseline-measurement system – cleanup after the walk"}) if ctx.get("sid") else None({"base": BASE, "persona": "ISSO (demo sandbox)", "fresh_system": ACRONYM, "results": results}, open(f"{OUT}/baseline_metrics.json", "w"), indent=1)
 
 
 if __name__ == "__main__":
