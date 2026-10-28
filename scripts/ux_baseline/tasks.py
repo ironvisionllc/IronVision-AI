@@ -16,7 +16,8 @@ from playwright.async_api import async_playwright
 BASE = os.environ.get("UX_BASE", "https://aegis-rmf-demo.preview.emergentagent.com").rstrip("/")
 EMAIL, PW = os.environ.get("UX_EMAIL", "demo@ironvision.ai"), os.environ.get("UX_PASSWORD", "IronVisionDemo!2026")
 FX = "/app/backend/tests/fixtures/emass"
-OUT, SHOTS = "/app/docs/ux/data", "/app/docs/ux/screens/tasks"
+PHASE = os.environ.get("UX_PHASE", "baseline")
+OUT, SHOTS = "/app/docs/ux/data", "/app/docs/ux/screens/tasks" + ("" if PHASE == "baseline" else f"_{PHASE}")
 NEXT_RX = re.compile(r"next action|next step|next:|what's next|continue to", re.I)
 ACRONYM = "UXB" + uuid.uuid4().hex[:3].upper()
 
@@ -87,7 +88,10 @@ class Meter:
         step, _, label = label.rpartition("/")
         sel = f"aside a:has-text('{label}'), nav a:has-text('{label}')"
         if step and not await self.page.locator(sel).first.is_visible():
-            await self.click(f"[data-testid=nav-step-{step}]")
+            await self.click(f"[data-testid=nav-step-{step}]")  # the step header opens the step's main page
+            href = await self.page.locator(sel).first.get_attribute("href")
+            if href and self.page.url.split("?")[0].endswith(href):
+                return True
         return await self.click(sel)
 
     async def system(self, sid):
@@ -148,7 +152,8 @@ async def t_import_impl(m, ctx):
 async def t_update_control(m, ctx):
     await m.nav("implement/Control Workbench")
     if not await m.click("[data-testid^=queue-open-]", opt=True):  # fresh system: empty work queue → pick from the control list
-        await m.click("[data-testid=show-all-toggle]")  # the list is hidden until a filter or "All controls" is chosen
+        if not await m.page.locator("[data-testid^=queue-item-]").count():  # old layout: list hidden until "All controls"
+            await m.click("[data-testid=show-all-toggle]")
         await m.click("[data-testid^=queue-item-] button, [data-testid^=queue-item-] a, [data-testid^=queue-item-]")
     await m.select("[data-testid=wb-impl-status]", value="partially_implemented")
     await m.click("[data-testid=wb-status-save]", opt=True)
@@ -180,8 +185,11 @@ async def t_test_results(m, ctx):
 async def t_finding(m, ctx):
     await m.system(ctx["ltp"])
     await m.nav("implement/Control Workbench")
-    await m.click("text=Open findings")
-    await m.click("[data-testid^=queue-open-]")
+    if not await m.click("text=Open findings", opt=True):  # new layout: the control's Findings tab
+        await m.click("[data-testid^=queue-item-]")
+        await m.click("[data-testid=wb-tab-findings]")
+    else:
+        await m.click("[data-testid^=queue-open-]")
     await m.click("[data-testid^=wb-finding-link-], main a[href^='/findings/']")
 
 
@@ -263,7 +271,9 @@ async def main():
             results.append(r)
             print(json.dumps({k: r[k] for k in ("task", "clicks", "page_changes", "fields", "scripted_seconds", "next_action_shown", "completed", "blocked_at")}))
         await b.close()
-    c.post(f"/systems/{ctx['sid']}/archive", json={"reason": "SYNTHETIC UX baseline-measurement system – cleanup after the walk"}) if ctx.get("sid") else None({"base": BASE, "persona": "ISSO (demo sandbox)", "fresh_system": ACRONYM, "results": results}, open(f"{OUT}/baseline_metrics.json", "w"), indent=1)
+    if ctx.get("sid"):
+        c.post(f"/systems/{ctx['sid']}/archive", json={"reason": "SYNTHETIC UX baseline-measurement system – cleanup after the walk"})
+    json.dump({"base": BASE, "persona": "ISSO (demo sandbox)", "phase": PHASE, "fresh_system": ACRONYM, "results": results}, open(f"{OUT}/{PHASE}_metrics.json", "w"), indent=1)
 
 
 if __name__ == "__main__":

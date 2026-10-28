@@ -44,14 +44,16 @@ export function Sidebar() {
           const isOpen = shown === g.key;
           return (
             <div key={g.key} data-testid={`nav-group-${g.key}`}>
-              <button type="button" onClick={() => setOpen(isOpen ? "__none" : g.key)} aria-expanded={isOpen} data-testid={`nav-step-${g.key}`}
-                title={st ? `${g.help}\n${STEP_STATUS[st.status].label}: ${st.summary}` : g.help}
-                className={cn("iv-nav-link group w-full", activeGroup === g.key && "font-semibold")}>
-                <span className={cn("h-2 w-2 shrink-0 rounded-full", st ? STEP_STATUS[st.status].dot : "bg-slate-300")} data-testid={`nav-step-status-${g.key}`} data-status={st?.status} aria-label={st ? STEP_STATUS[st.status].label : "no system"} />
-                <span className="flex-1 truncate text-left">{g.label}</span>
-                {st && <span className="iv-sb-muted text-[10px]">{STEP_STATUS[st.status].short}</span>}
-                {isOpen ? <ChevronDown className="h-3 w-3" aria-hidden /> : <ChevronRight className="h-3 w-3" aria-hidden />}
-              </button>
+              <div className={cn("iv-nav-link group w-full !pr-1", activeGroup === g.key && "font-semibold")}>
+                <Link to={g.path!} onClick={() => setOpen(g.key)} className="flex min-w-0 flex-1 items-center gap-2" data-testid={`nav-step-${g.key}`}
+                  title={st ? `${g.help}\n${STEP_STATUS[st.status].label}: ${st.summary}` : g.help}>
+                  <span className={cn("h-2 w-2 shrink-0 rounded-full", st ? STEP_STATUS[st.status].dot : "bg-slate-300")} data-testid={`nav-step-status-${g.key}`} data-status={st?.status} aria-label={st ? STEP_STATUS[st.status].label : "no system"} />
+                  <span className="flex-1 truncate text-left">{g.label}</span>
+                  {st && <span className="iv-sb-muted text-[10px]">{STEP_STATUS[st.status].short}</span>}
+                </Link>
+                <button type="button" onClick={() => setOpen(isOpen ? "__none" : g.key)} aria-expanded={isOpen} aria-label={`${isOpen ? "Collapse" : "Expand"} ${g.label}`} className="rounded p-1" data-testid={`nav-step-toggle-${g.key}`}>
+                  {isOpen ? <ChevronDown className="h-3 w-3" aria-hidden /> : <ChevronRight className="h-3 w-3" aria-hidden />}</button>
+              </div>
               {isOpen && <ul className="mb-1">{items.map((n) => <Item key={n.id} {...n} sub active={active === n.id} />)}</ul>}
             </div>);
         })}

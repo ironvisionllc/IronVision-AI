@@ -22,7 +22,7 @@ export const NAV_GROUPS: { key: string; label: string; step?: string; path?: str
   { key: "prepare", label: "1 · Prepare", step: "prepare", path: "/rmf/prepare", help: "Name the people responsible for the system and describe its boundary and inventory." },
   { key: "categorize", label: "2 · Categorize", step: "categorize", path: "/rmf/categorize", help: "Pick SP 800-60 information types; the app derives the FIPS 199 impact level." },
   { key: "select", label: "3 · Select", step: "select", path: "/rmf/select", help: "Baseline, overlays, tailoring and the continuous monitoring strategy." },
-  { key: "implement", label: "4 · Implement", step: "implement", path: "/rmf/implement", help: "Write implementation statements, set inheritance, map policies and collect evidence." },
+  { key: "implement", label: "4 · Implement", step: "implement", path: "/controls", help: "Write implementation statements, set inheritance, map policies and collect evidence." },
   { key: "assess", label: "5 · Assess", step: "assess", path: "/rmf/assess", help: "The SCA tests the controls; test results, findings and mapping review." },
   { key: "authorize", label: "6 · Authorize", step: "authorize", path: "/rmf/authorize", help: "Assemble the package and POA&M; the AO records ATO / IATT / DATO." },
   { key: "monitor", label: "7 · Monitor", step: "monitor", path: "/rmf/monitor", help: "Keep evidence current, follow the monitoring schedule, sync with eMASS." },

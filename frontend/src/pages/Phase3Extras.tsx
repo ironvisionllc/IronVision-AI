@@ -17,6 +17,10 @@ import { fmtDate } from "@/lib/format";
 
 export function GlobalSearch() {
   const [q, setQ] = useState("");
+  useEffect(() => {  // ⌘K / Ctrl+K focuses global search from anywhere
+    const f = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); (document.querySelector("[data-testid=global-search-input]") as HTMLInputElement | null)?.focus(); } };
+    window.addEventListener("keydown", f); return () => window.removeEventListener("keydown", f);
+  }, []);
   const [res, setRes] = useState<Row[] | null>(null);
   const nav = useNavigate();
   useEffect(() => {

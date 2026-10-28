@@ -30,7 +30,7 @@ export default function ScaWorkspacePage() {
         (controlId ? (i <= 2) : i === 0) ? "bg-sky-700 text-white" : "bg-slate-100 text-slate-600")}>{f}</li>)}</ol>
       {trs.length > 0 && <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] text-sky-900" data-testid="sca-tr-imports">
         Imported test results ({trs.length} workbook{trs.length > 1 ? "s" : ""}, historical – they never change a determination by themselves):{" "}
-        {trs.slice(0, 3).map((w) => <Link key={w.id} className="mr-2 underline" to={`/test-results?workbook=${w.id}`}>{w.file_name || w.name} ({w.row_count ?? w.rows ?? "?"} rows)</Link>)}</div>}
+        {trs.slice(0, 3).map((w) => <Link key={w.id} className="mr-2 underline" to={`/test-results?workbook=${w.id}`}>{w.file_name || w.name} {w.row_count ?? w.rows ? ` (${w.row_count ?? w.rows} rows)` : ""}</Link>)}</div>}
       <div className="grid gap-4 xl:grid-cols-[300px_1fr]">
         <Panel title={`Queue – not assessed (${queue.length})`} testId="sca-queue">
           <ul className="max-h-[620px] overflow-y-auto text-[12px]">{queue.slice(0, 400).map((a) => <li key={a.control_id}>
