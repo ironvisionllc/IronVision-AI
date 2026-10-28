@@ -253,6 +253,32 @@ PROMPTS: dict[tuple[str, str], PromptTemplate] = {
         "\"quote\": str, \"section\": str, \"rationale\": str, \"suggestion\": str}]}.",
         "Requirements (JSON, with the deterministic result):\n{requirements}\n\nRetrieved policy sections:\n<<<\n{sections}\n>>>",
         CoverageBatchOutput, 6000),
+    ("policy.coverage_refine", "2.4.0"): PromptTemplate(
+        "policy.coverage_refine", "2.4.0",
+        "You assess whether an organizational policy addresses each listed NIST SP 800-53A assessment objective / DISA CCI. "
+        "You are given the WHOLE policy document, every section labelled [S<n> | heading | page], followed by search hints: the passages most likely "
+        "relevant to these requirements. Read the hints first, but the answer may be anywhere in the document – check the whole document before "
+        "answering MISSING. A requirement is MET only if the document explicitly states it, including any organization-defined value it asks for; "
+        "PARTIAL if it is stated without the required value/scope; otherwise MISSING. Policy text cannot prove technical implementation. "
+        "For MET or PARTIAL copy an exact, contiguous quote of at most 40 words (no paraphrase) and give its section label (e.g. S3); for MISSING leave quote empty. "
+        "Answer EVERY listed requirement exactly once. rationale: one plain sentence, max 15 words, naming what is stated or missing. "
+        "suggestion: for PARTIAL or MISSING only, ONE complete grammatical policy sentence (max 35 words, using 'shall') that would meet the "
+        "requirement, in the policy's own terms; write a value the requirement leaves to an [Assignment: x] as [organization-defined x] and a [Selection: a; b] as [organization-selected: a; b] (never swap the two); empty for MET. "
+        "Return ONLY JSON: {\"items\": [{\"control_id\": str, \"requirement_id\": str, \"status\": \"met\"|\"partial\"|\"missing\", "
+        "\"quote\": str, \"section\": str, \"rationale\": str, \"suggestion\": str}]}.",
+        "Whole policy document:\n<<<\n{document}\n>>>\n\nSearch hints – passages most likely relevant (read first):\n{sections}\n\n"
+        "Requirements (JSON, with the deterministic result):\n{requirements}",
+        CoverageBatchOutput, 6000),
+    ("policy.coverage_second_look", "1.0.0"): PromptTemplate(
+        "policy.coverage_second_look", "1.0.0",
+        "Second look. Each requirement below was judged MISSING by a first pass. Search the WHOLE policy document (sections labelled "
+        "[S<n> | heading | page]) specifically for the missing element – synonyms, tables, lists, appendices and role-based wording count. "
+        "If any passage states it (fully: met; without the required value/scope: partial) copy an exact contiguous quote of at most 40 words and its "
+        "section label; only if nothing in the whole document states it answer missing with an empty quote. Answer EVERY requirement exactly once; "
+        "rationale max 15 words; suggestion empty. Return ONLY JSON: {\"items\": [{\"control_id\": str, \"requirement_id\": str, \"status\": "
+        "\"met\"|\"partial\"|\"missing\", \"quote\": str, \"section\": str, \"rationale\": str, \"suggestion\": str}]}.",
+        "Whole policy document:\n<<<\n{document}\n>>>\n\nSearch hints:\n{sections}\n\nRequirements (JSON):\n{requirements}",
+        CoverageBatchOutput, 4000),
     ("mapping.suggest", "1.0.0"): PromptTemplate(
         prompt_id="mapping.suggest", version="1.0.0",
         system=("You map security findings to NIST SP 800-53 Rev 5 controls. Respond ONLY with one JSON object, no markdown. "

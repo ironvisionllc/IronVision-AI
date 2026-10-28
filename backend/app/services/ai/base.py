@@ -12,6 +12,7 @@ class AIRequest(BaseModel):
     schema_name: str | None = None
     temperature: float | None = None
     reasoning_effort: str | None = None   # OpenRouter: cap hidden reasoning (counts against max_tokens) for long-input prompts
+    cache_prefix: str | None = None       # stable leading part of `user` sent as a cached block (OpenRouter cache_control / Anthropic prompt caching)
 
 
 class AIResponse(BaseModel):
@@ -21,6 +22,8 @@ class AIResponse(BaseModel):
     input_tokens: int | None = None
     output_tokens: int | None = None
     finish_reason: str | None = None      # normalised: "length" = reply cut off at max_tokens
+    cached_tokens: int | None = None      # prompt tokens read from the provider's prompt cache
+    cache_write_tokens: int | None = None # prompt tokens written to the prompt cache
 
 
 class AIProvider(ABC):

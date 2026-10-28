@@ -2700,6 +2700,7 @@
      "workbench"
     ],
     "summary": "Controls",
+    "description": "Lenient list params: an empty/unknown queue or limit (e.g. sent mid tab switch) falls back to the default instead of a 422.",
     "operationId": "controls_api_v1_systems__system_id__workbench_controls_get",
     "parameters": [
      {
@@ -2717,8 +2718,14 @@
       "in": "query",
       "required": false,
       "schema": {
-       "type": "boolean",
-       "default": false,
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
        "title": "Queue"
       }
      },
@@ -2967,8 +2974,14 @@
       "in": "query",
       "required": false,
       "schema": {
-       "type": "integer",
-       "default": 2000,
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
        "title": "Limit"
       }
      }
@@ -15513,13 +15526,13 @@
    }
   },
   "/api/v1/public/whitepaper.{ext}": {
-   "get": {
+   "head": {
     "tags": [
      "public"
     ],
     "summary": "Whitepaper",
     "description": "Public (no auth) download of the product whitepaper. PDF inline (opens in iOS Safari's viewer), DOCX as attachment.",
-    "operationId": "whitepaper_api_v1_public_whitepaper__ext__get",
+    "operationId": "whitepaper_api_v1_public_whitepaper__ext__head",
     "parameters": [
      {
       "name": "ext",
@@ -15552,13 +15565,13 @@
      }
     }
    },
-   "head": {
+   "get": {
     "tags": [
      "public"
     ],
     "summary": "Whitepaper",
     "description": "Public (no auth) download of the product whitepaper. PDF inline (opens in iOS Safari's viewer), DOCX as attachment.",
-    "operationId": "whitepaper_api_v1_public_whitepaper__ext__get",
+    "operationId": "whitepaper_api_v1_public_whitepaper__ext__head",
     "parameters": [
      {
       "name": "ext",
@@ -15593,13 +15606,13 @@
    }
   },
   "/api/v1/public/demo/{name}": {
-   "get": {
+   "head": {
     "tags": [
      "public"
     ],
     "summary": "Demo File",
     "description": "Public (no auth) product demo video and its narration/caption/timeline/validation files. Range requests supported (MP4 seeking).",
-    "operationId": "demo_file_api_v1_public_demo__name__get",
+    "operationId": "demo_file_api_v1_public_demo__name__head",
     "parameters": [
      {
       "name": "name",
@@ -15632,13 +15645,13 @@
      }
     }
    },
-   "head": {
+   "get": {
     "tags": [
      "public"
     ],
     "summary": "Demo File",
     "description": "Public (no auth) product demo video and its narration/caption/timeline/validation files. Range requests supported (MP4 seeking).",
-    "operationId": "demo_file_api_v1_public_demo__name__get",
+    "operationId": "demo_file_api_v1_public_demo__name__head",
     "parameters": [
      {
       "name": "name",
@@ -15736,6 +15749,71 @@
     }
    }
   },
+  "/api/v1/systems/{system_id}/controls/{control_id}/evidence": {
+   "post": {
+    "tags": [
+     "ux"
+    ],
+    "summary": "Upload Control Evidence",
+    "description": "General evidence (documents, images, exports): evidence allow-list + magic bytes + scanner, hash-keyed storage, linked to the control.",
+    "operationId": "upload_control_evidence_api_v1_systems__system_id__controls__control_id__evidence_post",
+    "parameters": [
+     {
+      "name": "system_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "System Id"
+      }
+     },
+     {
+      "name": "control_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Control Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_upload_control_evidence_api_v1_systems__system_id__controls__control_id__evidence_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Upload Control Evidence Api V1 Systems  System Id  Controls  Control Id  Evidence Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/v1/me/preferences": {
    "get": {
     "tags": [
@@ -15794,6 +15872,75 @@
         "schema": {
          "$ref": "#/components/schemas/HTTPValidationError"
         }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/policies/{policy_id}/found-it-here": {
+   "post": {
+    "summary": "Found It Here",
+    "operationId": "found_it_here_api_v1_policies__policy_id__found_it_here_post",
+    "parameters": [
+     {
+      "name": "policy_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Policy Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FoundIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "additionalProperties": true,
+         "title": "Response Found It Here Api V1 Policies  Policy Id  Found It Here Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/policy-feedback/export": {
+   "get": {
+    "summary": "Export Feedback",
+    "description": "Missed-language feedback of this organization as gold-set entries (label 'met' = the auditor should have found this passage).",
+    "operationId": "export_feedback_api_v1_admin_policy_feedback_export_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
        }
       }
      }
@@ -17073,6 +17220,20 @@
      "file"
     ],
     "title": "Body_upload_api_v1_systems__system_id__uploads_post"
+   },
+   "Body_upload_control_evidence_api_v1_systems__system_id__controls__control_id__evidence_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_upload_control_evidence_api_v1_systems__system_id__controls__control_id__evidence_post"
    },
    "Body_upload_policy_api_v1_policies_post": {
     "properties": {
@@ -18631,6 +18792,45 @@
      "count"
     ],
     "title": "FamilyOut"
+   },
+   "FoundIn": {
+    "properties": {
+     "control_id": {
+      "type": "string",
+      "pattern": "^[a-z]{2}-\\d+(\\.\\d+)?$",
+      "title": "Control Id"
+     },
+     "requirement_id": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 80
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Requirement Id"
+     },
+     "text": {
+      "type": "string",
+      "maxLength": 2000,
+      "minLength": 12,
+      "title": "Text"
+     },
+     "via": {
+      "type": "string",
+      "pattern": "^(found_it_here|use_candidate)$",
+      "title": "Via",
+      "default": "found_it_here"
+     }
+    },
+    "type": "object",
+    "required": [
+     "control_id",
+     "text"
+    ],
+    "title": "FoundIn"
    },
    "FromControlIn": {
     "properties": {

@@ -36,7 +36,7 @@ class FakeSvc:
     def __init__(self):
         self.calls, self.provider = [], SimpleNamespace(model="fake/model")
 
-    async def run(self, pid, ver, vars, max_tokens=None):
+    async def run(self, pid, ver, vars, max_tokens=None, cache_prefix_var=None):
         assert (pid, ver) == v2.PROMPT
         reqs = json.loads(vars["requirements"])
         self.calls.append([r["requirement_id"] for r in reqs])
@@ -61,6 +61,8 @@ def fake(monkeypatch):
     f = FakeSvc()
     monkeypatch.setattr("app.services.ai.service.get_ai_service", lambda: f)
     monkeypatch.setenv("POLICY_AI_VERIFY_FRACTION", "1.0")
+    monkeypatch.setenv("POLICY_AI_WHOLE_DOC", "0")  # these tests cover the legacy retrieval-only screening (POLICY_AI_NO_SILENT=0)
+    monkeypatch.setenv("POLICY_AI_NO_SILENT", "0")
     monkeypatch.setenv("POLICY_AI_BATCH_REQS", "2")
     return f
 

@@ -25,9 +25,12 @@ class Provider(AIProvider):
             model=self.model,
             max_tokens=request.max_tokens,
             system=request.system,
-            messages=[{"role": "user", "content": request.user}],
+            messages=[{"role": "user", "content": ([{"type": "text", "text": request.cache_prefix, "cache_control": {"type": "ephemeral"}},
+                                                    {"type": "text", "text": request.user[len(request.cache_prefix):] or " "}]
+                                                   if request.cache_prefix and request.user.startswith(request.cache_prefix) else request.user)}],
         )
         text = "".join(block.text for block in msg.content if getattr(block, "type", "") == "text")
         return AIResponse(text=text, provider=self.name, model=msg.model,
                           input_tokens=msg.usage.input_tokens, output_tokens=msg.usage.output_tokens,
+                          cached_tokens=getattr(msg.usage, "cache_read_input_tokens", None), cache_write_tokens=getattr(msg.usage, "cache_creation_input_tokens", None),
                           finish_reason="length" if msg.stop_reason == "max_tokens" else msg.stop_reason)

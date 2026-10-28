@@ -658,7 +658,16 @@ def ai_refine(text: str, control_id: str, reqs: list, results: list, org_id, sta
 
 def effective(c: PolicyRequirementCoverage) -> str:
     """Coverage comes from the policy text only; covered-elsewhere/linked annotations are shown separately and never turn MISSING into MET."""
+    if c.status == "missing" and c.concept != "profile-ai" and not is_xx1(c.control_id):
+        return "partial"  # keyword-only result: never "language not present" (needs manual review)
     return c.status
+
+
+def display(c: PolicyRequirementCoverage) -> dict:
+    """Read-time view of a stored row: a keyword-only "missing" (stored before the relabel) is shown as partial/Low, needs manual review."""
+    if effective(c) == c.status:
+        return {}
+    return {"status": "partial", "confidence": "Low", "reason": f"{KEYWORD_ONLY} {(c.reason or '').replace('No sentence addresses this requirement.', 'No keyword match was found.')}".strip()}
 
 
 def basis_label(c: PolicyRequirementCoverage) -> str:
@@ -693,7 +702,7 @@ def summarize(rows: list[PolicyRequirementCoverage]) -> dict:
 
 def summary_line(control_id: str, s: dict) -> str:
     cid = control_id.upper().replace(".", "(") + (")" if "." in control_id else "")
-    tail = f" – missing: {'; '.join(s['gaps'][:4])}" if s["gaps"] else ""
+    tail = f" – {'missing' if s['missing'] else 'needs review'}: {'; '.join(s['gaps'][:4])}" if s["gaps"] else ""
     scope = "this enhancement only" if "." in control_id else "base control only, enhancements counted separately"
     return f"{cid} ({scope}): {s['met']} of {s['total']} requirements met ({s['ccis']} CCIs, {s['objectives']} objectives){tail}"
 
@@ -828,8 +837,8 @@ def policy_view(db: Session, a: ControlAssignment, rows: list, policy: Policy) -
     from app.services import policy_profile as pp
 
     s = summarize(rows)
-    low = [c for c in rows if c.confidence == "Low" and c.status != "missing"]
-    sure = [c for c in rows if c.confidence != "Low" or c.status == "missing"]
+    low = [c for c in rows if (c.confidence == "Low" or effective(c) != c.status) and effective(c) != "missing"]
+    sure = [c for c in rows if c not in low]
     met = [c for c in sure if c.status == "met"]
     policy_gap = len(met) < len(rows)
     if is_xx1(a.control_id):

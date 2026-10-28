@@ -41,14 +41,18 @@ def summary(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser 
 
 
 @router.get("/systems/{system_id}/workbench/controls")
-def controls(system_id: uuid.UUID, queue: bool = False, q: str | None = None, implementation_status: str | None = None,
+def controls(system_id: uuid.UUID, queue: str | None = None, q: str | None = None, implementation_status: str | None = None,
              responsibility: str | None = None, assessment_status: str | None = None, monitoring_status: str | None = None,
              family: str | None = None, origin: str | None = None, has_evidence: str | None = None, evidence: str | None = None,
              policy_mapping: str | None = None, policy: str | None = None, policy_coverage: str | None = None, fmt: str | None = None,
              emass_status: str | None = None, emass_missing: str | None = None,
-             limit: int = 2000, db: Session = Depends(get_db),
+             limit: str | None = None, db: Session = Depends(get_db),
              _: CurrentUser = Depends(require_permission("system.read"))):
+    """Lenient list params: an empty/unknown queue or limit (e.g. sent mid tab switch) falls back to the default instead of a 422."""
     from app.models import Control
+
+    queue = (queue or "").lower() in ("true", "1", "yes")
+    limit = int(limit) if (limit or "").isdigit() else 2000
     from app.services.evaluation import FRESH_OK
 
     s = get_system(db, system_id)
@@ -250,7 +254,8 @@ def control_detail(system_id: uuid.UUID, control_id: str, db: Session = Depends(
                              "requirements": [{"id": str(c.id), "type": c.requirement_type, "label": c.label, "text": c.text, "status": pc.effective(c),
                                                "reason": c.reason, "snippets": c.snippets, "parameter": c.parameter, "value": c.parameter_value, "needs": c.needs,
                                                "confidence": c.confidence, "basis": pc.basis_label(c), "kind": pc.kind_label(c),
-                                               "linked": c.linked, "override": c.override} for c in v]} for k, v in pcov.items()],
+                                               "linked": c.linked, "override": c.override, **{k2: v2 for k2, v2 in pc.display(c).items() if k2 != "status"}}
+                                              for c in v]} for k, v in pcov.items()],
         "overlay_notes": control_notes(db, sysobj, a.control_id),
         "status_last_changed": _status_last_changed(db, a),
         "policy_mappings": _policy_mappings(db, a),

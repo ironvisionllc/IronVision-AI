@@ -374,7 +374,75 @@ def _docx_text(data: bytes) -> str:
                     cells.append(" ".join(c.text.split()))
                 if any(cells):
                     out.append(" | ".join(cells))
-    return "\n".join(out)
+    body = "\n".join(out)
+    extra = [t for t in _docx_extra_text(d) if t and t not in body]  # text boxes, headers, footers (not in the body flow)
+    return body + ("\n\n" + "\n".join(extra) if extra else "")
+
+
+_W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+
+
+def _docx_extra_text(d) -> list[str]:
+    """Text boxes (w:txbxContent) anywhere in the body, plus every section's header/footer paragraphs, labelled."""
+    out = []
+    for tb in d.element.body.iter(f"{_W}txbxContent"):
+        t = " ".join("".join(x.text or "" for x in p.iter(f"{_W}t")) for p in tb.iter(f"{_W}p")).strip()
+        if t:
+            out.append(f"[Text box] {' '.join(t.split())}")
+    seen = set()
+    for s in d.sections:
+        for kind, part in (("Header", s.header), ("Footer", s.footer)):
+            try:
+                t = " ".join(p.text for p in part.paragraphs).strip()
+            except Exception:  # noqa: BLE001 – a missing/linked part
+                continue
+            if t and t not in seen:
+                seen.add(t)
+                out.append(f"[{kind}] {' '.join(t.split())}")
+    return out
+
+
+def reading_report(file_name: str, data: bytes, text: str) -> dict:
+    """What the auditor read: % of document text extracted, characters/sections, tables, and warnings for content it could not read."""
+    ext = (file_name or "").lower().rsplit(".", 1)[-1]
+    rep: dict = {"format": ext, "chars_read": len(text), "warnings": [], "tables_included": False, "ocr": "not performed"}
+    try:
+        if ext == "docx":
+            import zipfile
+            z = zipfile.ZipFile(io.BytesIO(data))
+            names = z.namelist()
+            doc = z.read("word/document.xml").decode("utf-8", "replace")
+            import re as _re
+            raw = sum(len(m) for m in _re.findall(r"<w:t(?:\s[^>]*)?>([^<]*)</w:t>", doc))
+            for n in names:
+                if _re.match(r"word/(header|footer)\d*\.xml$", n):
+                    raw += sum(len(m) for m in _re.findall(r"<w:t(?:\s[^>]*)?>([^<]*)</w:t>", z.read(n).decode("utf-8", "replace")))
+            rep["source_chars"] = raw
+            rep["tables_included"] = "<w:tbl>" in doc or "<w:tbl " in doc
+            rep["text_boxes_read"] = "<w:txbxContent" in doc
+            rep["headers_footers_read"] = any(_re.match(r"word/(header|footer)\d*\.xml$", n) for n in names)
+            if "word/comments.xml" in names:
+                rep["warnings"].append("Comments were not read (review comments are not policy text).")
+            if "<w:ins " in doc or "<w:del " in doc:
+                rep["warnings"].append("Tracked changes present: inserted text was read as shown; deleted text was not – accept or reject changes and re-upload.")
+            if "<w:drawing" in doc or "<w:pict" in doc:
+                rep["warnings"].append("Embedded images/diagrams were not read (no OCR) – text inside images is not assessed.")
+        elif ext == "pdf":
+            from pypdf import PdfReader
+            pages = PdfReader(io.BytesIO(data)).pages
+            empty = [i + 1 for i, p in enumerate(pages) if len((p.extract_text() or "").strip()) < 20]
+            rep.update(pages=len(pages), pages_without_text=empty[:50])
+            if empty:
+                rep["warnings"].append(f"{len(empty)} of {len(pages)} page(s) have no text layer (scanned?) and were NOT read – OCR is not available; "
+                                       "upload a text PDF or DOCX.")
+            rep["source_chars"] = len(text)
+        else:
+            rep["source_chars"] = len(text)
+    except Exception as e:  # noqa: BLE001 – the report never blocks analysis
+        rep["warnings"].append(f"Reading report incomplete: {type(e).__name__}")
+    src = rep.get("source_chars") or len(text) or 1
+    rep["pct_extracted"] = min(100.0, round(100.0 * min(len(text), src) / src, 1)) if src else 0.0
+    return rep
 
 
 def _docx_para(p) -> str:
@@ -527,7 +595,8 @@ def analyze_policy(db: Session, policy: Policy, ai_output: dict | None = None, a
             add(finding_type="ai_suggested_needs_validation", control_id=cid, description=s.get("description", "")[:2000], quote=(qtxt or "")[:1000],
                 origin="ai", ai_interaction_id=ai_interaction_id)
     policy.analysis_status = "analyzed"
-    policy.analysis = {**ex, "text_version": (policy.analysis or {}).get("text_version"), "history": (policy.analysis or {}).get("history"), "control_mappings": [{k: m[k] for k in ("control_id", "confidence", "sources", "basis", "snippets", "parts")} for m in mappings],
+    policy.analysis = {**ex, "text_version": (policy.analysis or {}).get("text_version"), "history": (policy.analysis or {}).get("history"),
+                       "reading": (policy.analysis or {}).get("reading"), "control_mappings": [{k: m[k] for k in ("control_id", "confidence", "sources", "basis", "snippets", "parts")} for m in mappings],
                        "not_selected": det["not_selected"], "possible_related_controls": det["possible_related"],
                        "counts": {"proposed_maps": len(mappings), "possible_related_not_proposed": len(det["possible_related"]),
                                   "not_selected_flagged": len([m for m in mappings if m.get("not_selected")])},

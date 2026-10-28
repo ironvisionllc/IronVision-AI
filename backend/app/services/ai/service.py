@@ -77,6 +77,7 @@ class AIResult:
     model: str | None
     latency_ms: int
     interaction_id: uuid.UUID
+    usage: dict | None = None   # {"input", "output", "cached", "cache_write"} tokens (prompt-cache accounting)
 
 
 def _extract_json(text: str) -> dict:
@@ -108,7 +109,7 @@ class AIService:
                 "reason": None if ok else "provider selected but its API key or model is missing"}
 
     async def run(self, prompt_id: str, version: str, variables: dict, actor_user_id: uuid.UUID | None = None,
-                  max_tokens: int | None = None) -> AIResult:
+                  max_tokens: int | None = None, cache_prefix_var: str | None = None) -> AIResult:
         if not self.configured:
             raise RuntimeError("AI provider is not configured")
         prompt = get_prompt(prompt_id, version)
@@ -116,6 +117,9 @@ class AIService:
         req = AIRequest(system=prompt.system, user=prompt.render(**variables), max_tokens=max_tokens or prompt.max_tokens, model=model,
                         json_schema=prompt.output_model.model_json_schema(), schema_name=prompt_id.replace(".", "_"),
                         reasoning_effort=prompt.reasoning_effort)
+        if cache_prefix_var:  # the template starts with this variable's block → send it as a cached prefix
+            head = prompt.user_template.split("{" + cache_prefix_var + "}")[0]
+            req.cache_prefix = head.format(**variables) + str(variables[cache_prefix_var]) if "{" not in head else None
         input_sha = hashlib.sha256((req.system + "\n" + req.user).encode()).hexdigest()
         started = time.perf_counter()
         log = dict(
@@ -159,7 +163,8 @@ class AIService:
         log.update(status="completed", validation_status="valid", parsed_output=output.model_dump())
         interaction_id = await run_in_threadpool(_log_interaction, log)
         return AIResult(output=output, provider=resp.provider, model=log["model"], latency_ms=latency,
-                        interaction_id=interaction_id)
+                        interaction_id=interaction_id, usage={"input": resp.input_tokens, "output": resp.output_tokens,
+                                                              "cached": resp.cached_tokens, "cache_write": resp.cache_write_tokens})
 
     async def _truncated(self, log: dict, req: AIRequest, started: float) -> None:
         log.update(status="truncated", validation_status="not_run", error=f"reply cut off at max_tokens={req.max_tokens} (finish_reason=length)",

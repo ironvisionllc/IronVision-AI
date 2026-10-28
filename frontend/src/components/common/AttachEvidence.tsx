@@ -7,6 +7,9 @@ import { CompletedNext } from "@/components/common/CompletedNext";
 import { Modal } from "@/components/common/Modal";
 import type { Row } from "@/lib/useApi";
 
+const SCAN_EXT = /\.(nessus|ckl|cklb|sarif)$/i;
+const ACCEPT = ".pdf,.docx,.xlsx,.pptx,.txt,.md,.png,.jpg,.jpeg,.json,.csv,.xml,.yaml,.yml,.log,.nessus,.ckl,.cklb,.sarif";
+
 /** Attach evidence where it is shown (control, finding, POA&M): in-app dialog (drop zone / Choose file, no source needed) or link an existing item. */
 export function AttachEvidence({ systemId, controlIds, onDone, testId = "attach-evidence" }: { systemId: string; controlIds: string[]; onDone?: () => void; testId?: string }) {
   const [open, setOpen] = useState<"" | "upload" | "link">("");
@@ -24,9 +27,11 @@ export function AttachEvidence({ systemId, controlIds, onDone, testId = "attach-
     setPct(0); setMsg(null);
     try {
       const fd = new FormData(); fd.append("file", f);
-      const r = await api.post<Row>(`/systems/${systemId}/uploads`, fd, { onUploadProgress: (e) => setPct(e.total ? Math.round((100 * e.loaded) / e.total) : 50) });
+      const scan = SCAN_EXT.test(f.name);  // scan/checklist formats go to their importers; everything else is stored as evidence
+      const url = scan ? `/systems/${systemId}/uploads` : `/systems/${systemId}/controls/${controlIds[0]}/evidence`;
+      const r = await api.post<Row>(url, fd, { onUploadProgress: (e) => setPct(e.total ? Math.round((100 * e.loaded) / e.total) : 50) });
       if (r.data.evidence_id) await link(r.data.evidence_id);
-      setMsg({ ok: true, text: `“${f.name}” ${r.data.status === "duplicate" ? "was already received (same SHA-256) –" : "received – processing;"} linked to ${target}` });
+      setMsg({ ok: true, text: `“${f.name}” ${r.data.status === "duplicate" ? "was already stored (same SHA-256) –" : scan ? "received – findings processing;" : "stored;"} linked to ${target}` });
       setOpen(""); onDone?.();  // the dialog closes on success; the completion + next step stays on the tab
     } catch (e) { setMsg({ ok: false, text: errMsg(e) }); } finally { setPct(null); }
   };
@@ -59,8 +64,8 @@ export function AttachEvidence({ systemId, controlIds, onDone, testId = "attach-
             <UploadCloud className="h-8 w-8 text-slate-500" aria-hidden />
             <span>Drop a file here, or</span>
             <label className={`btn-secondary cursor-pointer ${busy ? "pointer-events-none opacity-60" : ""}`} data-testid={`${testId}-choose`}>Choose file
-              <input type="file" className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} data-testid={`${testId}-input`} /></label>
-            <span className="text-[11px] text-slate-500">Scan results, checklists, configuration exports or documents – stored with SHA-256 and linked to the control.</span>
+              <input type="file" accept={ACCEPT} className="sr-only" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} data-testid={`${testId}-input`} /></label>
+            <span className="text-[11px] text-slate-500">Documents (PDF, Word, Excel, text), screenshots, configuration exports, scan results or checklists – stored with SHA-256 and linked to the control. Max 50 MB.</span>
           </div>
           {busy && <div className="mt-3" data-testid={`${testId}-progress`}><div className="h-2 rounded bg-slate-200"><div className="h-2 rounded bg-sky-700 transition-[width]" style={{ width: `${pct}%` }} /></div>
             <div className="mt-1 text-[12px]">Uploading… {pct}%</div></div>}

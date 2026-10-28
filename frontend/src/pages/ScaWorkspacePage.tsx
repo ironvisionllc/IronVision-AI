@@ -27,10 +27,10 @@ export default function ScaWorkspacePage() {
   const queue = list || [];
   const next = () => {
     const i = queue.findIndex((a) => a.control_id === controlId); const n = queue[i + 1] ?? queue[0]; reload(); reloadD();
-    if (!auto || !n || n.control_id === controlId) { setMoved(null); toast.success("Saved"); return; }
+    if (!auto || !n || n.control_id === controlId) { setMoved(null); toast.success("Saved", { id: "sca-saved" }); return; }
     const back = controlId as string, text = `Saved – moved to next control (${n.label})`; nav(`/assess/workspace/${n.control_id}`);
     setMoved({ text, back });
-    toast.success(text, { duration: 12000, action: { label: "Undo move / stay on this control", onClick: () => { setMoved(null); nav(`/assess/workspace/${back}`); } } });
+    toast.success(text, { id: "sca-saved-moved", duration: 15000, closeButton: true, action: { label: "Undo move / stay on this control", onClick: () => { setMoved(null); nav(`/assess/workspace/${back}`); } } });
   };
   const trs = (Array.isArray(tr) ? tr : (tr as unknown as Row | undefined)?.items || []) as Row[];
   return (

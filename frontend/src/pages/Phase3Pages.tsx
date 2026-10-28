@@ -1,3 +1,4 @@
+import { FoundItHere, ReadingReport } from "@/components/policy/Reading";
 import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ImportButton } from "@/components/import/ImportButton";
@@ -238,8 +239,10 @@ export function PolicyDetailPage() {
       {mapFor && <MapToControlModal policyId={id} initial={mapFor} onClose={() => setMapFor(null)} onDone={(m) => { setMapFor(null); setMsg(m); reload(); }} />}
       <div className="grid gap-5 xl:grid-cols-2">
         <Panel title="Versions" testId="policy-versions">{data.versions.map((v: Row) => <div key={v.id} className="text-[12px]"><Link className="text-blue-800 underline" to={`/policy-auditor/${v.id}`}>v{v.version}</Link> <S v={v.status} /> {v.approval_date}</div>)}</Panel>
-        <Panel title="Extracted text (preview)" testId="policy-text"><pre className="max-h-72 overflow-y-auto whitespace-pre-wrap text-[11px]">{data.text_preview || "No document loaded (metadata-only policy)."}</pre></Panel>
+        <Panel title="Extracted text (preview)" testId="policy-text"><pre className="max-h-72 overflow-y-auto whitespace-pre-wrap text-[11px]">{data.text_preview || "No document loaded (metadata-only policy)."}</pre>
+          {data.text_preview && <FoundItHere policyId={id} canMap={can("implementation.write")} setMsg={setMsg} />}</Panel>
       </div>
+      {data.reading && <ReadingReport r={data.reading} />}
     </div>
   );
 }

@@ -300,24 +300,75 @@ def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+_QMAP = {**{c: "'" for c in "\u2018\u2019\u201a\u201b\u2032`\u00b4"}, **{c: '"' for c in "\u201c\u201d\u201e\u201f\u2033\u00ab\u00bb"},
+         **{c: "-" for c in "\u2010\u2011\u2012\u2013\u2014\u2015\u2212"}, "\u00a0": " ", "\u2007": " ", "\u202f": " ", "\u2009": " ", "\t": " "}
+_BULLET = re.compile(r"(?m)^[ \t]*(?:[\u2022\u25aa\u25cf\u25e6\u2023\u2043\u00b7*\-]|\(?(?:\d{1,3}(?:\.\d{1,3})*|[a-z]|[ivxlc]{1,5})[.)])[ \t]+", re.I)
+
+
+def qnorm_map(s: str) -> tuple[str, list[int]]:
+    """Forgiving quote normalisation with an index map back into `s`: smart quotes/dashes, NBSP/soft hyphen, hyphenation across a line
+    break, list numbers/bullets at line starts, whitespace and case. Returns (normalised, original offset of each normalised char)."""
+    s2 = _BULLET.sub(lambda m: "\x00" * len(m.group(0)), s)  # same length: offsets stay valid
+    out, idx, i, n = [], [], 0, len(s2)
+    while i < n:
+        c = s2[i]
+        if c in "\x00\u00ad\u200b\u200c\u200d\ufeff":
+            i += 1
+            continue
+        if c in "-\u2010\u2011" and i + 1 < n and s2[i + 1] in "\r\n" and out and out[-1].isalpha():  # "exam-\nple" → "example"
+            i += 1
+            while i < n and s2[i] in "\r\n \t":
+                i += 1
+            continue
+        c = _QMAP.get(c, c)
+        if c.isspace():
+            if out and out[-1] != " ":
+                out.append(" ")
+                idx.append(i)
+        else:
+            out.append(c.lower())
+            idx.append(i)
+        i += 1
+    while out and out[-1] == " ":
+        out.pop()
+        idx.pop()
+    return "".join(out).lstrip(), idx[len(out) - len("".join(out).lstrip()):]
+
+
+def qnorm(s: str) -> str:
+    return qnorm_map(s)[0]
+
+
+def find_quote(text: str, quote: str | None) -> tuple[int, int] | None:
+    """(start, end) of a quote in the original text, matched after forgiving normalisation; None if absent."""
+    if not quote or len(quote.strip()) < 12:
+        return None
+    nt, idx = qnorm_map(text)
+    nq = qnorm(quote)
+    j = nt.find(nq) if nq else -1
+    if j < 0:
+        return None
+    return idx[j], idx[j + len(nq) - 1] + 1
+
+
 def verify_quote(text: str, quote: str | None) -> bool:
-    return bool(quote and len(quote.strip()) >= 12 and _norm(quote) in _norm(text))
+    return find_quote(text, quote) is not None
 
 
 def _loc(text: str, quote: str | None) -> str:
     """Real section heading + page of a quote (AI quotes had an empty location)."""
     from app.services.rmf import locate
-    i = text.find((quote or "").strip()) if quote else -1
-    return locate(text, i) if i >= 0 else ""
+    hit = find_quote(text, quote)
+    return locate(text, hit[0]) if hit else ""
 
 
 def _whole_sentence(text: str, quote: str) -> str:
     """A verified AI quote that is a sentence fragment ("for at least the prior 90 days…") is widened to its full sentence(s)."""
     from app.services.rmf import split_sentences
-    i = text.find(quote.strip())
-    if i < 0:
+    hit = find_quote(text, quote)
+    if hit is None:
         return quote
-    j = i + len(quote.strip())
+    i, j = hit
     spans = [(a, b) for a, b in split_sentences(text) if a < j and b > i]
     return text[spans[0][0]:spans[-1][1]].strip() if spans else quote
 
@@ -348,6 +399,19 @@ def apply_ai(text: str, row: dict, ai: dict | None) -> dict:
         row.update(status="partial", confidence="Low", basis="ai", snippets=[{"text": ai["quote"][:300], "location": _loc(text, ai["quote"])}],
                    reason=f"AI found related text, but it does not fully meet the requirement: {ai.get('rationale', '')[:300]} – manual review.")
         return row
+    if ai.get("status") == "missing" and ai.get("candidates"):  # second look found plausible passages → never "not present"
+        row.update(status="partial", confidence="Low", basis="ai", snippets=[{**c, "candidate": True} for c in ai["candidates"][:3]],
+                   reason="Needs manual review – the AI found no exact statement, but the second look (whole-document AI + similarity search) "
+                          "found possibly relevant passages (closest shown). " + (ai.get("rationale") or "")[:200])
+        return row
+    if ai.get("status") == "missing" and row["status"] != "met":
+        conf = ai.get("second_look") == "none"
+        row.update(status="missing" if conf else "partial", confidence="Medium" if conf else "Low", basis="ai",
+                   reason=("Required language not present – the whole document and a second look (AI + similarity search) found nothing. "
+                           if conf else "Needs manual review – not confirmed absent by a second look. ") + (ai.get("rationale") or "")[:200])
+        return row
+    if ai.get("candidates") and row["status"] != "met":  # partial: show the closest other passages too
+        row["snippets"] = (row.get("snippets") or [])[:1] + [{**c, "candidate": True} for c in ai["candidates"][:3]]
     if row["status"] == "met" and ai.get("status") in ("partial", "missing"):
         row.update(status="partial", confidence="Low", basis="ai", reason=row["reason"] + f" AI disagrees ({ai['status']}): {ai.get('rationale', '')[:200]} – review needed.")
     return row

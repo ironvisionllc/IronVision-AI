@@ -67,7 +67,7 @@ class Provider(AIProvider):
                        + json.dumps(request.json_schema, separators=(",", ":")))
         body = {"model": model, "max_tokens": request.max_tokens,
                 "temperature": self.temperature if request.temperature is None else request.temperature,
-                "messages": [{"role": "system", "content": system}, {"role": "user", "content": request.user}]}
+                "messages": [{"role": "system", "content": system}, {"role": "user", "content": _user_content(request)}]}
         if request.reasoning_effort and self.name == "openrouter":
             body["reasoning"] = {"effort": request.reasoning_effort, "exclude": True}
         if mode == "json_schema":
@@ -131,10 +131,21 @@ class Provider(AIProvider):
                     content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
                 usage = data.get("usage") or {}
                 finish = data["choices"][0].get("finish_reason")
+                det = usage.get("prompt_tokens_details") or {}
                 return AIResponse(text=content, provider=self.name, model=data.get("model") or model,
                                   input_tokens=usage.get("prompt_tokens"), output_tokens=usage.get("completion_tokens"),
+                                  cached_tokens=det.get("cached_tokens"), cache_write_tokens=det.get("cache_write_tokens"),
                                   finish_reason="length" if finish in ("length", "max_tokens") else finish)
         raise AssertionError("unreachable")
+
+
+def _user_content(request: AIRequest):
+    """Plain string, or – with a cache prefix – two text parts, the first marked cache_control (OpenRouter passes it to Anthropic/Gemini;
+    OpenAI-family models cache long prefixes automatically and ignore the marker)."""
+    pre = request.cache_prefix
+    if not pre or not request.user.startswith(pre):
+        return request.user
+    return [{"type": "text", "text": pre, "cache_control": {"type": "ephemeral"}}, {"type": "text", "text": request.user[len(pre):] or " "}]
 
 
 class OpenRouterProvider(Provider):

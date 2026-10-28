@@ -1,3 +1,4 @@
+import { UseCandidate } from "@/components/policy/Reading";
 import { ReactElement, useState } from "react";
 import { TableScroll } from "@/components/common/TableScroll";
 import { Link } from "react-router-dom";
@@ -16,7 +17,7 @@ export function CovBadge({ s, testId }: { s: string; testId?: string }) {
 }
 
 /** One requirement row: status, CCI/objective text, matched snippets with location, extracted value, and what would satisfy it. */
-export function RequirementRow({ r, actions }: { r: Row; actions?: ReactElement | null }) {
+export function RequirementRow({ r, actions, policyId, setMsg }: { r: Row; actions?: ReactElement | null; policyId?: string; setMsg?: (m: string) => void }) {
   const st = r.effective || r.status;
   return (
     <tr className="border-t border-slate-100 align-top" data-testid={`req-${r.requirement_id || r.label}`}>
@@ -27,7 +28,12 @@ export function RequirementRow({ r, actions }: { r: Row; actions?: ReactElement 
       <td className="py-1 pr-2 font-mono text-[11px]" title={r.requirement_type === "cci" || r.type === "cci" ? CCI_TIP : "SP 800-53A assessment objective"}>{r.label}</td>
       <td className="py-1 pr-2 text-[11px]">{r.text}{r.parameter && <div className="mt-0.5 text-slate-600">{r.parameter}: <b className="font-mono">{r.parameter_value || r.value || "—"}</b></div>}</td>
       <td className="py-1 pr-2 text-[11px] text-slate-700">{r.source === "deterministic" && String(r.reason || "").startsWith("AI unavailable") && <span className="mb-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900" data-testid={`req-keyword-only-${r.requirement_id || r.label}`}>AI unavailable – keyword check only, needs manual review</span>}{r.reason}
-        {(r.snippets || []).slice(0, 2).map((s: Row, i: number) => <blockquote key={i} className="mt-1 border-l-2 border-slate-300 pl-2 text-slate-600">“{s.text}”<div className="text-[10px] text-slate-500">{s.location}</div></blockquote>)}
+        {(r.snippets || []).filter((s: Row) => !s.candidate).slice(0, 2).map((s: Row, i: number) => <blockquote key={i} className="mt-1 border-l-2 border-slate-300 pl-2 text-slate-600">“{s.text}”<div className="text-[10px] text-slate-500">{s.location}</div></blockquote>)}
+        {(r.snippets || []).some((s: Row) => s.candidate) && <div className="mt-1" data-testid={`req-candidates-${r.requirement_id || r.label}`}>
+          <div className="text-[10px] font-semibold text-amber-900">Candidate passages (closest matches – a human decides)</div>
+          {(r.snippets || []).filter((s: Row) => s.candidate).slice(0, 3).map((s: Row, i: number) => <blockquote key={i} className="mt-1 border-l-2 border-amber-400 pl-2 text-slate-700">“{s.text}”
+            <div className="text-[10px] text-slate-500">{s.location}{s.score != null && ` · similarity ${s.score}`}
+              {policyId && setMsg && <UseCandidate policyId={policyId} controlId={r.control_id} requirementId={r.requirement_id} text={s.text} setMsg={setMsg} />}</div></blockquote>)}</div>}
         {st !== "met" && r.needs && <div className="mt-1 text-[10px] text-rose-800">Would satisfy it: {r.needs}</div>}
         {r.linked && <div className="mt-1 text-[10px] text-emerald-800">Linked as evidence by {r.linked.by} · {String(r.linked.at).slice(0, 10)}</div>}</td>
       <td className="py-1 text-right">{actions}</td>
@@ -69,7 +75,7 @@ export function CoverageChecklist({ policyId, data, systemId, canMap, canPoam, r
             <CovBadge s={c.summary.state === "gaps" ? "missing" : c.summary.state || "missing"} /><b className="font-mono">{fmt(c.control_id)}</b><span title={c.line} data-testid={`coverage-line-${c.control_id}`}>{clip(c.line, 260)}</span>
             <span className="ml-auto text-[11px] text-slate-500">{status[c.control_id] || ""} · {open === c.control_id ? "hide" : "show"} checklist</span></button>
           {open === c.control_id && <TableScroll><table className="mt-2 w-full"><thead><tr className="text-left text-[10px] text-slate-500"><th>Status</th><th>ID</th><th>Requirement</th><th>Evidence in the policy</th><th /></tr></thead><tbody>
-            {c.requirements.map((r: Row) => <RequirementRow key={r.id} r={r} actions={r.effective !== "met" ? <div className="flex flex-col gap-1">
+            {c.requirements.map((r: Row) => <RequirementRow key={r.id} r={{ ...r, control_id: r.control_id || c.control_id }} policyId={policyId} setMsg={setMsg} actions={r.effective !== "met" ? <div className="flex flex-col gap-1">
               {canPoam && <button className="btn-secondary px-1.5 py-0.5 text-[10px]" onClick={() => poam(r)} data-testid={`gap-poam-${r.requirement_id}`}>Add to POA&M</button>}
               {canMap && <button className="btn-secondary px-1.5 py-0.5 text-[10px]" onClick={() => elsewhere(r)} data-testid={`gap-elsewhere-${r.requirement_id}`}>Mark as covered elsewhere</button>}</div> : null} />)}
           </tbody></table></TableScroll>}

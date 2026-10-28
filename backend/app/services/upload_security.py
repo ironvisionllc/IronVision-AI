@@ -11,7 +11,7 @@ ZIP_MAX_RATIO, ZIP_MAX_TOTAL, ZIP_MAX_MEMBERS = 100, 200 * 1024 * 1024, 1000
 KINDS = {
     "scan": {".nessus", ".ckl", ".cklb", ".csv", ".xml", ".sarif", ".json"},
     "policy": {".pdf", ".docx", ".txt"},
-    "evidence": {".pdf", ".docx", ".txt", ".png", ".jpg", ".jpeg", ".json", ".csv", ".xml"},
+    "evidence": {".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md", ".png", ".jpg", ".jpeg", ".json", ".csv", ".xml", ".yaml", ".yml", ".log"},
 }
 
 
@@ -27,7 +27,7 @@ def _magic_ok(ext: str, data: bytes) -> bool:
     head = data[:8]
     if ext == ".pdf":
         return head.startswith(b"%PDF-")
-    if ext == ".docx":
+    if ext in (".docx", ".xlsx", ".pptx"):
         return head.startswith(b"PK\x03\x04")
     if ext == ".png":
         return head.startswith(b"\x89PNG")
@@ -37,7 +37,7 @@ def _magic_ok(ext: str, data: bytes) -> bool:
         return data.lstrip()[:1] in (b"{", b"[") or head.startswith(b"PK\x03\x04")
     if ext in (".nessus", ".ckl", ".xml"):
         return data.lstrip()[:1] == b"<" or data.startswith(b"\xef\xbb\xbf<")
-    if ext in (".txt", ".csv", ".json", ".sarif"):
+    if ext in (".txt", ".md", ".csv", ".json", ".sarif", ".yaml", ".yml", ".log"):
         return b"\x00" not in data[:4096]
     return False
 

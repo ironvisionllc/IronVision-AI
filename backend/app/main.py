@@ -67,7 +67,8 @@ async def correlation_and_access_log(request: Request, call_next):
     web.REQ_LATENCY.labels(request.method, getattr(route, "path", "unmatched"), response.status_code).observe(time.perf_counter() - started)
     response.headers["X-Correlation-ID"] = cid[:100]
     log.info("request", extra={"method": request.method, "path": request.url.path, "status": response.status_code,
-                               "duration_ms": round((time.perf_counter() - started) * 1000, 1), "correlation_id": cid[:100]})
+                               "duration_ms": round((time.perf_counter() - started) * 1000, 1), "correlation_id": cid[:100],
+                               **({"query_keys": sorted(request.query_params.keys())[:20]} if response.status_code == 422 else {})})
     return response
 
 

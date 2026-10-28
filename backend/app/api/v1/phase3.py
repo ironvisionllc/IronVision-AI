@@ -492,7 +492,7 @@ async def upload_policy(request: Request, file: UploadFile = File(...), title: s
     p = Policy(org_id=current.user.org_id, policy_key=key, title=title, version=(prev.version + 1) if prev else 1, owner=owner or None,
                system_ids=sids, file_name=file.filename, storage_key=evs[0].storage_key if evs else lib_key, sha256=evs[0].sha256 if evs else sha,
                evidence_ids=[str(e.id) for e in evs],
-               text_content=text, analysis={"text_version": rmf.TEXT_VERSION}, analysis_status="queued", review_due=date.fromisoformat(review_due) if review_due else None,
+               text_content=text, analysis={"text_version": rmf.TEXT_VERSION, "reading": rmf.reading_report(file.filename or "", data, text)}, analysis_status="queued", review_due=date.fromisoformat(review_due) if review_due else None,
                supersedes_id=prev.id if prev else None, approval_date=date.today())
     if prev:
         prev.status = "superseded"
@@ -510,6 +510,7 @@ async def upload_policy(request: Request, file: UploadFile = File(...), title: s
 @router.get("/policies/{policy_id}")
 def policy_detail(policy_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
     from app.services.policy_coverage import auditor_status as pc_auditor_status
+    from app.services.policy_reading import reading_for as pc_reading_for
     p = db.get(Policy, policy_id)
     if p is None or p.org_id != current.user.org_id:
         raise HTTPException(404, "Policy not found")
@@ -554,10 +555,10 @@ def policy_detail(policy_id: uuid.UUID, db: Session = Depends(get_db), current: 
                         .order_by(PolicyRequirementCoverage.control_id, PolicyRequirementCoverage.requirement_type, PolicyRequirementCoverage.requirement_id)):
         cov.setdefault(c.control_id, []).append(c)
     coverage = [{"control_id": k, "summary": (s := pc.summarize(v)), "line": pc.summary_line(k, s),
-                 "requirements": [{**to_dict(c), "effective": pc.effective(c), "gap": None if pc.effective(c) == "met" else pc.gap_name(c), "basis": pc.basis_label(c), "kind": pc.kind_label(c)}
+                 "requirements": [{**to_dict(c), **pc.display(c), "effective": pc.effective(c), "gap": None if pc.effective(c) == "met" else pc.gap_name(c), "basis": pc.basis_label(c), "kind": pc.kind_label(c)}
                                   for c in v]} for k, v in cov.items()]
     newer = db.scalar(select(Policy).where(Policy.supersedes_id == p.id))
-    return {"policy": _policy_out(db, p), "auditor": pc_auditor_status(db, p), "findings": fs, "values": values, "versions": versions, "text_preview": (p.text_content or "")[:4000],
+    return {"policy": _policy_out(db, p), "auditor": pc_auditor_status(db, p), "reading": pc_reading_for(db, p), "findings": fs, "values": values, "versions": versions, "text_preview": (p.text_content or "")[:4000],
             "control_mappings": cur, "mapping_history": hist, "coverage": coverage, "is_current": p.status == "current",
             "superseded_by": {"id": str(newer.id), "version": newer.version} if p.status == "superseded" and newer else None}
 

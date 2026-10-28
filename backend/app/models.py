@@ -1163,6 +1163,7 @@ class PolicyRequirementCoverage(CoreMixin, Base):
     source: Mapped[str] = mapped_column(String(20), nullable=False)               # deterministic | ai
     override: Mapped[dict | None] = mapped_column(JSONB)                          # covered elsewhere: {reason, evidence_id, by, at}
     linked: Mapped[dict | None] = mapped_column(JSONB)                            # linked as evidence on approval: {assignment_id, by, at}
+    history: Mapped[list | None] = mapped_column(JSONB)                           # prior results kept when a stored row is relabelled
 
 
 class TrTemplate(CoreMixin, Base):

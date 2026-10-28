@@ -204,33 +204,50 @@ def _progress(policy_id, data: dict) -> None:
         log.debug("progress update failed", exc_info=True)
 
 
+PROMPT_WD = ("policy.coverage_refine", "2.4.0")
+PROMPT_SECOND = ("policy.coverage_second_look", "1.0.0")
+
+
 class Run:
-    def __init__(self, svc, org_id, policy_id, model, catalog, secs, stats):
+    def __init__(self, svc, org_id, policy_id, model, catalog, secs, stats, document: str | None = None):
         self.svc, self.org, self.pid, self.model, self.catalog, self.secs, self.st = svc, org_id, policy_id, model, catalog, secs, stats
+        self.document = document  # whole-document mode: the full rendered policy, sent as a cached prompt prefix on every batch
+        self.full_doc = document   # the whole document for the focused second look (also cached)
         self.bucket = Bucket(env_int("POLICY_AI_RPM", 300), env_int("POLICY_AI_TPM", 2_000_000))
         self.lock = threading.Lock()
 
-    def call(self, items: list[dict], secs: list[dict], depth: int = 0) -> dict:
+    def call(self, items: list[dict], secs: list[dict], depth: int = 0, prompt: tuple | None = None, doc: str | None = None) -> dict:
         """One batch → {(control, requirement): verdict}. Cache first; truncation splits; 429/timeouts back off with jitter; missing answers re-asked once."""
         import asyncio
 
         from app.services.ai.service import AIOutputTruncatedError
-        key = _key(self.org, self.model, self.catalog, items, secs)
+        doc = doc if doc is not None else self.document
+        prompt = prompt or (PROMPT_WD if doc else PROMPT)
+        key = _key(self.org, self.model, self.catalog + ("|" + ":".join(prompt) if doc else ""), items, self.secs if doc else secs)
         hit = _cache_get(self.org, key)
         if hit is not None:
             with self.lock:
                 self.st["cache_hits"] += 1
                 self.st["reused_requirements"] += len(items)
             return {tuple(k.split("|", 1)): v for k, v in hit.items()}
-        ctx = _render(secs)
+        ctx = _render(secs)[:env_int("POLICY_AI_HINT_CHARS", 6000)] if doc else _render(secs)
         reqs = json.dumps([{k: i[k] for k in ("control_id", "requirement_id", "text", "deterministic")} for i in items])
-        est_in = (len(ctx) + len(reqs)) // 3 + 600
+        est_in = (len(ctx) + len(reqs) + len(doc or "")) // 3 + 600
+        variables = {"requirements": reqs, "sections": ctx, **({"document": doc} if doc else {})}
         for attempt in range(4):
             self.bucket.take(est_in + 120 * len(items))
             try:
                 with self.lock:
                     self.st["calls"] += 1
-                res = asyncio.run(self.svc.run(*PROMPT, {"requirements": reqs, "sections": ctx}, max_tokens=min(8000, 160 * len(items) + 400)))
+                res = asyncio.run(self.svc.run(*prompt, variables, max_tokens=min(8000, 160 * len(items) + 400),
+                                               cache_prefix_var="document" if doc else None))
+                u = getattr(res, "usage", None) or {}
+                with self.lock:
+                    self.st["tokens_in"] += u.get("input") or 0
+                    self.st["tokens_out"] += u.get("output") or 0
+                    self.st["tokens_cached"] += u.get("cached") or 0
+                    self.st["tokens_cache_write"] += u.get("cache_write") or 0
+                    self.st["prompt_cache_hits"] += 1 if (u.get("cached") or 0) > 0 else 0
                 break
             except AIOutputTruncatedError:
                 with self.lock:
@@ -238,7 +255,7 @@ class Run:
                 if len(items) == 1:
                     return {}
                 h = len(items) // 2
-                both = {**self.call(items[:h], secs, depth + 1), **self.call(items[h:], secs, depth + 1)}
+                both = {**self.call(items[:h], secs, depth + 1, prompt, doc), **self.call(items[h:], secs, depth + 1, prompt, doc)}
                 if len(both) == len(items):  # cache the split result under the parent key too (repeat runs hit, no re-truncation)
                     _cache_put(self.org, key, self.model, {"|".join(k): v for k, v in both.items()},
                                {"policy_id": str(self.pid), "sections": [s["id"] + ":" + s["hash"] for s in secs], "split": True, "at": time.time()})
@@ -266,9 +283,10 @@ class Run:
             v = {"status": it.status, "quote": it.quote, "rationale": it.rationale[:400], "suggestion": (getattr(it, "suggestion", "") or "")[:400]}
             s = sec_by.get(it.section.strip().split()[0].strip("[]|") if it.section else "")
             if it.quote and it.status != "missing":
-                real = next((x for x in secs if it.quote.strip()[:80] in x["text"]), None)
+                from app.services.policy_profile import find_quote
+                real = next((x for x in (self.secs if doc else secs) if find_quote(x["text"], it.quote.strip()[:80])), None)
                 if real is not None:
-                    v.update(section=real["heading"], page=real["page"], offset=real["start"] + real["text"].find(it.quote.strip()[:80]))
+                    v.update(section=real["heading"], page=real["page"], offset=real["start"] + find_quote(real["text"], it.quote.strip()[:80])[0])
                     if s is None or s["id"] != real["id"]:
                         with self.lock:
                             self.st["citation_section_fixed"] += 1
@@ -277,7 +295,7 @@ class Run:
         if missing and depth == 0:
             with self.lock:
                 self.st["reasked"] += len(missing)
-            got.update(self.call(missing, secs, depth + 1))
+            got.update(self.call(missing, secs, depth + 1, prompt, doc))
         if not missing or depth == 0:
             _cache_put(self.org, key, res.model if hasattr(res, "model") else self.model, {"|".join(k): v for k, v in got.items()},
                        {"policy_id": str(self.pid), "sections": [s["id"] + ":" + s["hash"] for s in secs], "at": time.time()})
@@ -294,18 +312,34 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog, 
     secs = sections(text)
     rt = Retriever(secs)
     k, min_score = env_int("POLICY_AI_TOPK", 3), float(os.environ.get("POLICY_AI_MIN_SCORE") or 4.0)
+    doc = _render(secs)
+    # Adaptive: small documents go whole into every batch (cached prefix); larger ones use retrieved sections per batch, the hybrid
+    # index fills any requirement keyword screening missed (screening orders, never excludes), and the whole document (cached) is
+    # used for the focused second look on MISSING verdicts only.
+    mode = os.environ.get("POLICY_AI_WHOLE_DOC", "auto")
+    whole = mode != "0" and (mode == "1" or len(doc) <= env_int("POLICY_AI_WHOLE_DOC_MAX_CHARS", 60_000))
+    no_silent = os.environ.get("POLICY_AI_NO_SILENT", "1") != "0"
+    from app.services.policy_second_look import index_for
+    idx, reused = index_for(org_id, text, secs)
+    st["index_reused"], st["index_chunks"] = reused, len(idx.chunks)
     examined, not_examined = [], []
     for cid, reqs, results in todo:
         for q, (_, r) in zip(reqs, results):
             item = {"control_id": cid, "requirement_id": q["id"], "text": q["text"][:500], "deterministic": r["status"], "family": cid.split("-")[0]}
-            sc = rt.scores(f"{titles.get(cid, '')} {q['text']}", cid)
+            qtext = f"{titles.get(cid, '')} {q['text']}"
+            sc = rt.scores(qtext, cid)
             top = [i for s_, i in sc[:k] if s_ >= min_score and s_ >= 0.6 * sc[0][0]] if sc else []  # near-best sections only (keeps batches dense)
-            (examined if top else not_examined).append((item, top or [i for _, i in sc[:2]] or [0]))
+            if not top and (whole or no_silent):  # semantic (TF-IDF cosine) + keyword index: nearest sections, never excluded
+                top = list(dict.fromkeys(c["sec"] for c in idx.search(qtext, 3)))[:2] or [i for _, i in sc[:2]] or [0]
+                st["index_filled"] += 1
+            (examined if top else not_examined).append((item, top or [0]))
     t1 = time.perf_counter()
     n_verify = min(len(not_examined), max(0, math.ceil(len(not_examined) * float(os.environ.get("POLICY_AI_VERIFY_FRACTION") or 0.1))))
     verify = sorted(not_examined, key=lambda x: hashlib.sha256((x[0]["control_id"] + x[0]["requirement_id"]).encode()).hexdigest())[:n_verify]
     max_reqs, max_ctx = env_int("POLICY_AI_BATCH_REQS", 25), env_int("POLICY_AI_BATCH_CHARS", 9000)
     max_reqs, max_ctx = env_int("POLICY_AI_BATCH_REQS", 25), env_int("POLICY_AI_BATCH_CHARS", 16000)
+    if whole:
+        max_ctx = 10 ** 9  # the full document is in every call: batch by requirements only; hints are trimmed in Run.call
     groups: dict = {}  # section affinity: requirements sharing a primary section travel together (small incremental re-runs)
     for item, top in examined + verify:
         groups.setdefault((item["family"], top[0]), []).append((item, top))
@@ -324,9 +358,13 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog, 
         batches.append((cur, sorted(cur_secs)))
     st.update(sections=len(secs), requirements=len(examined) + len(not_examined), examined=len(examined), not_examined=len(not_examined) - len(verify),
               verification_sample=len(verify), batches=len(batches), screening_s=round(t1 - t0, 2))
-    for k_ in ("calls", "cache_hits", "reused_requirements", "retries", "truncated", "failed_batches", "invalid_items", "reasked", "citation_section_fixed"):
+    for k_ in ("calls", "cache_hits", "reused_requirements", "retries", "truncated", "failed_batches", "invalid_items", "reasked", "citation_section_fixed",
+               "tokens_in", "tokens_out", "tokens_cached", "tokens_cache_write", "prompt_cache_hits", "second_look_candidates", "second_look_ai",
+               "second_look_found", "second_look_confirmed_absent", "index_filled"):
         st.setdefault(k_, 0)
-    run = Run(svc, org_id, policy_id, svc.provider.model if svc.provider else None, str(catalog), secs, st)
+    st["whole_document"] = whole
+    run = Run(svc, org_id, policy_id, svc.provider.model if svc.provider else None, str(catalog), secs, st, document=doc if whole else None)
+    run.full_doc = doc if len(doc) <= env_int("POLICY_AI_DOC_MAX_CHARS", 400_000) else None
     out: dict = {}
     done = Counter()
     started = time.perf_counter()
@@ -351,12 +389,57 @@ def analyze_ai(text: str, policy_id, org_id, todo: list, titles: dict, catalog, 
         return res
 
     workers = env_int("POLICY_AI_WORKERS", 16)
+    first = []
+    if run.document and len(batches) > 1:  # warm the prompt cache with one call; the parallel rest then read the cached document
+        first = [one(batches[0])]
+        batches_rest = batches[1:]
+    else:
+        batches_rest = batches
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        for res in ex.map(one, batches):
+        for res in first + list(ex.map(one, batches_rest)):
             for (cid, rid), v in res.items():
                 out.setdefault(cid, {})[rid] = v
+    second_look(run, idx, todo, out, titles, st)
+    covered = set(range(len(secs))) if whole or (st["second_look_ai"] and run.full_doc) else {i for _, sidx in batches for i in sidx}
+    st["chunks_total"], st["chunks_covered"] = len(secs), len(covered)
+    st["uncovered_sections"] = [secs[i]["heading"] for i in range(len(secs)) if i not in covered][:50]
     vfound = sum(1 for item, _ in verify if out.get(item["control_id"], {}).get(item["requirement_id"], {}).get("status") in ("met", "partial"))
     st.update(workers=workers, ai_s=round(time.perf_counter() - started, 2), rate_limit_wait_s=round(run.bucket.waited, 2),
               verification_found=vfound)
     st["not_examined_ids"] = [f"{i['control_id']}|{i['requirement_id']}" for i, _ in not_examined if i not in [v[0] for v in verify]][:5000]
     return out, dict(st)
+
+
+def second_look(run: "Run", idx, todo: list, out: dict, titles: dict, st) -> None:
+    """Cheap second look on missing/partial verdicts: index search first (TF-IDF cosine + keyword); a focused whole-document AI question
+    only for MISSING items the index cannot explain. Plausible passage → candidates (→ Needs manual review); nothing anywhere → confirmed absent."""
+    from app.services.policy_second_look import THRESHOLD
+    reqtext = {(cid, q["id"]): q["text"] for cid, reqs, _ in todo for q in reqs}
+    escalate = []
+    for cid, vs in out.items():
+        for rid, v in vs.items():
+            if v.get("status") not in ("missing", "partial"):
+                continue
+            cands = [c for c in idx.search(f"{titles.get(cid, '')} {reqtext.get((cid, rid), '')}", 3, exclude_text=v.get("quote")) if c["score"] >= THRESHOLD]
+            if cands:
+                v["candidates"] = cands
+                st["second_look_candidates"] += 1
+            elif v["status"] == "missing":
+                escalate.append({"control_id": cid, "requirement_id": rid, "text": reqtext.get((cid, rid), "")[:500], "deterministic": "missing",
+                                 "family": cid.split("-")[0]})
+    if not escalate or not run.full_doc:  # without the whole document in the call an absence cannot be confirmed
+        return
+    for i in range(0, len(escalate), 25):
+        chunk = escalate[i:i + 25]
+        st["second_look_ai"] += len(chunk)
+        res = run.call(chunk, [], prompt=PROMPT_SECOND, doc=run.full_doc)
+        for it in chunk:
+            k = (it["control_id"], it["requirement_id"])
+            v2, v = res.get(k), out[it["control_id"]][it["requirement_id"]]
+            if v2 and v2.get("status") in ("met", "partial") and v2.get("quote"):
+                v.update({**v2, "status": "partial", "second_look": "found",
+                          "rationale": "Second look found: " + (v2.get("rationale") or "")[:300]})
+                st["second_look_found"] += 1
+            elif v2:
+                v["second_look"] = "none"
+                st["second_look_confirmed_absent"] += 1
