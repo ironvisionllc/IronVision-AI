@@ -17,6 +17,7 @@ BASE = os.environ.get("UX_BASE", "https://aegis-rmf-demo.preview.emergentagent.c
 EMAIL, PW = os.environ.get("UX_EMAIL", "demo@ironvision.ai"), os.environ.get("UX_PASSWORD", "IronVisionDemo!2026")
 FX = "/app/backend/tests/fixtures/emass"
 PHASE = os.environ.get("UX_PHASE", "baseline")
+NEW = PHASE != "baseline"  # after the redesign: use the shortest path the new UI offers (old-UI steps stay for the baseline record)
 OUT, SHOTS = "/app/docs/ux/data", "/app/docs/ux/screens/tasks" + ("" if PHASE == "baseline" else f"_{PHASE}")
 NEXT_RX = re.compile(r"next action|next step|next:|what's next|continue to", re.I)
 ACRONYM = "UXB" + uuid.uuid4().hex[:3].upper()
@@ -63,6 +64,9 @@ class Meter:
     async def select(self, sel, opt=False, **kw):
         if (loc := await self._el(sel, opt)) is None:
             return False
+        if "value" in kw and await loc.input_value() == kw["value"]:  # already the default – a user would not touch it
+            self.notes.append(f"default already selected: {sel}")
+            return True
         await loc.select_option(**kw)
         self.fields += 1
         self.clicks += 1
@@ -126,6 +130,9 @@ async def t_register(m, ctx):
 async def t_categorize(m, ctx):
     await m.system(ctx["sid"])
     await m.nav("categorize/Information types")
+    if NEW and await m.page.locator("[data-testid=cat-infotypes-answered]").count():  # captured at registration – shown as answered, just confirm
+        await m.click("[data-testid=categorize-save]")
+        return
     await m.fill("[data-testid=info-type-search]", "logistics")
     await m.click("[data-testid^=info-type-add-]")
     await m.fill("[data-testid=cat-rationale]", "SYNTHETIC baseline-measurement categorization", opt=True)
@@ -134,7 +141,8 @@ async def t_categorize(m, ctx):
 
 async def t_baseline(m, ctx):
     await m.nav("select/Baseline, tailoring")
-    await m.click("button:has-text('Initial baseline')", opt=True)
+    if not (NEW and await m.page.locator("[data-testid=select-baseline-key]").is_visible()):  # new UI opens on the first open sub-step
+        await m.click("button:has-text('Initial baseline')", opt=True)
     await m.select("[data-testid=select-baseline-key]", value="moderate")
     await m.click("[data-testid=select-apply-baseline]")
     await m.click("[data-testid=select-baseline-preview] button:has-text('Apply')")
@@ -154,7 +162,13 @@ async def t_import_impl(m, ctx):
 
 async def t_update_control(m, ctx):
     await m.nav("implement/Control Workbench")
-    if not await m.click("[data-testid^=queue-open-]", opt=True):  # fresh system: empty work queue → pick from the control list
+    if NEW:  # jump-to-control box → Implementation tab opens edit-ready
+        await m.fill("[data-testid=wb-jump-input]", "AC-2")
+        await m.page.wait_for_selector("[data-testid=wb-jump-results]", timeout=20000)
+        await m.page.keyboard.press("Enter")
+        await m.page.wait_for_timeout(1200)
+        m._path()
+    elif not await m.click("[data-testid^=queue-open-]", opt=True):  # fresh system: empty work queue → pick from the control list
         if not await m.page.locator("[data-testid^=queue-item-]").count():  # old layout: list hidden until "All controls"
             await m.click("[data-testid=show-all-toggle]")
         await m.click("[data-testid^=queue-item-] button, [data-testid^=queue-item-] a, [data-testid^=queue-item-]")
@@ -167,6 +181,11 @@ async def t_update_control(m, ctx):
 async def t_evidence(m, ctx):
     p = "/tmp/SYNTHETIC_ux_evidence.json"
     open(p, "w").write(json.dumps({"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "SYNTHETIC-scanner"}}, "results": []}]}))
+    if NEW and await m.page.locator("[data-testid=wb-tab-evidence]").count():  # from the control just updated: Evidence tab → Attach evidence
+        await m.click("[data-testid=wb-tab-evidence]")
+        await m.upload("[data-testid=wb-attach-evidence-input]", [p])
+        await m.page.wait_for_selector("[data-testid=wb-attach-evidence-done]", timeout=20000)
+        return
     await m.nav("implement/Evidence – add")
     await m.click("[data-testid=add-source-btn]", opt=True)
     if await m.page.locator("[data-testid=upload-btn][disabled]").count() and await m.page.locator("[data-testid=upload-source-select] option").count() <= 1:  # old layout: a source had to be created first
@@ -179,8 +198,11 @@ async def t_evidence(m, ctx):
 
 
 async def t_test_results(m, ctx):
-    await m.nav("assess/Test results")
-    await m.click("[data-testid=tr-upload-input]")  # the old button now opens the Import Center pre-set to Test Results
+    if NEW:  # global Import Center: type auto-detected, selected system pre-set
+        await m.nav("Import Center")
+    else:
+        await m.nav("assess/Test results")
+        await m.click("[data-testid=tr-upload-input]")  # the old button now opens the Import Center pre-set to Test Results
     await m.upload("[data-testid=ic-file-input]", [f"{FX}/SYNTHETIC_TRExport.xlsx"])
     await m.click("[data-testid=ic-import-0]")
 
@@ -220,6 +242,11 @@ async def t_ssp(m, ctx):
 
 
 async def t_package(m, ctx):
+    if NEW:  # Authorize step → direct "Submit package" link (no detour through Systems)
+        await m.nav("authorize/Package & documents")
+        await m.click("[data-testid=auth-open]")
+        await m.click("[data-testid=submit-package-btn]", opt=True)
+        return
     await m.nav("Systems")
     await m.click(f"a[href='/systems/{ctx['ltp']}']", opt=True)
     await m.click("[data-testid=open-authorization-btn], a:has-text('Authorization package'), button:has-text('Authorization package')")
@@ -231,8 +258,9 @@ async def t_iscm(m, ctx):
     await m.nav("select/Baseline, tailoring")
     await m.fill("[data-testid=iscm-narrative]", "SYNTHETIC monitoring strategy for baseline measurement")
     await m.select("[data-testid=iscm-default-slcm_frequency], [data-testid$=slcm_frequency]", opt=True, index=1)
-    await m.click("[data-testid=iscm-save]")
-    await m.click("[data-testid=iscm-submit]", opt=True)
+    if not NEW:
+        await m.click("[data-testid=iscm-save]")
+    await m.click("[data-testid=iscm-submit]", opt=True)  # new UI: one "Save & submit for ISSM approval" (approval still required)
 
 
 TASKS = [("register", "Register a system", t_register), ("categorize", "Categorize", t_categorize), ("baseline", "Select a baseline", t_baseline),

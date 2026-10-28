@@ -1,3 +1,4 @@
+import { AttachEvidence } from "@/components/common/AttachEvidence";
 import { FindingMappingHistory, ScoreBreakdown } from "@/pages/Phase4Pages";
 import { SimulatedSignatureNote } from "@/components/shell/Sandbox";
 import { useState } from "react";
@@ -140,7 +141,7 @@ export function FindingPage() {
         <Panel title={`Observation history (${data.observations.length})`} testId="finding-observations">
           <Table head={["Observed", "Status", "File"]}>{data.observations.map((o: Row) => <tr key={o.id}><td className="td font-mono text-[11px]">{fmtDate(o.observed_at)}</td><td className="td"><S v={o.observed_status} /></td><td className="td text-[12px]">{o.file_name}</td></tr>)}</Table>
         </Panel>
-        <Panel title="Evidence" testId="finding-evidence">{data.evidence.map((e: Row) => <div key={e.id} className="text-[12px]"><Link to="/evidence-ledger" className="text-blue-800 underline">{e.name}</Link> · {e.sha256.slice(0, 12)}… <S v={e.state} /></div>)}</Panel>
+        <Panel title="Evidence" testId="finding-evidence">{data.controls.length > 0 && <AttachEvidence systemId={f.system_id} controlIds={data.controls.map((c: Row) => c.control_id)} onDone={reload} testId="finding-attach-evidence" />}{data.evidence.map((e: Row) => <div key={e.id} className="text-[12px]"><Link to="/evidence-ledger" className="text-blue-800 underline">{e.name}</Link> · {e.sha256.slice(0, 12)}… <S v={e.state} /></div>)}</Panel>
       </div>
     </div>
   );

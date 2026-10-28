@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { Panel } from "@/components/common/Panel";
@@ -118,7 +118,9 @@ export function CategorizeForm({ v, onChange, sid, baseline }: { v: Row; onChang
     <div className="grid gap-5" data-testid="categorize-form">
       <Panel title="Framework, information types and impact" eyebrow="Steps 1–4 · framework → types (NIST SP 800-60 Vol. 2 Rev. 1) → C/I/A → calculation">
         <FrameworkStep v={v} onChange={onChange} />
-        <InfoTypePicker v={v} onChange={onChange} catalog={cat?.types ?? []} />
+        <Answered when={!!sid && v.information_types.length > 0} testId="cat-infotypes-answered"
+          summary={`${v.information_types.length} information type(s): ${v.information_types.map((t: Row) => t.id).join(", ")}`}>
+          <InfoTypePicker v={v} onChange={onChange} catalog={cat?.types ?? []} /></Answered>
         {v.mode === "cnssi1253" && <div className="mt-3 grid grid-cols-3 gap-3 text-[12px]" data-testid="cnssi-cia">
           {(["c", "i", "a"] as const).map((k) => <label key={k} className="font-medium text-slate-700">{{ c: "Confidentiality", i: "Integrity", a: "Availability" }[k]} (chosen separately)
             <select className="input mt-1" value={v.cia?.[k] ?? ""} onChange={(e) => set("cia", { ...v.cia, [k]: e.target.value })} data-testid={`cnssi-${k}`}>
@@ -157,9 +159,19 @@ export function CategorizeForm({ v, onChange, sid, baseline }: { v: Row; onChang
             onChange={(e) => set("environment_detail", { ...det, other: e.target.value })} data-testid="cat-env-other" /></label>}
         </div>
       </Panel>
-      <PiiQuestion v={v} onChange={onChange} level={String(calc?.baseline ?? calc?.categorization ?? "")} sid={sid} baseline={baseline}
-        trigraph={calc?.c && calc?.i && calc?.a ? `${calc.c[0]}-${calc.i[0]}-${calc.a[0]}` : undefined} />
+      <Answered when={!!sid && v.processes_pii != null} testId="cat-pii-answered" summary={`Does this system contain PII? ${v.processes_pii ? "Yes – privacy controls apply" : "No"}`}>
+        <PiiQuestion v={v} onChange={onChange} level={String(calc?.baseline ?? calc?.categorization ?? "")} sid={sid} baseline={baseline}
+          trigraph={calc?.c && calc?.i && calc?.a ? `${calc.c[0]}-${calc.i[0]}-${calc.a[0]}` : undefined} /></Answered>
     </div>);
+}
+
+/** Already captured (registration or earlier save): shown as answered with Edit – the question is not asked again. */
+function Answered({ when, summary, testId, children }: { when: boolean; summary: string; testId: string; children: ReactNode }) {
+  const [edit, setEdit] = useState(false);
+  if (!when || edit) return <>{children}</>;
+  return <div className="mt-2 flex items-center gap-3 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900" data-testid={testId}>
+    <span><b>Answered</b> · {summary}</span>
+    <button type="button" className="ml-auto shrink-0 text-blue-800 underline" onClick={() => setEdit(true)} data-testid={`${testId}-edit`}>Edit</button></div>;
 }
 
 /** One question. Yes adds the privacy controls (FIPS: SP 800-53B privacy baseline; NSS: CNSSI 1253 Privacy Overlay variant for the

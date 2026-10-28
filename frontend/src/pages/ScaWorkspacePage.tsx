@@ -7,6 +7,8 @@ import { AssessmentPanel } from "@/pages/Phase3Extras";
 import { GuidedPanel } from "@/components/common/Guided";
 import { useApi, Row } from "@/lib/useApi";
 import { cn, fmtDate } from "@/lib/format";
+import { toast } from "sonner";
+import { usePref } from "@/lib/prefs";
 
 const FLOW = ["1 Select control", "2 Review evidence", "3 Record determination", "4 Save → next"];
 
@@ -18,13 +20,21 @@ export default function ScaWorkspacePage() {
   const { data: list, reload } = useApi<Row[]>(sid ? `/systems/${sid}/workbench/controls` : null, { assessment_status: "not_assessed" });
   const { data: tr } = useApi<Row[]>(sid ? `/systems/${sid}/tr/workbooks` : null);
   const { data: d, reload: reloadD } = useApi<Row>(sid && controlId ? `/systems/${sid}/workbench/controls/${controlId}` : null);
+  const [auto, setAuto] = usePref("sca_auto_advance", true);
   if (!sid) return <NeedSystem />;
   const queue = list || [];
-  const next = () => { const i = queue.findIndex((a) => a.control_id === controlId); const n = queue[i + 1] ?? queue[0]; reload(); reloadD(); if (n) nav(`/assess/workspace/${n.control_id}`); };
+  const next = () => {
+    const i = queue.findIndex((a) => a.control_id === controlId); const n = queue[i + 1] ?? queue[0]; reload(); reloadD();
+    if (!auto || !n || n.control_id === controlId) { toast.success("Saved"); return; }
+    const back = controlId; nav(`/assess/workspace/${n.control_id}`);
+    toast.success(`Saved – moved to next control (${n.label})`, { duration: 8000, action: { label: "Undo move / stay on this control", onClick: () => nav(`/assess/workspace/${back}`) } });
+  };
   const trs = (Array.isArray(tr) ? tr : (tr as unknown as Row | undefined)?.items || []) as Row[];
   return (
     <div data-testid="sca-workspace-page">
-      <PageHeader title="SCA workspace" subtitle="Independent assessment: select a control, review its evidence, record the determination, save and move to the next." />
+      <PageHeader title="SCA workspace" subtitle="Independent assessment: select a control, review its evidence, record the determination, save and move to the next.">
+        <label className="flex items-center gap-1.5 whitespace-nowrap text-[12px]"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} data-testid="sca-auto-advance" />Move to next control after saving</label>
+      </PageHeader>
       <GuidedPanel step="assess" />
       <ol className="mb-4 flex flex-wrap gap-2" data-testid="sca-flow">{FLOW.map((f, i) => <li key={f} className={cn("min-w-[10rem] flex-1 whitespace-nowrap rounded-lg px-2 py-1.5 text-center text-[12px] font-semibold",
         (controlId ? (i <= 2) : i === 0) ? "bg-sky-700 text-white" : "bg-slate-100 text-slate-600")}>{f}</li>)}</ol>

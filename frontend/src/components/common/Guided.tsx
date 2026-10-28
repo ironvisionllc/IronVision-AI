@@ -2,18 +2,17 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Compass, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { usePrefRaw } from "@/lib/prefs";
 
 const k = (uid?: string) => `iv.guided.${uid || "anon"}`;
-const EVT = "iv-guided-changed";
 
-/** Guided Mode: per user (this browser), off by default; same data and rules as streamlined mode – only explanations are added. */
+/** Guided Mode: per user (stored server-side, localStorage fallback), off by default; same data and rules as streamlined mode – only explanations are added. */
 export function useGuided(): [boolean, (on: boolean) => void, boolean] {
   const { user } = useAuth();
-  const read = () => localStorage.getItem(k((user || null)?.id));
-  const [v, setV] = useState(read());
-  useEffect(() => { const f = () => setV(read()); f(); window.addEventListener(EVT, f); return () => window.removeEventListener(EVT, f); }, [(user || null)?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const set = (on: boolean) => { localStorage.setItem(k((user || null)?.id), on ? "on" : "off"); window.dispatchEvent(new Event(EVT)); };
-  return [v === "on", set, v === null];
+  const [raw, set] = usePrefRaw("guided");
+  const legacy = raw === null ? localStorage.getItem(k((user || null)?.id)) : null;  // pre-server-side value from this browser
+  const v = raw ?? legacy;
+  return [v === "on", (on: boolean) => set(on ? "on" : "off"), v === null];
 }
 
 export function GuidedToggle({ testId = "guided-toggle" }: { testId?: string }) {

@@ -10,6 +10,15 @@ from app.models import (ApprovalRequest, Attestation, Control, ControlAssignment
 
 SEV_RANK = {"CAT I": 0, "critical": 0, "high": 1, "CAT II": 1, "medium": 2, "CAT III": 2, "low": 3}
 BACKLOG_CODES = {"missing_implementation_statement", "missing_assessment_evidence", "responsibility_split_missing"}
+TAB_FOR = {"cat1_open": "findings", "kev": "findings", "failed_technical_checks": "findings", "expired_evidence": "evidence",
+           "missing_assessment_evidence": "evidence", "missing_implementation_statement": "implementation", "responsibility_split_missing": "implementation"}
+
+
+def _tab(reasons: list[dict]) -> str:
+    """Workbench tab that resolves the item's first reason – deep links land on the right tab."""
+    return next((TAB_FOR[r["code"]] for r in reasons if r["code"] in TAB_FOR), "implementation")
+
+
 ACTION_CODES = {"failed_technical_checks", "cat1_open", "kev", "expired_evidence", "catalog_change"}
 
 
@@ -58,19 +67,19 @@ def work_queue(db: Session, system: System, user, roles_here: set[str], mine: bo
         if a.evidence_freshness_status == "partially_stale" and not any(r["code"] == "expired_evidence" for r in act):
             act.append({"code": "expired_evidence", "points": 2, "detail": "partially stale evidence"})
         if act:
-            now_items.append(_item("control", f"{fmt_control(a.control_id)} {ctl_titles.get(a.control_id, '')}", f"/systems/{sid}/controls/{a.control_id}",
+            now_items.append(_item("control", f"{fmt_control(a.control_id)} {ctl_titles.get(a.control_id, '')}", f"/systems/{sid}/controls/{a.control_id}?tab={_tab(act)}",
                                    float(a.priority_score or 0), rs, control_id=a.control_id, system_id=sid,
                                    severity="CAT I" if any(r["code"] == "cat1_open" for r in rs) else None, kev=any(r["code"] == "kev" for r in rs),
                                    ref=a.control_id, owner_id=user.id if owns_controls else None))
         elif a.evidence_freshness_status == "near_expiration":
-            soon.append(_item("evidence", f"{fmt_control(a.control_id)} evidence nearing expiry", f"/systems/{sid}/controls/{a.control_id}", 1.0,
+            soon.append(_item("evidence", f"{fmt_control(a.control_id)} evidence nearing expiry", f"/systems/{sid}/controls/{a.control_id}?tab=evidence", 1.0,
                               [{"code": "near_expiration", "points": 1}], control_id=a.control_id, system_id=sid, ref=a.control_id,
                               owner_id=user.id if owns_controls else None))
         missing = [r for r in rs if r["code"] in BACKLOG_CODES]
         if missing and not act:
             backlog[a.control_id.split("-")[0].upper()].append({"control_id": a.control_id, "control_label": fmt_control(a.control_id),
                                                                 "title": ctl_titles.get(a.control_id, ""), "reasons": [r["code"] for r in missing],
-                                                                "link": f"/systems/{sid}/controls/{a.control_id}"})
+                                                                "link": f"/systems/{sid}/controls/{a.control_id}?tab={_tab(missing)}"})
     from app.services.workflow import ACTIVE_POAM
     for p in db.scalars(select(Poam).where(Poam.system_id == sid, Poam.status.in_(ACTIVE_POAM))):
         sc, parts = score_poam(p, today)

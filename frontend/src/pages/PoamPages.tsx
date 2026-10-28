@@ -1,3 +1,4 @@
+import { AttachEvidence } from "@/components/common/AttachEvidence";
 import { PoamRisk } from "@/components/poam/PoamRisk";
 import { PageSizeSelect, usePageSize } from "@/components/common/PageSize";
 import { PoamImpactBanner } from "@/pages/Phase4Pages";
@@ -131,6 +132,7 @@ export function PoamDetailPage() {
           </Table>
         </Panel>
         <Panel title="Detection & closure evidence" testId="poam-evidence">
+          {data.controls.length > 0 && <AttachEvidence systemId={p.system_id} controlIds={data.controls.map((c: Row) => c.control_id)} onDone={reload} testId="poam-attach-evidence" />}
           {[["Detection", data.detection_evidence], ["Closure", data.closure_evidence]].map(([k, list]) => (
             <div key={k as string} className="mb-2 text-[12px]"><b>{k as string}:</b> {(list as Row[]).length === 0 ? "—" : (list as Row[]).map((e) => <Link key={e.id} to="/evidence-ledger" className="mr-2 text-blue-800 underline">{e.name} ({e.sha256.slice(0, 10)}…)</Link>)}</div>))}
         </Panel>

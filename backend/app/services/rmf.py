@@ -581,8 +581,8 @@ def _monitor(m: dict, srcs: list, stale_src: int) -> dict:
                 f"{stale_src} unhealthy sources" if stale_src else None]
     blockers = [b for b in blockers if b]
     cov = m["control_evidence_coverage_pct"] or 0
-    facts = (f"controls with current supporting evidence: {m['controls_with_current_evidence']} of {m['assigned_controls']} ({cov}%); "
-             f"collected evidence items within freshness window: {m['evidence_items_fresh_pct']}%")
+    facts = (f"Controls with current evidence: {m['controls_with_current_evidence']} of {m['assigned_controls']} ({cov}%); "
+             f"evidence items within their freshness window: {m.get('evidence_items_fresh', 0)} of {m.get('evidence_total', 0)} collected items")
     state = "needs_attention" if blockers else ("completed" if cov >= 80 else "in_progress")
     return {"state": state, "reason": ("; ".join(blockers) + " · " if blockers else "") + facts, "link": "/evidence-sources", "rule": MONITOR_RULE,
             "blockers": blockers}

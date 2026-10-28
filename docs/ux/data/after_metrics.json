@@ -2,7 +2,7 @@
  "base": "https://aegis-rmf-demo.preview.emergentagent.com",
  "persona": "ISSO (demo sandbox)",
  "phase": "after",
- "fresh_system": "UXB44C",
+ "fresh_system": "UXB386",
  "results": [
   {
    "task": "register",
@@ -25,14 +25,16 @@
   {
    "task": "categorize",
    "label": "Categorize",
-   "clicks": 4,
+   "clicks": 2,
    "page_changes": 1,
-   "fields": 3,
-   "scripted_seconds": 4.1,
+   "fields": 0,
+   "scripted_seconds": 2.8,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
-   "notes": [],
+   "notes": [
+    "default already selected: aside select"
+   ],
    "paths": [
     "/rmf/select",
     "/rmf/categorize"
@@ -57,72 +59,68 @@
   {
    "task": "import_impl",
    "label": "Import implementation info (Implementation Plan)",
-   "clicks": 6,
+   "clicks": 5,
    "page_changes": 2,
-   "fields": 2,
-   "scripted_seconds": 7.1,
+   "fields": 1,
+   "scripted_seconds": 6.5,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
-   "notes": [],
+   "notes": [
+    "default already selected: [data-testid=ic-system-select]"
+   ],
    "paths": [
     "/rmf/select",
     "/import-center",
-    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/emass-import/9e99a78f-fd1d-4b5b-8a0a-e417e178604b"
+    "/systems/3f9347b3-dbe5-4a18-afea-7177cc42ad2d/emass-import/55388988-d00d-4097-82c9-c314608f09db"
    ]
   },
   {
    "task": "update_control",
    "label": "Update a control",
-   "clicks": 5,
+   "clicks": 4,
    "page_changes": 2,
-   "fields": 2,
-   "scripted_seconds": 11.0,
+   "fields": 3,
+   "scripted_seconds": 5.3,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
-   "notes": [
-    "skipped (absent): [data-testid^=queue-open-]"
-   ],
+   "notes": [],
    "paths": [
-    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/emass-import/9e99a78f-fd1d-4b5b-8a0a-e417e178604b",
-    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/controls",
-    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/controls/ac-1"
+    "/systems/3f9347b3-dbe5-4a18-afea-7177cc42ad2d/emass-import/55388988-d00d-4097-82c9-c314608f09db",
+    "/systems/3f9347b3-dbe5-4a18-afea-7177cc42ad2d/controls",
+    "/systems/3f9347b3-dbe5-4a18-afea-7177cc42ad2d/controls/ac-2"
    ]
   },
   {
    "task": "evidence",
    "label": "Attach evidence",
-   "clicks": 4,
-   "page_changes": 2,
+   "clicks": 2,
+   "page_changes": 0,
    "fields": 1,
-   "scripted_seconds": 5.0,
+   "scripted_seconds": 3.6,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
    "notes": [],
    "paths": [
-    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/controls/ac-1",
-    "/evidence-sources",
-    "/evidence-sources#add-evidence"
+    "/systems/3f9347b3-dbe5-4a18-afea-7177cc42ad2d/controls/ac-2"
    ]
   },
   {
    "task": "test_results",
    "label": "Import test results",
-   "clicks": 5,
-   "page_changes": 3,
+   "clicks": 3,
+   "page_changes": 1,
    "fields": 1,
-   "scripted_seconds": 5.7,
+   "scripted_seconds": 4.3,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
    "notes": [],
    "paths": [
-    "/evidence-sources#add-evidence",
-    "/rmf/assess",
-    "/test-results",
-    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/import-center"
+    "/systems/3f9347b3-dbe5-4a18-afea-7177cc42ad2d/controls/ac-2",
+    "/import-center"
    ]
   },
   {
@@ -131,13 +129,13 @@
    "clicks": 5,
    "page_changes": 3,
    "fields": 1,
-   "scripted_seconds": 4.8,
+   "scripted_seconds": 4.9,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
    "notes": [],
    "paths": [
-    "/systems/5d7ed1ab-c185-4e57-a305-c29eff619900/import-center",
+    "/import-center",
     "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a/controls",
     "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a/controls/ra-5",
     "/findings/9aa17293-6177-41f9-9772-eab329cb7b76"
@@ -178,28 +176,26 @@
   {
    "task": "package",
    "label": "Prepare an authorization package",
-   "clicks": 4,
-   "page_changes": 3,
+   "clicks": 3,
+   "page_changes": 1,
    "fields": 0,
-   "scripted_seconds": 4.2,
+   "scripted_seconds": 3.5,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,
    "notes": [],
    "paths": [
     "/rmf/authorize",
-    "/systems",
-    "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a",
     "/systems/3cc4efdf-1b00-4051-bb84-b5a39167fe2a/authorization"
    ]
   },
   {
    "task": "iscm",
    "label": "Configure continuous monitoring",
-   "clicks": 5,
+   "clicks": 4,
    "page_changes": 1,
    "fields": 3,
-   "scripted_seconds": 4.6,
+   "scripted_seconds": 3.8,
    "next_action_shown": true,
    "completed": true,
    "blocked_at": null,

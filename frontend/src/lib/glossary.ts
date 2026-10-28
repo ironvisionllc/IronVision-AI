@@ -10,7 +10,7 @@ export const DIM_HELP: Record<Dim, string> = {
   coverage: "Whether an approved policy requires the control – never an assessment result.",
   assessment: "The SCA's independent determination (eMASS Compliance Status).",
   authorization: "The AO's decision for the whole system.",
-  freshness: "Whether evidence is within its required review period.",
+  freshness: "Whether evidence is within its required review period. Two scoped counts are used, never mixed: “Controls with current evidence: X of Y assigned controls” and “Evidence items within their freshness window: N of M collected items”.",
   poam: "eMASS POA&M status of the weakness.",
 };
 export const GLOSSARY: Record<Dim, Record<string, Entry>> = {

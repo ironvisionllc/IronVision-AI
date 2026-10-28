@@ -109,8 +109,8 @@ export default function ImportCenterPage() {
   const { id } = useParams();
   const [q] = useSearchParams();
   const preset = q.get("type") || undefined;
-  const { systems } = useSystems();
-  const [pick, setPick] = useState(id || "");
+  const { systems, selectedId } = useSystems();
+  const [pick, setPick] = useState(id || selectedId || "");  // default: the selected system
   const sid = id || pick;
   const { data: tdata } = useApi<Row>("/import-center/types", sid ? { system_id: sid } : undefined);
   const types: Row = Object.fromEntries((tdata?.types || []).map((t: Row) => [t.key, t]));

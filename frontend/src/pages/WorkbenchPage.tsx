@@ -1,3 +1,4 @@
+import { AttachEvidence } from "@/components/common/AttachEvidence";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CnssiParams } from "@/components/rmf/CnssiParams";
@@ -116,6 +117,23 @@ export function WorkbenchFilters({ params, set, sid }: { params: URLSearchParams
     </div>);
 }
 
+/** Jump straight to a control by ID or title (Enter opens the first match on the Implementation tab). */
+function JumpToControl({ list, onGo }: { list: Row[]; onGo: (cid: string) => void }) {
+  const [q, setQ] = useState("");
+  const norm = (x: string) => x.toLowerCase().replace(/\s+/g, "");
+  const n = norm(q);
+  const hits = n ? list.filter((a) => norm(a.label) === n || a.control_id === n).concat(list.filter((a) => norm(a.label) !== n && a.control_id !== n && `${norm(a.label)} ${a.title.toLowerCase()}`.includes(q.toLowerCase().trim()))).slice(0, 6) : [];
+  const go = (cid: string) => { setQ(""); onGo(cid); };
+  return (
+    <div className="relative border-b border-slate-100 px-3 py-2" data-testid="wb-jump">
+      <input className="input w-full" placeholder="Jump to control (e.g. AC-2) – Enter" aria-label="Jump to control" value={q} onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter" && hits[0]) go(hits[0].control_id); }} data-testid="wb-jump-input" />
+      {hits.length > 0 && <ul className="absolute left-3 right-3 z-20 mt-1 rounded border border-slate-200 bg-white text-[12px] shadow" data-testid="wb-jump-results">
+        {hits.map((a) => <li key={a.control_id}><button className="w-full px-2 py-1 text-left hover:bg-blue-50" onClick={() => go(a.control_id)} data-testid={`wb-jump-${a.control_id}`}>
+          <b className="font-mono">{a.label}</b> {a.title}</button></li>)}</ul>}
+    </div>);
+}
+
 export default function WorkbenchPage() {
   const { id = "", controlId } = useParams();
   const nav = useNavigate();
@@ -173,6 +191,7 @@ export default function WorkbenchPage() {
             <PageSizeSelect value={size} onChange={(n) => { setSize(n); setPage(0); if (!showList && n !== 50) setAll(true); }} testId="wb-page-size" />
             {filtered && <button className="ml-auto text-[11px] text-blue-800 underline" onClick={() => setParams(new URLSearchParams(), { replace: true })} data-testid="filter-clear">Clear filters</button>}
           </div>
+          <JumpToControl list={list || []} onGo={(cid) => nav(`/systems/${id}/controls/${cid}?tab=implementation`)} />
           {(sum?.unmapped_findings ?? 0) > 0 && <Link to="/mapping-review" className="block border-b border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid="queue-unmapped-item">System: {sum?.unmapped_findings} unmapped open findings need mapping or disposition →</Link>}
           {showList && can("implementation.write") && list && list.length > 0 && <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-1.5 text-[11px]" data-testid="wb-bulk-bar">
             <label className="flex items-center gap-1"><input type="checkbox" checked={sel.size > 0 && sel.size === list.length} onChange={(e) => setSel(e.target.checked ? new Set(list.map((a) => a.control_id)) : new Set())} data-testid="wb-select-all" />Select all {list.length}</label>
@@ -241,6 +260,7 @@ function ControlPanel({ systemId, controlId, onChange }: { systemId: string; con
           className={cn("px-3 py-2 text-[13px] font-semibold", tab === k ? "border-b-2 border-sky-700 text-sky-900" : "text-slate-500")} data-testid={`wb-tab-${k}`}>{l(d)}</button>)}</div>
       {tab === "evidence" && <>{(d.pending_reviews || []).length > 0 && <Link to="/mapping-review" className="block rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-[12px] text-sky-900" data-testid="wb-pending-suggestions">{d.pending_reviews.length} pending mapping/status suggestion(s) for this control → Mapping review</Link>}
       <Panel title="Supporting evidence" testId="wb-evidence">
+        <AttachEvidence systemId={systemId} controlIds={[controlId]} onDone={() => { reload(); onChange(); }} testId="wb-attach-evidence" />
         <div className="mb-2 flex flex-wrap gap-3 text-[12px]" data-testid="wb-evidence-summary">{d.evidence_summary.map((s: Row) => <span key={s.source_type} className="rounded border border-slate-200 px-2 py-1">{s.source_type === "stig_checklist" ? "STIG" : "ACAS"}: {s.assets_scanned} assets scanned, {s.failed_rules} failed rules, {s.passed_checks} passing checks</span>)}</div>
         <Table head={["Evidence", "Source", "Collected", "Age", "State", "SHA-256"]}>
           {d.evidence.map((e: Row) => <tr key={e.id}><td className="td text-[12px]">{e.name}</td><td className="td text-[12px]">{e.source_name}</td><td className="td font-mono text-[11px]">{fmtDate(e.collected_at)}</td>

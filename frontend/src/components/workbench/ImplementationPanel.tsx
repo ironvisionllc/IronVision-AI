@@ -61,7 +61,7 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
       {ai?.template ? <div className="mb-2 inline-block rounded bg-sky-100 px-2 py-0.5 text-[11px] font-bold tracking-wide text-sky-900" data-testid="template-draft-label">TEMPLATE DRAFT (no AI) · {ai.prompt_version}{!ai.ai_status?.configured && ai.ai_status?.reason ? ` · ${ai.ai_status.reason}` : ""}</div>
         : (ai || latest?.ai_generated) && <div className="mb-2 inline-block rounded bg-amber-100 px-2 py-0.5 text-[11px] font-bold tracking-wide text-amber-900" data-testid="ai-draft-label">AI DRAFT – not reviewed{ai && ` · ${ai.model} · ${ai.prompt_id}@${ai.prompt_version}`}</div>}
       {!ai && latest?.prompt_version?.startsWith("template") && <div className="mb-2 inline-block rounded bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-900">TEMPLATE DRAFT (no AI)</div>}
-      <textarea className="input" rows={7} id="wb-narrative" value={narr} onChange={(e) => setNarr(e.target.value)} disabled={!can("implementation.write")} data-testid="wb-narrative-input" />
+      <textarea className="input" rows={7} id="wb-narrative" value={narr} onChange={(e) => setNarr(e.target.value)} disabled={!can("implementation.write")} autoFocus={can("implementation.write")} data-testid="wb-narrative-input" />
       {ai && ai.stripped_citations.length > 0 && <div className="mt-1 text-[11px] text-rose-700" data-testid="ai-stripped">{ai.stripped_citations.length} citation(s) to non-existent evidence were removed.</div>}
       {(ai?.draft.citations ?? latest?.citations ?? []).length > 0 && <div className="mt-2 text-[12px]" data-testid="ai-citations"><b>Citations:</b> {(ai?.draft.citations ?? latest.citations).map((c: string) => <Link key={c} to="/evidence-ledger" className="mr-2 text-blue-800 underline">{evName(c)}</Link>)}</div>}
       {sections && <div className="mt-2 grid gap-2 md:grid-cols-2" data-testid="ai-sections">
@@ -69,7 +69,7 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
           <div key={k} className="rounded border border-slate-200 p-2 text-[12px]" data-testid={`ai-section-${k}`}><div className="font-medium">{l}</div><ul className="list-disc pl-4">{(sections[k] || []).map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>))}
       </div>}
       {ai && <div className="mt-1 text-[11px] text-slate-500">Grounded on {ai.grounding.evidence_count} current evidence item(s). Policies: {ai.grounding.policies}</div>}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="sticky bottom-0 z-10 -mx-4 mt-3 flex flex-wrap items-center gap-2 border-t border-slate-200 bg-white px-4 py-2" data-testid="wb-narrative-actions">
         <Gated perm="implementation.write"><>
           <button className="btn-secondary" onClick={() => generate("auto")} disabled={!!busy} data-testid="ai-generate-btn">{busy === "auto" ? "Generating…" : "Generate draft"}</button>
           <button className="btn-secondary" onClick={() => generate("template")} disabled={!!busy} data-testid="template-generate-btn">{busy === "template" ? "Building template…" : "Template draft"}</button>

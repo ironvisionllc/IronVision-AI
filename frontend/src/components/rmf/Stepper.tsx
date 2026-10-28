@@ -53,8 +53,12 @@ export function StepChips({ steps, compact }: { steps: Row[]; compact?: boolean 
 
 export function NextActionButton({ data, className }: { data: Row; className?: string }) {
   const n = data.next_action;
-  return <Link to={n.link} className={cn("btn-primary inline-flex items-center gap-1.5", className)} data-testid="rmf-next-action"
-    title={`Next RMF step: ${n.step}`}>Next action: {n.label}<ArrowRight className="h-3.5 w-3.5" /></Link>;
+  return <>
+    <Link to={n.link} className={cn("btn-primary hidden items-center gap-1.5 sm:inline-flex", className)} data-testid="rmf-next-action"
+      title={`Next RMF step: ${n.step}`}>Next action: {n.label}<ArrowRight className="h-3.5 w-3.5" /></Link>
+    {/* phones: long labels read as a full-width link block instead of a squeezed/clipped button */}
+    <Link to={n.link} className="block w-full rounded-lg bg-sky-800 px-3 py-2 text-[13px] font-semibold text-white sm:hidden" data-testid="rmf-next-action-mobile"
+      title={`Next RMF step: ${n.step}`}>Next action: {n.label} →</Link></>;
 }
 
 // Start and dashboard pages only; the Getting started page says the same thing in its body, and RMF step pages have their own stepper.

@@ -20,7 +20,7 @@ def test_01_cross_screen_numbers_agree(client, token):
     assert m["control_evidence_coverage_pct"] == round(100 * m["controls_with_current_evidence"] / m["assigned_controls"], 1)
     wf = {s["stage"]: s for s in client.get(f"/api/v1/systems/{sid}/rmf-workflow", headers=isso).json()}
     assert f"{m['controls_with_current_evidence']} of {m['assigned_controls']}" in wf["7. Monitor"]["reason"]
-    assert "collected evidence items within freshness window" in wf["7. Monitor"]["reason"]
+    assert "evidence items within their freshness window" in wf["7. Monitor"]["reason"] and "Controls with current evidence:" in wf["7. Monitor"]["reason"]
     lead = {r["acronym"]: r for r in client.get("/api/v1/dashboard/leadership", headers=ao).json()["systems"]}["LTP"]
     for k in ("controls_with_current_evidence", "assigned_controls", "evidence_items_fresh_pct", "open_cat1", "kev_open", "overdue_poams", "open_poams"):
         assert lead[k] == m[k], k

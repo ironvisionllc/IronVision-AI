@@ -1,0 +1,112 @@
+[
+ {
+  "page": "select",
+  "size": "768x1024",
+  "ok": true,
+  "doc_scroll": 768,
+  "viewport": 768,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "select-fips",
+  "size": "768x1024",
+  "ok": true,
+  "doc_scroll": 768,
+  "viewport": 768,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "parameter-comparison",
+  "size": "768x1024",
+  "ok": true,
+  "doc_scroll": 768,
+  "viewport": 768,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": "TimeoutError: Locator.scroll_into_view_if_needed: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"[data-testid=param-comp"
+ },
+ {
+  "page": "select",
+  "size": "1280x800",
+  "ok": true,
+  "doc_scroll": 1280,
+  "viewport": 1280,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "select-fips",
+  "size": "1280x800",
+  "ok": true,
+  "doc_scroll": 1280,
+  "viewport": 1280,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "parameter-comparison",
+  "size": "1280x800",
+  "ok": true,
+  "doc_scroll": 1280,
+  "viewport": 1280,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": "TimeoutError: Locator.scroll_into_view_if_needed: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"[data-testid=param-comp"
+ },
+ {
+  "page": "select",
+  "size": "1440x900",
+  "ok": true,
+  "doc_scroll": 1440,
+  "viewport": 1440,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "select-fips",
+  "size": "1440x900",
+  "ok": true,
+  "doc_scroll": 1440,
+  "viewport": 1440,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "parameter-comparison",
+  "size": "1440x900",
+  "ok": true,
+  "doc_scroll": 1440,
+  "viewport": 1440,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": "TimeoutError: Locator.scroll_into_view_if_needed: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"[data-testid=param-comp"
+ },
+ {
+  "page": "select",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": null
+ },
+ {
+  "page": "parameter-comparison",
+  "size": "390x844",
+  "ok": true,
+  "doc_scroll": 390,
+  "viewport": 390,
+  "main_hidden_overflow": 0,
+  "offenders": [],
+  "interaction_error": "TimeoutError: Locator.scroll_into_view_if_needed: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\"[data-testid=param-comp"
+ }
+]

@@ -329,11 +329,12 @@ export function SelectPage() {
   const { can } = useAuth();
   const { data, reload } = useApi<Row>(sid ? `/systems/${sid}/select` : null);
   const [sp, setSp] = _usp();
-  const step = Math.min(4, Math.max(0, Number(sp.get("sstep") || (sp.get("overlay") ? 3 : 1)) - 1));
+  const dflt = data && !data.baseline_key && data.recommended_baseline ? 2 : 1;  // categorized, no baseline yet → open on "Initial baseline"
+  const step = Math.min(4, Math.max(0, Number(sp.get("sstep") || (sp.get("overlay") ? 3 : dflt)) - 1));
   const setStep = (n: number) => { const x = new URLSearchParams(sp); x.set("sstep", String(n + 1)); x.delete("overlay"); setSp(x, { replace: true }); };
   const ro = <p className="text-[12px] text-slate-600">Changing the control selection needs the “system.write” permission (ISSO, ISSM or System Owner). You can view the selection in the <Link className="underline" to="/traceability">traceability matrix</Link>.</p>;
   const nextBtn = (n: number, label: string) => <button className="btn-primary mt-3 self-start" onClick={() => setStep(n)} data-testid={`select-next-${n}`}>Next: {label}</button>;
-  useEffect(() => { if (data && window.location.hash === "#iscm") setTimeout(() => document.getElementById("iscm")?.scrollIntoView({ block: "start" }), 300); }, [data]);
+  useEffect(() => { const h = window.location.hash.slice(1); if (data && (h === "iscm" || h === "iscm-defaults")) setTimeout(() => document.getElementById(h)?.scrollIntoView({ block: "start" }), 300); }, [data]);
   return (
     <StepFrame k="select" title="Step 3 · Select – baseline, overlays and tailoring" purpose="Decide which controls apply: start from the baseline that matches the categorization, apply overlays for special situations, then tailor controls in or out with a rationale.">
       {data && sid && <div className="grid gap-5">

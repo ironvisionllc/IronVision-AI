@@ -83,6 +83,8 @@ export function ControlPolicyCoverage({ items }: { items: Row[] }) {
   if (!items?.length) return null;
   return (
     <div className="mt-2 rounded bg-slate-50 px-2 py-1 text-[11px]" data-testid="wb-policy-coverage">
+      <div className="font-semibold" data-testid="wb-policy-coverage-label" title="Policy coverage = how many of this control's CCI-derived requirements the approved policy text satisfies (met / all requirements). It is not an assessment result.">
+        Policy coverage: {items.reduce((n, p) => n + p.requirements.filter((r: Row) => r.status === "met").length, 0)} of {items.reduce((n, p) => n + p.requirements.length, 0)} requirements met</div>
       {items.map((p) => <div key={p.policy_id}><CovBadge s={p.summary.state === "gaps" ? "missing" : p.summary.state || "missing"} /> <Link className="text-blue-800 underline" to={`/policy-auditor/${p.policy_id}`}>{p.policy_title}</Link>: {p.line}</div>)}
       <button className="text-blue-800 underline" onClick={() => setOpen(!open)} data-testid="wb-policy-coverage-toggle" title={CCI_TIP}>{open ? "Hide" : "Show"} coverage per CCI</button>
       {open && items.map((p) => <TableScroll key={p.policy_id}><table className="mt-1 w-full"><tbody>{p.requirements.map((r: Row) => <RequirementRow key={r.id} r={{ ...r, requirement_type: r.type }} />)}</tbody></table></TableScroll>)}

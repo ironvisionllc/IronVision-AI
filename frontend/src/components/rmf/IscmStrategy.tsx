@@ -55,7 +55,7 @@ export function IscmStrategy({ sid }: { sid: string }) {
         <label className="block text-[12px]"><span className="font-medium">Strategy narrative</span><textarea className="input mt-1 w-full" rows={3} disabled={ro} value={f.narrative ?? ""} onChange={(e) => setF({ ...f, narrative: e.target.value })} data-testid="iscm-narrative" /></label>
         <label className="block text-[12px]"><span className="font-medium">Scope</span><textarea className="input mt-1 w-full" rows={3} disabled={ro} value={f.scope ?? ""} onChange={(e) => setF({ ...f, scope: e.target.value })} data-testid="iscm-scope" /></label>
       </div>
-      <div className="mt-3 text-[12px] font-medium">System default SLCM values</div>
+      <div className="mt-3 text-[12px] font-medium" id="iscm-defaults" data-testid="iscm-defaults-heading">System default SLCM values</div>
       <SlcmInputs vals={f.defaults || {}} o={o} prefix="iscm-default" ro={ro} set={(k, v) => setF({ ...f, defaults: { ...f.defaults, [k]: v } })} />
       <div className="mt-3 text-[12px] font-medium">Profiles (family / control list / Security Control Designation) – first match wins</div>
       {(f.profiles || []).map((p: Row, i: number) => <div key={i} className="mt-2 rounded border border-slate-200 p-2" data-testid={`iscm-profile-${i}`}>
@@ -73,7 +73,7 @@ export function IscmStrategy({ sid }: { sid: string }) {
       <div className="mt-2 text-[11px] text-slate-500" data-testid="iscm-people">Responsible monitoring personnel (from Key roles): ISSO {(d.people.isso || []).join(", ") || "—"} · ISSM {(d.people.issm || []).join(", ") || "—"} · System Owner {(d.people.system_owner || []).join(", ") || "—"}</div>
       <div className="mt-3 flex flex-wrap gap-2">
         {!ro && <button className="btn-secondary" disabled={!!busy} onClick={() => act("save", () => api.put(`/systems/${sid}/iscm`, body()), "Draft saved – submit it for ISSM approval to take effect")} data-testid="iscm-save">Save draft</button>}
-        {!ro && s && ["draft", "rejected"].includes(s.status) && <button className="btn-primary" disabled={!!busy} onClick={() => act("submit", () => api.post(`/systems/${sid}/iscm/submit`), "Submitted to the ISSM")} data-testid="iscm-submit">Submit for ISSM approval</button>}
+        {!ro && (!s || ["draft", "rejected"].includes(s.status)) && <button className="btn-primary" disabled={!!busy} onClick={() => act("submit", async () => { await api.put(`/systems/${sid}/iscm`, body()); return api.post(`/systems/${sid}/iscm/submit`); }, "Saved and submitted to the ISSM – it takes effect when the ISSM approves it")} data-testid="iscm-submit">Save & submit for ISSM approval</button>}
         {isIssm && s?.status === "pending_approval" && <>
           <button className="btn-primary" disabled={!!busy} onClick={() => act("ok", () => api.post(`/systems/${sid}/iscm/decision`, { approve: true }), "Strategy approved – SLCM values updated")} data-testid="iscm-approve">Approve (ISSM)</button>
           <button className="btn-secondary" disabled={!!busy} onClick={() => act("no", () => api.post(`/systems/${sid}/iscm/decision`, { approve: false }), "Returned to the ISSO")} data-testid="iscm-reject">Return</button></>}
