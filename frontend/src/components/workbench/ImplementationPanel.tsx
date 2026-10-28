@@ -44,7 +44,7 @@ export function ImplementationPanel({ systemId, controlId, d, reload }: { system
       await api.put(`/systems/${systemId}/workbench/controls/${controlId}/implementation`, {
         narrative: narr, implementation_status: impl, ai_generated: !!ai && !ai.template, prompt_version: ai ? `${ai.prompt_id}@${ai.prompt_version}` : undefined,
         interaction_id: ai?.template ? undefined : ai?.interaction_id, citations: ai?.draft.citations ?? [], ai_sections: ai ? { verified_facts: ai.draft.verified_facts, interpretation: ai.draft.interpretation, suggested_actions: ai.draft.suggested_actions, missing_information: ai.draft.missing_information } : undefined });
-      setMsg("Saved as new draft version"); setAi(null); reload();
+      setMsg("Saved as new draft version – next: attach evidence (Evidence & Policies tab) or request review"); setAi(null); reload();
     } catch (e) { setMsg(errorMessage(e)); }
   };
   const requestReview = async () => {

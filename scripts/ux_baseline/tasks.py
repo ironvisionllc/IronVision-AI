@@ -166,7 +166,7 @@ async def t_evidence(m, ctx):
     open(p, "w").write(json.dumps({"tool": "SYNTHETIC", "control": "AC-2", "result": "pass"}))
     await m.nav("implement/Evidence – add")
     await m.click("[data-testid=add-source-btn]", opt=True)
-    if await m.page.locator("[data-testid=upload-source-select] option").count() <= 1:  # fresh system: an evidence source must be created first
+    if await m.page.locator("[data-testid=upload-btn][disabled]").count() and await m.page.locator("[data-testid=upload-source-select] option").count() <= 1:  # old layout: a source had to be created first
         await m.click("[data-testid=create-file-source-btn]")
         await m.fill("[data-testid=file-source-name]", "SYNTHETIC manual uploads")
         await m.click("[data-testid=file-source-save]")

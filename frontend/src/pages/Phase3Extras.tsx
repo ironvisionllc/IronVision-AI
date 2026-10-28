@@ -59,6 +59,8 @@ export function AuthorizationPage() {
         {can("implementation.write") && !pending && <button className="btn-primary" onClick={submit} data-testid="submit-package-btn">Submit package for review</button>}
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" role="alert" data-testid="authz-msg">{msg}</div>}
+      <div className="mb-4 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-[13px] text-sky-900" data-testid="package-next">
+        {pending ? "Package submitted – next: the ISSM endorses it, then the AO records the decision." : "Next: generate the documents below, then submit the package for ISSM review."}</div>
       <div className="mb-5"><PackageDocuments systemId={id} acronym={pk.system.acronym} /></div>
       <div className="mb-5"><OscalPanel systemId={id} /></div>
       <div className="grid gap-5 xl:grid-cols-2">

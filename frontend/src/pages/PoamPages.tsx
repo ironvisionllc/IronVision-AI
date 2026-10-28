@@ -10,6 +10,7 @@ import { useApi, Row } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { ControlLink, S, Sev, Stat, Table } from "@/components/common/Bits";
 import { Modal } from "@/components/common/Workflow";
+import { CompletedNext } from "@/components/common/CompletedNext";
 import { fmtControl, fmtDate, human } from "@/lib/format";
 
 const SEV: Record<string, string> = { critical: "failing", high: "failing", medium: "near_expiration", low: "neutral" };
@@ -83,6 +84,7 @@ export function PoamDetailPage() {
   const [modal, setModal] = useState<"" | "closure" | "risk" | "extension" | "edit">("");
   const [f, setF] = useState<Row>({ evidence_ids: [] });
   const [ms, setMs] = useState({ title: "", due_date: "" });
+  const done = new URLSearchParams(window.location.search).get("done");
   if (!data) return null;
   const p = data.poam;
   const terminal = ["closed", "risk_accepted"].includes(p.status);
@@ -98,6 +100,7 @@ export function PoamDetailPage() {
         </div>
       </PageHeader>
       {msg && <div className="panel mb-4 p-3 text-[13px]" data-testid="poam-msg">{msg}</div>}
+      {done && <CompletedNext kind="" testId="poam-completed-next" next={{ label: `Finding ${done === "linked" ? "linked to" : "added to"} ${p.human_id} – set milestones and the due date, then attach closure evidence`, link: `/poams/${id}` }} />}
       <PoamImpactBanner p={p} onDone={reload} />
       {p.status === "closure_eligible" && <div className="panel mb-4 border-emerald-300 bg-emerald-50 p-3 text-[13px] text-emerald-900" data-testid="closure-eligible-banner">A rescan observed every linked finding as fixed. This POA&M is NOT closed automatically – request closure with evidence for ISSM approval.</div>}
       {can("poam.manage") && !terminal && (

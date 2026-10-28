@@ -24,14 +24,14 @@ export function AddToPoamButton({ findingId, onDone }: { findingId: string; onDo
     setM(r.data); setF({ ...r.data.prefill, control_ids: r.data.prefill.control_ids.join(", "), due_date: "", remediation_plan: "" }); setErr("");
   };
   const link = async (pid: string) => {
-    try { await api.post(`/poams/${pid}/findings`, { finding_id: findingId }); setM(null); onDone?.(); nav(`/poams/${pid}`); } catch (e) { setErr(errorMessage(e)); }
+    try { await api.post(`/poams/${pid}/findings`, { finding_id: findingId }); setM(null); onDone?.(); nav(`/poams/${pid}?done=linked`); } catch (e) { setErr(errorMessage(e)); }
   };
   const create = async (override?: string) => {
     try {
       const body = { system_id: f.system_id, finding_ids: [findingId], weakness: f.weakness, severity: f.severity || undefined, cat: f.cat || undefined,
         source_label: f.source_label, control_ids: String(f.control_ids).split(",").map((s) => s.trim()).filter(Boolean),
         due_date: f.due_date || undefined, remediation_plan: f.remediation_plan || undefined, allow_duplicate_justification: override };
-      const r = await api.post<Row>("/poams", body); setM(null); onDone?.(); nav(`/poams/${r.data.id}`);
+      const r = await api.post<Row>("/poams", body); setM(null); onDone?.(); nav(`/poams/${r.data.id}?done=created`);
     } catch (e) { setErr(errorMessage(e)); }
   };
   return (

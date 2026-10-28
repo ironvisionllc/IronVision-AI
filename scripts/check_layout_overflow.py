@@ -21,7 +21,7 @@ MOBILE = (390, 844)
 if os.environ.get("SHOT_SIZES"):  # e.g. SHOT_SIZES=768x1024,1280x800,1440x900 (390 = MOBILE, always run for MOBILE_PAGES)
     SIZES = [tuple(int(x) for x in s.split("x")) for s in os.environ["SHOT_SIZES"].split(",")]
 ONLY = set(filter(None, os.environ.get("SHOT_PAGES", "").split(",")))  # optional subset of page names
-MOBILE_PAGES = {"catalog", "catalog-tree", "catalog-tree-system", "select", "admin", "workbench", "parameter-comparison", "mapping-review", "policy-detail", "test-results", "audit-log"}
+MOBILE_PAGES = {"dashboard", "my-work", "sca-workspace", "import-center", "catalog", "catalog-tree", "catalog-tree-system", "select", "admin", "workbench", "parameter-comparison", "mapping-review", "policy-detail", "test-results", "audit-log"}
 SHOTS = {"select", "admin"}
 
 MEASURE = """() => {
@@ -74,7 +74,9 @@ def routes(ids: dict) -> list[tuple[str, str, str, str | None]]:
          ("authorize", "/rmf/authorize", n, None), ("authorization-package", f"/systems/{n}/authorization", n, None), ("poam", "/poams", f, None),
          ("emass", "/emass", f, None), ("monitor", "/rmf/monitor", f, None), ("evidence-ledger", "/evidence-ledger", f, None),
          ("traceability", "/traceability", f, None), ("help", "/help", f, None), ("audit-log", "/audit-log", f, None), ("admin", "/admin", f, None),
-         ("docs", "/docs-center", f, None), ("notifications", "/settings/notifications", f, None)]
+         ("docs", "/docs-center", f, None), ("notifications", "/settings/notifications", f, None),
+         ("dashboard", "/dashboard", n, None), ("my-work", "/my-work", n, None), ("sca-workspace", "/assess/workspace", f, None),
+         ("import-center", "/import-center", f, None)]
     if p:
         r += [("policy-detail", f"/policy-auditor/{p}", f, None), ("policy-side-by-side", f"/policy-auditor/{p}", f, "mapping-sbs")]
     return r

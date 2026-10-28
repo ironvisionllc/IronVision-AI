@@ -64,7 +64,7 @@ function UploadFilePanel({ sid, sources, types, onUploaded }: { sid: string; sou
       } else {
         const fd = new FormData(); fd.append("file", f); if (src) fd.append("source_id", src);
         const r = await api.post<Row>(`/systems/${sid}/uploads`, fd);
-        setMsg(r.data.status === "duplicate" ? `“${f.name}” is identical to a file already processed – not double-counted.` : `“${f.name}” received – Queued for processing. You will get a summary when it finishes.`);
+        setMsg(r.data.status === "duplicate" ? `“${f.name}” is identical to a file already processed – not double-counted.` : `“${f.name}” received – Queued for processing. Next: the evidence appears on each matching control's “Evidence & Policies” tab when processing finishes.`);
       }
       window.dispatchEvent(new Event(PROCESSING_STARTED));
     } catch (e) { setErr({ file: f.name, text: errorMessage(e) }); }
@@ -88,7 +88,7 @@ function UploadFilePanel({ sid, sources, types, onUploaded }: { sid: string; sou
             {sources.filter((s) => s.adapter_mode === "file_import").map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
         <input ref={fileRef} type="file" accept=".ckl,.cklb,.xml,.nessus,.csv,.sarif,.json,.docx,.pdf" className="hidden" onChange={(e) => { if (e.target.files?.[0]) upload(e.target.files[0]); e.target.value = ""; }} data-testid="upload-file-input" />
         <ImportButton systemId={sid} testId="upload-import-center-btn" primary label="Import… (Import Center)" />
-        <button className="btn-secondary" disabled={!src} title={src ? "" : "Pick a file source first – one-off files go through the Import Center"} onClick={() => fileRef.current?.click()} data-testid="upload-btn"><Upload className="h-4 w-4" />Upload to the linked source</button>
+        <button className="btn-secondary" title={src ? "Upload and link to the selected source" : "One-off upload – no source needed"} onClick={() => fileRef.current?.click()} data-testid="upload-btn"><Upload className="h-4 w-4" />{src ? "Upload to the linked source" : "Upload a file"}</button>
       </div> : <p className="text-[12px] text-slate-600" data-testid="upload-denied">Uploading needs the “ingest.upload” permission (ISSO, System Owner or DevSecOps).</p>}
       <p className="mt-2 text-[11px] text-slate-500">“One-off file” = upload without linking to a source – use it for single files. For files you upload regularly, create a file source so they are grouped:
         <Gated perm="source.manage"><button className="ml-1 underline" onClick={() => setNewSrc({ name: "", source_type: "stig_checklist" })} data-testid="create-file-source-btn">create a file source</button></Gated></p>
