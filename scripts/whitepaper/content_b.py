@@ -14,7 +14,7 @@ PART_B = [
     TABLE(["Feature (prompt)", "Inputs", "Output", "Grounding / validation", "Fallback"], [
         ["Policy audit (policy.audit@1.0.0)", "Policy text, mapped control, ODP / observed values", "Proposed findings (gaps, value mismatches)",
          "Schema; findings stay proposed until a human confirms", "Deterministic parser findings"],
-        ["Policy coverage refine (policy.coverage_refine@1.0.0)", "Assessment objectives / CCIs of one control (batches of 8), deterministic result, policy text",
+        ["Policy coverage refine (policy.coverage_refine@2.x)", "Assessment objectives / CCIs of one control (batches of 8), deterministic result, policy text",
          "met / partial / missing + exact quote + rationale per requirement", "Quote must be an exact contiguous substring of the policy; "
          "otherwise the AI result is discarded and noted; disagreement lowers confidence and needs review", "Per-batch deterministic coverage"],
         ["Mapping suggestion (mapping.suggest@1.0.0)", "Finding title, source, rule/plugin, CVEs, CCIs", "Up to 3 controls with rationale and confidence",
@@ -104,7 +104,7 @@ PART_B = [
        "**Retention and legal hold.** Retention rules per resource type purge only after their window; items under legal hold are never "
        "purged. Every purge supports a dry run and is audited. The audit log itself is never purged.",
        "**Generated artifacts.** OSCAL exports and workbook exports are stored as hashed evidence with their validation reports."),
-    IMG(S + "rmf-accuracy/09_evidence_version_history.png", "Evidence version history", 85),
+    IMG("/app/docs/screenshots/wp-2026-10/20_evidence_sources.png", "Evidence sources and connectors", 85),
     PB,
     H1("9", "eMASS workbooks"),
     H2("9.1 Test Result (TR) workbook"),
@@ -120,7 +120,7 @@ PART_B = [
        "but only on rows added from the system, because eMASS needs them to identify each added row.",
        "**Validation report:** every cell outside the permitted ranges is compared (value, formula, style) and every other package part "
        "byte-for-byte. The report lists the mode, the permitted ranges with a reason for each, and the changed cells."),
-    IMG(S + "tr/6-export-history.png", "Test Results export history with validation status", 88),
+    IMG("/app/docs/screenshots/wp-2026-10/21_emass_hub.png", "eMASS sync hub and outbound change queue", 88),
     H2("9.2 Hardware/Software (HW/SW) list"),
     UL("Import of the eMASS HW/SW .xlsm. Headers are detected and vocabularies come from the template's '(U) Lists' tables. Existing "
        "records are never overwritten without proposal → accept → approve.",
@@ -130,6 +130,19 @@ PART_B = [
     NOTE("human", "Open both exported workbooks in Microsoft Excel (macros disabled) and confirm there is no repair prompt and that the dropdowns "
                   "still work. Import the TR export (Assessment → Test Result Import) and the HW/SW export into eMASS, and spot-check rows. "
                   "eMASS import compatibility has not been verified in the development environment."),
+    H2("9.3 Import Center and Manage imported data"),
+    UL("**One drop zone for every import.** eMASS Control Information, Implementation Plan, Test Results / Test Plan, HW/SW, PPSM, "
+       "STIG .ckl/.cklb, ACAS/Nessus and policies. Each file is detected and routed; the user chooses 'Register a new system' or "
+       "'Add to the current system', and several files can be imported at once.",
+       "**Review before apply.** Changes are grouped by section with safe / conflict / invalid states; nothing is written until a human applies.",
+       "**Manage imported data.** Every applied import has a Manage view grouped by section. Users restore, clear or delete one value, "
+       "a row, a section or everything the import created (the system shell stays; system deletion is unchanged). Deletions can be "
+       "undone for 30 days and every action is audited.",
+       "**Decisions are never deleted.** If removed data underpinned an SCA determination, approved inventory, the AO's categorization "
+       "or the ISSM's strategy, that decision is flagged for re-review. Removing imported evidence removes the link only; deleting "
+       "the stored file needs a separate confirmation. Deleted Test Result rows and inventory items are excluded from both TR export modes."),
+    IMG("/app/docs/screenshots/wp-2026-10/22_import_center.png", "Import Center: drop zone and supported import types", 88),
+    IMG("/app/docs/screenshots/wp-2026-10/23_manage_imported.png", "Manage imported data: sections, per-item delete, 30-day undo", 88),
     PB,
     H1("10", "Technical architecture"),
     IMG("__DIAGRAM__", "Reference architecture", 100),
@@ -137,7 +150,7 @@ PART_B = [
         ["Frontend", "React + TypeScript, Tailwind design tokens, shadcn/ui", "Page per RMF module; permission-aware UI; no secrets in the bundle"],
         ["API", "FastAPI (Python 3.11), Pydantic, SQLAlchemy 2", "REST under /api/v1; OpenAPI at /api/openapi.json; RBAC dependencies on every mutating route"],
         ["Worker", "Separate Python process", "jobs table queue (SELECT … FOR UPDATE SKIP LOCKED), DB-stored schedules with locking and stale-job recovery, heartbeat"],
-        ["Database", "PostgreSQL 16, Alembic", "29 migration files (0001 … 0028); additive, reversible; org_id on every record; append-only audit trigger"],
+        ["Database", "PostgreSQL 16, Alembic", "40 migration files (0001 … 0039); additive, reversible; org_id on every record; append-only audit trigger"],
         ["Object storage", "Storage abstraction: local FS or any S3 API", "SeaweedFS (Compose profile), AWS S3, DigitalOcean Spaces, Garage; selected via env"],
         ["Identity", "dev_password (dev/demo), OIDC (Keycloak profile), mTLS header stub", "Authorization Code + PKCE, server-side sessions"],
         ["Optional", "ClamAV, HashiCorp Vault, Prometheus / Grafana", "Compose profiles"],
@@ -211,8 +224,10 @@ PART_B = [
       "validation report, and import into eMASS. The same applies to the HW/SW list. Final eMASS acceptance requires human verification."),
     H2("13.5 Policy gap analysis"),
     P("Upload an organization's policies. The Policy Auditor maps sections and pages to controls, evaluates each assessment objective and "
-      "CCI, and optionally refines the results with AI using verified quotes. Gaps become proposed findings that a human confirms or "
-      "dismisses; the CCI view shows coverage."),
+      "CCI, and optionally refines the results with AI using verified quotes (whole-document reading for policies under ~60k characters, "
+      "plus an AI check of every xx-1 policy requirement). A requirement is marked not present only after the whole document and a "
+      "focused second look found nothing; truncated or timed-out AI batches become 'needs manual review', never 'missing'. Gaps become "
+      "proposed findings that a human confirms or dismisses; the CCI view shows coverage."),
     H2("13.6 Inventory reconciliation"),
     P("Import the HW/SW list and scans. The correlation engine links hosts deterministically, sends ambiguous matches (shared IPs, "
       "conflicts) to review with optional AI ranking, and lists discrepancies (missing from inventory, no scan, conflicting identifiers, "

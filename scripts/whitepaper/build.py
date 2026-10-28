@@ -27,7 +27,7 @@ BRAND = ROOT / "frontend/src/assets/brand"
 FONTS = ROOT / "frontend/public/fonts"
 TITLE = "IronVision AI"
 SUBTITLE = "Human-approved AI for the NIST Risk Management Framework"
-VERSION = "Version 1.0 · October 2026"
+VERSION = "Version 1.1 · October 2026"
 NOTE_COLORS = {"mocked": ("#FFF4E5", "#B45309"), "human": ("#FDECEC", "#B42318"), "sme": ("#F1ECFB", "#5B3FA6"),
                "info": ("#E8F6F9", "#15697F"), "never": ("#FDECEC", "#B42318")}
 

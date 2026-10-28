@@ -98,7 +98,7 @@ PART_A = [
        "Persona mode is refused (403) on non-sandbox tenants. Client-supplied flags such as is_sandbox or X-Sandbox are ignored."),
     NOTE("info", "One human holding all personas is **not** acceptable separation of duties for production. Production tenants keep strict "
                  "real-identity separation of duties."),
-    IMG(S + "signup-demo/04-role-switcher-open.png", "Sandbox persona switcher ('Acting as') in the header", 88),
+    IMG("/app/docs/screenshots/wp-2026-10/02_role_switcher.png", "Sandbox persona switcher ('Acting as') in the header", 88),
     PB,
     H1("4", "RMF lifecycle coverage (NIST SP 800-37 Rev. 2)"),
     P("The system dashboard, the RMF navigation and the per-system stepper compute a status for each of the seven steps from live data. A "
@@ -123,7 +123,7 @@ PART_A = [
         ["7 Monitor", "Rule-based monitoring: CISA KEV, CAT I, overdue POA&Ms, stale evidence; scheduled jobs; evidence freshness; Evidence Ledger.",
          "Monitoring configured and nothing needs attention"],
     ], [13, 62, 25]),
-    IMG(S + "sme-final/07-rmf-overview-final.png", "RMF overview with live step statuses and the next action", 92),
+    IMG("/app/docs/screenshots/wp-2026-10/03_rmf_overview.png", "RMF overview with live step statuses and the next action", 92),
     PB,
     H1("5", "Screen-by-screen guide"),
     P("Each entry describes one page in the application: its purpose, who uses it, the key actions, what it produces and the guardrails "
@@ -140,7 +140,7 @@ PART_A = [
            "A server-side session (idle timeout 30 min, absolute 12 h, rotating refresh tokens).",
            "Lockout after 5 failures for 15 minutes. Sign-up bot checks (trap field and minimum time-to-submit), 12+ character passwords. "
            "Sign-up is off in production. New sandboxes start empty."),
-    IMG(S + "login-light.png", "Login page", 80),
+    IMG("/app/docs/screenshots/wp-2026-10/01_login.png", "Login page", 80),
     H2("5.2 Start"),
     SCREEN("My Work (/my-work)",
            "Role-based home: what is waiting for the current role – statements and suggestions (ISSO), assessment requests and retests (SCA), "
@@ -154,8 +154,8 @@ PART_A = [
            "Per user and off by default; offered once at first login. Adds to every step its purpose, why it matters, what you need, who does it "
            "and what comes next.", "All roles", "Switch on or off at any time.", "None.",
            "Same data, permissions and workflow rules as the streamlined mode – only explanations are added."),
-    IMG("/app/docs/ux/screens/implemented/dashboard.png", "System dashboard with the RMF navigation", 92),
-    IMG("/app/docs/ux/screens/implemented/guided_on.png", "Guided Mode on (Categorize)", 92),
+    IMG("/app/docs/screenshots/wp-2026-10/04_dashboard.png", "System dashboard with the RMF navigation", 92),
+    IMG("/app/docs/screenshots/wp-2026-10/07_prepare.png", "Guided Mode on (Prepare – key roles)", 92),
     SCREEN("Getting started – RMF overview (/rmf-workflow)",
            "Live seven-step overview for the active system, with criteria and the next action.", "All roles",
            "Follow the next-action link; open any step.", "Step statuses, progress counters.", "Statuses are computed, never edited."),
@@ -170,7 +170,7 @@ PART_A = [
            "Cross-system posture: ATO expirations, open POA&Ms, CAT I, KEV exposure, evidence freshness, trends, 'waiting on you'.",
            "ISSM, AO, Leadership Viewer", "Drill into a system or POA&M.", "Portfolio cards, operational priority scores with a breakdown that sums.",
            "Requires portfolio.read."),
-    IMG(S + "leadership-light.png", "Portfolio / Leadership dashboard", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/06_portfolio.png", "Portfolio / Leadership dashboard", 90),
     H2("5.3 Step 1 – Prepare"),
     SCREEN("Key roles (/rmf/prepare)",
            "Assign the RMF key roles for the system and record the people who hold them.", "ISSM, ISSO",
@@ -189,7 +189,7 @@ PART_A = [
            "values stay in force. Changing the PII answer later asks for confirmation naming the controls affected; removal never deletes "
            "implementation statements or evidence. The answer and the overlay change are audited. The earlier Privacy Threshold Analysis "
            "questionnaire is retired; existing PTA records stay read-only."),
-    IMG(S + "rmf-accuracy/02_categorize_framework_nss.png", "Categorize: NSS determination and framework selection", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/05_categorize.png", "Categorize: information types, NSS determination and framework", 90),
     H2("5.5 Step 3 – Select"),
     SCREEN("Baseline, overlays and tailoring (/rmf/select)",
            "Apply and reconcile the control baseline, overlays, tailoring decisions and organization-defined parameters.",
@@ -202,8 +202,8 @@ PART_A = [
            "assessment work are kept as tailored in, never dropped. Overlays: CNSSI overlays only on NSS; the Classified overlay "
            "requires an explicit 'classified = Yes'; restricted overlays show 'Unavailable – pending validation'. Parameter adoption "
            "returns 409 with the conflicts before it overwrites a differing value, and can be undone."),
-    IMG(S + "sme-overlays/1-select-overlay-groups.png", "Select: official CNSSI 1253 overlay groups with applicability", 90),
-    IMG(S + "rmf-accuracy/05_parameter_comparison.png", "Select: parameter comparison (catalog vs. CNSSI 1253 vs. system values)", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/08_select.png", "Select: baseline, overlays and tailoring", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/09_control_ac2.png", "Control tab (AC-2): status, parameters and implementation statement", 90),
     SCREEN("Control catalog (/catalog)",
            "Browse the pinned NIST SP 800-53 Rev. 5 catalog with assessment objectives, baselines and content versions.", "All roles",
            "Search; filter by family or baseline; open control detail.", "None (read-only).", "Content is SHA-256 verified at load."),
@@ -236,7 +236,7 @@ PART_A = [
            "MOCKED eMASS sync payload with eMASS API field names.",
            "One implementation status (eMASS status is derived from it). Inherited controls are read-only and their Risk Assessment cannot be edited. "
            "Suggestions are never saved automatically; accepted values are audited as AI- or rule-assisted. AI never sets compliance or test results."),
-    IMG("/app/docs/ux/screens/implemented/workbench.png", "Control Workbench: list and control tabs", 92),
+    IMG("/app/docs/screenshots/wp-2026-10/10_workbench.png", "Control Workbench: list and control tabs", 92),
     SCREEN("Inheritance (/inheritance)",
            "Common and hybrid control inheritance from providers (data centres, cloud platforms, enclaves).", "ISSO, ISSM",
            "Add or edit providers with package, authorization type and expiry; import a customer responsibility matrix (CRM); bulk "
@@ -246,7 +246,7 @@ PART_A = [
            "The eMASS hardware/software list together with scan-observed hosts.", "ISSO, ISSM",
            "Import the HW/SW .xlsm; review correlations between scan hosts and assets; resolve consistency issues; export to the same template.",
            "Inventory records, discrepancy decisions, validated export.", "See section 6 (AI) and section 9 (workbooks)."),
-    IMG(S + "inventory/01_inventory_overview.png", "HW/SW Inventory overview", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/11_inventory.png", "HW/SW Inventory overview", 90),
     SCREEN("CCI view (/ccis)", "DISA CCIs of the system's controls with their policy coverage.", "ISSO, SCA",
            "Filter by control, family or coverage status; open the source policy passage.", "Coverage per CCI.",
            "Coverage comes from policy text only; 'covered elsewhere' links never turn MISSING into MET."),
@@ -255,8 +255,12 @@ PART_A = [
            "against assessment objectives and CCIs.", "ISSO, ISSM",
            "Upload; reanalyze; review proposed mappings; confirm, dismiss (with justification) or link findings; export CSV.",
            "Policy-to-control mappings with confidence and source (section/page), per-requirement coverage (met / partial / missing) with quotes.",
-           "Findings stay proposed until a human confirms them. AI may raise a requirement only with an exact quote."),
-    IMG(S + "rmf-accuracy/10_policy_mappings_confidence.png", "Policy mappings with confidence and source attribution", 90),
+           "Findings stay proposed until a human confirms them. AI may raise a requirement only with an exact quote. No silent misses: "
+           "'not present' is shown only after the whole document and a focused second look found nothing; otherwise the row is "
+           "'needs manual review' with candidate passages. Policy evidence supports at most Partially Implemented."),
+    IMG("/app/docs/screenshots/wp-2026-10/12_policy_mappings.png", "Policy mappings with confidence, matched text and decision history", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/24_policy_coverage.png", "Requirement coverage: keyword-only rows flagged for manual review", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/25_reading_report.png", "Reading report: what was read, whole-document check and second look", 85),
     SCREEN("Evidence Sources (/evidence-sources, /ingest-runs/:id)",
            "Upload STIG checklists (.ckl/.cklb), ACAS/Nessus (.nessus/CSV), SCAP/XCCDF and other evidence, and manage connectors.",
            "ISSO, DevSecOps", "Upload; follow an ingest run (processing → analysed / failed with reason); retry failed runs.",
@@ -264,7 +268,7 @@ PART_A = [
            "Upload allowlists, magic-byte checks, size limits, safe XML parsing and archive checks."),
     NOTE("mocked", "Live connectors (scanner, cloud configuration and ticketing APIs) are **MOCKED** in this release. The MockAdapter contacts no "
                    "external system, and its records are labelled 'MOCKED source · <collector>'. File import is the real ingestion path."),
-    IMG(S + "sme-final/04-stig-run-detail.png", "STIG ingest run detail", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/13_stig_run.png", "STIG ingest run detail", 90),
     H2("5.7 Step 5 – Assess"),
     SCREEN("SCA assessment workspace (/assess/workspace)",
            "The SCA's single place to work: the assessment queue, imported Test Result workbooks waiting for review and the determination "
@@ -272,7 +276,7 @@ PART_A = [
            "Pick a control; review statement and evidence; record the determination; open the next one.",
            "Assessment determinations (existing assessment service).",
            "Only the SCA records determinations; the workspace reuses the existing permissions and SCA independence rules."),
-    IMG("/app/docs/ux/screens/implemented/sca_workspace.png", "SCA assessment workspace", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/14_sca_workspace.png", "SCA assessment workspace", 90),
     SCREEN("Assessment progress (/rmf/assess)", "Assessment coverage across the system's controls.", "SCA, ISSM",
            "Filter; open controls to assess.", "Counts consistent with the stepper.", "Read-only summary."),
     SCREEN("Reviews (/reviews, /reviews/:id)",
@@ -288,27 +292,27 @@ PART_A = [
            "Exported workbook, validation report, export history.",
            "Only the SCA sets or approves Compliance Status. Approval requires 'Tested by' and a 'Date tested' not in the future. AI never "
            "sets Compliance Status, Tested By or Date Tested."),
-    IMG(S + "tr/07_ai_evidence_analysis.png", "Test Results: AI evidence analysis on a row (suggestion only)", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/15_test_results.png", "Test Results workbook (AI evidence analysis is suggestion-only)", 90),
     SCREEN("Mapping Review (/mapping-review)",
            "One queue in three main tabs – policy coverage, STIG mappings, status suggestions (plus All, status-from-policy and awaiting SCA) – "
            "with a side-by-side view of the source passage and the control requirement. Pending suggestions are also shown on the control.", "ISSO, ISSM",
            "Accept or reject proposals; map unmapped rules (with optional AI suggestion); disposition with justification.",
            "Human-approved mappings.", "AI suggestions are proposals; dispositions create reviews."),
-    IMG(S + "rmf-accuracy/11_side_by_side_review.png", "Mapping Review: side-by-side source passage and control requirement", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/16_mapping_review.png", "Mapping Review queue with confidence filters", 90),
     H2("5.8 Step 6 – Authorize"),
     SCREEN("Authorization package (/rmf/authorize, /systems/:id/authorization)",
            "Assemble the package, request ISSM endorsement and AO decision.", "ISSO, ISSM, AO",
            "Submit; endorse; decide ATO / ATO with conditions / IATT / DATO with expiry and conditions.",
            "Authorization decision record; authorization type and expiry drive the Portfolio view.",
            "Only the AO decides; denials are audited."),
-    IMG(S + "rmf-accuracy/07_authorize_authorization_type.png", "Authorize: authorization type and decision", 88),
+    IMG("/app/docs/screenshots/wp-2026-10/17_authorize.png", "Authorize: package, OSCAL exports and decision", 88),
     SCREEN("POA&M (/poams, /poams/:id)",
            "Plan of Action and Milestones with weaknesses, milestones, risk, linked findings and history.", "ISSO, ISSM, AO (risk acceptance)",
            "Create from findings (match/link rules); add milestones; request closure, risk acceptance or extension.",
            "POA&M records; OSCAL POA&M export.",
            "Remediation detection marks items closure-eligible but never closes them automatically. Status cannot change while a "
            "closure or risk review is pending. Later due dates need an extension request."),
-    IMG(S + "poam-light.png", "POA&M list", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/18_poam.png", "POA&M list", 90),
     SCREEN("eMASS Sync (/emass)",
            "Connector setup, approval-gated outbound queue, compare/import, retry with back-off, conflict resolution and failure simulation.",
            "ISSO, ISSM (queue), Platform Admin (connector)", "Queue changes; approve; resolve conflicts ('keep local' needs a fresh ISSM approval).",
@@ -324,7 +328,7 @@ PART_A = [
            "Tamper-evident list of all evidence with SHA-256, provenance, freshness, integrity status and versions.", "ISSO, SCA, ISSM",
            "Verify integrity; view, replace (new version) or remove (with reason) evidence; see dependents flagged for re-review.",
            "Integrity checks, version history.", "Removal and replacement keep history and flag dependent controls."),
-    IMG(S + "evidence-ledger-light.png", "Evidence Ledger", 90),
+    IMG("/app/docs/screenshots/wp-2026-10/19_evidence_ledger.png", "Evidence Ledger", 90),
     H2("5.10 Tools and administration"),
     SCREEN("Traceability matrix (/traceability)", "Control → implementation → evidence → finding → POA&M → assessment chain.",
            "SCA, ISSM, AO", "Filter; follow links.", "Traceability view.", "Read-only."),
