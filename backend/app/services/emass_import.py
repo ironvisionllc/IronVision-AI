@@ -473,7 +473,10 @@ def apply(db: Session, imp: EmassImport, current, meta: dict) -> dict:
                 done += risk_keys
             except HTTPException as exc:
                 failed.append(f"Risk Assessment not saved: {exc.detail}")
-        results.append({"control": i["control"], "applied": done, "failed": "; ".join(failed) or None, "warning": i.get("required_issue")})
+        results.append({"control": i["control"], "key": i.get("key") or i["control_id"], "applied": done, "failed": "; ".join(failed) or None,
+                        "warning": i.get("required_issue"),
+                        "undo": {"kind": "control_info", "assignment_id": str(a.id), "before": {k: cur.get(k) for k in done},
+                                 "imported": {k: acc[k]["imported"] for k in done}} if done else None})
     imp.status = "applied"
     imp.applied_by_email = current.user.email
     imp.finished_at = datetime.now(timezone.utc)

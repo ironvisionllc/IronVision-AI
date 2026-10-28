@@ -164,7 +164,7 @@ class AIService:
         interaction_id = await run_in_threadpool(_log_interaction, log)
         return AIResult(output=output, provider=resp.provider, model=log["model"], latency_ms=latency,
                         interaction_id=interaction_id, usage={"input": resp.input_tokens, "output": resp.output_tokens,
-                                                              "cached": resp.cached_tokens, "cache_write": resp.cache_write_tokens})
+                                                              "cached": resp.cached_tokens, "cache_write": resp.cache_write_tokens, "reasoning": resp.reasoning_tokens})
 
     async def _truncated(self, log: dict, req: AIRequest, started: float) -> None:
         log.update(status="truncated", validation_status="not_run", error=f"reply cut off at max_tokens={req.max_tokens} (finish_reason=length)",

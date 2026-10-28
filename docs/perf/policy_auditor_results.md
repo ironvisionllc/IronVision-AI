@@ -258,3 +258,39 @@ Actual spend comes from the OpenRouter key usage counter (`/api/v1/key` `usage`,
 - Not run again. See the note to root for zero-cost fixes and a revised estimate.
 
 Account: `usage_daily` for 2026-10-28 is $33.43.
+
+## Approved paid runs (i)–(iii) after the reasoning_effort=low, batch and warm-up fixes (2026-10-28, 14:56–15:03 UTC)
+
+Caps: (i) $1.20, (ii) $0.50, (iii) $6.00, overall $7.70. The spend guard polled OpenRouter `usage` every 10 s and killed a run at its cap minus a safety margin. Actual spend is the usage delta from step start to step end, read 25 s after the run stopped so billing lag is included.
+
+| step | actual | wall s | calls | truncated | input | cached read | cache write | output | reasoning | token cost |
+|---|---|---|---|---|---|---|---|---|---|---|
+| (i) RA whole doc | – | 16.5 (main 12.7, second look 0.0) | 17 | 0 | 277,455 | 212,896 | 13,306 | 19,112 | 0 | $0.369 |
+| (i) AC whole doc | – | 21.7 (main 17.5, second look 2.8) | 22 | 0 | 142,407 | 98,160 | 9,565 | 23,577 | 0 | $0.349 |
+| (i) SC whole doc | – | 15.2 (main 12.2, second look 1.9) | 18 | 0 | 114,489 | 78,672 | 9,583 | 17,903 | 0 | $0.271 |
+| **(i) total** | **$1.026** | | 57 | **0 %** | | | | | | $0.989 |
+| (ii) RA-1 trap | **$0.413** | 18.5 | 18 | 0 | 290,177 | 222,411 | 13,083 | 19,002 | 0 | $0.377 |
+| (iii) p284 adaptive | **$5.033 – ABORTED at the $5 guard (cap $6)** | ~2.5 min, not finished | 134 | 2 (1.5 %) | 627,214 | n/a | n/a | 370,239 | n/a | ≈ $4.96 |
+
+Approval total: **$6.47 actual**, under the $7.70 ceiling.
+
+Quality, (i) whole document vs the earlier retrieval-only runs (old code, before the reasoning fix):
+
+| fixture | retrieval-only: time / cost / exact | whole document (i): time / cost / exact | recall | precision | false gaps on met | gold gaps flagged |
+|---|---|---|---|---|---|---|
+| RA | 22.4 s / $0.233 / 0.724 | 16.5 s / $0.369 / 0.782 | 1.0 → 1.0 | 0.987 → 0.987 | 0 | 4/4 |
+| AC | 27.8 s / $0.273 / 0.706 | 21.7 s / $0.349 / 0.716 | 1.0 → 1.0 | 0.890 → 0.890 | 0 | 24/24 |
+| SC | 24.5 s / $0.196 / 0.801 | 15.2 s / $0.271 / 0.815 | 1.0 → 1.0 | 0.887 → 0.887 | 0 | 18/18 |
+
+The whole-document runs include the xx-1 AI check (+36–38 requirements each) and the coverage guard (all chunks covered). The retrieval-only runs covered RA 19/25 chunks.
+
+(ii) RA-1 trap (`tests/fixtures/policies/ra_policy_raven_trap_xx1.docx`; gold `docs/perf/corpus/ra_raven_trap.gold.json`: the review-frequency and designated-official sentences were removed and 12 RA-1 requirements relabelled not_addressed):
+- Recall 1.0, precision 0.91, exact 0.705, false gaps on met 0, gold gaps flagged 13/16.
+- None of the 12 came back "missing". 9 of 12 came back partial/Low "needs manual review", so they were flagged as not met:
+  - CCI-001039, 001040, 001043 and 001044 (frequency).
+  - CCI-004605, 004606 and 004608 (designated official).
+  - obj.c.1-1 and obj.c.2-1 (frequency).
+- 3 of 12 came back "met": CCI-004607, CCI-004609 and obj.b. The AI quoted the roles table that remains in the fixture: "ISSM … develop, maintain and disseminate the policy and procedures". Arguably this IS a designation, so the trap did not remove all designated-official language.
+- No other new false gaps.
+- The second look found candidate passages (the out-of-cycle review sentence) for all of them, so nothing was escalated to "confirmed absent". By design, "missing" is never claimed while a plausible passage exists.
+- Label bug found and fixed (no cost): 7 of the 9 said "AI unavailable" although the AI did answer. Its quote could not be verified, so the checklist result was used. New label: "AI answer could not be verified against the policy text (quote not found) – checklist result shown, needs manual review."

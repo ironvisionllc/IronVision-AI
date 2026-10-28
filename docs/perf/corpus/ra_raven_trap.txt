@@ -1,0 +1,298 @@
+Risk Assessment (RA) Policy — DoD AWS Cloud System
+
+DEMONSTRATION TEMPLATE — NOT AN APPROVED POLICY. This document is a notional example for demo use. Bracketed text and every assigned parameter value (frequencies, timelines, impact levels) are placeholders. Confirm each against the system's approved categorization, the applicable CNSSI 1253 overlay, and Component direction before use.
+Document Control
+Item | Value
+Policy title | Risk Assessment (RA) Policy
+Policy ID | IronVision-POL-RA-001
+Version | 0.1
+System | The Raven, eMASS ID: 123
+Owning organization | IronVision Program Office
+Policy owner | Information System Security Manager (ISSM)
+Approving official | Authorizing Official (AO)
+Control source | NIST SP 800-53 Rev. 5, Risk Assessment (RA) family
+Demo categorization | Confidentiality Moderate, Integrity Moderate, Availability Moderate
+Demo cloud impact level | DoD Impact Level 0
+Hosting environment | AWS GovCloud (US), Infrastructure as a Service and Platform as a Service
+Classification of this document | UNCLASSIFIED (demo content only)
+1. Purpose
+Controls addressed: RA-1a.1(a) (purpose, management commitment)
+This policy sets the mandatory requirements for identifying, assessing, and responding to security and privacy risk to The Raven hosted in AWS GovCloud (US). It implements the Risk Assessment (RA) control family of NIST SP 800-53 Rev. 5 under the DoD Risk Management Framework (RMF).
+IronVision leadership commits to resourcing the activities in this policy. Risk decisions for The Raven shall be made by the Authorizing Official on the basis of current, documented risk information.
+2. Scope and Applicability
+Controls addressed: RA-1a.1(a) (scope)
+This policy applies to every component inside the The Raven authorization boundary and to everyone who builds, operates, secures, or assesses it.
+In scope:
+All AWS GovCloud (US) accounts, regions, Virtual Private Clouds, and AWS services provisioned for The Raven.
+Customer-managed resources: Amazon EC2 instances, container images, serverless functions, databases, storage, infrastructure-as-code, and CI/CD pipelines.
+Interconnections to the DoD Information Network (DoDIN), including the Boundary Cloud Access Point (BCAP) or approved equivalent.
+Development, test, staging, and production environments.
+Military, civilian, and contractor personnel with any role on the system, and third-party suppliers of software or services used by it.
+Out of scope: the AWS physical facilities, hardware, and hypervisor layer. Those are covered by the AWS GovCloud (US) FedRAMP and DoD provisional authorizations and are inherited (see Section 14).
+3. Authority and References
+Controls addressed: RA-1a.1(b) (consistency with applicable laws, directives, regulations, policies, standards, and guidelines)
+This policy is issued under the authority of the IronVision Chief Information Security Officer and is consistent with the sources below. Use the current published version of each.
+Reference | Relevance to this policy
+Federal Information Security Modernization Act (FISMA) of 2014 | Statutory basis for federal risk-based security programs
+E-Government Act of 2002, Section 208 | Privacy impact assessment requirement
+NIST SP 800-53 Rev. 5 | Control catalog; source of the RA family
+NIST SP 800-53A Rev. 5 | Assessment procedures for RA controls
+NIST SP 800-53B | Control baselines
+NIST SP 800-37 Rev. 2 | Risk Management Framework
+NIST SP 800-30 Rev. 1 | Risk assessment methodology
+NIST SP 800-39 | Organization-wide risk management
+NIST SP 800-60 Vol. 1 and 2 | Mapping information types to security categories
+NIST SP 800-161 Rev. 1 | Cybersecurity supply chain risk management
+NIST SP 800-40 Rev. 4 | Enterprise patch management
+FIPS 199 and FIPS 200 | Security categorization and minimum security requirements
+CNSSI 1253 | Categorization and control selection for national security systems
+DoDI 8500.01 | DoD cybersecurity program
+DoDI 8510.01 | RMF for DoD systems
+DoDI 8530.01 | Cybersecurity activities support to DoDIN operations (CSSP)
+DoDI 5200.44 | Protection of mission critical functions (Trusted Systems and Networks)
+DoDI 5400.16 | DoD privacy impact assessment guidance; DD Form 2930
+DoD Cloud Computing Security Requirements Guide (CC SRG) | Cloud impact levels and cloud-specific requirements
+DFARS 252.239-7010 | Cloud computing services contract clause
+DISA STIGs and SRGs | Secure configuration baselines used in vulnerability assessment
+FedRAMP High baseline and AWS GovCloud (US) authorization package | Basis for inherited controls
+4. Roles and Responsibilities
+Role | Risk assessment responsibilities
+Authorizing Official (AO) | Approves the security categorization. Sets risk tolerance. Accepts residual risk. Approves exceptions and POA&M extensions.
+Component CISO / Senior Information Security Officer | Issues this policy. Integrates system-level results into Component risk management.
+Information System Owner (ISO) / Program Manager | Funds and schedules assessments and remediation. Owns the POA&M. Leads criticality analysis.
+ISSM (policy owner) | Maintains this policy and procedures. Oversees risk assessments, vulnerability management, and reporting in eMASS.
+Information System Security Officer (ISSO) | Runs scans. Analyzes results. Tracks remediation. Maintains the Risk Assessment Report (RAR).
+Security Control Assessor (SCA) | Independently assesses RA controls and validates remediation evidence.
+Cloud / DevSecOps engineering team | Remediates findings. Keeps scanning integrated in the pipeline. Maintains infrastructure-as-code baselines.
+Cybersecurity Service Provider (CSSP) | Provides threat intelligence, monitoring, incident response, and threat hunting support under DoDI 8530.01.
+Component Privacy Officer | Reviews and approves privacy impact assessments.
+Supply chain risk management (SCRM) lead | Conducts supplier and component risk assessments.
+Information Owner / Mission Owner | Identifies information types and mission impact for categorization.
+AWS (Cloud Service Provider) | Performs risk and vulnerability management for the infrastructure it operates, as documented in its authorization package.
+The ISSM shall coordinate risk assessment activity across these roles through the The Raven Cybersecurity Working Group, held at least monthly.
+5. Policy and Procedures Management
+Controls addressed: RA-1 (a, b, c)
+This policy and its supporting procedures shall be documented, disseminated, and kept current.
+The ISSM shall develop and maintain this system-level risk assessment policy, covering purpose, scope, roles, responsibilities, management commitment, coordination, and compliance. (RA-1a.1)
+The ISSM shall develop and maintain procedures that implement this policy and the RA controls. At minimum: a categorization procedure, a risk assessment procedure, a vulnerability management standard operating procedure, and a POA&M management procedure. (RA-1a.2)
+The policy and procedures shall be disseminated to the AO, ISO, ISSO, SCA, engineering team, CSSP liaison, and Privacy Officer, and posted in the The Raven eMASS artifact repository. (RA-1a)
+An out-of-cycle review of both shall follow any of these events: a significant system change, a change in categorization or impact level, a security incident affecting the system, a new or revised DoD, CNSS, or NIST issuance, or an assessment or audit finding against an RA control. (RA-1c.1, RA-1c.2)
+Each review shall be recorded in a revision history with the date, reviewer, and summary of change.
+6. Security Categorization
+Controls addressed: RA-2 (a, b, c); RA-2(1)
+The Raven and the information it handles shall be categorized before control selection, and the categorization shall be approved by the AO.
+The ISO, with the Information Owner, shall categorize the system and its information using CNSSI 1253. Confidentiality, integrity, and availability each receive their own impact value; no high-water mark is applied across the three. (RA-2a)
+Information types shall be identified using NIST SP 800-60 and the DoD Registry. (RA-2a)
+The Mission Owner shall determine the DoD cloud impact level under the CC SRG. Workloads shall be deployed only to AWS regions and services that hold a DoD provisional authorization at or above that level. (RA-2a)
+The categorization, with supporting rationale and any applicable overlays (for example Privacy or Classified Information), shall be documented in the System Security Plan and the eMASS record. (RA-2b)
+The AO or AO Designated Representative shall review and approve the categorization before controls are tailored. (RA-2c)
+The categorization shall be re-validated at least annually and whenever a new information type, mission, or interconnection is added. (RA-2a)
+Within the system, components shall be prioritized by impact so that protection and remediation effort goes first to the highest-impact components. This prioritization feeds the criticality analysis in Section 11. (RA-2(1))
+Demo values: Moderate / Moderate / Moderate; Impact Level 0; AWS GovCloud (US).
+7. Risk Assessment
+Controls addressed: RA-3 (a–f); RA-3(1); RA-3(2); RA-3(3)
+A documented risk assessment of The Raven shall be performed before initial authorization and kept current for the life of the system.
+7.1 System risk assessment
+Controls addressed: RA-3 (a–f)
+The ISSM shall conduct risk assessments using the NIST SP 800-30 Rev. 1 methodology. Each assessment shall identify threats and vulnerabilities, and determine the likelihood and magnitude of harm from unauthorized access, use, disclosure, disruption, modification, or destruction of the system and its information. (RA-3a.1, RA-3a.2)
+Where the system processes personally identifiable information (PII), the assessment shall also determine the likelihood and impact of adverse effects on individuals. (RA-3a.3)
+The assessment shall cover cloud-specific threat scenarios, including: compromised IAM credentials or access keys, over-permissive IAM policies and roles, publicly exposed storage or snapshots, misconfigured security groups and network paths, cross-account trust abuse, insecure CI/CD pipelines and infrastructure-as-code, vulnerable container images and third-party libraries, and loss of an Availability Zone or region. (RA-3a.1)
+System-level results shall be integrated with Component and mission-level risk decisions, and Component risk tolerance shall be applied to system findings. (RA-3b)
+Results shall be documented in a Risk Assessment Report (RAR), reflected in the System Security Plan and Security Assessment Report, and recorded in eMASS. (RA-3c)
+The ISSM and ISO shall review risk assessment results at least annually. (RA-3d)
+Results shall be disseminated to the AO, ISO, SCA, CSSP, and Component CISO. (RA-3e)
+The risk assessment shall be updated at least annually and whenever there is a significant change to the system, its operating environment, or its threat picture. Significant changes include a new AWS service or region, a new external interconnection, a major architecture change, a change in categorization, or a serious incident. (RA-3f)
+Risk level shall be determined from likelihood and impact using the matrix below.
+Likelihood \ Impact | Very Low | Low | Moderate | High | Very High
+Very High | Very Low | Low | Moderate | High | Very High
+High | Very Low | Low | Moderate | High | Very High
+Moderate | Very Low | Low | Moderate | Moderate | High
+Low | Very Low | Low | Low | Low | Moderate
+Very Low | Very Low | Very Low | Very Low | Low | Low
+Source: NIST SP 800-30 Rev. 1, Table I-2.
+7.2 Supply chain risk assessment
+Controls addressed: RA-3(1)
+The SCRM lead shall assess supply chain risk for the system's cloud services, commercial and open-source software, container base images, AWS Marketplace products, and managed service providers. (RA-3(1)(a))
+Assessments shall follow NIST SP 800-161 Rev. 1 and consider supplier provenance, foreign ownership, control, or influence, software bill of materials (SBOM) content, and known-exploited vulnerabilities in dependencies. (RA-3(1)(a))
+Container images and software shall be drawn from DoD-approved sources (for example a hardened, approved registry) where one exists. (RA-3(1)(a))
+The supply chain risk assessment shall be updated at least annually, when a supplier or critical component changes, and when system or environment changes warrant. (RA-3(1)(b))
+7.3 Threat awareness
+Controls addressed: RA-3(2); RA-3(3)
+These enhancements are outside the NIST Moderate baseline and are adopted here as demo tailoring.
+Risk assessments shall draw on all-source threat information available through the CSSP and DoD cyber threat reporting channels. (RA-3(2))
+The ISSO shall monitor the threat environment continuously, using CSSP reporting, vulnerability alerts, and AWS security bulletins, and shall trigger an out-of-cycle risk assessment update when the threat picture changes materially. (RA-3(3))
+8. Vulnerability Monitoring and Scanning
+Controls addressed: RA-5 (a–f); RA-5(2); RA-5(3); RA-5(4); RA-5(5); RA-5(6); RA-5(8); RA-5(10); RA-5(11)
+Every asset in the The Raven boundary shall be continuously monitored and regularly scanned for vulnerabilities, and legitimate findings shall be remediated within the timelines in Section 8.3.
+8.1 Scanning requirements
+Controls addressed: RA-5 (a, b, c, f); RA-5(2); RA-5(3); RA-5(5)
+The ISSO shall monitor and scan the system and hosted applications on the schedule below, and again whenever a new vulnerability potentially affecting the system is identified and reported. (RA-5a)
+Scan coverage shall be 100 percent of assets in the system inventory. Inventory shall be reconciled against AWS Config and account resource listings before each scan cycle so that short-lived and auto-scaled resources are not missed. (RA-5(3))
+Scanning tools shall use Security Content Automation Protocol (SCAP) standards: CVE for software flaws, CCE for configurations, CPE for platforms, CVSS for impact scoring, and XCCDF and OVAL for checklists and test procedures. (RA-5b)
+Scanning tools shall be able to update their vulnerability content readily. Signatures and plugins shall be updated before each scan and whenever new vulnerabilities are announced. (RA-5f, RA-5(2))
+Host, database, and web application scans shall be authenticated. Scanners shall be given the privileged access needed for full results, through dedicated, least-privilege, logged service accounts and IAM roles. (RA-5(5))
+The ISSO shall analyze scan reports and monitoring results within 5 business days of each scan, and shall document false positives with evidence for SCA review. (RA-5c)
+Penetration testing and scanning of AWS resources shall stay within the AWS customer policy for penetration testing and the approved rules of engagement.
+Target | Tooling (demo) | Minimum frequency (demo)
+EC2 operating systems | ACAS; Amazon Inspector | Authenticated scan monthly; Inspector continuous
+Container images | Amazon ECR scanning with Inspector; pipeline scanner | At build, on push, and continuously while in the registry
+Serverless functions and code dependencies | Amazon Inspector; software composition analysis in CI/CD | On every build; continuous for deployed functions
+Databases | ACAS database checks; STIG review | Monthly
+Web applications and APIs | Dynamic application security testing | Monthly and before each major release
+AWS account and service configuration | AWS Config rules; AWS Security Hub standards | Continuous
+Infrastructure-as-code templates | Static policy checks in CI/CD | On every commit
+STIG and SRG compliance | SCAP Compliance Checker; STIG Viewer checklists | Monthly and after significant change
+8.2 Exposure and correlation
+Controls addressed: RA-5(4); RA-5(6); RA-5(8); RA-5(10)
+RA-5(4) is a High-baseline enhancement; RA-5(6), (8), and (10) are outside the baselines. All four are adopted here as demo tailoring.
+At least quarterly, the ISSO shall determine what information about the system is discoverable from outside the boundary and correct any exposure. Checks shall include public S3 buckets, public AMIs and snapshots, externally shared resources reported by IAM Access Analyzer, exposed DNS records and endpoints, and secrets in code repositories. (RA-5(4))
+Results of successive scans shall be compared by automated means to identify trends, recurring findings, and remediation that did not hold. (RA-5(6))
+When a high or critical vulnerability is found, the ISSO shall review AWS CloudTrail, VPC Flow Logs, and host logs for at least the prior 90 days to determine whether it was previously exploited. (RA-5(8))
+Findings from all scanning tools shall be aggregated in AWS Security Hub or the Component SIEM and correlated to identify multi-vulnerability and multi-hop attack paths. (RA-5(10))
+8.3 Remediation and information sharing
+Controls addressed: RA-5 (d, e); RA-5(11)
+Legitimate vulnerabilities shall be remediated within the timelines below, measured from the date of discovery. (RA-5d)
+A finding that cannot be closed in time shall be entered in the eMASS POA&M with mitigations and milestones before the due date (see Section 9). (RA-5d)
+Dates set by an Information Assurance Vulnerability Management (IAVM) notice or other DoD cyber order take precedence over this table. (RA-5d)
+Vulnerability information shall be shared with the AO, ISO, CSSP, and owners of interconnected or similar systems to help eliminate the same weakness elsewhere. (RA-5e)
+The system shall accept reports of vulnerabilities from the public through the DoD Vulnerability Disclosure Program. Reports shall be triaged within 3 business days and handled under this section. (RA-5(11))
+Severity | Remediate within (demo)
+Known exploited, or directed by IAVM or DoD cyber order | Date in the directive
+Critical or High (CAT I) | 30 days
+Moderate (CAT II) | 90 days
+Low (CAT III) | 180 days
+9. Risk Response
+Controls addressed: RA-7
+Every finding from a security or privacy assessment, continuous monitoring, or an audit shall receive a documented risk response consistent with the AO's risk tolerance.
+The ISO, advised by the ISSM, shall select one response for each finding: mitigate, accept, avoid, or share or transfer. (RA-7)
+Mitigate. Remediate or apply compensating controls within the Section 8.3 timelines. Open items shall be tracked in the eMASS POA&M with an owner, resources, milestones, and a scheduled completion date.
+Accept. Only the AO may accept risk. Acceptance shall be in writing, state the rationale and any compensating controls, and carry an expiration date of no more than 12 months.
+Avoid. Remove the function, service, or component that creates the risk, for example by disabling an unneeded AWS service through a service control policy.
+Share or transfer. Document the receiving party and the agreement that covers it, such as an inherited control, a service level agreement, or an interconnection agreement.
+Findings rated Very High or High shall be reported to the AO within 3 business days of validation.
+The ISSM shall review the POA&M at least monthly and report status to the AO at least quarterly.
+A POA&M item shall be closed only after the SCA or ISSM validates remediation evidence, such as a clean re-scan.
+10. Privacy Impact Assessments
+Controls addressed: RA-8 (a, b); supports RA-3a.3
+A privacy impact assessment (PIA) shall be completed and approved before The Raven collects, maintains, uses, or disseminates PII.
+The ISO shall complete a DD Form 2930 in accordance with DoDI 5400.16 before developing or procuring information technology that processes PII. (RA-8a)
+A PIA shall also be completed before initiating a new collection of PII that will be processed using information technology, as described in Section 208 of the E-Government Act. (RA-8b)
+Where the system holds no PII, the DD Form 2930 shall still be completed to document that determination.
+The Component Privacy Officer shall review and approve each PIA. The approved PIA shall be uploaded to eMASS.
+The PIA shall be reviewed at least every 3 years and updated whenever a change creates new privacy risk. Examples: a new PII data element, a new sharing partner, a new AWS service that stores or processes PII, or a move of PII to another region or account.
+Privacy risks identified in the PIA shall be carried into the risk assessment in Section 7 and the risk response process in Section 9.
+11. Criticality Analysis
+Controls addressed: RA-9; supports RA-2(1) and RA-3(1)
+The components and functions of The Raven that are critical to mission success shall be identified through a criticality analysis and given priority for protection.
+The ISO shall perform a criticality analysis of system components, functions, and services, consistent with DoDI 5200.44. (RA-9)
+The analysis shall be performed at these decision points: architecture and design, before each major release, before adding a new AWS service or third-party component, and at least annually during operations. (RA-9)
+Cloud elements that shall always be evaluated include: the identity plane (IAM, federation, and the DoD PKI integration), AWS KMS keys and key policies, the logging and audit account, network boundary and BCAP connectivity, the CI/CD pipeline and artifact registry, and mission data stores.
+Each critical component shall be recorded with its mission function, the impact of its loss or compromise, its dependencies, and its supplier.
+Results shall drive tighter access control, monitoring, and remediation priority for critical components, and shall feed the supply chain risk assessment in Section 7.2 and contingency planning.
+12. Threat Hunting
+Controls addressed: RA-10 (a, b)
+RA-10 is outside the NIST baselines and is adopted here as demo tailoring.
+The Raven shall maintain a cyber threat hunting capability that actively searches for adversary activity that existing controls have not detected.
+The ISSM, with the CSSP, shall establish and maintain a threat hunting capability to search for indicators of compromise in the system and to detect, track, and disrupt threats that evade existing controls. (RA-10a)
+Threat hunts shall be conducted at least quarterly, and whenever CSSP reporting or a DoD cyber order identifies a threat relevant to the system. (RA-10b)
+Hunts shall use, at minimum: AWS CloudTrail management and data events, VPC Flow Logs, DNS query logs, Amazon GuardDuty findings, load balancer and web application firewall logs, and host and container telemetry.
+Each hunt shall start from a written hypothesis mapped to MITRE ATT&CK techniques relevant to cloud environments.
+Each hunt shall produce a short report. Confirmed malicious activity shall be handled under the incident response plan. New indicators and detection logic shall be added to monitoring. Newly identified risks shall be entered into the risk assessment (Section 7).
+13. Technical Surveillance Countermeasures Survey
+Controls addressed: RA-6; RA-4 (withdrawn)
+RA-6 is not selected for The Raven. It is outside the NIST baselines, and the system has no customer-controlled facility that processes classified information.
+Physical protection of AWS GovCloud (US) data centers is AWS's responsibility under its authorization. (RA-6)
+If the AO directs a technical surveillance countermeasures survey of a government facility used to administer the system, the ISSM shall request it through the Component's counterintelligence or security office. (RA-6)
+This determination shall be revisited if the system's classification or hosting model changes. (RA-6)
+RA-4 (Risk Assessment Update) was withdrawn in Rev. 5 and incorporated into RA-3. Its intent is met by Section 7.1, item 8.
+14. AWS Shared Responsibility and Inheritance
+Controls addressed: all RA controls (implementation responsibility); supports RA-1a.1(a) (coordination among organizational entities)
+AWS is responsible for risk management of the cloud infrastructure; IronVision is responsible for everything it configures and deploys in it. The split below is a demo starting point. Confirm each entry against the current AWS Customer Responsibility Matrix and record it in eMASS.
+Control | AWS responsibility | The Raven responsibility | Type
+RA-1 | Maintains its own policy for its infrastructure | This policy and its procedures | System-specific
+RA-2 | None | Categorize the system and select the impact level | System-specific
+RA-3, RA-3(1) | Risk and supplier assessments for facilities, hardware, hypervisor, and managed service internals | Risk and supply chain assessments for the tenant environment, workloads, and data | Hybrid
+RA-5 and enhancements | Scans and patches the infrastructure and the hosts behind managed services | Scans and remediates guest operating systems, containers, code, and AWS resource configuration | Hybrid
+RA-6 | Physical security of AWS facilities | Not selected | Not applicable
+RA-7 | Responds to findings in its own environment | Responds to all tenant findings; manages the POA&M | Hybrid
+RA-8 | None | Complete and maintain the DD Form 2930 | System-specific
+RA-9 | Criticality of its own infrastructure components | Criticality analysis of system functions and components | Hybrid
+RA-10 | Hunts for threats within its own infrastructure | Tenant threat hunting with the CSSP | Hybrid
+The ISSM shall review the AWS GovCloud (US) authorization package and continuous monitoring deliverables at least annually and note any change that affects inherited RA controls.
+Only AWS services authorized at the system's impact level shall be used. A request to use a new service shall trigger the risk assessment update in Section 7.1, item 8.
+AWS security bulletins shall be monitored as an input to vulnerability and threat awareness (Sections 7.3 and 8).
+15. Compliance, Exceptions, and Enforcement
+Controls addressed: RA-1a.1(a) (compliance); supports RA-7
+Compliance with this policy is mandatory for all personnel in scope and shall be verified through assessment and continuous monitoring.
+The SCA shall assess the RA controls using NIST SP 800-53A Rev. 5 procedures before authorization and on the schedule in the continuous monitoring plan.
+The ISSM shall report these measures to the AO at least quarterly: scan coverage as a percentage of inventory, count of open findings by severity, count of findings past due, average days to remediate by severity, and POA&M items past their scheduled completion date.
+A request for an exception shall be submitted in writing to the ISSM with the justification, compensating controls, and duration. Only the AO may approve an exception, for no more than 12 months, and it shall be recorded in eMASS.
+Violations shall be reported to the ISSM. Personnel who violate this policy may lose system access and may face administrative, contractual, or disciplinary action under applicable regulations.
+Records produced under this policy (risk assessment reports, scan results, POA&Ms, PIAs, hunt reports) shall be retained in accordance with the Component records schedule.
+16. Control Traceability Matrix
+Controls addressed: entire RA family (cross-reference)
+Every control and active enhancement in the Rev. 5 RA family maps to a section of this policy or is marked not selected. The baseline column shows NIST SP 800-53B (L = Low, M = Moderate, H = High, P = Privacy); the system's CNSSI 1253 baseline governs where it differs.
+Control | Title | 800-53B baseline | Policy section | Status in this policy
+RA-1 | Policy and Procedures | L, M, H, P | 1–5, 15 | Addressed
+RA-2 | Security Categorization | L, M, H | 6 | Addressed
+RA-2(1) | Impact-Level Prioritization | None | 6 | Addressed (tailored in)
+RA-3 | Risk Assessment | L, M, H, P | 7.1 | Addressed
+RA-3(1) | Supply Chain Risk Assessment | L, M, H | 7.2 | Addressed
+RA-3(2) | Use of All-Source Intelligence | None | 7.3 | Addressed (tailored in)
+RA-3(3) | Dynamic Threat Awareness | None | 7.3 | Addressed (tailored in)
+RA-3(4) | Predictive Cyber Analytics | None | None | Not selected
+RA-4 | Risk Assessment Update | Withdrawn | 13 | Incorporated into RA-3
+RA-5 | Vulnerability Monitoring and Scanning | L, M, H | 8.1, 8.3 | Addressed
+RA-5(2) | Update Vulnerabilities to Be Scanned | L, M, H | 8.1 | Addressed
+RA-5(3) | Breadth and Depth of Coverage | None | 8.1 | Addressed (tailored in)
+RA-5(4) | Discoverable Information | H | 8.2 | Addressed (tailored in)
+RA-5(5) | Privileged Access | M, H | 8.1 | Addressed
+RA-5(6) | Automated Trend Analyses | None | 8.2 | Addressed (tailored in)
+RA-5(8) | Review Historic Audit Logs | None | 8.2 | Addressed (tailored in)
+RA-5(10) | Correlate Scanning Information | None | 8.2 | Addressed (tailored in)
+RA-5(11) | Public Disclosure Program | L, M, H | 8.3 | Addressed
+RA-6 | Technical Surveillance Countermeasures Survey | None | 13 | Not selected
+RA-7 | Risk Response | L, M, H, P | 9 | Addressed
+RA-8 | Privacy Impact Assessments | P | 10 | Addressed
+RA-9 | Criticality Analysis | M, H | 11 | Addressed
+RA-10 | Threat Hunting | None | 12 | Addressed (tailored in)
+RA-5(1), RA-5(7), and RA-5(9) were withdrawn in Rev. 5 and are not listed.
+17. Acronyms
+Acronym | Meaning
+ACAS | Assured Compliance Assessment Solution
+AO | Authorizing Official
+BCAP | Boundary Cloud Access Point
+CC SRG | Cloud Computing Security Requirements Guide
+CNSSI | Committee on National Security Systems Instruction
+CSSP | Cybersecurity Service Provider
+DISA | Defense Information Systems Agency
+DoDI | Department of Defense Instruction
+DoDIN | Department of Defense Information Network
+eMASS | Enterprise Mission Assurance Support Service
+IAM | Identity and Access Management
+IAVM | Information Assurance Vulnerability Management
+ISO | Information System Owner
+ISSM | Information System Security Manager
+ISSO | Information System Security Officer
+KMS | Key Management Service
+PIA | Privacy Impact Assessment
+PII | Personally Identifiable Information
+POA&M | Plan of Action and Milestones
+RAR | Risk Assessment Report
+RMF | Risk Management Framework
+SCA | Security Control Assessor
+SCAP | Security Content Automation Protocol
+SCRM | Supply Chain Risk Management
+SRG | Security Requirements Guide
+STIG | Security Technical Implementation Guide
+18. Approval and Revision History
+This policy takes effect on the date of the Authorizing Official's signature.
+Role | Name | Signature | Date
+Authorizing Official | Momma Bear |  | 
+Component CISO | Pappa Bear |  | 
+Information System Owner | Sister Bear |  | 
+ISSM (policy owner) | Brother Bear |  | 
+Component Privacy Officer | Baby Bear |  | 
+
+Version | Date | Author | Summary of change
+0.1 | 2026-10-07 | Berenstain | Initial demo draft

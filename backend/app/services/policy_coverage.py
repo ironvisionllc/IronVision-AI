@@ -419,6 +419,7 @@ def xx1_ai() -> bool:
 
 
 XX1_ONLY = "AI unavailable for this control – policy-element checklist only, needs manual review."
+AI_UNVERIFIED = "AI answer could not be verified against the policy text (quote not found) – checklist result shown, needs manual review."
 
 
 def evaluate_req(text: str, sents: list, control_id: str, req: dict, fam: str) -> tuple[str, dict]:
@@ -529,8 +530,10 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
             out.extend(c for c in old.values() if c.control_id == m.control_id)
             continue
         ttl = titles.get(m.control_id, "")
+        ai_seen: set = set()
         if m.control_id in ai_by_ctl and (not is_xx1(m.control_id) or xx1_ai()):
             ai = ai_by_ctl[m.control_id]
+            ai_seen = {k for k, v in ai.items() if v}
             det = [(r["status"], list(r.get("snippets") or [])) for _, r in results]
             merged = [(c, pp.apply_ai(text, {**r, "_req": (req["text"], ttl)}, ai.get(req["id"]))) for req, (c, r) in zip(reqs, results)]
             results = [("profile-ai" if r.get("basis") == "ai" else c, r) for c, r in merged]
@@ -551,7 +554,7 @@ def analyze(db: Session, policy: Policy, use_ai: bool = False, ai_prefetched: di
             if concept != "profile-ai" and r["status"] != "met":  # no AI verdict: never "language not present"
                 was_missing = r["status"] == "missing"
                 r["status"], r["confidence"] = "partial", "Low"
-                lead = XX1_ONLY if is_xx1(m.control_id) else KEYWORD_ONLY
+                lead = (AI_UNVERIFIED if req["id"] in ai_seen else XX1_ONLY if is_xx1(m.control_id) else KEYWORD_ONLY)
                 r["reason"] = (lead + " " + (r.get("reason") or "").replace("No sentence addresses this requirement.", "No keyword match was found.")).strip()[:2000]
                 if is_xx1(m.control_id) and was_missing and r.get("needs"):
                     r["needs"] = ("Manual review needed (checklist only): " + r["needs"])[:2000]

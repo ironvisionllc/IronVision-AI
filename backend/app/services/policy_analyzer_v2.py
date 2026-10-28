@@ -247,9 +247,12 @@ class Run:
                     self.st["tokens_out"] += u.get("output") or 0
                     self.st["tokens_cached"] += u.get("cached") or 0
                     self.st["tokens_cache_write"] += u.get("cache_write") or 0
+                    self.st["tokens_reasoning"] += u.get("reasoning") or 0
                     self.st["prompt_cache_hits"] += 1 if (u.get("cached") or 0) > 0 else 0
                 break
             except AIOutputTruncatedError:
+                with self.lock:
+                    self.st["truncated_calls"] += 1
                 with self.lock:
                     self.st["truncated"] += 1
                 if len(items) == 1:

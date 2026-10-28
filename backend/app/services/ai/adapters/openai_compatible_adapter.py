@@ -135,6 +135,7 @@ class Provider(AIProvider):
                 return AIResponse(text=content, provider=self.name, model=data.get("model") or model,
                                   input_tokens=usage.get("prompt_tokens"), output_tokens=usage.get("completion_tokens"),
                                   cached_tokens=det.get("cached_tokens"), cache_write_tokens=det.get("cache_write_tokens"),
+                                  reasoning_tokens=(usage.get("completion_tokens_details") or {}).get("reasoning_tokens"),
                                   finish_reason="length" if finish in ("length", "max_tokens") else finish)
         raise AssertionError("unreachable")
 

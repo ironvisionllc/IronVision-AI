@@ -1,0 +1,970 @@
+{
+ "document": "ra_policy_raven_trap_xx1.docx (RA fixture minus the RA-1 review-frequency and designated-official sentences)",
+ "labelled_by": "engineer reading of the policy text incl. tables (2026-10-27); labels: met | partial | not_addressed | trap variant 2026-10-28: 12 RA-1 requirements relabelled not_addressed",
+ "requirements": [
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-001037",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-001038",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-001039",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-001040",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-001041",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-001042",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-001043",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-001044",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-002368",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-002369",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004603",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004604",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004605",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004606",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004607",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004608",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004609",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004610",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004611",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004612",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "CCI-004613",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a-1",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a-2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a-3",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a-4",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a.1.a-1",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a.1.a-2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a.1.a-3",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a.1.a-4",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a.1.a-5",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a.1.a-6",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a.1.a-7",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.a.1.b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.b",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.c.1-1",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.c.1-2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.c.2-1",
+   "label": "not_addressed",
+   "note": "TRAP: review-frequency / designated-official sentences removed from the fixture"
+  },
+  {
+   "control_id": "ra-1",
+   "requirement_id": "ra-1_obj.c.2-2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-2",
+   "requirement_id": "CCI-001046",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-2",
+   "requirement_id": "CCI-001047",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-2",
+   "requirement_id": "CCI-004614",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-2",
+   "requirement_id": "CCI-004615",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-2",
+   "requirement_id": "CCI-004616",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-2",
+   "requirement_id": "ra-2_obj.a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-2",
+   "requirement_id": "ra-2_obj.b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-2",
+   "requirement_id": "ra-2_obj.c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-2.1",
+   "requirement_id": "CCI-004617",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-2.1",
+   "requirement_id": "ra-2.1_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-001048",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-001049",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-001050",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-001051",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-001052",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-001053",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-001642",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-002370",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-002371",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-004618",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-004619",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-004620",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-004621",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-004622",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "CCI-004623",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "ra-3_obj.a.1",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "ra-3_obj.a.2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "ra-3_obj.a.3",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "ra-3_obj.b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "ra-3_obj.c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "ra-3_obj.d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "ra-3_obj.e",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3",
+   "requirement_id": "ra-3_obj.f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.1",
+   "requirement_id": "CCI-004624",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.1",
+   "requirement_id": "CCI-004625",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.1",
+   "requirement_id": "CCI-004626",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.1",
+   "requirement_id": "CCI-004627",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.1",
+   "requirement_id": "ra-3.1_obj.a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.1",
+   "requirement_id": "ra-3.1_obj.b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.2",
+   "requirement_id": "CCI-004628",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.2",
+   "requirement_id": "ra-3.2_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.3",
+   "requirement_id": "CCI-004629",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.3",
+   "requirement_id": "CCI-004630",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-3.3",
+   "requirement_id": "ra-3.3_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-001054",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-001055",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-001056",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-001057",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-001058",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-001059",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-001060",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-001061",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-001641",
+   "label": "not_addressed",
+   "note": "No random-scan process: scans are scheduled/event-driven only."
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-001643",
+   "label": "not_addressed",
+   "note": "No random-scan process."
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-002376",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-004634",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-004635",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "CCI-004636",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "ra-5_obj.a-1",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "ra-5_obj.a-2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "ra-5_obj.b",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "ra-5_obj.b.1",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "ra-5_obj.b.2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "ra-5_obj.b.3",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "ra-5_obj.c",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "ra-5_obj.d",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "ra-5_obj.e",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5",
+   "requirement_id": "ra-5_obj.f",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.2",
+   "requirement_id": "CCI-001063",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.2",
+   "requirement_id": "CCI-001064",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.2",
+   "requirement_id": "ra-5.2_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.3",
+   "requirement_id": "CCI-002373",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.3",
+   "requirement_id": "ra-5.3_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.4",
+   "requirement_id": "CCI-001066",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.4",
+   "requirement_id": "CCI-002374",
+   "label": "partial",
+   "note": "'correct any exposure' \u2013 corrective action stated generically, not defined."
+  },
+  {
+   "control_id": "ra-5.4",
+   "requirement_id": "CCI-002375",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.4",
+   "requirement_id": "ra-5.4_obj-1",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.4",
+   "requirement_id": "ra-5.4_obj-2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.5",
+   "requirement_id": "CCI-001067",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.5",
+   "requirement_id": "CCI-001645",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.5",
+   "requirement_id": "CCI-002906",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.5",
+   "requirement_id": "ra-5.5_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.6",
+   "requirement_id": "CCI-001068",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.6",
+   "requirement_id": "CCI-004637",
+   "label": "partial",
+   "note": "'compared by automated means' \u2013 mechanism not named."
+  },
+  {
+   "control_id": "ra-5.6",
+   "requirement_id": "ra-5.6_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.8",
+   "requirement_id": "CCI-001071",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.8",
+   "requirement_id": "CCI-004638",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.8",
+   "requirement_id": "CCI-004639",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.8",
+   "requirement_id": "ra-5.8_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.10",
+   "requirement_id": "CCI-002372",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.10",
+   "requirement_id": "ra-5.10_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.11",
+   "requirement_id": "CCI-004640",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-5.11",
+   "requirement_id": "ra-5.11_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-7",
+   "requirement_id": "CCI-004641",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-7",
+   "requirement_id": "CCI-004642",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-7",
+   "requirement_id": "CCI-004643",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-7",
+   "requirement_id": "CCI-004644",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-7",
+   "requirement_id": "ra-7_obj-1",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-7",
+   "requirement_id": "ra-7_obj-2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-7",
+   "requirement_id": "ra-7_obj-3",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-7",
+   "requirement_id": "ra-7_obj-4",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-8",
+   "requirement_id": "CCI-004645",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-8",
+   "requirement_id": "CCI-004646",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-8",
+   "requirement_id": "CCI-004647",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-8",
+   "requirement_id": "ra-8_obj.a",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-8",
+   "requirement_id": "ra-8_obj.b-1",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-8",
+   "requirement_id": "ra-8_obj.b-2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-9",
+   "requirement_id": "CCI-004648",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-9",
+   "requirement_id": "CCI-004649",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-9",
+   "requirement_id": "CCI-004650",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-9",
+   "requirement_id": "ra-9_obj",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-10",
+   "requirement_id": "CCI-004651",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-10",
+   "requirement_id": "CCI-004652",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-10",
+   "requirement_id": "CCI-004653",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-10",
+   "requirement_id": "CCI-004654",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-10",
+   "requirement_id": "ra-10_obj.a.1",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-10",
+   "requirement_id": "ra-10_obj.a.2",
+   "label": "met",
+   "note": null
+  },
+  {
+   "control_id": "ra-10",
+   "requirement_id": "ra-10_obj.b",
+   "label": "met",
+   "note": null
+  }
+ ],
+ "not_selected": {
+  "ra-6": "RA-6 is not selected for The Raven.",
+  "ra-3.4": "RA-3(4) | Predictive Cyber Analytics | None | None | Not selected"
+ },
+ "withdrawn": [
+  "ra-4",
+  "ra-5.1",
+  "ra-5.7",
+  "ra-5.9"
+ ],
+ "negative_controls": [
+  "ac-17",
+  "ac-2",
+  "ac-3",
+  "ia-2",
+  "ia-5",
+  "sc-7",
+  "sc-8",
+  "ir-4",
+  "cp-9",
+  "pe-3",
+  "au-6",
+  "cm-6",
+  "ps-3",
+  "mp-6",
+  "si-4"
+ ],
+ "negative_rule": "never a proposed map, coverage row (gap or covered) or audit finding; remote access never mentioned in gaps/findings"
+}

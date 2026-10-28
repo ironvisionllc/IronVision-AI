@@ -24,6 +24,7 @@ class AIResponse(BaseModel):
     finish_reason: str | None = None      # normalised: "length" = reply cut off at max_tokens
     cached_tokens: int | None = None      # prompt tokens read from the provider's prompt cache
     cache_write_tokens: int | None = None # prompt tokens written to the prompt cache
+    reasoning_tokens: int | None = None   # hidden reasoning tokens (billed as output)
 
 
 class AIProvider(ABC):
