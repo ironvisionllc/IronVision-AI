@@ -110,4 +110,5 @@ def main():
     tr(str(ltp))
 
 
-main()
+if __name__ == "__main__":
+    main()
