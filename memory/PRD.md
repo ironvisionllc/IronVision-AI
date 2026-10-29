@@ -107,3 +107,12 @@
 - Backlog: optional re-record hiding persona email in header; Excel/eMASS human verification of exports.
 - 2026-10-28 (later): Demo video re-recorded per review – 12 scenes incl. dashboard + 7 RMF steps, Guided Mode, Workbench Attach evidence, stored-AI Policy Auditor result (copied, no AI call), Mapping Review, SCA determination + Undo, Authorize/eMASS exports, light↔dark, phone width; persona e-mails masked; whitepaper screenshots re-taken with masking; shared demo re-seeded afterwards (prep_v2.py --reset).
 - 2026-10-29: 3:10 marketing cut (190.0 s, 11 scenes, light desktop only, no captions) is the default at /demo-video; 5:00 technical walkthrough served separately (ironvision_ai_rmf_technical_walkthrough.mp4, linked); 4:19 cut archived. ElevenLabs narration (18 blocks, 300 words, ≤2.3 w/s), teleprompter, SRT, timeline, validation (scene-cut offsets ≤0.133 s, OCR privacy check) regenerated. Demo re-seeded.
+
+## 2026-10-29 – session additions
+- Silent 3:45 marketing demo published as default (narrated 3:10 archived unlinked); validation report regenerated (scripts/demo_video/*_v4.py, measure_v4.py).
+- Sandboxes: login text = clean workspace + inactivity days from backend; platform-admin "Make permanent" / make expirable (audited), admin sandbox list (last activity, days until deletion), "Permanent sandbox" chip.
+- Export Test Plan (eMASS-style layout pending verification, selected controls only, audited test_plan.exported; re-import of existing procedures = unchanged).
+- Assess overview: bottom SAR/RAR "Step 5" box removed (actions live on Authorize → Package & documents).
+- App-wide auto-save (draft-only): implementation statements, eMASS plan/risk, categorization draft, ISCM draft, POA&M fields + risk + milestones, TR row text, HW/SW assets, registration draft. Coalesced audit sessions (autosave_sessions, 0040), preference `autosave` (default on).
+### Backlog
+- Auto-save for remaining forms: system details, authorization strategy, PPSM, ODP values, evidence metadata (see report).

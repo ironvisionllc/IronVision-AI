@@ -1,0 +1,34 @@
+{
+  "summary": "Verified (b) sandbox SoD/ISCM fix, persona refresh, and (c)/(d) Import Center batch queue end-to-end on the preview URL. Backend: new live suite tests/test_iter22_sod_import_live.py 9/9 pass (refresh→act-as 200 for ISSO and ISSM personas, ISSO submit→ISSM approve, submitted_by_label 'the ISSO persona at …', withdraw→draft, ISSM self-submit→approve 403 'same role … submitted by the ISSM persona at …', remove endpoint 422/Not found/404); in-process pytest test_sod_persona_refresh + test_import_center_remove 8/8 pass; DB check confirms audit iscm.strategy_approved details sod/label='Sandbox: same person'. UI ISCM: as ISSO after Save+Submit → 'Pending ISSM approval', iscm-submitted-by 'Submitted by the ISSO persona at 2026-10-29 17:45 UTC', no Save draft/Submit, fields disabled, Withdraw & edit + pending note shown; Withdraw confirm text exactly as specified → Draft; switching acting-as to ISSM → only Approve/Return for changes (no save/submit/withdraw) → Approve → Approved v6 + toast. Import Center: 7 files (3 CKL, slcm, ppsm, policy, notes) → 5 Ready / 2 Needs your decision, needs-decision sorted first; chips filter (aria-pressed, toggle off, Show all files), Next button filters to needs_decision; sticky summary stays at top while scrolling (1280 and 390); Import all imported 5 ready files sequentially (POST /emass-imports + /target, 3x /uploads), paused the 2 decision files (no policy sent, zero AI spend), run summary lists every file with Open review links; eMASS files landed in review (not applied); scans have no X after send. Decisions: policy 'Remove this file' with 'apply to all' removed both policy files in one confirm; notes.txt has no apply-all (override not batch-safe) and options 'Import as policy anyway'/'Remove this file'. Per-file X, Remove selected, Clear all all confirm and call /import-center/remove; Clear all discarded the 2 eMASS imports server-side (status discarded, stored copies FileNotFound, audit import.removed_before_apply stored_copy_deleted=true). Dismissing confirm keeps the file. Layout: no horizontal overflow at 1280/390 light/dark; zero-count chips hidden on mobile.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "BatchSummary 'Next: review N files' scroll", "issue": "scrollIntoView(block:'start') puts the top of ic-files at y≈73 which is behind the sticky summary (y 93–186 at 1280) – the first decision row is partly hidden under the summary. Add scroll-margin-top (≈ summary height + header) to ic-files or scroll with offset.", "selector": "[data-testid=ic-next-decision]", "priority": "LOW"},
+      {"component": "BatchSummary sticky", "issue": "sticky top-0 sits ~20px below the app header (page padding), so list content is visible scrolling through the gap above the summary (desktop and mobile). Cosmetic; consider a solid backdrop/negative top offset.", "selector": "[data-testid=ic-batch-summary]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Import Center decision box (policy)", "issues": ["The policy decision select defaults to 'Send to Policy Auditor' (AI spend). Continue only marks it Ready, but a subsequent 'Import all' then sends it. Safer default: 'Remove this file' or an empty 'Choose…' option requiring explicit selection."]},
+      {"screen": "Import Center rows after Import all", "issues": ["Scan files show state 'Imported' plus a green 'Completed – next' banner although the pipeline note says 'evidence processing queued'; eMASS files also show 'Imported' while they are only in review. Consider 'Sent to review'/'Queued' wording to avoid implying data was applied (the run summary text does say nothing was applied)."]},
+      {"screen": "Import all – results panel", "issues": ["Panel is a snapshot; after resolving/removing files it still shows the old states (e.g. 'Needs your decision' for files now Removed)."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter22_sod_import_live.py", "/app/test_reports/pytest/iter22_live.xml"],
+  "action_items": [
+    "LOW: offset the 'Next: review' scroll so the first needs-decision row is not hidden under the sticky summary",
+    "LOW: default the policy decision to a non-AI option (or blank) to avoid accidental AI spend via Import all",
+    "LOW (optional): 'Imported' → 'Sent to review'/'Queued' wording for routed files; refresh or label the run-summary as a snapshot"
+  ],
+  "critical_code_review_comments": [
+    "useImportQueue.remove maps server 'skipped' results back by file_name – two queued files with the same name (e.g. same file uploaded twice) would both be marked skipped/removed together; key by index or a client key instead.",
+    "resolve(all=true) for kind 'target' applies 'Update the selected system anyway' to every mismatched eMASS file even though each file may have a different mismatch prompt; acceptable as batchSafe per spec but worth confirming.",
+    "IscmStrategy isIssm also checks user.roles – for real (non-sandbox) users holding both ISSO and ISSM roles the Withdraw button is hidden; fine for the sandbox, verify intended for real orgs."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter22_sod_import_live.py"],
+  "success_rate": {"backend": "100% (9/9 live + 8/8 in-process)", "frontend": "100% of requested flows pass; 2 low-priority UX issues"},
+  "seed_data_creation": "Demo sandbox: LTP ISCM strategy went through several submit/approve cycles (ends Approved v6, unchanged content). 3 CKL scans sent to LTP ingest (ingest runs, not removable by design). All eMASS imports created were discarded via Clear all; no eMASS imports left in review for the demo tenant. No policies sent.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Demo one-click login (demo-login-btn) / POST /api/v1/auth/demo-login; see /app/memory/test_credentials.md",
+  "context_for_next_testing_agent": "Live suite tests/test_iter22_sod_import_live.py runs against preview with --noconftest (uses demo-login, LTP). Note: ISSO calling /iscm/decision gets 403 'Only the ISSM of this system approves…' (role check precedes SoD), so the same-role SoD message is only reachable via ISSM self-submit. Auth playbook items (cookies/lockout) not re-tested this iteration – app uses bearer JWT; avoid lockout tests on the shared demo account."
+}
