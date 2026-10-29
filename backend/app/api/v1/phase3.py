@@ -203,10 +203,12 @@ def create_provider(body: ProviderIn, db: Session = Depends(get_db), current: Cu
 
 
 @router.patch("/providers/{provider_id}")
-def update_provider(provider_id: uuid.UUID, body: ProviderIn, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
+def update_provider(provider_id: uuid.UUID, body: ProviderIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
     p = db.get(CommonControlProvider, provider_id)
     if p is None or p.org_id != current.user.org_id:
         raise HTTPException(404, "Provider not found")
+    from app.services import autosave
+    autosave.check_base(request, p.updated_at, lambda: to_dict(p))
     for k, v in body.model_dump(exclude_unset=True).items():
         setattr(p, k, v)
     audit.record(db, action="provider.updated", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="provider", entity_id=str(p.id),

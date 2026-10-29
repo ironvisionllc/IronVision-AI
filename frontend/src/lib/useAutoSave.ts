@@ -41,6 +41,12 @@ export function useAutoSave<T>(o: AutoSaveOpts<T>): AutoSave<T> {
   const u = user || null;
   const active = on && !o.disabled && !!o.id && !!u;
   const key = `iv.draft.${u?.id}.${u?.org_id}.${o.id}`;
+  // a reload resets the editor only when it brings someone else's version (not the echo of our own save) and nothing is pending
+  const [tok, setTok] = useState(0);
+  useEffect(() => {
+    const s = ref.current;
+    if (s && o.version !== s.version && !s.snap.dirty && s.snap.state !== "saving") setTok((t) => t + 1);
+  }, [o.resetKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!active) return;
     synced.current = false;
@@ -50,7 +56,7 @@ export function useAutoSave<T>(o: AutoSaveOpts<T>): AutoSave<T> {
       REGISTRY.delete(s as AutoSaver<unknown>); void s.flush().finally(() => api.post("/autosave/close", {}).catch(() => undefined)); s.dispose();
       ref.current = null; setSnap(null);
     };
-  }, [active, key, o.resetKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [active, key, tok]); // eslint-disable-line react-hooks/exhaustive-deps
   // forms often fill their state from the server one render later – edits count only once the form shows the saved value
   useEffect(() => {
     const s = ref.current;

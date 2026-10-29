@@ -7,8 +7,9 @@ from tests.conftest import auth, demo_org_id
 
 
 def _sid(acr="LTP") -> str:
+    """The demo tenant's system – sandbox orgs clone the demo acronyms, so the lookup must be scoped to the demo org."""
     with SessionLocal() as db:
-        return str(db.scalar(select(System).where(System.acronym == acr)).id)
+        return str(db.scalar(select(System).where(System.acronym == acr, System.org_id == demo_org_id(db))).id)
 
 
 def test_01_cross_screen_numbers_agree(client, token):

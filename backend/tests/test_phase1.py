@@ -15,7 +15,8 @@ SAMPLES = os.environ.get("SAMPLES_DIR", "/app/samples")
 
 
 def _sys(db, acr):
-    return db.scalar(select(System).where(System.acronym == acr))
+    from tests.conftest import demo_org_id
+    return db.scalar(select(System).where(System.acronym == acr, System.org_id == demo_org_id(db)))
 
 
 def test_register_moderate_system_assigns_baseline(client, token):

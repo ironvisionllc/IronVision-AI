@@ -69,6 +69,10 @@ export function PreparePage() {
   const [roles, setRoles] = useState<Row>({});
   const [m, setM] = useState<{ ok?: string; err?: string }>({});
   useEffect(() => { if (data) setRoles(rolesFromHolders(data.roles)); }, [data]);
+  const rolesInit = useMemo<Row>(() => (data ? rolesFromHolders(data.roles) : {}), [data]);
+  const as = useAutoSave<Row>({ id: sid && data && can("system.write") ? `roles:${sid}` : null, initial: rolesInit, value: roles, version: data?.version ?? null,
+    resetKey: data?.version ?? "", apply: setRoles,
+    save: async (x, base) => ({ version: (await autosaveCall<Row>("put", `/systems/${sid}/prepare`, { roles: x }, base)).version }) });
   const save = async () => {
     try { await api.put(`/systems/${sid}/prepare`, { roles }); setM({ ok: "Key roles saved." });
       showNextStep({ message: "Key roles saved.", label: "categorize the system (information types and impact)", to: "/rmf/categorize" });
@@ -79,7 +83,8 @@ export function PreparePage() {
       <Panel title="Key roles" actions={can("system.write") ? <button className="btn-primary" onClick={save} data-testid="prepare-save">Save roles</button>
         : <span className="text-[11px] text-slate-500" title="Saving roles needs the 'system.write' permission (ISSO, ISSM or System Owner)">Read only for your role</span>}>
         <Msg m={m} />
-        <RolesEditor meta={ref} value={roles} onChange={setRoles} />
+        {can("system.write") && <div className="mb-2"><AutoSaveStatus a={as} testId="roles-autosave" /></div>}
+        <div onBlur={as.flush}><RolesEditor meta={ref} value={roles} onChange={setRoles} /></div>
         <p className="mt-3 text-[11px] text-slate-500">Assigning someone here records them in the authorization package. It does not change what they can do in the app – access is granted under Admin → Users.</p>
       </Panel>
     </StepFrame>);

@@ -74,15 +74,20 @@ class RolesIn(BaseModel):
 
 @router.get("/systems/{system_id}/prepare")
 def prepare_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> dict:
-    return {"roles": rs.role_holders(db, get_system(db, system_id))}
+    s = get_system(db, system_id)
+    return {"roles": rs.role_holders(db, s), "version": s.updated_at.isoformat()}
 
 
 @router.put("/systems/{system_id}/prepare")
-def prepare_save(system_id: uuid.UUID, body: RolesIn, db: Session = Depends(get_db),
+def prepare_save(system_id: uuid.UUID, body: RolesIn, request: Request, db: Session = Depends(get_db),
                  current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
-    out = _err(rs.save_roles, db, get_system(db, system_id), body.roles, current.user)
+    s = get_system(db, system_id)
+    from app.services import autosave
+    autosave.check_base(request, s.updated_at, lambda: {"roles": rs.role_holders(db, s)})
+    out = _err(rs.save_roles, db, s, body.roles, current.user)
     db.commit()
-    return {"roles": out}
+    db.refresh(s)
+    return {"roles": out, "version": s.updated_at.isoformat()}
 
 
 class CategorizationIn(CategorizeIn):

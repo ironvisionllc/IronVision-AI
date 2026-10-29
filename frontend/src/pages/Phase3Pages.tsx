@@ -1,5 +1,7 @@
 import { FoundItHere, ReadingReport } from "@/components/policy/Reading";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { autosaveCall, useAutoSave } from "@/lib/useAutoSave";
+import { AutoSaveStatus } from "@/components/common/AutoSaveStatus";
 import { Link, useParams } from "react-router-dom";
 import { ImportButton } from "@/components/import/ImportButton";
 import { useAuth } from "@/context/AuthContext";
@@ -19,6 +21,21 @@ import { CCI_TIP, CoverageChecklist } from "@/components/policy/Coverage";
 import { useActiveSystemId } from "@/components/rmf/Stepper";
 import { ProcessingList } from "@/components/shell/Processing";
 import { AnalysisProgress, StageHistory, usePollWhile } from "@/components/policy/AnalysisProgress";
+
+const PROV_FIELDS = ["name", "package", "authorization_type", "basis", "coverage_text", "last_validated_at", "package_expiration"];
+const provVals = (p: Row) => Object.fromEntries(PROV_FIELDS.map((k) => [k, p[k] ?? ""]));
+
+/** Editing an existing common-control provider auto-saves its fields (adding a provider stays explicit). */
+function ProviderAutoSave({ prov, setProv }: { prov: Row; setProv: (p: Row) => void }) {
+  const [init] = useState(() => provVals(prov));
+  const val = useMemo(() => provVals(prov), [prov]);
+  const as = useAutoSave<Row>({ id: `provider:${prov.id}`, initial: init, value: val, version: prov.updated_at, apply: (x) => setProv({ ...prov, ...x }),
+    save: async (x, base) => {
+      if (!String(x.name).trim()) throw { status: 422, detail: [{ loc: ["body", "name"] }] };
+      return { version: (await autosaveCall<Row>("patch", `/providers/${prov.id}`, Object.fromEntries(Object.entries(x).map(([k, v]) => [k, v || null])), base)).updated_at };
+    } });
+  return <AutoSaveStatus a={as} testId="provider-autosave" />;
+}
 
 export function InheritancePage() {
   const { selectedId: sid } = useSystems();
@@ -98,7 +115,8 @@ export function InheritancePage() {
         {hist.map((h) => <div key={h.id} className="border-b border-slate-100 py-1 text-[12px]">v{h.version} · <S v={h.status} /> · signed {h.signed_at ? `${fmtDate(h.signed_at)} by ${h.signer_name}` : "—"} · expires {h.expires_at ?? "—"}</div>)}</Modal>}
       {prov && <Modal title={prov.id ? "Edit provider" : "Add provider"} onClose={() => setProv(null)} testId="provider-modal">
         {["name", "package", "authorization_type", "basis", "coverage_text", "last_validated_at", "package_expiration"].map((k) => <label key={k} className="block text-[13px]">{({ package: "Package / system it comes from", authorization_type: "Authorization type (e.g. ATO, FedRAMP P-ATO, DoD PA)", package_expiration: "Authorization expiration date", coverage_text: "What it covers" } as Record<string, string>)[k] ?? k.replace(/_/g, " ")}<input className="input" type={k.endsWith("_at") || k.endsWith("expiration") ? "date" : "text"} value={prov[k] ?? ""} onChange={(e) => setProv({ ...prov, [k]: e.target.value })} data-testid={`provider-${k}`} /></label>)}
-        <button className="btn-primary mt-3" onClick={() => { const b = Object.fromEntries(["name", "package", "authorization_type", "basis", "coverage_text", "last_validated_at", "package_expiration"].map((k) => [k, prov[k] || null])); act(() => prov.id ? api.patch(`/providers/${prov.id}`, b) : api.post("/providers", b), "Provider saved").then(() => setProv(null)); }} data-testid="provider-save">Save</button></Modal>}
+        <div className="mt-3 flex flex-wrap items-center gap-3"><button className="btn-primary" onClick={() => { const b = Object.fromEntries(PROV_FIELDS.map((k) => [k, prov[k] || null])); act(() => prov.id ? api.patch(`/providers/${prov.id}`, b) : api.post("/providers", b), "Provider saved").then(() => setProv(null)); }} data-testid="provider-save">Save</button>
+          {prov.id && <ProviderAutoSave prov={prov} setProv={setProv} />}</div></Modal>}
       {crm && <CrmImportModal provider={crm} sid={sid} onClose={() => setCrm(null)} onDone={reload} />}
       {assign && <Modal title="Assign inheritance" onClose={() => setAssign(null)} testId="assign-modal">
         <div className="grid gap-2 text-[13px]">
