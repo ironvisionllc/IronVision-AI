@@ -215,7 +215,7 @@ def refresh(body: RefreshIn, request: Request, db: Session = Depends(get_db)) ->
     user = db.get(User, sess.user_id)
     db.commit()
     assignments = list(db.scalars(select(RoleAssignment).where(RoleAssignment.user_id == user.id)))
-    token, ttl = create_access_token(user.id, sess.provider, sess.id)
+    token, ttl = create_access_token(user.id, sess.provider, sess.id, user.operator_id if user.persona_role else None)  # keep the persona's operator
     return TokenResponse(access_token=token, expires_in=ttl, refresh_token=raw, idle_timeout_minutes=sessions.IDLE_MINUTES,
                          user=build_user_out(db, user, assignments, sess.provider))
 
