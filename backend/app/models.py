@@ -1564,3 +1564,30 @@ class ReviewFlag(CoreMixin, Base):
     resolved_by: Mapped[str | None] = mapped_column(String(255))
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     resolution: Mapped[str | None] = mapped_column(Text)
+
+
+class AutosaveSession(CoreMixin, Base):
+    """Open auto-save editing session: audit events of auto-saves are coalesced here and written as ONE audit event on close."""
+    __tablename__ = "autosave_sessions"
+    user_id: Mapped[uuid.UUID] = _fk("users.id")
+    actor_email: Mapped[str | None] = mapped_column(String(255))
+    entity_type: Mapped[str | None] = mapped_column(String(50))
+    entity_id: Mapped[str | None] = mapped_column(String(100))
+    action: Mapped[str] = mapped_column(String(100), nullable=False)
+    before: Mapped[dict | None] = mapped_column(JSONB)
+    after: Mapped[dict | None] = mapped_column(JSONB)
+    details: Mapped[dict | None] = mapped_column(JSONB)
+    saves: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class UserDraft(CoreMixin, Base):
+    """Per-user server-side draft (e.g. an unregistered system) – never visible to anyone else, never a record until submitted."""
+    __tablename__ = "user_drafts"
+    __table_args__ = (UniqueConstraint("user_id", "kind", name="uq_user_drafts_user_kind"),)
+    user_id: Mapped[uuid.UUID] = _fk("users.id")
+    org_id: Mapped[uuid.UUID] = _fk("organizations.id")
+    kind: Mapped[str] = mapped_column(String(50), nullable=False)
+    data: Mapped[dict] = mapped_column(JSONB, nullable=False)

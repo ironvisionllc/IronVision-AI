@@ -24,6 +24,7 @@ DEFAULT_SCHEDULES = [
     ("conmon.slcm_due", "SLCM due/overdue per Continuous Monitoring Strategy (Monitor)", 1440),
     ("retention.purge", "Data retention purge (dry-run by default; never audit/legal-hold)", 1440),
     ("sandbox.expiry", "Sandbox inactivity warnings + purge (sandbox tenants only)", 1440),
+    ("autosave.close_idle", "Close idle auto-save sessions (one coalesced audit event per session)", 1),
     ("sandbox.demo_reset", "Nightly reset of the shared demo account sandbox", 1440),
 ]
 STALE_MINUTES = 30

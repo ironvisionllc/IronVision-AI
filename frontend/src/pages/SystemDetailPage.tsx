@@ -1,5 +1,7 @@
 import { fmtControl } from "@/lib/format";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
+import { autosaveCall, useAutoSave } from "@/lib/useAutoSave";
+import { AutoSaveStatus } from "@/components/common/AutoSaveStatus";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { api, errorMessage } from "@/lib/api";
@@ -11,6 +13,20 @@ import { Gated } from "@/components/common/RoleGate";
 import { ArchiveSystem } from "@/components/rmf/ArchiveSystem";
 
 const ASSET_FIELDS = ["name", "hostname", "ip_address", "cloud_resource_id", "os", "asset_type", "criticality", "network_zone", "environment", "inventory_source"];
+const assetVals = (a: Row) => Object.fromEntries(ASSET_FIELDS.map((k) => [k, a[k] ?? ""]));
+
+/** Editing an existing HW/SW asset auto-saves its fields (adding a new asset and confirming it stay explicit). */
+function AssetAutoSave({ sid, asset, setAsset }: { sid: string; asset: Row; setAsset: (a: Row) => void }) {
+  const [init] = useState(() => assetVals(asset));
+  const val = useMemo(() => assetVals(asset), [asset]);
+  const as = useAutoSave<Row>({ id: `asset:${asset.id}`, initial: init, value: val, version: asset.updated_at, apply: (x) => setAsset({ ...asset, ...x }),
+    save: async (x, base) => {
+      if (!String(x.name).trim()) throw { status: 422, detail: [{ loc: ["body", "name"] }] };
+      const body = Object.fromEntries(Object.entries(x).map(([k, v]) => [k, v === "" ? null : v]));
+      return { version: (await autosaveCall<Row>("patch", `/systems/${sid}/assets/${asset.id}`, body, base)).updated_at };
+    } });
+  return <AutoSaveStatus a={as} testId="asset-autosave" />;
+}
 
 export default function SystemDetailPage() {
   const { id = "" } = useParams();
@@ -78,6 +94,7 @@ export default function SystemDetailPage() {
           <form onSubmit={saveAsset} className="mb-4 grid grid-cols-5 gap-2 rounded border border-slate-200 bg-slate-50 p-3" data-testid="asset-form">
             {ASSET_FIELDS.map((k) => <input key={k} className="input" placeholder={k} value={asset[k] ?? ""} required={k === "name"} onChange={(e) => setAsset({ ...asset, [k]: e.target.value })} data-testid={`asset-${k}`} />)}
             <button className="btn-primary" type="submit" data-testid="asset-save-btn">Save</button><button type="button" className="btn-secondary" onClick={() => setAsset(null)}>Cancel</button>
+            {asset.id && <div className="col-span-5"><AssetAutoSave sid={id} asset={asset} setAsset={setAsset} /></div>}
           </form>
         )}
         <Table head={["Name", "Hostname", "IP", "Cloud ID", "OS", "Type", "Criticality", "Zone", "Env", "Source", "Last observed", "Review", ""]} testId="assets-table">

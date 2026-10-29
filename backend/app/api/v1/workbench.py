@@ -503,6 +503,24 @@ def save_narrative(system_id: uuid.UUID, control_id: str, body: NarrativeIn, req
                    current: CurrentUser = Depends(require_permission("implementation.write"))) -> dict:
     a = assignment_for(db, system_id, control_id)
     latest = db.scalar(select(func.max(Implementation.version)).where(Implementation.assignment_id == a.id)) or 0
+    from app.services import autosave
+    if autosave.active():  # auto-save edits the current DRAFT in place; in-review/approved versions need the explicit "Save now" (new version)
+        cur = db.scalar(select(Implementation).where(Implementation.assignment_id == a.id, Implementation.is_current.is_(True)))
+        autosave.lock_if(cur is not None and cur.review_status != "draft",
+                         f"Version {cur.version if cur else ''} is {cur.review_status if cur else ''} – auto-save is paused; use Save now to start a new draft version")
+        if cur is not None:
+            autosave.check_base(request, cur.updated_at, lambda: {"narrative": cur.narrative, "version": cur.version})
+            before = {"narrative": cur.narrative, "implementation_status": a.implementation_status, "version": cur.version}
+            cur.narrative, cur.implementation_status = body.narrative, body.implementation_status
+            a.implementation_status = body.implementation_status
+            audit.record(db, action="implementation.saved", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="control_assignment",
+                         entity_id=str(a.id), before=before, after={"narrative": body.narrative, "implementation_status": body.implementation_status,
+                                                                    "version": cur.version})
+            db.flush()
+            evaluate_system(db, system_id)
+            db.commit()
+            db.refresh(cur)
+            return to_dict(cur)
     for i in db.scalars(select(Implementation).where(Implementation.assignment_id == a.id, Implementation.is_current.is_(True))):
         i.is_current = False
     from app.models import AIInteraction

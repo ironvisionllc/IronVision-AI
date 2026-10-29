@@ -1,4 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
+import { autosaveCall, useAutoSave } from "@/lib/useAutoSave";
+import { AutoSaveStatus } from "@/components/common/AutoSaveStatus";
+import { usePref } from "@/lib/prefs";
 import { TableScroll } from "@/components/common/TableScroll";
 import { ApproveDialog } from "@/components/tr/ApproveDialog";
 import { TestPlanImport } from "@/components/tr/TestPlanImport";
@@ -114,8 +117,11 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
       toast.success(`${(r.data.approved || r.data.edited || []).length} row(s) ${body.action === "approve" ? "approved" : "edited"}${r.data.skipped?.length ? `, ${r.data.skipped.length} skipped (${r.data.skipped[0].reason})` : ""}`);
       setSel([]); rows.reload(); reload(); } catch (e) { toast.error(errorMessage(e)); }
   };
+  const [autoOn] = usePref("autosave", true);
+  const [editing, setEditing] = useState<string | null>(null);
   const edit = (r: Row) => {
     if (wb.can_approve && !window.confirm("Editing makes you the preparer of this row – you will not be able to approve it yourself; another role must approve. Tip: as the approver, use Approve… and adjust the Test Results text there instead.")) return;
+    if (autoOn) { setEditing(r.id); return; }  // inline editor auto-saves the Test Results text (SoD confirmed above, before the first save)
     const t = window.prompt("Test Results text", r.final?.test_results ?? r.proposed?.test_results ?? ""); if (t === null) return; const j = window.prompt("Justification (kept in the audit log)") || ""; decide({ action: "edit", row_ids: [r.id], values: { test_results: t }, justification: j }); };
   const items: Row[] = rows.data?.items || [];
   const [open, setOpen] = useState<string | null>(null);
@@ -159,10 +165,28 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
           <td className="whitespace-nowrap">{wb.can_approve && r.state !== "approved" && <button className="btn-primary px-1.5 py-0 text-[11px]" onClick={() => setApproving([r])} disabled={!!r.sod_lock} title={r.sod_lock || undefined} data-testid={`tr-approve-${r.row}`}>{r.state === "needs_confirmation" ? "Confirm tester/date…" : "Approve…"}</button>}
             <button className="btn-secondary ml-1 px-1.5 py-0 text-[11px]" onClick={() => edit(r)} data-testid={`tr-edit-${r.row}`}>Edit</button>
             <button className="btn-secondary ml-1 px-1.5 py-0 text-[11px]" disabled={!r.control_id} onClick={() => setOpen(open === r.id ? null : r.id)} data-testid={`tr-open-analysis-${r.row}`}>Evidence analysis</button></td></tr>
+          {editing === r.id && <tr><td colSpan={8} className="pb-2"><TrTextEditor wb={wb} r={r} confirmed={!!wb.can_approve} onClose={() => { setEditing(null); rows.reload(); }} /></td></tr>}
           {open === r.id && <tr><td colSpan={8} className="pb-2"><Analysis wb={wb} r={r} onApplied={() => { rows.reload(); reload(); }} /></td></tr>}</Fragment>); })}
     </tbody></table></TableScroll>
     {!items.length && <div className="p-3 text-[12px] text-slate-600" data-testid="tr-review-empty">No rows match these filters.</div>}
   </div>);
+}
+
+/** Inline Test Results text editor – auto-saves the text only; approval and Compliance Status stay explicit. */
+function TrTextEditor({ wb, r, confirmed, onClose }: { wb: Row; r: Row; confirmed: boolean; onClose: () => void }) {
+  const [init] = useState<string>(() => r.final?.test_results ?? r.proposed?.test_results ?? "");
+  const [t, setT] = useState(init);
+  const as = useAutoSave<string>({ id: `tr:${r.id}`, initial: init, value: t, version: r.updated_at, apply: setT,
+    save: async (x, base, ok) => {
+      const res = await autosaveCall<Row>("post", `/tr/workbooks/${wb.id}/decide`, { action: "edit", row_ids: [r.id], values: { test_results: x }, justification: "" }, base, ok || confirmed);
+      return { version: res.versions?.[r.id] };
+    } });
+  return <div className="rounded border border-blue-200 bg-blue-50/40 p-2" data-testid={`tr-editor-${r.row}`}>
+    <label className="block text-[12px] font-medium">Test Results – row {r.row}
+      <textarea className="input mt-1" rows={3} value={t} onChange={(e) => setT(e.target.value)} onBlur={as.flush} autoFocus data-testid={`tr-editor-text-${r.row}`} /></label>
+    <div className="mt-1 flex flex-wrap items-center gap-2"><AutoSaveStatus a={as} testId={`tr-autosave-${r.row}`} />
+      <button className="btn-secondary px-2 py-0 text-[11px]" onClick={() => { as.flush(); onClose(); }} data-testid={`tr-editor-close-${r.row}`}>Done</button></div>
+  </div>;
 }
 
 function Exports({ wb, reload }: { wb: Row; reload: () => void }) {

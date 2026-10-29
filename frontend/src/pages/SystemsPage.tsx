@@ -1,7 +1,11 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useSystems } from "@/context/SystemContext";
+import { useAuth } from "@/context/AuthContext";
+import { autosaveCall, useAutoSave } from "@/lib/useAutoSave";
+import { AutoSaveStatus } from "@/components/common/AutoSaveStatus";
+import { fmtDate } from "@/lib/format";
 import { api, errorMessage } from "@/lib/api";
 import { useApi, Row } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
@@ -54,6 +58,7 @@ const F = ({ label, children }: { label: string; children: React.ReactNode }) =>
 
 export function RegisterSystemPage() {
   const nav = useNavigate();
+  const { can } = useAuth();
   const { select, refresh } = useSystems();
   const { data: ref } = useApi<Row>("/reference/rmf");
   const [f, setF] = useState<Row>(() => ({ name: "", acronym: "", emass_id: "", description: "", lifecycle_phase: "Design", authorization_status: "Not authorized",
@@ -68,6 +73,14 @@ export function RegisterSystemPage() {
   const [start, setStart] = useState<string>(emassPrefill ? "emass" : "");
   const [copyFrom, setCopyFrom] = useState<Row | null>(null);
   const applyCopy = (tpl: Row) => { setCopyFrom(tpl.source); setCat({ ...catFromSystem(tpl), processes_pii: null }); setBaseline(tpl.baseline_key || ""); setStart("copy"); };
+  // Auto-save keeps a private DRAFT only (/drafts/registration) – nothing is registered or visible as a system until Register
+  const draft = useApi<Row>(can("system.register") ? "/drafts/registration" : null);
+  const [blank] = useState<Row>(() => ({ f, roles, cat, baseline, start: "", copyFrom: null }));
+  const regVal = useMemo<Row>(() => ({ f, roles, cat, baseline, start, copyFrom }), [f, roles, cat, baseline, start, copyFrom]);
+  const resume = (d: Row) => { setF(d.f); setRoles(d.roles || {}); setCat(d.cat || EMPTY_CAT); setBaseline(d.baseline || ""); setCopyFrom(d.copyFrom || null); setStart(d.start || "scratch"); };
+  const as = useAutoSave<Row>({ id: start && !emassPrefill && can("system.register") ? "registration" : null, initial: blank, value: regVal, apply: resume, sync: false,
+    save: async (x) => ({ version: (await autosaveCall<Row>("put", "/drafts/registration", { data: x }, null)).updated_at }) });
+  const discardDraft = async () => { as.saver?.discard(); await api.delete("/drafts/registration").catch(() => undefined); draft.reload(); };
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const auto = calc?.baseline ?? "";
   const chosen = baseline && (["low", "moderate", "high"].indexOf(baseline) >= ["low", "moderate", "high"].indexOf(auto)) ? baseline : auto;
@@ -82,6 +95,7 @@ export function RegisterSystemPage() {
       .filter(([, v]) => (v as unknown) !== "" && v !== undefined));
     try {
       const r = await api.post<Row>("/systems", body);
+      await discardDraft();
       if (emassPrefill?.import_id) {  // "Register a new system" path: the pre-filled values are recorded as imported (Manage imported data)
         try { await api.post(`/emass-imports/${emassPrefill.import_id}/registered`, { system_id: r.data.id, fields: emassPrefill.system || {} }); } catch { /* registration itself succeeded */ }
       }
@@ -97,12 +111,17 @@ export function RegisterSystemPage() {
     } catch (err) { setError(errorMessage(err)); }
   };
   if (!start) return <div><PageHeader title="Register system" subtitle="Start from scratch, migrate an eMASS system, or reuse the setup of a system you already manage." />
+    {draft.data?.data && !emassPrefill && <div className="mb-4 flex flex-wrap items-center gap-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid="reg-draft-banner">
+      Unsaved registration draft{draft.data.data.f?.name ? ` “${draft.data.data.f.name}”` : ""} from {fmtDate(draft.data.updated_at)} – not registered yet.
+      <button type="button" className="btn-secondary px-2 py-0 text-[11px]" onClick={() => resume(draft.data!.data)} data-testid="reg-draft-resume">Resume</button>
+      <button type="button" className="underline" onClick={discardDraft} data-testid="reg-draft-discard">Discard</button></div>}
     <RegisterStart onScratch={() => setStart("scratch")} onCopy={applyCopy} /></div>;
   return (
     <form onSubmit={submit} data-testid="register-system-form">
       {copyFrom && <div className="mb-4 rounded border border-violet-200 bg-violet-50 px-3 py-2 text-[12px] text-violet-900" data-testid="register-copy-banner">Setup will be copied from {copyFrom.acronym || copyFrom.name} after registration (overlays, tailoring, ODPs, ISCM strategy as draft, policy links). Assessments, evidence, POA&Ms, test results, approvals and inventory are never copied.</div>}
       {emassPrefill && <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-[12px] text-blue-900" data-testid="register-emass-prefill">{emassPrefill.note} Nothing has been created yet.{emassPrefill.categorization_hint ? ` File categorization: C ${emassPrefill.categorization_hint.c ?? "?"} / I ${emassPrefill.categorization_hint.i ?? "?"} / A ${emassPrefill.categorization_hint.a ?? "?"} – pick the information types below; the categorization still needs AO approval.` : ""}</div>}
       <PageHeader title="Register system" subtitle="Step 1 Prepare and step 2 Categorize in one form: name the system and its key people, pick its information types, and the app derives the impact level and baseline. Overlays and tailoring follow in step 3 Select." />
+      {!emassPrefill && <div className="mb-3 flex flex-wrap items-center gap-2 text-[12px]"><AutoSaveStatus a={as} testId="reg-autosave" /><span className="text-slate-500">Draft only – nothing is registered until you click Register.</span></div>}
       <div className="grid gap-5">
         <Panel title="1 · Prepare – identity and key roles">
           <div className="grid gap-3 md:grid-cols-3">

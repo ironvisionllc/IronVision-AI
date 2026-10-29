@@ -2,7 +2,7 @@
 import re
 import uuid
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -136,13 +136,24 @@ def categorization_view(system_id: uuid.UUID, db: Session = Depends(get_db), _: 
     out = {k: getattr(s, k) for k in keep}
     from app.services import cnssi1253
 
-    return {**out, "privacy_prompt": cnssi1253.privacy_prompt(db, s)}
+    from app.services import rmf_accuracy as ra_v
+    cur_v = ra_v.latest(db, s.id)
+    return {**out, "privacy_prompt": cnssi1253.privacy_prompt(db, s), "record_version": cur_v.updated_at.isoformat() if cur_v else None,
+            "record_status": cur_v.status if cur_v else None}
 
 
 @router.put("/systems/{system_id}/categorization")
-def categorization_save(system_id: uuid.UUID, body: CategorizationIn, db: Session = Depends(get_db),
+def categorization_save(system_id: uuid.UUID, body: CategorizationIn, request: Request, db: Session = Depends(get_db),
                         current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
     s = get_system(db, system_id)
+    from app.services import autosave
+    from app.services import rmf_accuracy as ra0
+    cur0 = ra0.latest(db, s.id)
+    autosave.lock_if(cur0 is not None and cur0.status != "draft",
+                     f"Categorization revision {cur0.revision if cur0 else ''} is {(cur0.status if cur0 else '').replace('_', ' ')} – auto-save is paused; "
+                     "use Save now to propose a change (it still needs AO approval)")
+    if cur0 is not None:
+        autosave.check_base(request, cur0.updated_at, lambda: {"revision": cur0.revision, "impacts": cur0.impacts, "information_types": cur0.information_types})
     before = {"categorization": s.categorization, "c": s.confidentiality_impact, "i": s.integrity_impact, "a": s.availability_impact}
     from app.services import rmf_accuracy as ra
 
@@ -151,7 +162,8 @@ def categorization_save(system_id: uuid.UUID, body: CategorizationIn, db: Sessio
                                        "categorization", "categorization_detail")}
     calc = _err(apply_categorization, s, body)
     new_pii, pii_before = body.processes_pii, s.processes_pii
-    rec = ra.record(db, s, calc, body.mode, body.nss_determination or s.nss_determination, body.rationale, current.user.email)
+    rec = ra.record(db, s, calc, body.mode, body.nss_determination or s.nss_determination, body.rationale, current.user.email,
+                    in_place=autosave.active())
     calc = {**calc, "revision": rec.revision, "record_status": rec.status}
     if approved and rec.status == "pending_reapproval":  # an approved categorization is not overwritten until re-approved
         for f, v in keep.items():
@@ -169,7 +181,8 @@ def categorization_save(system_id: uuid.UUID, body: CategorizationIn, db: Sessio
         needs.append(f"raise the baseline from {s.baseline_key} to {calc['baseline']}")
     if s.processes_pii and not privacy_state(s)["applied"]:
         needs.append("apply the privacy overlay" if s.categorization_mode == "cnssi1253" else "apply the privacy baseline")
-    return {"calculation": calc, "select_actions": needs}
+    db.refresh(rec)
+    return {"calculation": calc, "select_actions": needs, "version": rec.updated_at.isoformat()}
 
 
 class PiiIn(BaseModel):

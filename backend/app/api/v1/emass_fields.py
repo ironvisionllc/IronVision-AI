@@ -80,8 +80,10 @@ def put_plan(system_id: uuid.UUID, control_id: str, body: PlanIn, request: Reque
     enforce(request, current, "implementation.write", system_id)
     _check_interaction(db, body.assist)
     a = assignment_for(db, system_id, control_id)
+    from app.services import autosave
+    autosave.check_base(request, ef.ensure(db, a).updated_at, lambda: ef.view(db, a, True))
     res = ef.save_plan(db, a, body.implementation_status, body.model_dump(exclude={"implementation_status", "assist"}), current,
-                       body.assist.model_dump(), audit.request_meta(request))
+                       body.assist.model_dump(), audit.request_meta(request), enforce_required=not autosave.active())
     if res["status_changed"]:
         from app.services.evaluation import evaluate_system
         db.flush()
@@ -96,6 +98,8 @@ def put_risk(system_id: uuid.UUID, control_id: str, body: RiskIn, request: Reque
     enforce(request, current, "implementation.write", system_id)
     _check_interaction(db, body.assist)
     a = assignment_for(db, system_id, control_id)
+    from app.services import autosave
+    autosave.check_base(request, ef.ensure(db, a).updated_at, lambda: ef.view(db, a, True))
     res = ef.save_risk(db, a, body.model_dump(exclude={"assist"}), current, body.assist.model_dump(), audit.request_meta(request))
     db.commit()
     return {**res, "emass": ef.view(db, a, True)}

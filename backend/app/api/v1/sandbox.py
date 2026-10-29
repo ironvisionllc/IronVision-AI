@@ -13,7 +13,7 @@ from app.config import get_settings
 from app.db import get_db
 from app.models import AuthIdentity, Organization, RoleAssignment, User
 from app.security import sessions
-from app.security.deps import CurrentUser, get_current_user, self_scoped
+from app.security.deps import CurrentUser, get_current_user, require_permission, self_scoped
 from app.security.passwords import hash_password
 from app.services import audit, jobs
 from app.services import sandbox as sbx
@@ -342,7 +342,8 @@ class PermanentIn(BaseModel):
 
 
 @router.post("/admin/sandboxes/{org_id}/permanence")
-def set_permanence(org_id: uuid.UUID, body: PermanentIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+def set_permanence(org_id: uuid.UUID, body: PermanentIn, request: Request, db: Session = Depends(get_db),
+                   current: CurrentUser = Depends(require_permission("admin.users.manage"))) -> dict:
     """Make permanent: protected=true (never purged, no expiry countdown). Undo makes it expirable again. Personas, SYNTHETIC label and sandbox SoD stay."""
     _platform_admin(db, current)
     org = _managed_sandbox(db, org_id)

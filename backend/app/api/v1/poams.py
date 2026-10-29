@@ -234,7 +234,7 @@ def _control_risk(db, p: Poam) -> list[dict]:
 def risk_view(poam_id: str, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
     p = _poam(db, request, current, poam_id)
     return {"technical": {"severity": p.severity, "cat": p.cat, "note": "Technical severity / CAT from the scan or checklist – not the eMASS risk scale"},
-            "emass": {k: getattr(p, k) for k in (*RISK_FIELDS, "comments")}, "source": p.risk_source or {},
+            "emass": {k: getattr(p, k) for k in (*RISK_FIELDS, "comments")}, "source": p.risk_source or {}, "updated_at": p.updated_at.isoformat(),
             "control_risk_assessments": _control_risk(db, p),
             "scale": ["Very Low", "Low", "Moderate", "High", "Very High"]}
 
@@ -274,6 +274,11 @@ def update(poam_id: str, body: PoamIn, request: Request, db: Session = Depends(g
     if p.status in ("closed", "risk_accepted"):
         raise HTTPException(409, f"POA&M is {p.status}")
     changes = body.model_dump(exclude_unset=True)
+    from app.services import autosave
+    autosave.lock_if(p.status in ("closure_review", "risk_acceptance_review"), f"{p.human_id} is in {p.status.replace('_', ' ')} – auto-save is paused until the review is decided")
+    if autosave.active() and "status" in changes:
+        raise HTTPException(422, "Status changes are explicit actions – they are never auto-saved")
+    autosave.check_base(request, p.updated_at, lambda: _row(db, p))
     if "status" in changes and p.status in ("closure_review", "risk_acceptance_review"):
         raise HTTPException(409, f"{p.human_id} is in {p.status.replace('_', ' ')}; status changes only through the pending review decision")
     if "due_date" in changes and p.due_date and changes["due_date"] and changes["due_date"] > p.due_date:
@@ -324,6 +329,11 @@ def update_milestone(milestone_id: uuid.UUID, body: MilestoneIn, request: Reques
     if m is None:
         raise HTTPException(404, "Milestone not found")
     p = _poam(db, request, current, str(m.poam_id), "poam.manage")
+    from app.services import autosave
+    autosave.lock_if(p.status in ("closed", "risk_accepted", "closure_review", "risk_acceptance_review"), f"{p.human_id} is {p.status.replace('_', ' ')} – milestones are not auto-saved")
+    if autosave.active() and body.status is not None:
+        raise HTTPException(422, "Completing a milestone is an explicit action – it is never auto-saved")
+    autosave.check_base(request, m.updated_at, lambda: to_dict(m))
     for k, v in body.model_dump(exclude_unset=True).items():
         setattr(m, k, v)
     m.completed_at = datetime.now(timezone.utc) if m.status == "completed" else None

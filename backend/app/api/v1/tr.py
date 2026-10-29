@@ -48,7 +48,7 @@ def _row(r: TrRow, current: CurrentUser | None = None, sandbox: bool = False) ->
             "control_id": r.control_id, "match_status": r.match_status, "match_reason": r.match_reason, "proposed": r.proposed or {}, "sources": r.sources or [],
             "flags": r.flags or [], "state": r.state, "final": r.final, "decided_by": r.decided_by, "justification": r.justification,
             "decided_at": r.decided_at.isoformat() if r.decided_at else None, "last_exported_at": r.last_exported_at.isoformat() if r.last_exported_at else None,
-            "prepared_by": r.prepared_by, "sod_lock": sod.evaluate(r.prepared_by, current, sandbox, "edited or prepared")[0] if current else None}
+            "prepared_by": r.prepared_by, "updated_at": r.updated_at.isoformat(), "sod_lock": sod.evaluate(r.prepared_by, current, sandbox, "edited or prepared")[0] if current else None}
 
 
 @router.post("/systems/{system_id}/tr/workbooks", status_code=201)
@@ -287,6 +287,19 @@ def decide(wid: uuid.UUID, body: DecideIn, request: Request, db: Session = Depen
         raise HTTPException(403, SCA_ONLY)
     if not sets_status and not (_can(db, current, "assessment.perform", wb.system_id) or _can(db, current, "implementation.write", wb.system_id)):
         raise HTTPException(403, "Your role cannot edit Test Results")
+    from app.services import autosave
+    if autosave.active():
+        if body.action != "edit" or len(body.row_ids) != 1 or set(body.values or {}) - {"test_results"}:
+            raise HTTPException(422, "Only a single row's Test Results text is auto-saved – approval and Compliance Status are explicit actions")
+        r0 = db.get(TrRow, body.row_ids[0])
+        if r0 is None or r0.workbook_id != wb.id:
+            raise HTTPException(404, "Row not found")
+        autosave.lock_if(r0.state == "approved", f"Row {r0.row_number} is an approved SCA decision – auto-save is paused; edit it explicitly to re-open it")
+        if _can(db, current, "assessment.perform", wb.system_id) and request.headers.get("x-sod-confirmed") != "1":
+            raise HTTPException(428, {"code": "sod_confirm_required", "message": "Editing makes you the preparer of this row – you will not be able to approve it yourself"})
+        autosave.check_base(request, r0.updated_at, lambda: {"test_results": (r0.final or {}).get("test_results", (r0.proposed or {}).get("test_results"))})
+        if len(body.justification.strip()) < 5:
+            body.justification = "Edited in Test Results review (auto-saved)"
     if len(body.justification.strip()) < 5 and (body.action == "edit" or len(body.row_ids) > 1):
         raise HTTPException(422, "Add a justification (at least 5 characters) – it is kept in the audit log")
     rs = list(db.scalars(select(TrRow).where(TrRow.workbook_id == wb.id, TrRow.id.in_(body.row_ids))))
@@ -330,7 +343,8 @@ def decide(wid: uuid.UUID, body: DecideIn, request: Request, db: Session = Depen
                              before=b, after={**r.final, "justification": body.justification}, **meta)
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
-        res = {"edited": [r.row_number for r in rs], "skipped": []}
+        db.flush()
+        res = {"edited": [r.row_number for r in rs], "skipped": [], "versions": {str(r.id): r.updated_at.isoformat() for r in rs}}
     else:
         raise HTTPException(422, "action must be approve or edit")
     db.commit()

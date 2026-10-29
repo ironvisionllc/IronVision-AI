@@ -2,7 +2,9 @@ import { AttachEvidence } from "@/components/common/AttachEvidence";
 import { PoamRisk } from "@/components/poam/PoamRisk";
 import { PageSizeSelect, usePageSize } from "@/components/common/PageSize";
 import { PoamImpactBanner } from "@/pages/Phase4Pages";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { autosaveCall, useAutoSave } from "@/lib/useAutoSave";
+import { AutoSaveStatus } from "@/components/common/AutoSaveStatus";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useSystems } from "@/context/SystemContext";
@@ -139,7 +141,8 @@ export function PoamDetailPage() {
         <Panel title="Milestones" testId="poam-milestones">
           {data.milestones.map((m: Row) => (
             <div key={m.id} className="flex items-center justify-between border-b border-slate-100 py-1.5 text-[12px]" data-testid={`milestone-${m.id}`}>
-              <span>{m.title} · due {m.due_date ?? "—"}</span>
+              {can("poam.manage") && !terminal && m.status !== "completed" && !["closure_review", "risk_acceptance_review"].includes(p.status)
+                ? <MilestoneEdit m={m} /> : <span>{m.title} · due {m.due_date ?? "—"}</span>}
               <span className="flex items-center gap-2"><S v={m.status} />{can("poam.manage") && !terminal && m.status !== "completed" &&
                 <button className="btn-secondary px-2 py-0.5 text-[11px]" onClick={() => run(() => api.patch(`/poam-milestones/${m.id}`, { status: "completed" }), "Milestone completed")} data-testid={`milestone-complete-${m.id}`}>Complete</button>}</span>
             </div>))}
@@ -155,7 +158,8 @@ export function PoamDetailPage() {
       </div>
       {modal === "edit" && <Modal title="Edit / assign POA&M" onClose={() => setModal("")} testId="poam-edit-modal">
         <div className="grid gap-2"><OwnerSelect value={f.owner_id} onChange={(v) => setF({ ...f, owner_id: v })} />{field("due_date", "Due date", "date")}{field("root_cause", "Root cause")}{field("remediation_plan", "Remediation plan")}{field("resources", "Resources")}</div>
-        <button className="btn-primary mt-3" onClick={() => run(() => api.patch(`/poams/${id}`, { ...f, owner_id: f.owner_id || null, due_date: f.due_date || null }), "Saved")} data-testid="poam-edit-save">Save</button></Modal>}
+        <div className="mt-3 flex flex-wrap items-center gap-3"><button className="btn-primary" onClick={() => run(() => api.patch(`/poams/${id}`, { ...f, owner_id: f.owner_id || null, due_date: f.due_date || null }), "Saved")} data-testid="poam-edit-save">Save</button>
+          <PoamEditAuto p={p} f={f} setF={setF} /></div></Modal>}
       {modal === "closure" && <Modal title="Request closure (routes to ISSM per decision rule)" onClose={() => setModal("")} testId="poam-closure-modal">
         {field("justification", "Justification (min 10 chars)")}
         <div className="mt-2 max-h-48 overflow-y-auto text-[12px]" data-testid="closure-evidence-list"><div className="font-medium">Closure evidence (required)</div>
@@ -170,6 +174,34 @@ export function PoamDetailPage() {
         <button className="btn-primary mt-3" onClick={() => run(() => api.post(`/poams/${id}/request-extension`, f), "Extension requested")} data-testid="poam-extension-submit">Submit</button></Modal>}
     </div>
   );
+}
+
+const POAM_EDIT = ["owner_id", "due_date", "remediation_plan", "root_cause", "resources"];
+const pick = (x: Row, ks: string[]) => Object.fromEntries(ks.map((k) => [k, x[k] ?? ""]));
+const blankNull = (x: Row) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, v === "" ? null : v]));
+
+/** POA&M edit modal: auto-saves the edited fields (never the status – status changes stay explicit). */
+function PoamEditAuto({ p, f, setF }: { p: Row; f: Row; setF: (x: Row) => void }) {
+  const [init] = useState(() => pick(p, POAM_EDIT));
+  const val = useMemo(() => pick(f, POAM_EDIT), [f]);
+  const as = useAutoSave<Row>({ id: `poam:${p.id}`, initial: init, value: val, version: p.updated_at, apply: (x) => setF({ ...f, ...x }),
+    save: async (x, base) => ({ version: (await autosaveCall<Row>("patch", `/poams/${p.id}`, blankNull(x), base)).updated_at }) });
+  return <AutoSaveStatus a={as} testId="poam-autosave" />;
+}
+
+function MilestoneEdit({ m }: { m: Row }) {
+  const [init] = useState(() => ({ title: m.title ?? "", due_date: m.due_date ?? "" }));
+  const [v, setV] = useState(init);
+  const as = useAutoSave({ id: `milestone:${m.id}`, initial: init, value: v, version: m.updated_at, apply: setV,
+    save: async (x, base) => {
+      if (x.title.trim().length < 3) throw { status: 422, detail: [{ loc: ["body", "title"] }] };
+      return { version: (await autosaveCall<Row>("patch", `/poam-milestones/${m.id}`, { title: x.title, due_date: x.due_date || null }, base)).updated_at };
+    } });
+  const bad = (k: string) => (as.snap?.invalid || []).includes(k) ? " border-rose-500" : "";
+  return <span className="flex flex-1 flex-wrap items-center gap-1" onBlur={as.flush}>
+    <input className={`input flex-1${bad("title")}`} value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} aria-invalid={!!bad("title")} data-testid={`milestone-title-${m.id}`} />
+    <input type="date" className={`input w-36${bad("due_date")}`} value={v.due_date} onChange={(e) => setV({ ...v, due_date: e.target.value })} data-testid={`milestone-due-${m.id}`} />
+    <AutoSaveStatus a={as} testId={`milestone-autosave-${m.id}`} /></span>;
 }
 
 function OwnerSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {

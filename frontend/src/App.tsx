@@ -31,6 +31,7 @@ import { FindingPage, ReviewDetailPage, ReviewsPage } from "@/pages/ReviewPages"
 import { InheritancePage, PolicyAuditorPage, PolicyDetailPage, RmfWorkflowPage } from "@/pages/Phase3Pages";
 import CciPage from "@/pages/CciPage";
 import TestResultsPage from "@/pages/TestResultsPage";
+import { AutoSaveGuard } from "@/components/common/AutoSaveStatus";
 import InventoryPage from "@/pages/InventoryPage";
 import { AuditLogPage, AuthorizationPage, NotificationPrefsPage } from "@/pages/Phase3Extras";
 import { EmassPage, MappingReviewPage } from "@/pages/Phase4Pages";
@@ -133,6 +134,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Toaster richColors position="top-right" />
+      <AutoSaveGuard />
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

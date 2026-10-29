@@ -1,4 +1,6 @@
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { autosaveCall, useAutoSave } from "@/lib/useAutoSave";
+import { AutoSaveStatus } from "@/components/common/AutoSaveStatus";
 import { TableScroll } from "@/components/common/TableScroll";
 import { Link } from "react-router-dom";
 import { useSearchParams as _usp } from "react-router-dom";
@@ -91,6 +93,10 @@ export function CategorizePage() {
   const [m, setM] = useState<{ ok?: string; err?: string }>({});
   const [ver, setVer] = useState(0);
   useEffect(() => { if (data) setV(catFromSystem(data)); }, [data]);
+  const catInit = useMemo(() => (data ? catFromSystem(data) : null), [data]);
+  const as = useAutoSave<Row | null>({ id: sid && data && can("system.write") ? `cat:${sid}` : null, initial: catInit, value: v, version: data?.record_version ?? null,
+    resetKey: data?.record_version ?? "", apply: (x) => setV(x),
+    save: async (x, base) => { if (!x || !x.information_types?.length) return; const r = await autosaveCall<Row>("put", `/systems/${sid}/categorization`, catBody(x), base); setVer((n) => n + 1); return { version: r.version }; } });
   const save = async () => {
     try { const r = await api.put<Row>(`/systems/${sid}/categorization`, catBody(v!)); reload();
       const acts: string[] = r.data.select_actions;
@@ -107,7 +113,9 @@ export function CategorizePage() {
       {v && <CategorizeForm v={v} onChange={setV} sid={sid ?? undefined} />}
       {v && <label className="mt-4 block text-[12px] font-medium text-slate-700">Categorization rationale<textarea className="input mt-1" rows={2} value={v.rationale ?? ""}
         onChange={(e) => setV({ ...v, rationale: e.target.value })} placeholder="Why these types and impacts (recorded with the revision)" data-testid="cat-rationale" /></label>}
-      <Gated perm="system.write"><button className="btn-primary mt-3" onClick={save} data-testid="categorize-save">Save categorization</button></Gated>
+      <Gated perm="system.write"><div className="mt-3 flex flex-wrap items-center gap-3"><button className="btn-primary" onClick={save} data-testid="categorize-save">{as.on ? "Save now" : "Save categorization"}</button>
+        <AutoSaveStatus a={as} testId="cat-autosave" /></div></Gated>
+      <p className="mt-1 text-[11px] text-slate-500">Auto-save keeps a draft revision only – the categorization still needs AO approval.</p>
       {sid && <div className="mt-5 grid gap-5"><CategorizationApproval sid={sid} version={ver} /></div>}
     </StepFrame>);
 }

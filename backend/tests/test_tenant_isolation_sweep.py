@@ -22,7 +22,9 @@ def tenants(client, signup_on):  # noqa: F811
                                                 "categorization_mode": "fips199", "information_types": [{"id": "D.16.3"}]}, headers=ha).json()["id"]
     isso_a = auth(client.post("/api/v1/sandbox/act-as", json={"role": "isso"}, headers=ha).json()["access_token"])
     pid = client.post("/api/v1/poams", json={"system_id": sid, "weakness": f"{mark} weakness", "control_ids": ["ac-2"]}, headers=isso_a).json()["id"]
-    from app.services import emass_migration as em  # Import Center history / PPSM / migration report must not leak either
+    from app.services import (
+        emass_migration as em,  # Import Center history / PPSM / migration report must not leak either
+    )
     up = client.post("/api/v1/emass-imports", files={"file": (f"{mark}_ppsm.xlsx", em.sample("ppsm"))}, data={"system_id": sid}, headers=isso_a)
     assert up.status_code == 201, up.text
     client.post(f"/api/v1/systems/{sid}/uploads", files={"file": (f"{mark}.ckl", b'<?xml version="1.0"?><CHECKLIST><STIGS><iSTIG><VULN/></iSTIG></STIGS></CHECKLIST>')}, headers=isso_a)
@@ -30,7 +32,7 @@ def tenants(client, signup_on):  # noqa: F811
     hb = auth(tb["access_token"])
     personas = {r: auth(client.post("/api/v1/sandbox/act-as", json={"role": r}, headers=hb).json()["access_token"])
                 for r in ("isso", "issm", "sca", "ao", "platform_admin")}
-    return {"mark": mark, "email": ea, "sid": sid, "pid": pid, "b": personas}
+    return {"mark": mark, "email": ea, "sid": sid, "pid": pid, "b": personas, "a": {"isso": isso_a}}
 
 
 def _routes():
@@ -84,6 +86,27 @@ def test_test_plan_export_cross_tenant_404(client, tenants):
                 assert r.status_code == 404, (path, role, r.status_code)
 
 
+def test_autosave_drafts_and_sessions_not_shared_across_tenants(client, tenants):
+    """New auto-save endpoints: /drafts/{kind} and /autosave/close only ever touch the caller's own rows."""
+    a, b = tenants["a"]["isso"], tenants["b"]["isso"]
+    assert client.put("/api/v1/drafts/registration", json={"data": {"f": {"name": "TENANT-A-SECRET-DRAFT"}}}, headers=a).status_code == 200
+    rb = client.get("/api/v1/drafts/registration", headers=b)
+    assert rb.status_code in (200, 403) and "TENANT-A-SECRET-DRAFT" not in rb.text
+    client.put(f"/api/v1/systems/{tenants['sid']}/iscm", json={"narrative": "A open session"}, headers={**a, "X-Autosave": "1"})
+    from sqlalchemy import func as sfunc
+    from sqlalchemy import select as sselect
+
+    from app.db import SessionLocal
+    from app.models import AutosaveSession
+    with SessionLocal() as db:
+        n_open = db.scalar(sselect(sfunc.count()).select_from(AutosaveSession).where(AutosaveSession.closed_at.is_(None)))
+    client.post("/api/v1/autosave/close", json={}, headers=b)
+    with SessionLocal() as db:
+        assert db.scalar(sselect(sfunc.count()).select_from(AutosaveSession).where(AutosaveSession.closed_at.is_(None))) == n_open, "B cannot close A's sessions"
+    client.post("/api/v1/autosave/close", json={}, headers=a)
+    client.delete("/api/v1/drafts/registration", headers=a)
+
+
 def test_audit_events_scoped(client, tenants):
     r = client.get("/api/v1/audit-events?limit=500", headers=tenants["b"]["isso"])
     # B's own authz.denied events legitimately echo the A ids B itself tried (earlier test) – A's identity/content must never appear
@@ -92,9 +115,10 @@ def test_audit_events_scoped(client, tenants):
 
 
 def test_job_status_and_jobs_list_scoped(client, tenants):
+    from sqlalchemy import select
+
     from app.db import SessionLocal
     from app.models import Job, User
-    from sqlalchemy import select
     with SessionLocal() as db:
         ua = db.scalar(select(User).where(User.email == tenants["email"]))
         j = Job(job_type="noop.test", payload={"system_id": tenants["sid"]}, status="succeeded", requested_by=ua.id)

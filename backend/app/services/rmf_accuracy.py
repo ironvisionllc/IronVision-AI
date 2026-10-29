@@ -48,7 +48,8 @@ def latest(db: Session, sid, status: str | None = None) -> CategorizationRecord 
     return db.scalar(q.order_by(CategorizationRecord.revision.desc()).limit(1))
 
 
-def record(db: Session, s: System, calc: dict, framework: str, nss: str | None, rationale: str | None, actor_email: str) -> CategorizationRecord:
+def record(db: Session, s: System, calc: dict, framework: str, nss: str | None, rationale: str | None, actor_email: str,
+           in_place: bool = False) -> CategorizationRecord:
     """New revision when the inputs change. With an approved revision the change becomes 'pending_reapproval' and does not replace it."""
     impacts = {"c": calc["c"], "i": calc["i"], "a": calc["a"]}
     h = _hash(framework, nss, calc["rows"], impacts)
@@ -56,6 +57,13 @@ def record(db: Session, s: System, calc: dict, framework: str, nss: str | None, 
     if cur and cur.inputs_hash == h:
         if rationale and cur.status != "approved":
             cur.rationale = rationale
+        return cur
+    rows = [{k: r[k] for k in ("id", "name", "c", "i", "a", "rationale", "adjusted", "provisional")} for r in calc["rows"]]
+    if in_place and cur and cur.status == "draft":  # auto-save: keep editing the same draft revision (no revision per keystroke)
+        cur.framework, cur.nss_determination, cur.impacts, cur.inputs_hash, cur.information_types = framework, nss, impacts, h, rows
+        cur.overall, cur.baseline, cur.rationale, cur.submitted_by = calc["overall"], calc["baseline"], rationale or cur.rationale, actor_email
+        cur.detail = {"steps": calc["steps"], "security_category": calc["security_category"], "baseline_selection": calc.get("baseline_selection")}
+        db.flush()
         return cur
     approved = latest(db, s.id, "approved")
     for old in db.scalars(select(CategorizationRecord).where(CategorizationRecord.system_id == s.id,

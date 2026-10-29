@@ -6,8 +6,23 @@ from fastapi import HTTPException
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
-from app.models import (ApprovalDecision, ApprovalRequest, ControlAssignment, DecisionRule, Evidence, Finding, FindingControlMap,
-                        Implementation, Notification, Poam, PoamFinding, PoamHistory, PoamMatchRule, RoleAssignment, System, User)
+from app.models import (
+    ApprovalDecision,
+    ApprovalRequest,
+    ControlAssignment,
+    DecisionRule,
+    Evidence,
+    Finding,
+    FindingControlMap,
+    Implementation,
+    Poam,
+    PoamFinding,
+    PoamHistory,
+    PoamMatchRule,
+    RoleAssignment,
+    System,
+    User,
+)
 from app.services import audit
 
 SIGNATURE = "Record approval (simulated signature – not CAC/PIV)"
@@ -81,6 +96,23 @@ def display_status(p: Poam) -> str:
 
 
 def history(db: Session, p: Poam, actor: User | None, action: str, **details) -> None:
+    from datetime import datetime, timezone
+
+    from app.services import autosave
+    if autosave.active() and actor is not None:  # auto-save: keep ONE history entry per editing session (first before, latest after)
+        last = db.scalar(select(PoamHistory).where(PoamHistory.poam_id == p.id).order_by(PoamHistory.created_at.desc()).limit(1))
+        if last is not None and last.actor_id == actor.id and last.action == action and (last.details or {}).get("autosave") \
+                and datetime.now(timezone.utc) - last.created_at < autosave.IDLE:
+            d = dict(last.details or {})
+            if "after" in details:
+                d["after"] = {**(d.get("after") or {}), **(details.get("after") or {})}
+                d["before"] = {**(details.get("before") or {}), **(d.get("before") or {})}
+            else:
+                d.update(details)
+            d["saves"] = d.get("saves", 1) + 1
+            last.details = d
+            return
+        details = {**details, "autosave": True, "saves": 1}
     db.add(PoamHistory(poam_id=p.id, actor_id=actor.id if actor else None, actor_email=actor.email if actor else "system",
                        action=action, details=details or None))
 

@@ -200,6 +200,8 @@ def system_detail(system_id: uuid.UUID, db: Session = Depends(get_db), _: Curren
 def update_system(system_id: uuid.UUID, body: SystemBase, request: Request, db: Session = Depends(get_db),
                   current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
     s = get_system(db, system_id)
+    from app.services import autosave
+    autosave.check_base(request, s.updated_at, lambda: {k: getattr(s, k) for k in body.model_dump(exclude_unset=True) if hasattr(s, k)})
     changes = body.model_dump(exclude_unset=True)
     new_pii = changes.pop("processes_pii", None)  # PII Yes/No goes through the privacy path (adds/removes the overlay, audited)
     changes.pop("pta", None)  # PTA questionnaire retired: existing answers stay read-only
@@ -293,11 +295,13 @@ def create_asset(system_id: uuid.UUID, body: AssetIn, db: Session = Depends(get_
 
 
 @router.patch("/systems/{system_id}/assets/{asset_id}")
-def update_asset(system_id: uuid.UUID, asset_id: uuid.UUID, body: AssetIn, db: Session = Depends(get_db),
+def update_asset(system_id: uuid.UUID, asset_id: uuid.UUID, body: AssetIn, request: Request, db: Session = Depends(get_db),
                  current: CurrentUser = Depends(require_permission("system.write"))) -> dict:
     a = db.get(Asset, asset_id)
     if a is None or a.system_id != system_id:
         raise HTTPException(404, "Asset not found")
+    from app.services import autosave
+    autosave.check_base(request, a.updated_at, lambda: to_dict(a))
     changes = body.model_dump(exclude_unset=True)
     for k, v in changes.items():
         setattr(a, k, v)

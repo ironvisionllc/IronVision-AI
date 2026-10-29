@@ -68,10 +68,19 @@ def record(
     ip: str | None = None,
     user_agent: str | None = None,
     correlation_id: str | None = None,
-) -> AuditEvent:
+    _coalesced: bool = False,
+) -> AuditEvent | None:
+    from app.services import autosave
+
     op = (operator_var.get() or {}).get("email")
     if op:
         details = {**(details or {}), "operated_by": op, "sandbox_persona": True}
+    if autosave.active():  # auto-save: coalesced into the open editing session, written as one event on close
+        autosave.divert(db, action=action, actor_user_id=actor_user_id, actor_email=actor_email, entity_type=entity_type, entity_id=entity_id,
+                        before=before, after=after, details=details)
+        return None
+    if actor_user_id is not None and not _coalesced:  # an explicit action closes the actor's open auto-save sessions first (history order)
+        autosave.close_for(db, actor_user_id, "explicit_action")
     db.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": _LOCK_KEY})
     prev = db.scalar(select(AuditEvent.hash).order_by(AuditEvent.seq.desc()).limit(1)) or GENESIS_HASH
     ev = AuditEvent(

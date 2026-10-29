@@ -46,7 +46,7 @@ app.add_middleware(
     allow_origins=settings.cors_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Correlation-ID"],
+    allow_headers=["Authorization", "Content-Type", "X-Correlation-ID", "X-Autosave", "X-Base-Version", "X-Sod-Confirmed"],
     expose_headers=["X-Correlation-ID"],
 )
 
@@ -56,7 +56,9 @@ async def correlation_and_access_log(request: Request, call_next):
     cid = request.headers.get("x-correlation-id") or str(uuid.uuid4())
     token = correlation_id_var.set(cid[:100])
     from app.services.audit import operator_var
+    from app.services.autosave import autosave_var
     operator_var.set({})
+    autosave_var.set(request.headers.get("x-autosave") == "1" and request.method in ("PUT", "PATCH", "POST"))
     started = time.perf_counter()
     try:
         response = web.rate_limited(request) or await call_next(request)

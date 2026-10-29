@@ -75,6 +75,7 @@ async def upload_control_evidence(system_id: uuid.UUID, control_id: str, file: U
 class PrefsIn(BaseModel):
     guided: str | None = Field(None, pattern="^(on|off)$")
     sca_auto_advance: bool | None = None
+    autosave: bool | None = None
 
 
 @router.get("/me/preferences")

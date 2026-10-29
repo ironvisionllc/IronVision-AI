@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { autosaveCall, useAutoSave } from "@/lib/useAutoSave";
+import { AutoSaveStatus } from "@/components/common/AutoSaveStatus";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/lib/api";
 import { Row, useApi } from "@/lib/useApi";
@@ -29,6 +31,21 @@ export function EmassPanels({ systemId, controlId, onSaved }: { systemId: string
   useEffect(() => { setSug(null); }, [controlId]);
   const imp = useImported(systemId, "emass_field");
   const impTools = (k: string) => { const info = imp.items[`${controlId}|${k}`]; return info ? <><ImportedMark info={info} testId={`emass-imported-${k}`} />{!ro && <ImportedDeleteBar selected={[`${controlId}|${k}`]} items={imp.items} onDone={() => { imp.reload(); reload(); onSaved(); }} testId={`emass-delete-imported-${k}`} label="Remove imported value" />}</> : null; };
+  const asInit = useMemo<Row>(() => (d ? { st: d.implementation_status, ...d.values } : {}), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const asVal = useMemo<Row>(() => ({ st, ...v }), [st, v]);
+  const last = useRef<Row | null>(null);
+  useEffect(() => { last.current = null; }, [key]);
+  const as = useAutoSave<Row>({ id: d?.can_edit ? `emass:${systemId}:${controlId}` : null, initial: asInit, value: asVal, version: d?.updated_at ?? null, resetKey: key,
+    apply: (x) => { const { st: s0, ...rest } = x; setSt(s0); setV(rest); },
+    save: async (x, base) => {  // only the changed group is sent: Implementation Plan and/or Risk Assessment
+      const prev = last.current || asInit; let ver = base;
+      const cl = (ks: string[]) => Object.fromEntries(ks.map((k) => [k, typeof x[k] === "string" ? (x[k].trim() || null) : (x[k] ?? null)]));
+      const ch = (ks: string[]) => ks.some((k) => (x[k] ?? "") !== (prev[k] ?? ""));
+      const pk = visible(x.st), rk = [...RISK_ENUMS, ...RISK_TEXT];
+      if (x.st !== prev.st || ch(pk)) ver = (await autosaveCall<Row>("put", `${url}/plan`, { implementation_status: x.st, ...cl(pk), assist: assist(pk) }, ver)).emass?.updated_at ?? ver;
+      if (x.st !== "Inherited" && ch(rk)) ver = (await autosaveCall<Row>("put", `${url}/risk`, { ...cl(rk), assist: assist(rk) }, ver)).emass?.updated_at ?? ver;
+      last.current = x; return { version: ver };
+    } });
   if (!d) return null;
   const o = d.options, ro = !d.can_edit, locked = st === "Inherited";
   const req: string[] = o.required[st] || [];
@@ -73,7 +90,8 @@ export function EmassPanels({ systemId, controlId, onSaved }: { systemId: string
   };
   const hint = residualHint(v.likelihood, v.impact);
   return (
-    <div className="space-y-4" data-testid="emass-panels">
+    <div className="space-y-4" data-testid="emass-panels" onBlur={as.flush}>
+      {!ro && <AutoSaveStatus a={as} testId="emass-autosave" />}
       {ro && <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900" data-testid="emass-readonly">Read-only: {deniedText("implementation.write")} Only the ISSO or System Owner of this system can edit eMASS Implementation Plan and Risk Assessment fields.</div>}
       {sug && <div className="rounded border border-violet-200 bg-violet-50 px-3 py-2 text-[12px] text-violet-900" data-testid="emass-sug-banner">
         <b>{sug.label}</b>{sug.note && <> · {sug.note}</>} · {sug.suggestions.length} suggestion(s){sug.rejected?.length ? `, ${sug.rejected.length} rejected by validation` : ""} · grounded in {sug.grounding?.evidence ?? 0} evidence, {sug.grounding?.open_findings ?? 0} open findings, {sug.grounding?.open_poams ?? 0} POA&Ms

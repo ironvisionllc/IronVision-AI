@@ -49,7 +49,9 @@ class ResetIn(BaseModel):
 
 @router.get("/systems/{system_id}/iscm")
 def get_strategy(system_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
-    return iscm.view(db, get_system(db, system_id))
+    s = get_system(db, system_id)
+    st = iscm.strategy(db, s)
+    return {**iscm.view(db, s), "version": st.updated_at.isoformat() if st else None}
 
 
 @router.put("/systems/{system_id}/iscm")
@@ -57,9 +59,17 @@ def put_strategy(system_id: uuid.UUID, body: StrategyIn, request: Request, db: S
                  current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
     enforce(request, current, "system.write", system_id)
     s = get_system(db, system_id)
+    from app.services import autosave
+    st = iscm.strategy(db, s)
+    if st is not None:
+        autosave.lock_if(st.status in ("pending_approval", "approved"), f"The strategy is {st.status.replace('_', ' ')} – auto-save is paused; "
+                         + ("the ISSM must approve or return it" if st.status == "pending_approval" else "use Save now to start a new draft version"))
+        autosave.check_base(request, st.updated_at, lambda: iscm.view(db, s)["strategy"])
     iscm.save(db, s, body.model_dump(), current)
     db.commit()
-    return iscm.view(db, s)
+    out = iscm.view(db, s)
+    st = iscm.strategy(db, s)
+    return {**out, "version": st.updated_at.isoformat() if st else None}
 
 
 @router.post("/systems/{system_id}/iscm/submit")

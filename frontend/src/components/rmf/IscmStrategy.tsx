@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { autosaveCall, useAutoSave } from "@/lib/useAutoSave";
+import { AutoSaveStatus } from "@/components/common/AutoSaveStatus";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/lib/api";
@@ -27,6 +29,10 @@ export function IscmStrategy({ sid }: { sid: string }) {
   const [f, setF] = useState<Row>({ defaults: {}, profiles: [] });
   const [busy, setBusy] = useState("");
   useEffect(() => { if (d) setF(d.strategy ? { ...d.strategy } : { narrative: "", scope: "", defaults: {}, profiles: [], reporting: [], review_activities: [], evidence_requirements: [] }); }, [d]);
+  const isInit = useMemo<Row>(() => (d ? (d.strategy ? { ...d.strategy } : { narrative: "", scope: "", defaults: {}, profiles: [], reporting: [], review_activities: [], evidence_requirements: [] }) : {}), [d]);
+  const asOk = !!d && can("system.write") && !["pending_approval", "approved"].includes(d.strategy?.status);  // locked: pending ISSM approval / approved
+  const as = useAutoSave<Row>({ id: asOk ? `iscm:${sid}` : null, initial: isInit, value: f, version: d?.version ?? null, resetKey: d?.version ?? "", apply: setF,
+    save: async (x, base) => { const r = await autosaveCall<Row>("put", `/systems/${sid}/iscm`, { ...x, profiles: (x.profiles || []).map((p: Row) => ({ name: p.name, match_type: p.match_type, match_value: p.match_value, values: p.values || {} })) }, base); return { version: r.version }; } });
   if (!d) return null;
   const o = d.options, s = d.strategy, pending = s?.status === "pending_approval", ro = !can("system.write") || pending;
   const u = user || null;
@@ -81,8 +87,10 @@ export function IscmStrategy({ sid }: { sid: string }) {
         {list("reporting", ["report", "audience", "frequency"], "Reporting and review schedule")}
       </div>
       <div className="mt-2 text-[11px] text-slate-500" data-testid="iscm-people">Responsible monitoring personnel (from Key roles): ISSO {(d.people.isso || []).join(", ") || "—"} · ISSM {(d.people.issm || []).join(", ") || "—"} · System Owner {(d.people.system_owner || []).join(", ") || "—"}</div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {!ro && <button className="btn-secondary" disabled={!!busy} onClick={() => act("save", () => api.put(`/systems/${sid}/iscm`, body()), "Draft saved – submit it for ISSM approval to take effect")} data-testid="iscm-save">Save draft</button>}
+      <div className="mt-3 flex flex-wrap gap-2" onBlur={as.flush}>
+        {canEdit && asOk && <AutoSaveStatus a={as} testId="iscm-autosave" />}
+        {canEdit && !asOk && s && <span className="text-[12px] text-amber-800" data-testid="iscm-autosave-paused">Auto-save paused – the strategy is {String(s.status).replace("_", " ")}{s.status === "approved" ? "; Save draft starts a new version" : ""}</span>}
+        {!ro && <button className="btn-secondary" disabled={!!busy} onClick={() => act("save", () => api.put(`/systems/${sid}/iscm`, body()), "Draft saved – submit it for ISSM approval to take effect")} data-testid="iscm-save">{as.on && s?.status !== "approved" ? "Save now" : "Save draft"}</button>}
         {!ro && (!s || ["draft", "rejected"].includes(s.status)) && <button className="btn-primary" disabled={!!busy} onClick={() => act("submit", async () => { await api.put(`/systems/${sid}/iscm`, body()); return api.post(`/systems/${sid}/iscm/submit`); }, "Saved and submitted to the ISSM – it takes effect when the ISSM approves it")} data-testid="iscm-submit">Save & submit for ISSM approval</button>}
         {isIssm && pending && <>
           <button className="btn-primary" disabled={!!busy} onClick={() => act("ok", () => api.post(`/systems/${sid}/iscm/decision`, { approve: true }), "Strategy approved – SLCM values updated")} data-testid="iscm-approve">Approve (ISSM)</button>
