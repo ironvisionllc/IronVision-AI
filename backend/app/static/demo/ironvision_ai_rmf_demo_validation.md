@@ -10,8 +10,8 @@ Recording date: 2026-10-28 (re-recorded after review). Source: shared SYNTHETIC 
 | Duration | 300.000 s (9,000 frames) |
 | Video | H.264 High, 1920×1080, 30 fps, yuv420p, faststart (moov before mdat) |
 | Audio | none (silent) |
-| Captions | burned in + ironvision_ai_rmf_captions.srt (22 blocks, ≤ 2.55 words/s) |
-| Size | 14,658,937 bytes (~391 kbit/s) |
+| Captions | none burned in (clean video, re-encoded 2026-10-29 at user request); separate ironvision_ai_rmf_captions.srt kept, not auto-displayed (no &lt;track&gt; on /demo-video) |
+| Size | 14,144,467 bytes (~377 kbit/s) |
 | Container tags | major_brand isom, encoder Lavf only – no title/author/location/host metadata |
 | Delivery | HTTP 206 byte ranges, Content-Type video/mp4 (iPhone Safari compatible) |
 
@@ -42,3 +42,9 @@ Recording date: 2026-10-28 (re-recorded after review). Source: shared SYNTHETIC 
 ## Reproduce
 
 `python3 scripts/demo_video/prep_v2.py` → `record_demo.py` → `build_docs.py` → `assemble.py` → `prep_v2.py --reset`
+
+## Revision 2026-10-29
+
+- Bottom caption bar removed; scenes, timing and on-screen cards (intro, phone, closing) unchanged. Re-recorded with the same script (the raw frames had been lost in a pod restart), then the shared demo was re-seeded.
+- Captioned version archived (unlinked): archive/2026-10-28-captioned/ironvision_ai_rmf_demo.mp4.
+- Verified: ffprobe (300.000 s, 9,000 frames, H.264 High 1920×1080, 30 fps, yuv420p, moov before mdat, no audio); 5 sampled frames (0:20, 1:15, 2:10, 3:20, 4:10) show no caption text; HTTP 200 + 206 byte ranges.

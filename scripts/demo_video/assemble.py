@@ -1,5 +1,6 @@
 """Builds the MP4 from the recorded screencast frames: variable-duration concat → constant 30 fps H.264 yuv420p, no audio."""
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -22,9 +23,9 @@ def main():
     (REC / "concat.txt").write_text("\n".join(lines) + "\n")
     OUT.parent.mkdir(parents=True, exist_ok=True)
 
-    srt = OUT.parent / "ironvision_ai_rmf_captions.srt"  # burned-in captions (silent video); written by build_docs.py first
+    srt = OUT.parent / "ironvision_ai_rmf_captions.srt"  # separate SRT; burned in only with BURN_CAPTIONS=1 (default: clean video)
     style = "FontName=DejaVu Sans,FontSize=12,PrimaryColour=&H00FFFFFF,BackColour=&H99101820,BorderStyle=4,Outline=0,Shadow=0,MarginV=26"
-    subs = f",subtitles={srt}:force_style='{style}'" if srt.exists() else ""
+    subs = f",subtitles={srt}:force_style='{style}'" if os.environ.get("BURN_CAPTIONS") == "1" and srt.exists() else ""
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(REC / "concat.txt"),
            "-vf", f"scale=1920:1080:flags=lanczos{subs},fps=30,format=yuv420p", "-an",
            "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p",

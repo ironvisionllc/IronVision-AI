@@ -1,6 +1,6 @@
 # IronVision AI – RMF product demo · scene timeline
 
-Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are measured from the recording (event log of the recorder).
+Video: 1920×1080, 30 fps, H.264, no audio, duration 300.00 s. Times below are measured from the recording (event log of the recorder).
 
 ## Scene 1 · Intro & sign-in
 
@@ -23,7 +23,7 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are m
 
 ## Scene 2 · Dashboard, RMF steps, Guided Mode
 
-- **Start / end:** 0:14.0 – 0:39.5
+- **Start / end:** 0:14.0 – 0:39.6
 - **Screens:** /dashboard, /rmf/categorize
 - **Actions:** Point at the 7 RMF steps; Guided Mode on → panel → off
 - **Production notes:** —
@@ -33,7 +33,7 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are m
 | 0:14.0 | `open /dashboard` |
 | 0:29.1 | `click [data-testid="guided-toggle"]` |
 | 0:30.5 | `open /rmf/categorize` |
-| 0:38.5 | `click [data-testid="guided-toggle"]` |
+| 0:38.6 | `click [data-testid="guided-toggle"]` |
 
 **Narration**
 
@@ -42,15 +42,15 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are m
 
 ## Scene 3 · Import Center
 
-- **Start / end:** 0:39.5 – 1:02.0
+- **Start / end:** 0:39.6 – 1:02.0
 - **Screens:** /systems/:id/import-center, review page
 - **Actions:** Upload SYNTHETIC Control Information; detect; review; accept safe; apply
 - **Production notes:** Synthetic workbook
 
 | Time | On-screen event |
 |---|---|
-| 0:39.5 | `open /systems/0e65c746-fca5-49e2-b0a4-07b2fab17ee6/import-center` |
-| 0:40.4 | `upload SYNTHETIC_LTP_ControlInfo.xlsx` |
+| 0:39.6 | `open /systems/f2e6b2e4-57d2-4529-8105-4170076b05cc/import-center` |
+| 0:40.5 | `upload SYNTHETIC_LTP_ControlInfo.xlsx` |
 | 0:44.6 | `click [data-testid="ic-import-0"]` |
 | 0:47.9 | `click [data-testid="ic-result-0"] a` |
 | 0:54.2 | `click [data-testid="import-accept-safe"]` |
@@ -72,8 +72,8 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are m
 |---|---|
 | 1:02.0 | `open /import-center` |
 | 1:03.1 | `click [data-testid^="ic-hist-emass-"]:has-text("SYNTHETIC_LTP_ControlInfo.xlsx") [data-testid^="ic-manage-"]` |
-| 1:10.1 | `click [data-testid="mid-delete-everything"]` |
-| 1:14.8 | `click [data-testid^="mid-undo-"]` |
+| 1:10.0 | `click [data-testid="mid-delete-everything"]` |
+| 1:14.7 | `click [data-testid^="mid-undo-"]` |
 
 **Narration**
 
@@ -89,8 +89,8 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are m
 
 | Time | On-screen event |
 |---|---|
-| 1:24.0 | `open /systems/0e65c746-fca5-49e2-b0a4-07b2fab17ee6/controls/ac-2` |
-| 1:30.2 | `click [data-testid="wb-tab-evidence"]` |
+| 1:24.0 | `open /systems/f2e6b2e4-57d2-4529-8105-4170076b05cc/controls/ac-2` |
+| 1:30.3 | `click [data-testid="wb-tab-evidence"]` |
 | 1:32.5 | `click [data-testid="wb-attach-evidence-btn"]` |
 | 1:41.3 | `upload SYNTHETIC_AC-2_quarterly_account_review.txt` |
 
@@ -108,8 +108,8 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are m
 
 | Time | On-screen event |
 |---|---|
-| 1:52.0 | `open /policy-auditor/7d1b5b13-8b4d-4606-8d24-5666300cf43d` |
-| 1:58.4 | `click [data-testid="coverage-toggle-ac-2"]` |
+| 1:52.0 | `open /policy-auditor/48263f48-6819-4b3b-8b57-86b2c6d69c46` |
+| 1:58.5 | `click [data-testid="coverage-toggle-ac-2"]` |
 
 **Narration**
 
@@ -144,10 +144,10 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are m
 | 2:44.0 | `persona sca` |
 | 2:44.1 | `open /assess/workspace` |
 | 2:47.5 | `click [data-testid^="sca-item-"]` |
-| 2:51.3 | `click [data-testid="sca-determination"] input[type=checkbox]` |
+| 2:51.2 | `click [data-testid="sca-determination"] input[type=checkbox]` |
 | 2:52.7 | `click [data-testid="method-examine"]` |
-| 2:56.1 | `click [data-testid="assessment-save"]` |
-| 3:01.3 | `click [data-testid="sca-moved-undo"]` |
+| 2:56.0 | `click [data-testid="assessment-save"]` |
+| 3:01.2 | `click [data-testid="sca-moved-undo"]` |
 
 **Narration**
 
@@ -164,7 +164,7 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are m
 | Time | On-screen event |
 |---|---|
 | 3:14.0 | `persona issm` |
-| 3:14.1 | `open /systems/0e65c746-fca5-49e2-b0a4-07b2fab17ee6/authorization` |
+| 3:14.1 | `open /systems/f2e6b2e4-57d2-4529-8105-4170076b05cc/authorization` |
 | 3:25.7 | `open /test-results` |
 
 **Narration**
@@ -200,8 +200,8 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.02 s. Times below are m
 | 4:04.0 | `open /dashboard` |
 | 4:06.2 | `click [data-testid="theme-toggle-btn"]` |
 | 4:09.9 | `open /rmf-workflow` |
-| 4:14.1 | `click [data-testid="theme-toggle-btn"]` |
-| 4:17.4 | `open phone.html` |
+| 4:14.2 | `click [data-testid="theme-toggle-btn"]` |
+| 4:17.5 | `open phone.html` |
 
 **Narration**
 
