@@ -1,6 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TableScroll } from "@/components/common/TableScroll";
-import { CompletedNext } from "@/components/common/CompletedNext";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
@@ -8,81 +7,14 @@ import { api, errorMessage } from "@/lib/api";
 import { Row, useApi } from "@/lib/useApi";
 import { PageHeader, Panel } from "@/components/common/Panel";
 import { useSystems } from "@/context/SystemContext";
+import { useAuth } from "@/context/AuthContext";
+import { BatchSummary } from "@/components/import/BatchSummary";
+import { QueueTable } from "@/components/import/QueueTable";
+import { useImportQueue } from "@/components/import/useImportQueue";
+import { LABEL, sortByState } from "@/components/import/queue";
+import type { QState } from "@/components/import/queue";
 
-const SCANS = ["ckl", "cklb", "xccdf", "nessus_xml", "nessus_csv", "sarif"];
-const GENERIC_EMASS = ["system_details", "categorization", "slcm", "ppsm", "poam"];
 const STATUS_TONE: Row = { applied: "text-emerald-800", failed: "text-rose-700", "needs review": "text-amber-800", queued: "text-slate-600", processing: "text-blue-800", reverted: "text-violet-800" };
-
-/** Sends the file to the type's EXISTING pipeline endpoint and returns the link to its existing review screen. */
-async function route(type: string, sid: string, file: File): Promise<{ link: string; note: string; preview?: Row }> {
-  const fd = new FormData();
-  fd.append("file", file);
-  if (type === "policy") {
-    fd.append("title", file.name.replace(/\.[^.]+$/, "")); fd.append("system_ids", sid);
-    const r = (await api.post<Row>("/policies", fd)).data;
-    return { link: `/policy-auditor/${r.id}`, note: r.duplicate ? r.message : "Queued for Policy Auditor analysis – mappings go to Mapping Review" };
-  }
-  if (SCANS.includes(type)) {
-    const r = (await api.post<Row>(`/systems/${sid}/uploads`, fd)).data;
-    return { link: `/ingest-runs/${r.id}`, note: "Received – evidence processing queued" };
-  }
-  if (type === "control_information") {
-    const r = (await api.post<Row>(`/systems/${sid}/emass-imports`, fd)).data;
-    return { link: `/systems/${sid}/emass-import/${r.id}`, note: `${r.report?.summary?.rows_to_apply ?? r.counts?.controls ?? 0} row(s) ready for review` };
-  }
-  if (GENERIC_EMASS.includes(type)) {
-    fd.append("system_id", sid);
-    const up = (await api.post<Row>("/emass-imports", fd)).data;
-    const r = (await api.post<Row>(`/emass-imports/${up.id}/target`, { action: "update", system_id: sid, report_type: type })).data;
-    return { link: `/systems/${sid}/emass-import/${r.id}`, note: `${(r.items || []).length} item(s) ready for review` };
-  }
-  if (type === "test_results") {
-    await api.post<Row>(`/systems/${sid}/tr/workbooks`, fd);
-    return { link: "/test-results", note: "Workbook received – column detection queued (Test Results)" };
-  }
-  if (type === "test_plan") {
-    const p = (await api.post<Row>(`/systems/${sid}/tr/test-plan/preview`, fd)).data;
-    return { link: "/test-results#test-plan", note: `Preview: ${p.counts?.accepted ?? 0} procedure(s) can be imported`, preview: p };
-  }
-  if (type === "hwsw") {
-    const r = (await api.post<Row>(`/systems/${sid}/inventory/imports`, fd)).data;
-    return { link: "/inventory", note: `Inventory import v${r.version} queued – differences become proposals` };
-  }
-  throw new Error("Unsupported type");
-}
-
-function FileRow({ f, n, sid, types, preset, onDone }: { f: Row; n: number; sid: string; types: Row; preset?: string; onDone: () => void }) {
-  const [type, setType] = useState<string>((preset && f.candidates?.includes(preset) ? preset : f.type) || "");
-  const [forced, setForced] = useState(false);
-  const [res, setRes] = useState<Row | null>(null);
-  const [busy, setBusy] = useState(false);
-  const t = types[type];
-  const go = async () => {
-    setBusy(true);
-    try { setRes(await route(type, sid, f.file)); onDone(); } catch (e) { toast.error(`${f.file_name}: ${errorMessage(e)}`); } finally { setBusy(false); }
-  };
-  const importPlan = async () => {
-    const fd = new FormData(); fd.append("file", f.file);
-    try { const r = (await api.post<Row>(`/systems/${sid}/tr/test-plan/import`, fd)).data; toast.success(`Imported ${r.counts?.imported ?? r.counts?.accepted ?? ""} procedure(s)`); onDone(); }
-    catch (e) { toast.error(errorMessage(e)); }
-  };
-  return (
-    <tr className="border-t border-slate-100 align-top" data-testid={`ic-file-${n}`}>
-      <td className="min-w-[180px] break-all py-2 pr-2 font-medium">{f.file_name}</td>
-      <td className="pr-2">{f.type || f.candidates?.length || forced ? (
-        <select className="input w-auto max-w-[16rem]" value={type} onChange={(e) => setType(e.target.value)} data-testid={`ic-type-${n}`}>
-          {Object.values(types).map((x: Row) => <option key={x.key} value={x.key} disabled={!x.allowed}>{x.label}{x.allowed ? "" : " (not permitted)"}</option>)}</select>)
-        : <span className="text-rose-700" data-testid={`ic-unknown-${n}`}>{f.message}
-          {f.override && <button className="ml-2 text-blue-800 underline" onClick={() => { setForced(true); setType(f.override); }} data-testid={`ic-force-${n}`}>{f.override_label}</button>}</span>}</td>
-      <td className="pr-2" data-testid={`ic-confidence-${n}`}>{f.confidence}{f.ambiguous ? " – confirm" : ""}</td>
-      <td className="pr-2">{t ? <><b>{t.step}</b><div className="text-[11px] text-slate-500">{t.dest}</div></> : "–"}</td>
-      <td className="pr-2" data-testid={`ic-count-${n}`}>{f.record_count ?? "–"}</td>
-      <td className="whitespace-nowrap">{res ? <div className="text-[12px]" data-testid={`ic-result-${n}`}>{res.note}<br /><Link className="text-blue-800 underline" to={res.link} data-testid={`ic-open-${n}`}>Open review / results</Link><CompletedNext kind={type} counts={res.counts} next={res.link.includes("emass-import") ? { label: "Review the preview and apply the changes", link: res.link } : undefined} testId={`ic-next-${n}`} />
-          {res.preview && !!res.preview.counts?.accepted && <button className="ml-2 underline" onClick={importPlan} data-testid={`ic-plan-import-${n}`}>Import accepted procedures</button>}</div>
-        : t && (t.allowed ? <button className="btn-primary" disabled={busy || !sid} onClick={go} data-testid={`ic-import-${n}`}>{busy ? "Sending…" : sid ? "Import" : "Choose a system"}</button>
-          : <span className="text-[12px] text-slate-500" data-testid={`ic-denied-${n}`}>{t.reason}</span>)}</td>
-    </tr>);
-}
 
 function History({ sid }: { sid?: string }) {
   const { data, reload } = useApi<Row>("/import-center/history", sid ? { system_id: sid } : undefined);
@@ -113,25 +45,32 @@ export default function ImportCenterPage() {
   const { systems, selectedId } = useSystems();
   const [pick, setPick] = useState(id || selectedId || "");  // default: the selected system
   const sid = id || pick;
+  useEffect(() => { if (!id && !pick && selectedId) setPick(selectedId); }, [id, pick, selectedId]);
   const { data: tdata } = useApi<Row>("/import-center/types", sid ? { system_id: sid } : undefined);
-  const types: Row = Object.fromEntries((tdata?.types || []).map((t: Row) => [t.key, t]));
-  const [files, setFiles] = useState<Row[]>([]);
+  const types: Row = useMemo(() => Object.fromEntries((tdata?.types || []).map((t: Row) => [t.key, t])), [tdata]);
   const [drag, setDrag] = useState(false);
   const [tick, setTick] = useState(0);
-  const add = useCallback(async (list: FileList | File[]) => {
-    const out: Row[] = [];
-    for (const file of Array.from(list)) {
-      const fd = new FormData(); fd.append("file", file); if (sid) fd.append("system_id", sid);
-      try { out.push({ ...(await api.post<Row>("/import-center/detect", fd)).data, file }); }
-      catch (e) { out.push({ file, file_name: file.name, type: null, message: errorMessage(e) }); }
-    }
-    setFiles((f) => [...f, ...out]);
-  }, [sid]);
+  const { can } = useAuth();
+  const bump = useCallback(() => setTick((t) => t + 1), []);
+  const qu = useImportQueue(sid, types, preset, can("system.register"), bump);
+  const add = qu.add;
+  const [filter, setFilter] = useState<QState | "">("");
+  const [sel, setSel] = useState<string[]>([]);
+  const shown = sortByState(qu.files).filter((f) => !filter || f.state === filter);
+  const ready = qu.files.filter((f) => f.state === "ready").length;
+  const next = () => { setFilter("needs_decision"); document.querySelector('[data-testid="ic-files"]')?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  const removeKeys = async (keys: string[]) => { await qu.remove(keys); setSel((s) => s.filter((k) => !keys.includes(k))); };
   const sysName = systems.find((s: Row) => s.id === sid);
   return (
     <div data-testid="import-center-page">
       <PageHeader title="Import Center" subtitle="One place for every system data import. Files are detected, then sent to the existing pipeline and its review screen – nothing is applied without review." />
       <div className="space-y-5">
+        {!!qu.files.length && <BatchSummary files={qu.files} filter={filter} setFilter={setFilter} onNext={next} onImportAll={qu.importAll} running={qu.running} readyCount={sid ? ready : 0} />}
+        {qu.summary && <Panel title="Import all – results" testId="ic-run-summary" actions={<button className="text-[12px] underline" onClick={qu.closeSummary} data-testid="ic-run-summary-close">Close</button>}>
+          <p className="text-[12px] text-slate-600">Each file went to its existing pipeline. Nothing was applied: open each review to check, exclude rows and apply.</p>
+          <ul className="mt-2 space-y-1 text-[12px]">{qu.summary.map((f) => <li key={f.key} data-testid={`ic-run-row-${f.key}`}><b className="break-all">{f.file.name}</b> – {LABEL[f.state]}
+            {f.res?.note ? ` · ${f.res.note}` : ""}{f.error ? ` · ${f.error}` : ""}{f.res?.link && <> · <Link className="text-blue-800 underline" to={f.res.link}>Open review</Link></>}</li>)}</ul>
+        </Panel>}
         <Panel title="Drop files" testId="ic-dropzone-panel">
           <div className="mb-3 flex flex-wrap items-center gap-3 text-[12px]">
             {id ? <span data-testid="ic-system">Target system: <b>{sysName?.acronym || sysName?.name || id}</b></span>
@@ -147,8 +86,9 @@ export default function ImportCenterPage() {
             <input type="file" multiple className="hidden" onChange={(e) => { if (e.target.files) add(e.target.files); e.target.value = ""; }} data-testid="ic-file-input" />
           </label>
           <p className="mt-2 text-[11px] text-slate-500" data-testid="ic-reference-note">{tdata?.reference_data_note} Control Information and POA&M are importable here; they are deferred only in the eMASS migration wizard.</p>
-          {!!files.length && <div className="mt-3 overflow-x-auto"><table className="w-full text-[12px]" data-testid="ic-files"><thead><tr className="text-left text-slate-500"><th>File</th><th>Detected type (override)</th><th>Confidence</th><th>RMF step → destination</th><th>Records</th><th /></tr></thead>
-            <tbody>{files.map((f, n) => <FileRow key={n} f={f} n={n} sid={sid} types={types} preset={preset} onDone={() => setTick(tick + 1)} />)}</tbody></table></div>}
+          {!sid && !!qu.files.length && <p className="mt-2 text-[12px] font-medium text-amber-800" data-testid="ic-need-system">Choose a target system to import.</p>}
+          {!!qu.files.length && <QueueTable files={shown} types={types} sid={sid} sel={sel} setSel={setSel} onType={qu.setType} onImport={qu.runOne} onRemove={removeKeys} onResolve={qu.resolve} busy={qu.running} />}
+          {!!qu.files.length && filter && <button className="mt-2 text-[12px] underline" onClick={() => setFilter("")} data-testid="ic-filter-clear">Show all files</button>}
         </Panel>
         <Panel title="Supported import types" testId="ic-types">
           <TableScroll><table className="w-full text-[12px]"><thead><tr className="text-left text-slate-500"><th>Type</th><th>RMF step</th><th>Destination</th><th>Your access</th></tr></thead>

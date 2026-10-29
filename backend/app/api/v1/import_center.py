@@ -4,6 +4,7 @@ import re
 import uuid
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -257,3 +258,57 @@ def retry(kind: str, item_id: uuid.UUID, request: Request, db: Session = Depends
                  details={"job_id": str(job.id), "job_type": job_type}, **audit.request_meta(request))
     db.commit()
     return {"id": str(obj.id), "kind": kind, "status": "queued", "job_id": str(job.id)}
+
+
+class RemoveItem(BaseModel):
+    file_name: str = Field(..., max_length=300)
+    size_bytes: int | None = None
+    state: str = Field("ready", max_length=30)
+    emass_import_id: uuid.UUID | None = None  # a routed eMASS file still waiting at its review prompt
+
+
+class RemoveIn(BaseModel):
+    system_id: uuid.UUID | None = None
+    items: list[RemoveItem] = Field(..., min_length=1, max_length=500)
+
+
+@router.post("/import-center/remove")
+def remove(body: RemoveIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    """Remove queued files BEFORE anything is applied. Files only queued in the browser were never stored (audit only); an eMASS file
+    still at its review prompt is discarded and its stored copy deleted. Applied data is never touched here (use Manage imported data)."""
+    from datetime import datetime, timezone
+
+    from app.api.v1.emass_import import _allowed
+    from app.services.storage.base import get_storage
+    if body.system_id:
+        enforce(request, current, "system.read", body.system_id)
+        get_system(db, body.system_id)
+    removed, skipped, meta = [], [], audit.request_meta(request)
+    for it in body.items:
+        stored = False
+        if it.emass_import_id:
+            imp = db.get(EmassImport, it.emass_import_id)
+            if imp is None or imp.org_id != current.user.org_id:
+                skipped.append({"file_name": it.file_name, "reason": "Not found"})
+                continue
+            if imp.system_id:
+                enforce(request, current, "system.read", imp.system_id)
+            if imp.uploaded_by != current.user.id and not (imp.system_id and _allowed(current, imp.system_id)):
+                skipped.append({"file_name": it.file_name, "reason": "Only the uploader or a role that can apply it may remove it"})
+                continue
+            if imp.status not in ("detected", "review"):
+                skipped.append({"file_name": it.file_name, "reason": f"Already {imp.status} – use Manage imported data instead"})
+                continue
+            imp.status, imp.finished_at, imp.applied_by_email = "discarded", datetime.now(timezone.utc), current.user.email
+            try:
+                get_storage().delete(imp.storage_key)
+                stored = True
+            except Exception:  # noqa: BLE001 - the record is discarded either way; report the copy as not deleted
+                stored = False
+        audit.record(db, action="import.removed_before_apply", actor_user_id=current.user.id, actor_email=current.user.email,
+                     entity_type="emass_import" if it.emass_import_id else "import_file", entity_id=str(it.emass_import_id) if it.emass_import_id else None,
+                     details={"file_name": it.file_name, "size_bytes": it.size_bytes, "queue_state": it.state, "stored_copy_deleted": stored,
+                              "was_stored": bool(it.emass_import_id), "system_id": str(body.system_id) if body.system_id else None}, **meta)
+        removed.append({"file_name": it.file_name, "stored_copy_deleted": stored})
+    db.commit()
+    return {"removed": removed, "skipped": skipped}
