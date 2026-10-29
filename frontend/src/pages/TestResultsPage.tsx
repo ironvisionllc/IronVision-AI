@@ -114,7 +114,9 @@ function Review({ wb, reload }: { wb: Row; reload: () => void }) {
       toast.success(`${(r.data.approved || r.data.edited || []).length} row(s) ${body.action === "approve" ? "approved" : "edited"}${r.data.skipped?.length ? `, ${r.data.skipped.length} skipped (${r.data.skipped[0].reason})` : ""}`);
       setSel([]); rows.reload(); reload(); } catch (e) { toast.error(errorMessage(e)); }
   };
-  const edit = (r: Row) => { const t = window.prompt("Test Results text", r.final?.test_results ?? r.proposed?.test_results ?? ""); if (t === null) return; const j = window.prompt("Justification (kept in the audit log)") || ""; decide({ action: "edit", row_ids: [r.id], values: { test_results: t }, justification: j }); };
+  const edit = (r: Row) => {
+    if (wb.can_approve && !window.confirm("Editing makes you the preparer of this row – you will not be able to approve it yourself; another role must approve. Tip: as the approver, use Approve… and adjust the Test Results text there instead.")) return;
+    const t = window.prompt("Test Results text", r.final?.test_results ?? r.proposed?.test_results ?? ""); if (t === null) return; const j = window.prompt("Justification (kept in the audit log)") || ""; decide({ action: "edit", row_ids: [r.id], values: { test_results: t }, justification: j }); };
   const items: Row[] = rows.data?.items || [];
   const [open, setOpen] = useState<string | null>(null);
   const [approving, setApproving] = useState<Row[] | null>(null);

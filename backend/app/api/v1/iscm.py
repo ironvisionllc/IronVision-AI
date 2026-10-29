@@ -72,6 +72,16 @@ def submit_strategy(system_id: uuid.UUID, request: Request, db: Session = Depend
     return iscm.view(db, s)
 
 
+@router.post("/systems/{system_id}/iscm/withdraw")
+def withdraw_strategy(system_id: uuid.UUID, request: Request, db: Session = Depends(get_db),
+                      current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    enforce(request, current, "system.write", system_id)
+    s = get_system(db, system_id)
+    iscm.withdraw(db, s, current)
+    db.commit()
+    return iscm.view(db, s)
+
+
 @router.post("/systems/{system_id}/iscm/decision")
 def decide_strategy(system_id: uuid.UUID, body: IscmDecisionIn, db: Session = Depends(get_db),
                     current: CurrentUser = Depends(require_permission("system.read"))) -> dict:

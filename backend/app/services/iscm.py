@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Assessment, ControlAssignment, EmassControlFields, Evidence, EvidenceControl, IscmProfile, IscmStrategy, System
+from app.services.sod import who as _who
 
 SLCM = ["slcm_criticality", "slcm_frequency", "slcm_method", "slcm_reporting", "slcm_tracking", "slcm_comments"]
 NO_SLCM = ("Inherited", "Not Applicable")
@@ -88,6 +89,7 @@ def view(db: Session, s: System) -> dict:
         "id": str(st.id), "status": st.status, "version": st.version, "narrative": st.narrative, "scope": st.scope, "defaults": st.defaults,
         "reporting": st.reporting, "review_activities": st.review_activities, "evidence_requirements": st.evidence_requirements,
         "approved_snapshot": st.approved_snapshot, "submitted_by": st.submitted_by, "approved_by": st.approved_by,
+        "submitted_by_label": _who(st.submitted_by) if st.status == "pending_approval" else None,
         "approved_at": st.approved_at.isoformat() if st.approved_at else None, "is_synthetic": st.is_synthetic,
         "profiles": [{"id": str(p.id), "name": p.name, "match_type": p.match_type, "match_value": p.match_value, "values": p.values, "sort_order": p.sort_order}
                      for p in profiles]},
@@ -143,6 +145,18 @@ def submit(db: Session, s: System, actor) -> IscmStrategy:
     st.status, st.submitted_by = "pending_approval", sod.identity(actor)
     audit.record(db, action="iscm.strategy_submitted", actor_user_id=actor.user.id, actor_email=actor.user.email, entity_type="iscm_strategy",
                  entity_id=str(st.id), details={"system_id": str(s.id), "version": st.version})
+    return st
+
+
+def withdraw(db: Session, s: System, actor) -> IscmStrategy:
+    """Explicit "Withdraw & edit": pending → draft. The next submitter is whoever submits again; SoD applies to them."""
+    from app.services import audit, sod
+    st = strategy(db, s)
+    if st is None or st.status != "pending_approval":
+        raise HTTPException(409, "Only a strategy waiting for approval can be withdrawn")
+    prior, st.status = st.submitted_by, "draft"
+    audit.record(db, action="iscm.strategy_withdrawn", actor_user_id=actor.user.id, actor_email=actor.user.email, entity_type="iscm_strategy",
+                 entity_id=str(st.id), details={"system_id": str(s.id), "version": st.version, "was_submitted_by": prior, "withdrawn_by": sod.identity(actor)})
     return st
 
 

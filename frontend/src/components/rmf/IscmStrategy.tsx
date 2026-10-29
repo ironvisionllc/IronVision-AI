@@ -28,9 +28,14 @@ export function IscmStrategy({ sid }: { sid: string }) {
   const [busy, setBusy] = useState("");
   useEffect(() => { if (d) setF(d.strategy ? { ...d.strategy } : { narrative: "", scope: "", defaults: {}, profiles: [], reporting: [], review_activities: [], evidence_requirements: [] }); }, [d]);
   if (!d) return null;
-  const o = d.options, s = d.strategy, ro = !can("system.write");
+  const o = d.options, s = d.strategy, pending = s?.status === "pending_approval", ro = !can("system.write") || pending;
   const u = user || null;
   const isIssm = u?.persona_role === "issm" || (u?.roles || []).some((r: Row) => r.role === "issm");
+  const canEdit = can("system.write");
+  const withdraw = () => {
+    if (!window.confirm("This returns the strategy to draft; you will become the submitter and another role must approve.")) return;
+    act("withdraw", () => api.post(`/systems/${sid}/iscm/withdraw`), "Withdrawn – the strategy is a draft again; edit it and submit for ISSM approval");
+  };
   const act = async (name: string, fn: () => Promise<unknown>, ok: string) => {
     setBusy(name);
     try { await fn(); toast.success(ok); reload(); reloadPromo(); } catch (e) { toast.error(errorMessage(e)); } finally { setBusy(""); }
@@ -54,6 +59,7 @@ export function IscmStrategy({ sid }: { sid: string }) {
         {s?.approved_snapshot && <span data-testid="iscm-feeds">Feeds eMASS SLCM fields for <b>{d.feeds.controls}</b> of {d.feeds.total} controls · {d.feeds.overrides} with per-control overrides</span>}
         {s?.approved_by && <span className="text-slate-500">Approved by {s.approved_by.persona_email} {s.approved_at?.slice(0, 10)}</span>}
         {s?.is_synthetic && <span className="text-slate-500">SYNTHETIC demo strategy</span>}
+        {pending && s?.submitted_by_label && <span className="font-medium text-amber-900" data-testid="iscm-submitted-by">Submitted by {s.submitted_by_label}</span>}
         {d.pending_changes && s?.approved_snapshot && <span className="text-amber-800">Edits are not in effect until the ISSM approves them – controls use v{s.approved_snapshot.version}.</span>}</div>
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <label className="block text-[12px]"><span className="font-medium">Strategy narrative</span><textarea className="input mt-1 w-full" rows={3} disabled={ro} value={f.narrative ?? ""} onChange={(e) => setF({ ...f, narrative: e.target.value })} data-testid="iscm-narrative" /></label>
@@ -78,9 +84,11 @@ export function IscmStrategy({ sid }: { sid: string }) {
       <div className="mt-3 flex flex-wrap gap-2">
         {!ro && <button className="btn-secondary" disabled={!!busy} onClick={() => act("save", () => api.put(`/systems/${sid}/iscm`, body()), "Draft saved – submit it for ISSM approval to take effect")} data-testid="iscm-save">Save draft</button>}
         {!ro && (!s || ["draft", "rejected"].includes(s.status)) && <button className="btn-primary" disabled={!!busy} onClick={() => act("submit", async () => { await api.put(`/systems/${sid}/iscm`, body()); return api.post(`/systems/${sid}/iscm/submit`); }, "Saved and submitted to the ISSM – it takes effect when the ISSM approves it")} data-testid="iscm-submit">Save & submit for ISSM approval</button>}
-        {isIssm && s?.status === "pending_approval" && <>
+        {isIssm && pending && <>
           <button className="btn-primary" disabled={!!busy} onClick={() => act("ok", () => api.post(`/systems/${sid}/iscm/decision`, { approve: true }), "Strategy approved – SLCM values updated")} data-testid="iscm-approve">Approve (ISSM)</button>
-          <button className="btn-secondary" disabled={!!busy} onClick={() => act("no", () => api.post(`/systems/${sid}/iscm/decision`, { approve: false }), "Returned to the ISSO")} data-testid="iscm-reject">Return</button></>}
+          <button className="btn-secondary" disabled={!!busy} onClick={() => act("no", () => api.post(`/systems/${sid}/iscm/decision`, { approve: false }), "Returned to the ISSO for changes")} data-testid="iscm-reject">Return for changes</button></>}
+        {canEdit && !isIssm && pending && <button className="btn-secondary" disabled={!!busy} onClick={withdraw} data-testid="iscm-withdraw">Withdraw &amp; edit</button>}
+        {pending && !isIssm && <span className="self-center text-[12px] text-slate-600" data-testid="iscm-pending-note">Waiting for the ISSM – switch to the ISSM persona (or ask the ISSM) to approve.</span>}
       </div>
       {!ro && !!promo?.items?.length && <div className="mt-4 rounded border border-blue-200 bg-blue-50/40 p-3 text-[12px]" data-testid="iscm-promote">
         <div className="font-medium">Promote common values (reviewed action – never automatic)</div><div className="text-slate-600">{promo.note}</div>

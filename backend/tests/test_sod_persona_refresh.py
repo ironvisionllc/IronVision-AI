@@ -98,3 +98,22 @@ def test_real_org_same_person_refused_different_person_ok(client, sb):
         assert _last_sod()["sod"] == "different person"
     finally:
         _set_sandbox(sb["org"], True)
+
+
+def test_pending_strategy_is_locked_withdraw_is_explicit_and_messages_name_the_submitter(client, sb):
+    isso, issm = sb["role"]("isso"), sb["role"]("issm")
+    _submit(client, sb, isso)
+    v = client.get(f"{sb['u']}/iscm", headers=issm).json()["strategy"]
+    assert v["status"] == "pending_approval" and v["submitted_by_label"].startswith("the ISSO persona at ")
+    assert client.put(f"{sb['u']}/iscm", json={"narrative": "edit while pending"}, headers=issm).status_code == 409, "no silent reset to draft"
+    assert client.post(f"{sb['u']}/iscm/withdraw", headers=sb["role"]("leadership_viewer")).status_code == 403
+    w = client.post(f"{sb['u']}/iscm/withdraw", headers=issm)
+    assert w.status_code == 200 and w.json()["strategy"]["status"] == "draft"
+    assert client.post(f"{sb['u']}/iscm/withdraw", headers=issm).status_code == 409
+    d = _last_sod("iscm.strategy_withdrawn")
+    assert d["was_submitted_by"]["persona_role"] == "isso" and d["withdrawn_by"]["persona_role"] == "issm"
+    _submit(client, sb, issm)  # the withdrawer re-submits → becomes the submitter
+    r = _decide(client, sb, issm)
+    assert r.status_code == 403 and "same role" in r.json()["detail"] and "submitted by the ISSM persona at" in r.json()["detail"]
+    assert _decide(client, sb, issm, approve=False).status_code == 403, "returning your own submission is also SoD-gated"
+    assert _decide(client, sb, _real_user(sb["org"], "issm"), approve=False).status_code == 200
