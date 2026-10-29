@@ -4,11 +4,13 @@ Recorded 2026-10-29 from the shared SYNTHETIC demo workspace (light desktop them
 
 Revision v2 (2026-10-29): Policy Auditor + Mapping Review (1:25–2:10) and Authorization (2:30–2:50) re-recorded and spliced at the scene boundaries (scripts/demo_video/splice_mkt.py); all other scenes are frame-identical in content to v1 (archive/2026-10-29-3m10-v1/, unlinked).
 
+Revision v3 (2026-10-29): closing card re-rendered with a high-contrast white CTA pill (dark-teal bold text); a small scene label (2.2 s, 0.25 s fades, bottom-left) added at the start of each app scene so same-chrome transitions are visible (scripts/demo_video/finish_mkt.py). No boundary moved. v2 archived (archive/2026-10-29-3m10-v2/, unlinked).
+
 ## ffprobe
 
 ```
 stream|codec_name=h264|profile=High|codec_type=video|width=1920|height=1080|pix_fmt=yuv420p|level=41|r_frame_rate=30/1|nb_frames=5700
-format|duration=190.000000|size=10684324|bit_rate=449866
+format|duration=190.000000|size=10807842|bit_rate=455067
 format|tag:major_brand=isom|tag:minor_version=512|tag:compatible_brands=isomiso2avc1mp41|tag:encoder=Lavf59.27.100
 ```
 
@@ -27,12 +29,24 @@ Method: ffmpeg scene-change score on every frame (`select=gte(scene,0),metadata=
 | 4→5 | Control Workbench | 65.0 s | 65.067 s | +0.067 s | 0.105 |
 | 5→6 | AI Policy Auditor | 85.0 s | 85.000 s | +0.000 s | 0.129 |
 | 6→7 | Mapping Review | 120.0 s | 120.000 s | +0.000 s | 0.1 |
-| 7→8 | SCA workspace | 130.0 s | 130.033 s | +0.033 s | 0.053 |
+| 7→8 | SCA workspace | 130.0 s | 130.033 s | +0.033 s | 0.055 |
 | 8→9 | Authorization & exports | 150.0 s | 150.000 s | +0.000 s | 0.132 |
-| 9→10 | Continuous monitoring | 170.0 s | 170.033 s | +0.033 s | 0.105 |
-| 10→11 | Closing | 185.0 s | 185.133 s | +0.133 s | 1.0 |
+| 9→10 | Continuous monitoring | 170.0 s | 170.033 s | +0.033 s | 0.106 |
+| 10→11 | Closing | 185.0 s | 185.000 s | +0.000 s | 1.0 |
 
-All boundaries within ±0.3 s (largest offset +0.133 s – the closing card fades in).
+All boundaries within ±0.3 s (largest offset +0.067 s).
+
+### Frame grabs at the same-chrome boundaries
+
+Sidebar and header are identical across these cuts, so the scene score is low (0.05–0.10) and generic detectors with a higher threshold miss them. Frame grabs 0.1 s either side (docs/demo/boundary_frames_3m10.jpg) show the page change, and the mean absolute pixel difference of the content area (0–255) jumps across the boundary while it is 0 within the previous scene:
+
+| Boundary | Frame before | Frame after | Content diff across boundary | Content diff 0.4 → 0.1 s before |
+|---|---|---|---|---|
+| Import Center → Import management (57 s) | eMASS Import Center – import report (56.9 s) | Import Center history → Manage imported data (57.1 s) | 13.1 | 0.0 |
+| Policy Auditor → Mapping Review (120 s) | Policy Auditor – “Sent to Mapping Review as a human proposal” (119.9 s) | Mapping review queue (120.1 s) | 14.9 | 0.0 |
+| Mapping Review → SCA workspace (130 s) | Mapping review – “1 item(s) approved” (129.9 s) | SCA workspace (130.1 s) | 13.4 | 0.0 |
+
+Each app scene now also opens with its on-screen label (“Import management”, “Mapping Review”, “SCA workspace”, …).
 
 ## Narration fit (ElevenLabs, voice “Matilda”)
 
@@ -69,6 +83,10 @@ Spoken forms: IronVision AI → “IronVision A-I”; AI → “A-I”; RMF → 
 - “already has a mapping” message present: False. “Sent to Mapping Review as a human proposal – an authorized reviewer decides.” present: True.
 - Mapping Review (2:00–2:10) approves that same new AC-2 human proposal → “1 item(s) approved.”
 
+## Closing card
+
+- OCR of the closing card at 3:06 without any contrast boost reads all lines: “Enterprise GRC, Made Intelligent.” yes, “Get audit-ready. Stay audit-ready.” yes, “Request Your Demo Today” yes (plus “IronVision AI”).
+
 ## Privacy check
 
 - 38 frames sampled every 5 s plus 35 policy-scene frames, OCR'd with Tesseract: emails 0, hostnames/URLs 0, IP addresses 0, secret/key/password patterns 0. Persona e-mails are masked to “Demo persona” (7 occurrences in OCR).
@@ -83,8 +101,8 @@ Spoken forms: IronVision AI → “IronVision A-I”; AI → “A-I”; RMF → 
 
 - Default: /demo-video and /api/v1/public/demo/ironvision_ai_rmf_demo.mp4 (this 3:10 cut).
 - Technical walkthrough (5 min, caption-free): /api/v1/public/demo/ironvision_ai_rmf_technical_walkthrough.mp4, linked on /demo-video.
-- Archived (unlinked): archive/2026-10-29-4m19/ (previous 4:19 cut + docs), archive/2026-10-29-3m10-v1/ (first 3:10 cut).
+- Archived (unlinked): archive/2026-10-29-4m19/ (previous 4:19 cut + docs), archive/2026-10-29-3m10-v1/ and -v2/ (earlier 3:10 cuts).
 
 ## Reproduce
 
-`prep_v2.py` → `DEMO_SCENES=scenes_marketing DEMO_OUT=/tmp/demo_mkt record_demo.py` → `DEMO_OUT=/tmp/demo_mkt assemble.py` (v1); pick-up: `DEMO_SCENES=scenes_mkt_fix DEMO_OUT=/tmp/demo_fix record_demo.py` → `DEMO_OUT=/tmp/demo_fix DEMO_MP4=/tmp/fix.mp4 assemble.py` → `splice_mkt.py`; then `build_docs_mkt.py`, `validate_mkt.py`, `prep_v2.py --reset`.
+`prep_v2.py` → `DEMO_SCENES=scenes_marketing DEMO_OUT=/tmp/demo_mkt record_demo.py` → `DEMO_OUT=/tmp/demo_mkt assemble.py` (v1); pick-up: `DEMO_SCENES=scenes_mkt_fix DEMO_OUT=/tmp/demo_fix record_demo.py` → `DEMO_OUT=/tmp/demo_fix DEMO_MP4=/tmp/fix.mp4 assemble.py` → `splice_mkt.py`; → `finish_mkt.py` (closing card + scene labels); then `build_docs_mkt.py`, `validate_mkt.py`, `prep_v2.py --reset`.
