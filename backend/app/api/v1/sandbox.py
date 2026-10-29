@@ -315,8 +315,9 @@ def _platform_admin(db: Session, current: CurrentUser) -> None:
 
 
 def _sandbox_row(db: Session, org: Organization) -> dict:
-    ex = sbx.expiry_info(org)
-    return {"id": str(org.id), "name": org.name, "status": org.sandbox_status, "is_demo": sbx.is_demo(db, org), "permanent": bool(org.protected),
+    demo = sbx.is_demo(db, org)
+    ex = None if demo else sbx.expiry_info(org)  # the shared demo sandbox is never purged
+    return {"id": str(org.id), "name": org.name, "status": org.sandbox_status, "is_demo": demo, "permanent": bool(org.protected) and not demo,
             "last_activity_at": org.last_activity_at.isoformat() if org.last_activity_at else None,
             "idle_days": ex["idle_days"] if ex else None, "days_until_deletion": ex["expires_in_days"] if ex else None}
 

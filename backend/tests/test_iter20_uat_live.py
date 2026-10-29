@@ -101,17 +101,17 @@ class TestTestPlan:
     def test_import_csv(self, isso):
         r = _up(isso, "import", "SYNTHETIC_TestPlan_valid.csv")
         print(r.status_code, r.text[:400])
-        if r.status_code == 422:
-            pytest.skip("all rows already imported (duplicates against existing)")
+        if r.status_code in (409, 422):
+            pytest.skip("all rows already imported (unchanged against existing)")
         assert r.status_code == 201
         wb = r.json()
         ws = requests.get(f"{BASE}/systems/{SID}/tr/workbooks", headers=isso, timeout=30).json()
         assert any(w["id"] == wb["id"] for w in ws)
         print("workbook status", wb.get("status"), {k: wb.get(k) for k in wb if "count" in k or "approv" in k})
-        # re-preview: now all duplicates against existing
+        # re-preview: now all unchanged against existing (not errors)
         d = _up(isso, "preview", "SYNTHETIC_TestPlan_valid.csv").json()
         assert d["counts"]["accepted"] == 0
-        assert all("already in Test Results workbook" in x["reason"] for x in d["rejected"])
+        assert all("Already in Test Results workbook" in x["reason"] for x in d["unchanged"])
 
 
 # --- Continuous Monitoring Strategy ---

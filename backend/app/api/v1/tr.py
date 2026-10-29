@@ -100,6 +100,43 @@ async def test_plan_import(system_id: uuid.UUID, request: Request, file: UploadF
     return {**_out(wb), "preview": {k: v for k, v in p.items() if k != "_xlsx"}}
 
 
+TEST_PLAN_ROLES = ("isso", "issm", "sca", "ao", "system_owner")
+
+
+def _plan_view(current: CurrentUser, system_id: uuid.UUID) -> None:
+    from app.security.rbac import has_permission
+
+    if not any(a.role in TEST_PLAN_ROLES and has_permission([a], "system.read", current.user.org_id, system_id) for a in current.assignments):
+        raise HTTPException(403, {"code": "missing_role", "message": "Exporting a Test Plan is limited to ISSO, ISSM, SCA, AO and System Owner",
+                                  "roles": list(TEST_PLAN_ROLES)})
+
+
+@router.get("/systems/{system_id}/test-plan/export/summary")
+def test_plan_export_summary(system_id: uuid.UUID, db: Session = Depends(get_db), current: CurrentUser = Depends(require_permission("system.read"))) -> dict:
+    from app.services.tr import test_plan_export as tpe
+
+    s = get_system(db, system_id)
+    _plan_view(current, s.id)
+    return tpe.summary(tpe.rows(db, s))
+
+
+@router.get("/systems/{system_id}/test-plan/export")
+def test_plan_export(system_id: uuid.UUID, request: Request, db: Session = Depends(get_db),
+                     current: CurrentUser = Depends(require_permission("system.read"))) -> Response:
+    """Export Test Plan (.xlsx) – the importer's eMASS-style layout; selected, non-withdrawn controls only."""
+    from app.services.tr import test_plan_export as tpe
+
+    s = get_system(db, system_id)
+    _plan_view(current, s.id)
+    data, rows, sha = tpe.build(db, s)
+    name = f"TestPlan_{trs.safe_key_part(s.acronym or s.name)}_{date.today():%Y-%m-%d}.xlsx"
+    audit.record(db, action="test_plan.exported", actor_user_id=current.user.id, actor_email=current.user.email, entity_type="system",
+                 entity_id=str(s.id), details={"file_name": name, "rows": len(rows), "sha256": sha}, **audit.request_meta(request))
+    db.commit()
+    return Response(data, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"', "X-Row-Count": str(len(rows)), "X-SHA256": sha})
+
+
 @router.get("/systems/{system_id}/tr/workbooks")
 def list_workbooks(system_id: uuid.UUID, db: Session = Depends(get_db), _: CurrentUser = Depends(require_permission("system.read"))) -> list[dict]:
     s = get_system(db, system_id)

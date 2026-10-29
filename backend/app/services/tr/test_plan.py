@@ -80,7 +80,7 @@ def preview(db: Session, s: System, file_name: str, data: bytes) -> dict:
     existing = {(r.ap_acronym, r.cci_id): (w.file_name, w.version, r.row_number) for r, w in db.execute(
         select(TrRow, TrWorkbook).join(TrWorkbook, TrRow.workbook_id == TrWorkbook.id)
         .where(TrWorkbook.system_id == s.id, TrWorkbook.status != "failed").order_by(TrWorkbook.version, TrRow.row_number))}
-    accepted, rejected, seen = [], [], {}
+    accepted, rejected, unchanged, seen = [], [], [], {}
     for r in det["rows"]:
         ap, cci_raw = r.get("ap_acronym"), r.get("cci")
         m = trs.match(cmap, catalog, ap, cci_raw, r.get("control_acronym"))
@@ -101,9 +101,11 @@ def preview(db: Session, s: System, file_name: str, data: bytes) -> dict:
             reason = f"{m['control_id'].upper()} is not selected for this system (unmatched control)"
         elif key in seen:
             reason = f"Duplicate procedure: same AP Acronym and CCI as row {seen[key]}"
-        elif key in existing:
+        elif key in existing:  # already in Test Results (e.g. re-importing an exported Test Plan) – unchanged, not an error
             f, v, rn = existing[key]
-            reason = f"Duplicate procedure: already in Test Results workbook “{f}” v{v}, row {rn}"
+            seen.setdefault(key, r["row"])
+            unchanged.append({**base, "reason": f"Already in Test Results workbook “{f}” v{v}, row {rn} – unchanged"})
+            continue
         seen.setdefault(key, r["row"])
         if reason:
             rejected.append({**base, "reason": reason})
@@ -113,14 +115,18 @@ def preview(db: Session, s: System, file_name: str, data: bytes) -> dict:
             "sheet": det["sheet"], "header_row": det["header_row"],
             "columns": [{"col": c["col"], "header": c["header"], "role": LABELS.get(c["role"] or "")} for c in det["columns"]],
             "optional_missing": [lab for k, lab in LABELS.items() if k not in REQUIRED and k not in det["roles"] and k in ("control_acronym", "assessment_procedures")],
-            "accepted": accepted, "rejected": rejected, "counts": {"rows": len(det["rows"]), "accepted": len(accepted), "rejected": len(rejected),
-                                                                  "needs_mapping_review": sum(1 for a in accepted if a["match_status"] == "ambiguous")},
+            "accepted": accepted, "rejected": rejected, "unchanged": unchanged,
+            "counts": {"rows": len(det["rows"]), "accepted": len(accepted), "rejected": len(rejected), "unchanged": len(unchanged),
+                       "needs_mapping_review": sum(1 for a in accepted if a["match_status"] == "ambiguous")},
             "_xlsx": xdata}
 
 
 def import_accepted(db: Session, s: System, file_name: str, data: bytes, actor) -> tuple[TrWorkbook, dict]:
     p = preview(db, s, file_name, data)
     if not p["accepted"]:
+        if p["unchanged"] and not p["rejected"]:
+            raise HTTPException(409, {"message": f"Nothing to import – all {len(p['unchanged'])} procedure(s) are already in Test Results (unchanged)",
+                                      "unchanged": len(p["unchanged"])})
         raise HTTPException(422, {"message": "No row can be imported – fix the rejected rows and upload again", "rejected": p["rejected"]})
     wb = trs.import_workbook(db, s, p["file_name"], p.pop("_xlsx"), actor, enqueue=False)
     trs.detect_and_match(db, wb, min_score=2)

@@ -161,6 +161,28 @@ Import Center → an applied import → **Manage imported data** (`/import-cente
 - **RBAC and tenancy:** actions follow the import's section permissions; the SCA, for example, gets a read-only view. Another tenant's import returns 404.
 
 
+## Export Test Plan
+eMASS-style layout – pending verification against a real eMASS export. This is not a claim of official eMASS compatibility; no real eMASS Test Plan sample was available. The layout is derived from what the Test Plan importer reads (`services/tr/xlsx.py` header roles, `tests/fixtures/test_plan/SYNTHETIC_TestPlan_valid.xlsx`), so an exported file re-imports cleanly.
+
+- **Where:** Assess → Test Results / Test Plan → **Export Test Plan** (next to Import Test Plan). API `GET /api/v1/systems/{id}/test-plan/export` (.xlsx) and `GET …/test-plan/export/summary` (row count).
+- **File:** `TestPlan_<ACRONYM>_<YYYY-MM-DD>.xlsx`, one sheet `Template`. Row 1 is a note with the system, date and the pending-verification label. Row 2 is the header. Data starts on row 3. Every value is written as text, never as a formula.
+- **Rows:** one per assessment procedure (control × CCI) of the system's **selected** controls. Not-selected (tailored out) and withdrawn controls are excluded. Inherited and shared controls are included and marked in the Inherited column.
+
+| Column | Read by the importer | Source |
+|---|---|---|
+| Control Acronym | yes | Selected control, eMASS form (AC-2, AC-2(1)) |
+| AP Acronym | yes (required) | The existing Test Results row's AP; otherwise derived as `<control>.<n>` (same rule as the blank-template fill) |
+| CCI | yes (required) | DISA CCI mapped to the control |
+| CCI Definition | yes | DISA CCI list |
+| Assessment Procedures | yes | SP 800-53A assessment objectives of the control (label + text) |
+| Test Method | ignored on import | SP 800-53A methods (Examine; Interview; Test) |
+| Inherited | ignored on import | Yes / Hybrid (shared) / No, from the control's responsibility |
+| Compliance Status, Date Tested, Tested By, Test Results | recognised, but the import keeps results blank until the SCA approves | Only SCA-approved Test Results values; blank otherwise |
+
+- **Not exported:** expected results and planned assessor/date. The app does not store them.
+- **Re-import:** procedures already in this system's Test Results are reported as **unchanged** (not errors) and nothing is written. If every row is unchanged, Import is not offered. Into another system with the same selected controls, the same procedures are imported.
+- **RBAC and tenancy:** ISSO, ISSM, SCA, AO and System Owner. Other roles get 403, another tenant's system gets 404. Audited as `test_plan.exported` with the row count and the file SHA-256.
+
 ## Deferred
 - **Control Information** and **POA&M** imports are deferred for the migration.
 - Their existing parsers, endpoints and tests are unchanged and keep working.

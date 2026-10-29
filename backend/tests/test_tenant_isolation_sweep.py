@@ -74,6 +74,16 @@ def test_other_tenant_ids_are_refused(client, tenants):
     assert n > 50 and not leaks, leaks
 
 
+def test_test_plan_export_cross_tenant_404(client, tenants):
+    """/export routes are skipped by the generic id sweep (binary bodies) – Test Plan export is checked explicitly."""
+    for role, h in tenants["b"].items():
+        for path in (f"/api/v1/systems/{tenants['sid']}/test-plan/export", f"/api/v1/systems/{tenants['sid']}/test-plan/export/summary"):
+            r = client.get(path, headers=h)
+            assert r.status_code in (403, 404) and not _leaks(r.text, tenants), (path, role, r.status_code)
+            if role in ("isso", "issm", "sca", "ao"):
+                assert r.status_code == 404, (path, role, r.status_code)
+
+
 def test_audit_events_scoped(client, tenants):
     r = client.get("/api/v1/audit-events?limit=500", headers=tenants["b"]["isso"])
     # B's own authz.denied events legitimately echo the A ids B itself tried (earlier test) – A's identity/content must never appear

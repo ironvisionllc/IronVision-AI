@@ -94,14 +94,15 @@ def test_import_creates_workbook_rows_then_duplicates_against_existing(client, c
     r = _post(client, ctx, "INVALID_TestPlan_rows.xlsx", "import")
     assert r.status_code == 201, r.text
     wb = r.json()
-    assert wb["status"] == "mapped" and wb["preview"]["counts"] == {"rows": 6, "accepted": 1, "rejected": 5, "needs_mapping_review": 0}
+    assert wb["status"] == "mapped" and wb["preview"]["counts"] == {"rows": 6, "accepted": 1, "rejected": 5, "unchanged": 0, "needs_mapping_review": 0}
     rows = client.get(f"/api/v1/tr/workbooks/{wb['id']}/rows", headers=ctx["isso"]).json()["items"]
     assert [(x["row"], x["ap_acronym"], x["cci_id"], x["state"]) for x in rows] == [(3, "AC-2.1", "CCI-000010", "missing")], "only accepted rows; nothing approved"
     listed = client.get(f"/api/v1/systems/{ctx['sid']}/tr/workbooks", headers=ctx["isso"]).json()
     assert any(w["id"] == wb["id"] for w in listed), "visible in the Test Results workspace"
     p = _post(client, ctx, "SYNTHETIC_TestPlan_valid.xlsx").json()
-    dup = [x for x in p["rejected"] if x["ap_acronym"] == "AC-2.1"]
-    assert dup and "already in Test Results workbook" in dup[0]["reason"] and "row 3" in dup[0]["reason"]
+    same = [x for x in p["unchanged"] if x["ap_acronym"] == "AC-2.1"]
+    assert same and "Already in Test Results workbook" in same[0]["reason"] and "row 3" in same[0]["reason"]
+    assert not [x for x in p["rejected"] if x["ap_acronym"] == "AC-2.1"], "a procedure already present is unchanged, not an error"
     with SessionLocal() as db:
         assert db.scalar(select(func.count()).select_from(TrRow).where(TrRow.workbook_id == uuid.UUID(wb["id"]))) == 1
 
