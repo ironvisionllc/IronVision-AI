@@ -11,7 +11,7 @@ export function BatchSummary({ files, filter, setFilter, onNext, onImportAll, ru
   const pct = live ? Math.round((done / live) * 100) : 0;
   const decide = n("needs_decision");
   return (
-    <div className="sticky top-0 z-20 -mx-1 rounded-xl border px-3 py-2.5 shadow-sm" style={{ background: "var(--iv-surface-solid)", borderColor: "var(--iv-border-strong)" }}
+    <div className="sticky top-0 z-20 -mx-1 rounded-xl border px-3 py-2.5 shadow-sm" style={{ background: "var(--iv-surface-solid)", borderColor: "var(--iv-border-strong)", boxShadow: "0 -3rem 0 0.25rem var(--iv-surface-solid)" }}
       data-testid="ic-batch-summary" aria-live="polite">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]">
         <b data-testid="ic-batch-total">{files.length} file{files.length === 1 ? "" : "s"}</b>

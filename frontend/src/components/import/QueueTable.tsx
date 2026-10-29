@@ -4,23 +4,22 @@ import { X } from "lucide-react";
 import { toast } from "sonner";
 import { api, errorMessage } from "@/lib/api";
 import type { Row } from "@/lib/useApi";
-import { CompletedNext } from "@/components/common/CompletedNext";
 import type { QFile } from "./queue";
 import { LABEL, removable, TONE } from "./queue";
 
 function DecisionBox({ f, onResolve }: { f: QFile; onResolve: (value: string, all: boolean) => void }) {
   const d = f.decision!;
-  const [v, setV] = useState(d.options[0]?.value ?? "");
+  const [v, setV] = useState("");  // explicit choice required (e.g. never default to an AI-spending option)
   const [all, setAll] = useState(false);
   return (
     <div className="mt-1 rounded border border-amber-300 bg-amber-50 p-2 text-[12px] text-amber-950" data-testid={`ic-decision-${f.key}`}>
       <div>{d.prompt}</div>
       {!!d.options.length && <div className="mt-1 flex flex-wrap items-center gap-2">
         <select className="input w-auto max-w-[18rem]" value={v} onChange={(e) => setV(e.target.value)} data-testid={`ic-decision-select-${f.key}`}>
-          {d.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+          <option value="" disabled>Choose…</option>{d.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
         {d.batchSafe && <label className="flex items-center gap-1"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} data-testid={`ic-decision-all-${f.key}`} />
           Apply the same choice to all files with this question</label>}
-        <button type="button" className="btn-primary px-2 py-0.5 text-[12px]" onClick={() => onResolve(v, all)} data-testid={`ic-decision-apply-${f.key}`}>Continue</button>
+        <button type="button" className="btn-primary px-2 py-0.5 text-[12px]" disabled={!v} onClick={() => onResolve(v, all)} data-testid={`ic-decision-apply-${f.key}`}>Continue</button>
       </div>}
     </div>);
 }
@@ -40,7 +39,7 @@ export function QueueTable({ files, types, sid, sel, setSel, onType, onImport, o
         <button type="button" className="btn-ghost px-2 py-0.5 text-[12px] text-rose-700" disabled={!pickable.length || busy} onClick={() => onRemove(pickable)} data-testid="ic-clear-all">Clear all</button>
         <span className="text-slate-500">Removing deletes the uploaded file before anything is applied. Applied data is managed from Import history.</span>
       </div>
-      <div className="space-y-2" data-testid="ic-files">
+      <div className="space-y-2" style={{ scrollMarginTop: "14rem" }} data-testid="ic-files">
         {files.map((f) => {
           const t = types[f.type];
           const d = f.det || {};
@@ -51,7 +50,7 @@ export function QueueTable({ files, types, sid, sel, setSel, onType, onImport, o
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <b className="break-all">{f.file.name}</b>
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${TONE[f.state]}`} data-testid={`ic-state-${f.key}`}>{LABEL[f.state]}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${TONE[f.state]}`} data-testid={`ic-state-${f.key}`}>{LABEL[f.state]}{f.state === "imported" ? (f.emassId ? " – in review" : " – processing") : ""}</span>
                     {d.record_count != null && <span className="text-slate-500" data-testid={`ic-count-${f.key}`}>{d.record_count} record(s)</span>}
                     {d.confidence && d.confidence !== "none" && <span className="text-slate-500" data-testid={`ic-confidence-${f.key}`}>confidence {d.confidence}</span>}
                   </div>
@@ -65,7 +64,7 @@ export function QueueTable({ files, types, sid, sel, setSel, onType, onImport, o
                   {f.decision && f.state === "needs_decision" && <DecisionBox f={f} onResolve={(v, all) => onResolve(f.key, v, all)} />}
                   {f.error && <div className="mt-1 text-rose-700" data-testid={`ic-error-${f.key}`}>{f.error}</div>}
                   {f.res?.link && <div className="mt-1" data-testid={`ic-result-${f.key}`}>{f.res.note} · <Link className="text-blue-800 underline" to={f.res.link} data-testid={`ic-open-${f.key}`}>Open review / results</Link>
-                    <CompletedNext kind={f.type} counts={f.res.counts} next={f.res.link.includes("emass-import") ? { label: "Review the preview, exclude rows you don't want, then apply", link: f.res.link } : undefined} testId={`ic-next-${f.key}`} /></div>}
+                    <div className="mt-0.5 text-slate-600" data-testid={`ic-next-${f.key}`}>{f.emassId ? "Sent to review – nothing applied yet. Next: open the review, exclude rows you don't want, then apply." : "Sent – processing is queued; results appear in the linked run."}</div></div>}
                   {f.res?.preview && !!f.res.preview.counts?.accepted && <button type="button" className="mt-1 underline" data-testid={`ic-plan-import-${f.key}`} onClick={async () => {
                     const fd = new FormData(); fd.append("file", f.file);
                     try { const r = (await api.post<Row>(`/systems/${sid}/tr/test-plan/import`, fd)).data; toast.success(`Imported ${r.counts?.imported ?? r.counts?.accepted ?? ""} procedure(s)`); }

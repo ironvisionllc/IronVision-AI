@@ -9,7 +9,8 @@ import { classify, removable, route, target, targetDecision } from "./queue";
 export function useImportQueue(sid: string, types: Row, preset: string | undefined, canRegister: boolean, onChange: () => void) {
   const [files, setFiles] = useState<QFile[]>([]);
   const [running, setRunning] = useState(false);
-  const [summary, setSummary] = useState<QFile[] | null>(null);
+  const [summaryKeys, setSummary] = useState<string[] | null>(null);
+  const summary = summaryKeys && files.filter((f) => summaryKeys.includes(f.key));  // live: reflects later decisions/removals
   const ref = useRef<QFile[]>([]);
   const set = useCallback((fn: (fs: QFile[]) => QFile[]) => { ref.current = fn(ref.current); setFiles(ref.current); }, []);
   useEffect(() => {  // target system / permissions changed → re-check files that have not been sent yet
@@ -45,7 +46,7 @@ export function useImportQueue(sid: string, types: Row, preset: string | undefin
   const importAll = useCallback(async () => {
     setRunning(true); setSummary(null);
     for (const f of ref.current.filter((x) => x.state === "ready")) await runOne(f.key);  // one at a time: per-file progress, no pipeline overload
-    setRunning(false); setSummary(ref.current.filter((x) => x.state !== "removed"));
+    setRunning(false); setSummary(ref.current.filter((x) => x.state !== "removed").map((x) => x.key));
   }, [runOne]);
 
   const resolveOne = useCallback(async (f: QFile, v: string) => {
