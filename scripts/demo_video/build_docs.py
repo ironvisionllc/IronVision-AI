@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 REC = Path("/tmp/demo_rec/timeline.json")
+CUT = (244.0, 284.2, 0.5)  # cut_segments.py: light/dark switch + phone segment removed, 0.5 s crossfade into the closing card
 OUT = Path("/app/backend/app/static/demo")
 
 # (scene, start, end, text) – on-screen captions (silent video) and an optional voice-over script; every block fits its window.
@@ -27,9 +28,7 @@ BLOCKS = [
     (9, 194, 210, "Authorize package: SSP/SAR/RAR drafts, OSCAL and the eMASS Implementation Plan"),
     (9, 210, 226, "eMASS Test Results export: pre-populated or blank-template mode, with validation"),
     (10, 226, 244, "Continuous monitoring and traceability across controls, evidence and findings"),
-    (11, 244, 257, "Light and dark themes"),
-    (11, 257, 284, "Works at phone width"),
-    (12, 284, 300, "IronVision AI · Get audit-ready. Stay audit-ready."),
+    (11, 244, 259.2, "IronVision AI · Get audit-ready. Stay audit-ready."),
 ]
 
 SCENES = {
@@ -43,8 +42,7 @@ SCENES = {
     8: ("SCA workspace", "/assess/workspace", "SCA persona records a determination → Saved – moved to next control → Undo", "Human determination only"),
     9: ("Authorize & eMASS exports", "/systems/:id/authorization, /test-results", "Package, OSCAL, eMASS Implementation Plan; TR export mode + history", "Deterministic TR export"),
     10: ("Monitoring", "/rmf/monitor, /traceability", "Monitor tiles; traceability count", "—"),
-    11: ("Themes & phone", "/dashboard, /rmf-workflow, phone card", "Light → dark → light; live 390 px dark capture", "Phone frame is a live capture"),
-    12: ("Closing", "Closing card", "—", "—"),
+    11: ("Closing", "Closing card", "—", "—"),
 }
 
 
@@ -60,6 +58,12 @@ def mmss(t):
 
 def main():
     tl = json.loads(REC.read_text())
+    a, b, xf = CUT
+    shift = lambda t: t if t < a else t - (b - a) - xf  # noqa: E731
+    tl["events"] = [[shift(t), w] for t, w in tl["events"] if not (a <= t < b)]
+    tl["scenes"] = [{**s, "scene": 11 if s["scene"] == 12 else s["scene"], "start": shift(max(s["start"], b) if a <= s["start"] < b else s["start"])}
+                    for s in tl["scenes"] if s["scene"] != 11]  # recorder scene 11 (themes + phone) is cut; closing becomes 11
+    tl["end"] = shift(tl["end"])
     for sc, a, b, txt in BLOCKS:
         wps = len(txt.split()) / (b - a)
         assert wps <= 2.55, (sc, a, txt, round(wps * 60))

@@ -1,6 +1,6 @@
 # IronVision AI – RMF product demo · scene timeline
 
-Video: 1920×1080, 30 fps, H.264, no audio, duration 300.00 s. Times below are measured from the recording (event log of the recorder).
+Video: 1920×1080, 30 fps, H.264, no audio, duration 259.30 s. Times below are measured from the recording (event log of the recorder).
 
 ## Scene 1 · Intro & sign-in
 
@@ -174,7 +174,7 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.00 s. Times below are m
 
 ## Scene 10 · Monitoring
 
-- **Start / end:** 3:46.0 – 4:04.0
+- **Start / end:** 3:46.0 – 4:03.5
 - **Screens:** /rmf/monitor, /traceability
 - **Actions:** Monitor tiles; traceability count
 - **Production notes:** —
@@ -188,37 +188,16 @@ Video: 1920×1080, 30 fps, H.264, no audio, duration 300.00 s. Times below are m
 
 - 3:46.0–4:04.0: Continuous monitoring and traceability across controls, evidence and findings
 
-## Scene 11 · Themes & phone
+## Scene 11 · Closing
 
-- **Start / end:** 4:04.0 – 4:44.0
-- **Screens:** /dashboard, /rmf-workflow, phone card
-- **Actions:** Light → dark → light; live 390 px dark capture
-- **Production notes:** Phone frame is a live capture
-
-| Time | On-screen event |
-|---|---|
-| 4:04.0 | `open /dashboard` |
-| 4:06.2 | `click [data-testid="theme-toggle-btn"]` |
-| 4:09.9 | `open /rmf-workflow` |
-| 4:14.2 | `click [data-testid="theme-toggle-btn"]` |
-| 4:17.5 | `open phone.html` |
-
-**Narration**
-
-- 4:04.0–4:17.0: Light and dark themes
-- 4:17.0–4:44.0: Works at phone width
-
-## Scene 12 · Closing
-
-- **Start / end:** 4:44.0 – 5:00.0
+- **Start / end:** 4:03.5 – 4:19.3
 - **Screens:** Closing card
 - **Actions:** —
 - **Production notes:** —
 
 | Time | On-screen event |
 |---|---|
-| 4:44.0 | `open closing.html` |
 
 **Narration**
 
-- 4:44.0–5:00.0: IronVision AI · Get audit-ready. Stay audit-ready.
+- 4:04.0–4:19.2: IronVision AI · Get audit-ready. Stay audit-ready.

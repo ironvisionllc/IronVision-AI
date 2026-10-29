@@ -98,18 +98,8 @@ eMASS Test Results export: pre-populated or blank-template mode, / with validati
 
 Continuous monitoring and traceability across controls, / evidence and findings
 
-## Scene 11 · Themes & phone
+## Scene 11 · Closing
 
-**[4:04.0 – 4:17.0]**
-
-Light and dark themes
-
-**[4:17.0 – 4:44.0]**
-
-Works at phone width
-
-## Scene 12 · Closing
-
-**[4:44.0 – 5:00.0]**
+**[4:04.0 – 4:19.2]**
 
 IronVision AI · Get audit-ready. / Stay audit-ready.
