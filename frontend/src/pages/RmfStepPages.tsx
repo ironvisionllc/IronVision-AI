@@ -388,7 +388,6 @@ export function AssessPage() {
         <Go to="/mapping-review" title="Mapping Review" text="Approve STIG, policy and status mappings before relying on them." testId="assess-go-mapping" />
         <Go to="/poams" title="POA&M" text="Track weaknesses found in the assessment." testId="assess-go-poam" />
       </div>
-      {sid && <div className="mt-5"><StepDocs sid={sid} kinds={["sar", "rar"]} eyebrow="RMF Step 5 · Assess (A-5) · SAR from SCA assessment records; RAR from POA&M risk fields" /></div>}
     </StepFrame>);
 }
 
