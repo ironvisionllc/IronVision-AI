@@ -7,7 +7,7 @@ from pathlib import Path
 
 import finish_mkt as f3
 
-SRC = Path("/tmp/v4_raw.mp4")
+SRC = Path("/tmp/v4_raw_spliced.mp4")  # raw + re-recorded scene 11 (IPs masked)
 OUT = f3.DEMO / "ironvision_ai_rmf_demo.mp4"
 CLOSE_AT, END = 218.0, 225.0
 f3.LABELS[:] = [(7, "RMF dashboard"), (25, "CNSSI 1253 categorization"), (37, "Import Center – eMASS round-trip"), (62, "Import management"),

@@ -61,11 +61,15 @@ CURSOR_JS = """
 MASK_JS = r"""
 (() => {
   const EM = /[\w.+-]+@[A-Za-z][\w-]*(\.[A-Za-z][\w-]*)+/g;
+  const IP4 = /\b\d{1,3}(\.\d{1,3}){3}\b/g;
   const scrub = () => {
     if (!document.body) return;
     const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let n;
-    while ((n = w.nextNode())) { if (n.nodeValue.indexOf('@') >= 0 && n.nodeValue.search(EM) >= 0) n.nodeValue = n.nodeValue.replace(EM, 'Demo persona'); }
+    while ((n = w.nextNode())) {
+      if (n.nodeValue.indexOf('@') >= 0 && n.nodeValue.search(EM) >= 0) n.nodeValue = n.nodeValue.replace(EM, 'Demo persona');
+      if (n.nodeValue.search(IP4) >= 0) n.nodeValue = n.nodeValue.replace(IP4, 'IP masked');
+    }
     document.querySelectorAll('[title*="@"]').forEach((e) => e.setAttribute('title', e.getAttribute('title').replace(EM, 'Demo persona')));
   };
   new MutationObserver(scrub).observe(document, {childList: true, subtree: true, characterData: true});

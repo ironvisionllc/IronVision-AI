@@ -50,6 +50,18 @@ def main():
         run = c.get(f"/ingest-runs/{scan}", headers=h(isso)).json()
         free = [f for f in run.get("findings", []) if not f.get("poam_id") and f.get("current_state") == "open"]
         print("acas run", scan, "open findings without POA&M:", len(free))
+        trs = str(db.execute(text("select id from systems where org_id=:o and acronym='TRS'"), {"o": org}).scalar())
+        cur = c.get(f"/systems/{trs}/categorization", headers=h(isso)).json()
+        body = {k: v for k, v in cur.items() if k in ("information_types", "mission_criticality", "system_type", "acquisition_category", "operating_environment",
+                                                      "environment_detail", "processes_pii", "classified_information")}
+        body.update({"mode": "cnssi1253", "nss_determination": "yes", "cia": {"c": "Moderate", "i": "High", "a": "Low"}})
+        body = {k: v for k, v in body.items() if v not in (None, "")}
+        r = c.put(f"/systems/{trs}/categorization", headers=h(isso), json=body)
+        print("TRS CNSSI save", r.status_code, r.text[:200])
+        rec = c.get(f"/systems/{trs}/categorization/records", headers=h(isso)).json()["current"]
+        ao = p2.tok(c, "ao", base)
+        r = c.post(f"/systems/{trs}/categorization/records/{rec['id']}/approve", headers=h(ao), json={"rationale": "SYNTHETIC – CNSSI 1253 M-H-L approved for the demo"})
+        print("TRS CNSSI approve", r.status_code, r.text[:200])
     print("ai_interactions last 2h:", db.execute(text("select count(*) from ai_interactions where created_at > now() - interval '2 hours'")).scalar())
 
 

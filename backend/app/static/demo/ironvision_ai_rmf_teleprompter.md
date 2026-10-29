@@ -1,97 +1,113 @@
-# IronVision AI – 3:10 product demo · teleprompter
+# IronVision AI – 3:45 product demo · teleprompter
 
 Read at ~150 wpm. Pause at each `/`. Timestamps are video time.
 
 ## Scene 1 · Intro
 
-**[0:00.8 – 0:06.8]**
+**[0:00.8 – 0:06.5]**
 
 IronVision A-I. / Human-approved A-I for the Risk Management Framework.
 
 ## Scene 2 · RMF dashboard & Guided Mode
 
-**[0:08.5 – 0:18.5]**
+**[0:07.5 – 0:16.0]**
 
-Every system starts on one dashboard. / The seven R-M-F steps are connected, / so you always see progress and the next action.
+Every system starts on one dashboard. / The seven R-M-F steps are connected, / so you always see progress.
 
-**[0:19.5 – 0:29.5]**
+**[0:16.5 – 0:24.5]**
 
-Guided Mode explains each step in plain language: / what it's for, / who acts, / and what comes next.
+Guided Mode explains each step in plain language, / and what comes next.
 
-## Scene 3 · Import Center
+## Scene 3 · CNSSI 1253 categorization
 
-**[0:30.5 – 0:43.0]**
+**[0:25.5 – 0:36.5]**
 
-Bring in your existing work. / Drop an e-Mass export into the Import Center, / and IronVision recognizes the file type and the target system automatically.
+For national security systems, / choose C-N-S-S-I twelve fifty-three. / Confidentiality, / integrity and availability keep their own levels: / moderate, / high, / low.
 
-**[0:44.0 – 0:56.5]**
+## Scene 4 · Import Center – eMASS round-trip
 
-Nothing is written until you review it. / Safe changes are accepted in one click, / conflicts wait for a person, / then you apply the import.
+**[0:37.5 – 0:49.0]**
 
-## Scene 4 · Import management
+Bring in your existing e-Mass work. / The Import Center detects each file, / a Test Results workbook here, / and maps its columns for you.
 
-**[0:57.3 – 1:04.6]**
+**[0:49.5 – 1:01.5]**
 
-Every import stays manageable: / delete selectively, / restore, / or undo for thirty days.
+Results are generated from your real data, / then exported back into the same e-Mass template, / validated and ready to upload.
 
-## Scene 5 · Control Workbench
+## Scene 5 · Import management
 
-**[1:05.5 – 1:14.5]**
+**[1:02.3 – 1:07.7]**
 
-In the Control Workbench, / each control shows its implementation status, / statement, / and the evidence behind it.
+Every import stays manageable: / delete selectively, / or undo.
 
-**[1:15.5 – 1:24.5]**
+## Scene 6 · Control Workbench
 
-Attach evidence right from the control. / It's linked, / versioned, / and you move straight to the next task.
+**[1:08.5 – 1:23.5]**
 
-## Scene 6 · AI Policy Auditor
+In the Control Workbench, / each control shows its implementation and the evidence behind it. / Attach evidence right from the control.
 
-**[1:25.5 – 1:36.5]**
+## Scene 7 · AI Policy Auditor
 
-The A-I Policy Auditor reads your whole policy and checks every requirement of every mapped control. / Take one requirement for account management.
+**[1:24.5 – 1:35.0]**
 
-**[1:37.0 – 1:48.0]**
+The A-I Policy Auditor checks every requirement of every mapped control. / Take account management.
 
-When the policy covers it, / you see the exact supporting quote, / verified word for word against the document, / and the A-I's coverage determination.
+**[1:35.5 – 1:45.5]**
 
-**[1:48.5 – 1:59.5]**
+Where the policy covers it, / you see the exact quote, / verified word for word against the document.
 
-When it's unclear, / nothing is marked missing. / It's flagged for manual review with candidate passages, / and a person turns one into a proposal.
+**[1:46.0 – 1:55.5]**
 
-## Scene 7 · Mapping Review
+Where it's unclear, / it's flagged for manual review, / and a person turns a passage into a proposal.
 
-**[2:00.4 – 2:09.5]**
+## Scene 8 · Mapping Review
 
-A-I suggestions are proposals, / not approvals. / In Mapping Review, / a person approves the mapping.
+**[1:56.4 – 2:04.5]**
 
-## Scene 8 · SCA workspace
+A-I suggestions are proposals. / In Mapping Review, / a person approves them.
 
-**[2:10.5 – 2:20.0]**
+## Scene 9 · SCA workspace
 
-The independent assessor works from the same evidence, / in one focused workspace.
+**[2:05.5 – 2:21.5]**
 
-**[2:21.0 – 2:29.5]**
+The independent assessor works from the same evidence and records the determination. / Never the A-I.
 
-The determination is recorded by the assessor, / never by A-I, / and the next control is ready.
+## Scene 10 · POA&M
 
-## Scene 9 · Authorization & exports
+**[2:22.5 – 2:41.5]**
 
-**[2:30.5 – 2:40.0]**
+Findings from Stig and A-cass scans become poe-ams, / with milestones and dates. / Accepting a risk is routed for a human decision.
 
-Authorization packages come together automatically: / the S-S-P, / S-A-R, / and R-A-R, / plus OS-cal exports.
+## Scene 11 · Tamper-evident audit log
 
-**[2:41.0 – 2:49.5]**
+**[2:42.5 – 2:51.5]**
 
-e-Mass Implementation Plan and Test Results exports are validated and ready to upload.
+Every action is in a tamper-evident audit log. / Verify the hash chain in one click.
 
-## Scene 10 · Continuous monitoring
+## Scene 12 · Continuous monitoring
 
-**[2:50.5 – 3:04.5]**
+**[2:52.5 – 3:04.5]**
 
-Continuous monitoring keeps it current: / scheduled activities, / evidence freshness, / open findings, / and full traceability from requirement to evidence.
+Continuous monitoring keeps it current: / evidence freshness, / open findings, / overdue poe-ams, / and full traceability.
 
-## Scene 11 · Closing
+## Scene 13 · Authorization package
 
-**[3:05.5 – 3:09.5]**
+**[3:05.3 – 3:11.7]**
+
+The package assembles itself: / S-S-P, / S-A-R, / R-A-R, / OS-cal, / and e-Mass exports.
+
+## Scene 14 · AO decision
+
+**[3:12.5 – 3:24.5]**
+
+The Authorizing Official makes the call: / A-T-O, / A-T-O with conditions, / I-A-T-T, / or D-A-T-O.
+
+**[3:25.0 – 3:37.5]**
+
+Here, / an A-T-O with conditions, / with an expiry date, / recorded and signed by a person.
+
+## Scene 15 · Closing
+
+**[3:38.5 – 3:44.5]**
 
 IronVision A-I. / Get audit-ready. / Stay audit-ready.

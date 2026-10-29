@@ -1,71 +1,79 @@
 1
-00:00:00,800 --> 00:00:06,800
+00:00:00,800 --> 00:00:06,500
 IronVision A-I. Human-approved A-I for the Risk Management Framework.
 
 2
-00:00:08,500 --> 00:00:18,500
-Every system starts on one dashboard. The seven R-M-F steps are connected, so you always see progress and the next action.
+00:00:07,500 --> 00:00:16,000
+Every system starts on one dashboard. The seven R-M-F steps are connected, so you always see progress.
 
 3
-00:00:19,500 --> 00:00:29,500
-Guided Mode explains each step in plain language: what it's for, who acts, and what comes next.
+00:00:16,500 --> 00:00:24,500
+Guided Mode explains each step in plain language, and what comes next.
 
 4
-00:00:30,500 --> 00:00:43,000
-Bring in your existing work. Drop an e-Mass export into the Import Center, and IronVision recognizes the file type and the target system automatically.
+00:00:25,500 --> 00:00:36,500
+For national security systems, choose C-N-S-S-I twelve fifty-three. Confidentiality, integrity and availability keep their own levels: moderate, high, low.
 
 5
-00:00:44,000 --> 00:00:56,500
-Nothing is written until you review it. Safe changes are accepted in one click, conflicts wait for a person, then you apply the import.
+00:00:37,500 --> 00:00:49,000
+Bring in your existing e-Mass work. The Import Center detects each file, a Test Results workbook here, and maps its columns for you.
 
 6
-00:00:57,300 --> 00:01:04,600
-Every import stays manageable: delete selectively, restore, or undo for thirty days.
+00:00:49,500 --> 00:01:01,500
+Results are generated from your real data, then exported back into the same e-Mass template, validated and ready to upload.
 
 7
-00:01:05,500 --> 00:01:14,500
-In the Control Workbench, each control shows its implementation status, statement, and the evidence behind it.
+00:01:02,300 --> 00:01:07,700
+Every import stays manageable: delete selectively, or undo.
 
 8
-00:01:15,500 --> 00:01:24,500
-Attach evidence right from the control. It's linked, versioned, and you move straight to the next task.
+00:01:08,500 --> 00:01:23,500
+In the Control Workbench, each control shows its implementation and the evidence behind it. Attach evidence right from the control.
 
 9
-00:01:25,500 --> 00:01:36,500
-The A-I Policy Auditor reads your whole policy and checks every requirement of every mapped control. Take one requirement for account management.
+00:01:24,500 --> 00:01:35,000
+The A-I Policy Auditor checks every requirement of every mapped control. Take account management.
 
 10
-00:01:37,000 --> 00:01:48,000
-When the policy covers it, you see the exact supporting quote, verified word for word against the document, and the A-I's coverage determination.
+00:01:35,500 --> 00:01:45,500
+Where the policy covers it, you see the exact quote, verified word for word against the document.
 
 11
-00:01:48,500 --> 00:01:59,500
-When it's unclear, nothing is marked missing. It's flagged for manual review with candidate passages, and a person turns one into a proposal.
+00:01:46,000 --> 00:01:55,500
+Where it's unclear, it's flagged for manual review, and a person turns a passage into a proposal.
 
 12
-00:02:00,400 --> 00:02:09,500
-A-I suggestions are proposals, not approvals. In Mapping Review, a person approves the mapping.
+00:01:56,400 --> 00:02:04,500
+A-I suggestions are proposals. In Mapping Review, a person approves them.
 
 13
-00:02:10,500 --> 00:02:20,000
-The independent assessor works from the same evidence, in one focused workspace.
+00:02:05,500 --> 00:02:21,500
+The independent assessor works from the same evidence and records the determination. Never the A-I.
 
 14
-00:02:21,000 --> 00:02:29,500
-The determination is recorded by the assessor, never by A-I, and the next control is ready.
+00:02:22,500 --> 00:02:41,500
+Findings from Stig and A-cass scans become poe-ams, with milestones and dates. Accepting a risk is routed for a human decision.
 
 15
-00:02:30,500 --> 00:02:40,000
-Authorization packages come together automatically: the S-S-P, S-A-R, and R-A-R, plus OS-cal exports.
+00:02:42,500 --> 00:02:51,500
+Every action is in a tamper-evident audit log. Verify the hash chain in one click.
 
 16
-00:02:41,000 --> 00:02:49,500
-e-Mass Implementation Plan and Test Results exports are validated and ready to upload.
+00:02:52,500 --> 00:03:04,500
+Continuous monitoring keeps it current: evidence freshness, open findings, overdue poe-ams, and full traceability.
 
 17
-00:02:50,500 --> 00:03:04,500
-Continuous monitoring keeps it current: scheduled activities, evidence freshness, open findings, and full traceability from requirement to evidence.
+00:03:05,300 --> 00:03:11,700
+The package assembles itself: S-S-P, S-A-R, R-A-R, OS-cal, and e-Mass exports.
 
 18
-00:03:05,500 --> 00:03:09,500
+00:03:12,500 --> 00:03:24,500
+The Authorizing Official makes the call: A-T-O, A-T-O with conditions, I-A-T-T, or D-A-T-O.
+
+19
+00:03:25,000 --> 00:03:37,500
+Here, an A-T-O with conditions, with an expiry date, recorded and signed by a person.
+
+20
+00:03:38,500 --> 00:03:44,500
 IronVision A-I. Get audit-ready. Stay audit-ready.

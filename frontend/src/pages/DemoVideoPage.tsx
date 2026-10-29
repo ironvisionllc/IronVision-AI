@@ -5,7 +5,7 @@ import { SyntheticBanner } from "@/components/shell/SyntheticBanner";
 
 const BASE = `${process.env.REACT_APP_BACKEND_URL}/api/v1/public/demo`;
 const FILES: [string, string, string][] = [
-  ["ironvision_ai_rmf_demo.mp4", "Demo video (MP4, 1920×1080, narrated, 3:10)", "demo-dl-mp4"],
+  ["ironvision_ai_rmf_demo.mp4", "Demo video (MP4, 1920×1080, silent, 3:45)", "demo-dl-mp4"],
   ["ironvision_ai_rmf_narration.txt", "Narration script (ElevenLabs-ready, timed blocks)", "demo-dl-narration"],
   ["ironvision_ai_rmf_teleprompter.md", "Teleprompter script", "demo-dl-teleprompter"],
   ["ironvision_ai_rmf_captions.srt", "Captions (SRT)", "demo-dl-captions"],
@@ -21,8 +21,8 @@ export default function DemoVideoPage() {
         <BrandLockup className="w-36" />
         <p className="eyebrow mt-6">Product demo · October 2026 · synthetic data</p>
         <h1 className="t-headline mt-2 text-slate-900" data-testid="demo-video-title">IronVision AI – RMF product demo</h1>
-        <p className="mt-2 text-[15px] text-slate-600">A 3-minute narrated tour of how IronVision makes RMF simpler, faster and more connected. AI makes suggestions;
-          people make every assessment, approval and authorization decision. The narration script and captions are also available below.</p>
+        <p className="mt-2 text-[15px] text-slate-600">A 3¾-minute silent tour of how IronVision makes RMF simpler, faster and more connected – from CNSSI 1253 categorization to the AO's decision. AI makes suggestions;
+          people make every assessment, approval and authorization decision. Narration is coming; the timed narration script and captions are available below.</p>
         <video className="mt-6 w-full rounded-lg border border-slate-200 bg-black" controls playsInline preload="metadata"
           src={`${BASE}/ironvision_ai_rmf_demo.mp4`} data-testid="demo-video-player" />
         <ul className="mt-6 grid gap-2 sm:grid-cols-2" data-testid="demo-downloads">

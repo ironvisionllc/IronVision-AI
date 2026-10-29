@@ -49,7 +49,8 @@ def main():
     L += ["", f"Total: {sum(r['words'] for r in rows)} words in {len(rows)} blocks.", "", "Spoken forms: " + "; ".join(f"{a} → “{c}”" for a, c in b.SPOKEN) + ".", "",
           "## Closing card", "", "- OCR (no contrast boost): " + ", ".join(f"“{k}” {'yes' if v else 'NO'}" for k, v in pv["closing_lines"].items()) + ".", "",
           "## Privacy", "",
-          f"- {pv['frames']} frames (every 5 s) OCR'd: emails {len(pv['email'])}, hostnames/URLs {len(pv['host'])}, IPs {len(pv['ip'])}, secret/key/password patterns {len(pv['secret'])}. "
+          f"- {pv['frames']} frames (every 5 s) OCR'd: emails {len(pv['email'])}, IPs {len(pv['ip'])} (audit-table IPs masked on screen), secret/key/password patterns {len(pv['secret'])}, "
+          f"URLs {len(pv['host'])} – only the public NIST SP 800-60 reference link on the categorization page ({'; '.join(pv['host']) or 'none'}); no app/preview hostnames. "
           f"Persona e-mails masked to “Demo persona” ({pv['persona']} occurrences).",
           "- SYNTHETIC banner on every app frame; synthetic fixture file names only. Mocked integrations appear only with their MOCK label; no live connector is shown.", "",
           "## No mobile / theme footage", "",
