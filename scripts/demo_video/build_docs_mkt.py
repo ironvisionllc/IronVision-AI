@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 
 REC = Path(os.environ.get("DEMO_OUT", "/tmp/demo_mkt")) / "timeline.json"
+FIX = Path("/tmp/demo_fix/timeline.json")  # pick-up recording spliced in by splice_mkt.py
+FIX_MAP = [((0, 45), 85), ((45, 65), 105)]  # fix window → shift into the final video (85–130 s, 150–170 s)
 OUT = Path("/app/backend/app/static/demo")
 WPS_MAX, BREATH, SPEAK_WPS = 2.3, 0.5, 2.5  # budget words/s, min silence per block, estimate for speaking time (150 wpm)
 
@@ -40,8 +42,8 @@ SCENES = {
     3: ("Import Center", "/systems/:id/import-center, review page", "Upload SYNTHETIC eMASS Control Information → detected → review → accept safe → apply"),
     4: ("Import management", "/import-center/manage/:id", "Delete everything this import created → 30-day Undo (restore)"),
     5: ("Control Workbench", "/systems/:id/controls/ac-2", "Status + statement, Evidence tab → Attach evidence → upload → Completed – next"),
-    6: ("AI Policy Auditor", "/policy-auditor/:id", "AC-2 checklist: CCI-000010 met with AI-verified quote; CCI-002124 needs manual review with candidate passages → Use this passage → proposal"),
-    7: ("Mapping Review", "/mapping-review", "Policy coverage tab: proposed AC-2 mapping (pending) → Approve → “1 item(s) approved”"),
+    6: ("AI Policy Auditor", "/policy-auditor/:id", "AC-2 checklist (AC-2 not yet mapped): CCI-000010 met with AI-verified quote; CCI-002124 needs manual review with candidate passages → Use this passage → “Sent to Mapping Review as a human proposal – an authorized reviewer decides.”"),
+    7: ("Mapping Review", "/mapping-review", "Policy coverage tab: that new AC-2 human proposal (pending) → Approve → “1 item(s) approved”"),
     8: ("SCA workspace", "/assess/workspace", "SCA persona: evidence panel → objective, method, result → Save → Saved – moved to next control"),
     9: ("Authorization & exports", "/systems/:id/authorization, /test-results", "SSP/SAR/RAR status, OSCAL, eMASS Implementation Plan; TR export mode + history"),
     10: ("Continuous monitoring", "/rmf/monitor, /traceability", "Current/stale evidence, findings, POA&Ms, schedule; traceability"),
@@ -73,6 +75,11 @@ def fit():
 
 def main():
     tl = json.loads(REC.read_text())
+    if FIX.exists():
+        fx = json.loads(FIX.read_text())
+        keep = [e for e in tl["events"] if not any(a + off <= e[0] < b + off for (a, b), off in FIX_MAP)]
+        add = [[round(e[0] + off, 2), e[1]] for e in fx["events"] for (a, b), off in FIX_MAP if a <= e[0] < b]
+        tl["events"] = sorted(keep + add)
     rows = fit()
     n = ["IronVision AI – 3:10 product demo · narration script (ElevenLabs, voice “Matilda”)",
          "Plain spoken text only. Place each block at its Start time; leave the gaps silent. Natural, confident, professional tone.",

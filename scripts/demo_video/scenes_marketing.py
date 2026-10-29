@@ -180,7 +180,7 @@ async def s9(A, p):
     await A.persona("issm")
     await A.go(f"/systems/{IDS['LTP']}/authorization", '[data-testid="doc-ssp"]')
     for k in ("ssp", "sar", "rar"):
-        await A.point(f'[data-testid="doc-{k}-status"]', 0.5)
+        await A.point(f'[data-testid="doc-{k}"]', 0.5)
         await A.hold(0.9)
     await A.point('[data-testid="oscal-panel"]', 0.6)
     await A.hold(1.4)

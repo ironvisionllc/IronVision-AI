@@ -18,6 +18,8 @@ from app.db import SessionLocal  # noqa: E402
 BASE = "https://aegis-rmf-demo.preview.emergentagent.com/api/v1"
 SRC_POLICY = os.environ.get("SRC_POLICY", "0dfbe304-325d-4478-ae5a-1848a79ddc24")  # SYNTHETIC ac_raven bench result (stored AI analysis)
 TITLE = "AC Policy – Raven Logistics (SYNTHETIC, AI-analyzed)"
+SKIP_MAPS = {"ac-2"}  # left unmapped so "Use this passage" creates a NEW human proposal that Mapping Review then approves
+XX1 = __import__("re").compile(r"^[a-z]{2}-1$")
 BLANK = Path("/app/backend/tests/fixtures/emass/BLANK_TRExport.xlsx")
 
 
@@ -46,9 +48,13 @@ def copy_policy(db, org, ltp, isso):
         p["file_name"] = p.get("file_name") or fx.name
     insert(db, "policies", p)
     for m in rows(db, "select * from policy_control_maps where policy_id=:i", i=SRC_POLICY):
+        if m["control_id"] in SKIP_MAPS:
+            continue
         m.update(id=uuid.uuid4(), org_id=org, policy_id=new, decided_by=isso if m.get("decided_by") else None)
         insert(db, "policy_control_maps", m)
     for c in rows(db, "select * from policy_requirement_coverage where policy_id=:i", i=SRC_POLICY):
+        if c["source"] != "ai" and not XX1.match(c["control_id"]):  # AI-refined rows only: keyword-only leftovers of the older run would flag the result stale
+            continue
         c.update(id=uuid.uuid4(), org_id=org, policy_id=new)
         insert(db, "policy_requirement_coverage", c)
     for f in rows(db, "select * from policy_findings where policy_id=:i", i=SRC_POLICY):
