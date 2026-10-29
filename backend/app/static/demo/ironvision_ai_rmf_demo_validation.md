@@ -1,5 +1,23 @@
 # IronVision AI – 3:10 product demo · validation report
 
+## Current file: narrated version (2026-10-29)
+
+The published ironvision_ai_rmf_demo.mp4 is the user's ElevenLabs narrated version of the v3 cut below. It was used **as-is**: the picture is the identical v3 video (mean absolute frame difference vs v3 ≤ 0.2 at 0:58, 2:01, 3:07). The only change is a stream-copy re-mux to move the moov atom first (faststart) for web/iPhone playback (`ffmpeg -c copy -movflags +faststart`; the H.264 bitstream is byte-identical, and neither stream was re-encoded).
+
+```
+format: duration=190.000 size=23446642
+stream 0: video h264 High level 40, 1920x1080, 30/1 fps, yuv420p, nb_frames=5700
+stream 1: audio aac LC, 44100 Hz, stereo, ~96 kb/s, duration=187.82
+```
+
+- Streams: video H.264 High@4.0, 1920×1080, 30 fps, yuv420p, 5,700 frames (190.000 s); **audio present**: AAC-LC 44.1 kHz stereo, ~96 kb/s, 187.82 s (it ends 2.2 s before the closing card ends, so the last seconds are silent; nothing was stretched).
+- Faststart: moov before mdat. Size 23,446,642 bytes.
+- Loudness (reported only, not changed): EBU R128 integrated −22.4 LUFS, loudness range 6.3 LU, true peak −5.1 dBFS; volumedetect mean −27.0 dB, max −5.1 dB.
+- Page: /demo-video plays it with normal controls, no `muted` attribute, and no <track>. The 5-min technical walkthrough link is unchanged. The silent v3 cut is archived (unlinked) at archive/2026-10-29-3m10-silent/.
+
+The sections below document the silent v3 picture that the narration was laid over.
+
+
 Recorded 2026-10-29 from the shared SYNTHETIC demo workspace (light desktop theme only). **No AI calls.** The Policy Auditor scene shows the AI-refined rows of a stored AI result for the SYNTHETIC `ac_raven` fixture, copied into the demo workspace (keyword-only leftovers of that older run were not copied, so the result is not flagged stale; AC-2 was left unmapped so “Use this passage” creates a new human proposal). The workspace was re-seeded afterwards.
 
 Revision v2 (2026-10-29): Policy Auditor + Mapping Review (1:25–2:10) and Authorization (2:30–2:50) re-recorded and spliced at the scene boundaries (scripts/demo_video/splice_mkt.py); all other scenes are frame-identical in content to v1 (archive/2026-10-29-3m10-v1/, unlinked).
