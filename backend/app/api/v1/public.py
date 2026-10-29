@@ -21,6 +21,7 @@ def whitepaper(ext: str) -> FileResponse:
 
 DEMO_DIR = DIR.parent / "demo"
 DEMO = {"ironvision_ai_rmf_demo.mp4": ("video/mp4", "inline"),
+        "ironvision_ai_rmf_technical_walkthrough.mp4": ("video/mp4", "inline"),
         "ironvision_ai_rmf_narration.txt": ("text/plain; charset=utf-8", "inline"),
         "ironvision_ai_rmf_teleprompter.md": ("text/markdown; charset=utf-8", "inline"),
         "ironvision_ai_rmf_captions.srt": ("application/x-subrip", "attachment"),

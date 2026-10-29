@@ -1,105 +1,97 @@
-# IronVision AI – RMF product demo · teleprompter
+# IronVision AI – 3:10 product demo · teleprompter
 
-Read at ~145 wpm. Pause at each `/`. Timestamps are video time.
+Read at ~150 wpm. Pause at each `/`. Timestamps are video time.
 
-## Scene 1 · Intro & sign-in
+## Scene 1 · Intro
 
-**[0:00.0 – 0:05.0]**
+**[0:00.8 – 0:06.8]**
 
-IronVision AI – human-approved AI for the NIST Risk Management Framework
+IronVision A-I. / Human-approved A-I for the Risk Management Framework.
 
-**[0:05.0 – 0:14.0]**
+## Scene 2 · RMF dashboard & Guided Mode
 
-Shared SYNTHETIC demo workspace · sign in and act as the ISSO persona
+**[0:08.5 – 0:18.5]**
 
-## Scene 2 · Dashboard, RMF steps, Guided Mode
+Every system starts on one dashboard. / The seven R-M-F steps are connected, / so you always see progress and the next action.
 
-**[0:14.0 – 0:25.0]**
+**[0:19.5 – 0:29.5]**
 
-System dashboard: the 7 RMF steps with live status and the next action
-
-**[0:25.0 – 0:39.0]**
-
-Guided Mode explains each step: purpose, / why it matters, / who acts, / what's next
+Guided Mode explains each step in plain language: / what it's for, / who acts, / and what comes next.
 
 ## Scene 3 · Import Center
 
-**[0:39.0 – 0:50.0]**
+**[0:30.5 – 0:43.0]**
 
-Import Center: drop eMASS, / STIG, / Nessus, / PPSM or policy files – each is detected and routed
+Bring in your existing work. / Drop an e-Mass export into the Import Center, / and IronVision recognizes the file type and the target system automatically.
 
-**[0:50.0 – 1:02.0]**
+**[0:44.0 – 0:56.5]**
 
-Review before apply: safe changes are accepted, / conflicts wait for a person
+Nothing is written until you review it. / Safe changes are accepted in one click, / conflicts wait for a person, / then you apply the import.
 
-## Scene 4 · Manage imported data
+## Scene 4 · Import management
 
-**[1:02.0 – 1:13.0]**
+**[0:57.3 – 1:04.6]**
 
-Manage imported data: every applied import, / grouped by section, / with provenance
+Every import stays manageable: / delete selectively, / restore, / or undo for thirty days.
 
-**[1:13.0 – 1:24.0]**
+## Scene 5 · Control Workbench
 
-Delete everything an import created – the system stays – and undo for 30 days
+**[1:05.5 – 1:14.5]**
 
-## Scene 5 · Control Workbench & evidence
+In the Control Workbench, / each control shows its implementation status, / statement, / and the evidence behind it.
 
-**[1:24.0 – 1:38.0]**
+**[1:15.5 – 1:24.5]**
 
-Control Workbench: status, / statement, / evidence and assessment for one control
+Attach evidence right from the control. / It's linked, / versioned, / and you move straight to the next task.
 
-**[1:38.0 – 1:52.0]**
+## Scene 6 · AI Policy Auditor
 
-Attach evidence from inside the control: upload → linked → “Completed – next”
+**[1:25.5 – 1:36.5]**
 
-## Scene 6 · Policy Auditor
+The A-I Policy Auditor reads your whole policy and checks every requirement of every mapped control. / Take one requirement for account management.
 
-**[1:52.0 – 2:04.0]**
+**[1:37.0 – 1:48.0]**
 
-Policy Auditor: a stored AI analysis – every 'met' needs an exact, / verified policy quote
+When the policy covers it, / you see the exact supporting quote, / verified word for word against the document, / and the A-I's coverage determination.
 
-**[2:04.0 – 2:16.0]**
+**[1:48.5 – 1:59.5]**
 
-No silent misses: unclear requirements show candidate passages for a human to decide
-
-**[2:16.0 – 2:28.0]**
-
-Reading report: what was read, / whole-document check, / second look, / “Found it here”
+When it's unclear, / nothing is marked missing. / It's flagged for manual review with candidate passages, / and a person turns one into a proposal.
 
 ## Scene 7 · Mapping Review
 
-**[2:28.0 – 2:44.0]**
+**[2:00.4 – 2:09.5]**
 
-Mapping Review: every automatic link or suggestion waits for a person to approve
+A-I suggestions are proposals, / not approvals. / In Mapping Review, / a person approves the mapping.
 
 ## Scene 8 · SCA workspace
 
-**[2:44.0 – 2:59.0]**
+**[2:10.5 – 2:20.0]**
 
-SCA workspace: the assessor records the determination – AI never does
+The independent assessor works from the same evidence, / in one focused workspace.
 
-**[2:59.0 – 3:14.0]**
+**[2:21.0 – 2:29.5]**
 
-“Saved – moved to next control”, / with Undo
+The determination is recorded by the assessor, / never by A-I, / and the next control is ready.
 
-## Scene 9 · Authorize & eMASS exports
+## Scene 9 · Authorization & exports
 
-**[3:14.0 – 3:30.0]**
+**[2:30.5 – 2:40.0]**
 
-Authorize package: SSP/SAR/RAR drafts, / OSCAL and the eMASS Implementation Plan
+Authorization packages come together automatically: / the S-S-P, / S-A-R, / and R-A-R, / plus OS-cal exports.
 
-**[3:30.0 – 3:46.0]**
+**[2:41.0 – 2:49.5]**
 
-eMASS Test Results export: pre-populated or blank-template mode, / with validation
+e-Mass Implementation Plan and Test Results exports are validated and ready to upload.
 
-## Scene 10 · Monitoring
+## Scene 10 · Continuous monitoring
 
-**[3:46.0 – 4:04.0]**
+**[2:50.5 – 3:04.5]**
 
-Continuous monitoring and traceability across controls, / evidence and findings
+Continuous monitoring keeps it current: / scheduled activities, / evidence freshness, / open findings, / and full traceability from requirement to evidence.
 
 ## Scene 11 · Closing
 
-**[4:04.0 – 4:19.2]**
+**[3:05.5 – 3:09.5]**
 
-IronVision AI · Get audit-ready. / Stay audit-ready.
+IronVision A-I. / Get audit-ready. / Stay audit-ready.

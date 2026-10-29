@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+@font-face{font-family:Jakarta;src:url('../../../frontend/public/fonts/PlusJakartaSans-700.woff2');font-weight:700}
+@font-face{font-family:Inter;src:url('../../../frontend/public/fonts/Inter-400.woff2');font-weight:400}
+@font-face{font-family:Inter;src:url('../../../frontend/public/fonts/Inter-600.woff2');font-weight:600}
+html,body{margin:0;height:100%;background:#fff}
+body{font-family:Inter,Arial,sans-serif;display:flex;align-items:center;justify-content:center;opacity:0}
+body.show{animation:in .9s ease-out both}
+body.out{animation:out .7s ease-in both}
+@keyframes in{from{opacity:0}to{opacity:1}} @keyframes out{from{opacity:1}to{opacity:0}}
+.wrap{width:1500px;display:flex;gap:80px;align-items:center}
+img{width:420px}
+.bar{width:6px;height:320px;background:linear-gradient(180deg,#2597B2,#0F4F5F);border-radius:3px}
+h1{font-family:Jakarta,Inter;font-size:72px;letter-spacing:.01em;color:#0A3540;margin:0}
+.sub{font-size:36px;color:#15697F;margin-top:16px;font-weight:600}
+.meta{margin-top:40px;font-size:28px;color:#3B5560;line-height:1.5}
+.pill{display:inline-block;margin-top:30px;padding:10px 22px;border-radius:999px;background:#FFF4E5;color:#9A4A00;font-weight:600;font-size:21px;border:2px solid #F0B35B}
+</style></head><body>
+<div class="wrap">
+  <img src="../../../frontend/src/assets/brand/logo-lockup-576.png" alt="">
+  <div class="bar"></div>
+  <div>
+    <h1>IronVision AI</h1>
+    <div class="sub">Human-approved AI for the NIST Risk Management Framework</div>
+    <div class="meta">Simpler, faster, connected RMF – people make every decision.</div>
+    <div class="pill">SYNTHETIC DEMONSTRATION DATA</div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,63 @@
+IronVision AI – RMF product demo · narration (ElevenLabs-ready)
+Voice: conversational, authoritative; federal cyber audience; ~140–150 wpm.
+Each block: Scene #, Block #, Start, Target End, then the exact text to speak. Leave silence between blocks.
+
+Scene 1 | Block 1 | Start 0:00.0 | Target End 0:05.0 | 11 words
+IronVision AI – human-approved AI for the NIST Risk Management Framework
+
+Scene 1 | Block 2 | Start 0:05.0 | Target End 0:14.0 | 13 words
+Shared SYNTHETIC demo workspace · sign in and act as the ISSO persona
+
+Scene 2 | Block 3 | Start 0:14.0 | Target End 0:25.0 | 13 words
+System dashboard: the 7 RMF steps with live status and the next action
+
+Scene 2 | Block 4 | Start 0:25.0 | Target End 0:39.0 | 13 words
+Guided Mode explains each step: purpose, why it matters, who acts, what's next
+
+Scene 3 | Block 5 | Start 0:39.0 | Target End 0:50.0 | 16 words
+Import Center: drop eMASS, STIG, Nessus, PPSM or policy files – each is detected and routed
+
+Scene 3 | Block 6 | Start 0:50.0 | Target End 1:02.0 | 12 words
+Review before apply: safe changes are accepted, conflicts wait for a person
+
+Scene 4 | Block 7 | Start 1:02.0 | Target End 1:13.0 | 11 words
+Manage imported data: every applied import, grouped by section, with provenance
+
+Scene 4 | Block 8 | Start 1:13.0 | Target End 1:24.0 | 15 words
+Delete everything an import created – the system stays – and undo for 30 days
+
+Scene 5 | Block 9 | Start 1:24.0 | Target End 1:38.0 | 10 words
+Control Workbench: status, statement, evidence and assessment for one control
+
+Scene 5 | Block 10 | Start 1:38.0 | Target End 1:52.0 | 13 words
+Attach evidence from inside the control: upload → linked → “Completed – next”
+
+Scene 6 | Block 11 | Start 1:52.0 | Target End 2:04.0 | 15 words
+Policy Auditor: a stored AI analysis – every 'met' needs an exact, verified policy quote
+
+Scene 6 | Block 12 | Start 2:04.0 | Target End 2:16.0 | 13 words
+No silent misses: unclear requirements show candidate passages for a human to decide
+
+Scene 6 | Block 13 | Start 2:16.0 | Target End 2:28.0 | 12 words
+Reading report: what was read, whole-document check, second look, “Found it here”
+
+Scene 7 | Block 14 | Start 2:28.0 | Target End 2:44.0 | 13 words
+Mapping Review: every automatic link or suggestion waits for a person to approve
+
+Scene 8 | Block 15 | Start 2:44.0 | Target End 2:59.0 | 11 words
+SCA workspace: the assessor records the determination – AI never does
+
+Scene 8 | Block 16 | Start 2:59.0 | Target End 3:14.0 | 8 words
+“Saved – moved to next control”, with Undo
+
+Scene 9 | Block 17 | Start 3:14.0 | Target End 3:30.0 | 10 words
+Authorize package: SSP/SAR/RAR drafts, OSCAL and the eMASS Implementation Plan
+
+Scene 9 | Block 18 | Start 3:30.0 | Target End 3:46.0 | 10 words
+eMASS Test Results export: pre-populated or blank-template mode, with validation
+
+Scene 10 | Block 19 | Start 3:46.0 | Target End 4:04.0 | 9 words
+Continuous monitoring and traceability across controls, evidence and findings
+
+Scene 11 | Block 20 | Start 4:04.0 | Target End 4:19.2 | 7 words
+IronVision AI · Get audit-ready. Stay audit-ready.

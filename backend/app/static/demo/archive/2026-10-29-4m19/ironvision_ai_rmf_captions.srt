@@ -1,0 +1,79 @@
+1
+00:00:00,000 --> 00:00:05,000
+IronVision AI – human-approved AI for the NIST Risk Management Framework
+
+2
+00:00:05,000 --> 00:00:14,000
+Shared SYNTHETIC demo workspace · sign in and act as the ISSO persona
+
+3
+00:00:14,000 --> 00:00:25,000
+System dashboard: the 7 RMF steps with live status and the next action
+
+4
+00:00:25,000 --> 00:00:39,000
+Guided Mode explains each step: purpose, why it matters, who acts, what's next
+
+5
+00:00:39,000 --> 00:00:50,000
+Import Center: drop eMASS, STIG, Nessus, PPSM or policy files – each is detected and routed
+
+6
+00:00:50,000 --> 00:01:02,000
+Review before apply: safe changes are accepted, conflicts wait for a person
+
+7
+00:01:02,000 --> 00:01:13,000
+Manage imported data: every applied import, grouped by section, with provenance
+
+8
+00:01:13,000 --> 00:01:24,000
+Delete everything an import created – the system stays – and undo for 30 days
+
+9
+00:01:24,000 --> 00:01:38,000
+Control Workbench: status, statement, evidence and assessment for one control
+
+10
+00:01:38,000 --> 00:01:52,000
+Attach evidence from inside the control: upload → linked → “Completed – next”
+
+11
+00:01:52,000 --> 00:02:04,000
+Policy Auditor: a stored AI analysis – every 'met' needs an exact, verified policy quote
+
+12
+00:02:04,000 --> 00:02:16,000
+No silent misses: unclear requirements show candidate passages for a human to decide
+
+13
+00:02:16,000 --> 00:02:28,000
+Reading report: what was read, whole-document check, second look, “Found it here”
+
+14
+00:02:28,000 --> 00:02:44,000
+Mapping Review: every automatic link or suggestion waits for a person to approve
+
+15
+00:02:44,000 --> 00:02:59,000
+SCA workspace: the assessor records the determination – AI never does
+
+16
+00:02:59,000 --> 00:03:14,000
+“Saved – moved to next control”, with Undo
+
+17
+00:03:14,000 --> 00:03:30,000
+Authorize package: SSP/SAR/RAR drafts, OSCAL and the eMASS Implementation Plan
+
+18
+00:03:30,000 --> 00:03:46,000
+eMASS Test Results export: pre-populated or blank-template mode, with validation
+
+19
+00:03:46,000 --> 00:04:04,000
+Continuous monitoring and traceability across controls, evidence and findings
+
+20
+00:04:04,000 --> 00:04:19,200
+IronVision AI · Get audit-ready. Stay audit-ready.

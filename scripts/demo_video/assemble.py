@@ -4,8 +4,8 @@ import os
 import subprocess
 from pathlib import Path
 
-REC = Path("/tmp/demo_rec")
-OUT = Path("/app/backend/app/static/demo/ironvision_ai_rmf_demo.mp4")
+REC = Path(os.environ.get("DEMO_OUT", "/tmp/demo_rec"))
+OUT = Path(os.environ.get("DEMO_MP4", "/app/backend/app/static/demo/ironvision_ai_rmf_demo.mp4"))
 
 
 def main():

@@ -12,7 +12,7 @@ from playwright.async_api import async_playwright
 
 BASE = "https://aegis-rmf-demo.preview.emergentagent.com"
 ZOOM = 1.25
-OUT = Path("/tmp/demo_rec")
+OUT = Path(__import__("os").environ.get("DEMO_OUT", "/tmp/demo_rec"))
 CARDS = Path(__file__).resolve().parent / "cards"
 IMPORT_FILE = Path(__file__).resolve().parent / "fixtures" / "SYNTHETIC_LTP_ControlInfo.xlsx"
 EVIDENCE_FILE = Path(__file__).resolve().parent / "fixtures" / "SYNTHETIC_AC-2_quarterly_account_review.txt"
@@ -263,7 +263,8 @@ class Actions:
 
 
 async def run_scenes(A: Actions, page):
-    from scenes import SCENES
+    import importlib
+    SCENES = importlib.import_module(__import__('os').environ.get('DEMO_SCENES', 'scenes')).SCENES
     for fn in SCENES:
         await fn(A, page)
 

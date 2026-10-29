@@ -1,79 +1,71 @@
 1
-00:00:00,000 --> 00:00:05,000
-IronVision AI – human-approved AI for the NIST Risk Management Framework
+00:00:00,800 --> 00:00:06,800
+IronVision A-I. Human-approved A-I for the Risk Management Framework.
 
 2
-00:00:05,000 --> 00:00:14,000
-Shared SYNTHETIC demo workspace · sign in and act as the ISSO persona
+00:00:08,500 --> 00:00:18,500
+Every system starts on one dashboard. The seven R-M-F steps are connected, so you always see progress and the next action.
 
 3
-00:00:14,000 --> 00:00:25,000
-System dashboard: the 7 RMF steps with live status and the next action
+00:00:19,500 --> 00:00:29,500
+Guided Mode explains each step in plain language: what it's for, who acts, and what comes next.
 
 4
-00:00:25,000 --> 00:00:39,000
-Guided Mode explains each step: purpose, why it matters, who acts, what's next
+00:00:30,500 --> 00:00:43,000
+Bring in your existing work. Drop an e-Mass export into the Import Center, and IronVision recognizes the file type and the target system automatically.
 
 5
-00:00:39,000 --> 00:00:50,000
-Import Center: drop eMASS, STIG, Nessus, PPSM or policy files – each is detected and routed
+00:00:44,000 --> 00:00:56,500
+Nothing is written until you review it. Safe changes are accepted in one click, conflicts wait for a person, then you apply the import.
 
 6
-00:00:50,000 --> 00:01:02,000
-Review before apply: safe changes are accepted, conflicts wait for a person
+00:00:57,300 --> 00:01:04,600
+Every import stays manageable: delete selectively, restore, or undo for thirty days.
 
 7
-00:01:02,000 --> 00:01:13,000
-Manage imported data: every applied import, grouped by section, with provenance
+00:01:05,500 --> 00:01:14,500
+In the Control Workbench, each control shows its implementation status, statement, and the evidence behind it.
 
 8
-00:01:13,000 --> 00:01:24,000
-Delete everything an import created – the system stays – and undo for 30 days
+00:01:15,500 --> 00:01:24,500
+Attach evidence right from the control. It's linked, versioned, and you move straight to the next task.
 
 9
-00:01:24,000 --> 00:01:38,000
-Control Workbench: status, statement, evidence and assessment for one control
+00:01:25,500 --> 00:01:36,500
+The A-I Policy Auditor reads your whole policy and checks every requirement of every mapped control. Take one requirement for account management.
 
 10
-00:01:38,000 --> 00:01:52,000
-Attach evidence from inside the control: upload → linked → “Completed – next”
+00:01:37,000 --> 00:01:48,000
+When the policy covers it, you see the exact supporting quote, verified word for word against the document, and the A-I's coverage determination.
 
 11
-00:01:52,000 --> 00:02:04,000
-Policy Auditor: a stored AI analysis – every 'met' needs an exact, verified policy quote
+00:01:48,500 --> 00:01:59,500
+When it's unclear, nothing is marked missing. It's flagged for manual review with candidate passages, and a person turns one into a proposal.
 
 12
-00:02:04,000 --> 00:02:16,000
-No silent misses: unclear requirements show candidate passages for a human to decide
+00:02:00,400 --> 00:02:09,500
+A-I suggestions are proposals, not approvals. In Mapping Review, a person approves the mapping.
 
 13
-00:02:16,000 --> 00:02:28,000
-Reading report: what was read, whole-document check, second look, “Found it here”
+00:02:10,500 --> 00:02:20,000
+The independent assessor works from the same evidence, in one focused workspace.
 
 14
-00:02:28,000 --> 00:02:44,000
-Mapping Review: every automatic link or suggestion waits for a person to approve
+00:02:21,000 --> 00:02:29,500
+The determination is recorded by the assessor, never by A-I, and the next control is ready.
 
 15
-00:02:44,000 --> 00:02:59,000
-SCA workspace: the assessor records the determination – AI never does
+00:02:30,500 --> 00:02:40,000
+Authorization packages come together automatically: the S-S-P, S-A-R, and R-A-R, plus OS-cal exports.
 
 16
-00:02:59,000 --> 00:03:14,000
-“Saved – moved to next control”, with Undo
+00:02:41,000 --> 00:02:49,500
+e-Mass Implementation Plan and Test Results exports are validated and ready to upload.
 
 17
-00:03:14,000 --> 00:03:30,000
-Authorize package: SSP/SAR/RAR drafts, OSCAL and the eMASS Implementation Plan
+00:02:50,500 --> 00:03:04,500
+Continuous monitoring keeps it current: scheduled activities, evidence freshness, open findings, and full traceability from requirement to evidence.
 
 18
-00:03:30,000 --> 00:03:46,000
-eMASS Test Results export: pre-populated or blank-template mode, with validation
-
-19
-00:03:46,000 --> 00:04:04,000
-Continuous monitoring and traceability across controls, evidence and findings
-
-20
-00:04:04,000 --> 00:04:19,200
-IronVision AI · Get audit-ready. Stay audit-ready.
+00:03:05,500 --> 00:03:09,500
+IronVision A-I. Get audit-ready. Stay audit-ready.

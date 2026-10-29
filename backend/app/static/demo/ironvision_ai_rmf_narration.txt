@@ -1,63 +1,57 @@
-IronVision AI – RMF product demo · narration (ElevenLabs-ready)
-Voice: conversational, authoritative; federal cyber audience; ~140–150 wpm.
-Each block: Scene #, Block #, Start, Target End, then the exact text to speak. Leave silence between blocks.
+IronVision AI – 3:10 product demo · narration script (ElevenLabs, voice “Matilda”)
+Plain spoken text only. Place each block at its Start time; leave the gaps silent. Natural, confident, professional tone.
+Spoken forms used: IronVision AI → “IronVision A-I”; AI → “A-I”; RMF → “R-M-F”; NIST → “nist (one word)”; eMASS → “e-Mass”; SSP → “S-S-P”; SAR → “S-A-R”; RAR → “R-A-R”; OSCAL → “OS-cal”; SCA → “assessor (not spelled out)”; 30-day → “thirty days”; 3:10 → “not spoken”
 
-Scene 1 | Block 1 | Start 0:00.0 | Target End 0:05.0 | 11 words
-IronVision AI – human-approved AI for the NIST Risk Management Framework
+[Block 1 · Scene 1 · 0:00.8 – 0:06.8 · 9 words · ~3.6 s]
+IronVision A-I. Human-approved A-I for the Risk Management Framework.
 
-Scene 1 | Block 2 | Start 0:05.0 | Target End 0:14.0 | 13 words
-Shared SYNTHETIC demo workspace · sign in and act as the ISSO persona
+[Block 2 · Scene 2 · 0:08.5 – 0:18.5 · 21 words · ~8.4 s]
+Every system starts on one dashboard. The seven R-M-F steps are connected, so you always see progress and the next action.
 
-Scene 2 | Block 3 | Start 0:14.0 | Target End 0:25.0 | 13 words
-System dashboard: the 7 RMF steps with live status and the next action
+[Block 3 · Scene 2 · 0:19.5 – 0:29.5 · 17 words · ~6.8 s]
+Guided Mode explains each step in plain language: what it's for, who acts, and what comes next.
 
-Scene 2 | Block 4 | Start 0:25.0 | Target End 0:39.0 | 13 words
-Guided Mode explains each step: purpose, why it matters, who acts, what's next
+[Block 4 · Scene 3 · 0:30.5 – 0:43.0 · 24 words · ~9.6 s]
+Bring in your existing work. Drop an e-Mass export into the Import Center, and IronVision recognizes the file type and the target system automatically.
 
-Scene 3 | Block 5 | Start 0:39.0 | Target End 0:50.0 | 16 words
-Import Center: drop eMASS, STIG, Nessus, PPSM or policy files – each is detected and routed
+[Block 5 · Scene 3 · 0:44.0 – 0:56.5 · 24 words · ~9.6 s]
+Nothing is written until you review it. Safe changes are accepted in one click, conflicts wait for a person, then you apply the import.
 
-Scene 3 | Block 6 | Start 0:50.0 | Target End 1:02.0 | 12 words
-Review before apply: safe changes are accepted, conflicts wait for a person
+[Block 6 · Scene 4 · 0:57.3 – 1:04.6 · 12 words · ~4.8 s]
+Every import stays manageable: delete selectively, restore, or undo for thirty days.
 
-Scene 4 | Block 7 | Start 1:02.0 | Target End 1:13.0 | 11 words
-Manage imported data: every applied import, grouped by section, with provenance
+[Block 7 · Scene 5 · 1:05.5 – 1:14.5 · 16 words · ~6.4 s]
+In the Control Workbench, each control shows its implementation status, statement, and the evidence behind it.
 
-Scene 4 | Block 8 | Start 1:13.0 | Target End 1:24.0 | 15 words
-Delete everything an import created – the system stays – and undo for 30 days
+[Block 8 · Scene 5 · 1:15.5 – 1:24.5 · 17 words · ~6.8 s]
+Attach evidence right from the control. It's linked, versioned, and you move straight to the next task.
 
-Scene 5 | Block 9 | Start 1:24.0 | Target End 1:38.0 | 10 words
-Control Workbench: status, statement, evidence and assessment for one control
+[Block 9 · Scene 6 · 1:25.5 – 1:36.5 · 22 words · ~8.8 s]
+The A-I Policy Auditor reads your whole policy and checks every requirement of every mapped control. Take one requirement for account management.
 
-Scene 5 | Block 10 | Start 1:38.0 | Target End 1:52.0 | 13 words
-Attach evidence from inside the control: upload → linked → “Completed – next”
+[Block 10 · Scene 6 · 1:37.0 – 1:48.0 · 23 words · ~9.2 s]
+When the policy covers it, you see the exact supporting quote, verified word for word against the document, and the A-I's coverage determination.
 
-Scene 6 | Block 11 | Start 1:52.0 | Target End 2:04.0 | 15 words
-Policy Auditor: a stored AI analysis – every 'met' needs an exact, verified policy quote
+[Block 11 · Scene 6 · 1:48.5 – 1:59.5 · 23 words · ~9.2 s]
+When it's unclear, nothing is marked missing. It's flagged for manual review with candidate passages, and a person turns one into a proposal.
 
-Scene 6 | Block 12 | Start 2:04.0 | Target End 2:16.0 | 13 words
-No silent misses: unclear requirements show candidate passages for a human to decide
+[Block 12 · Scene 7 · 2:00.4 – 2:09.5 · 14 words · ~5.6 s]
+A-I suggestions are proposals, not approvals. In Mapping Review, a person approves the mapping.
 
-Scene 6 | Block 13 | Start 2:16.0 | Target End 2:28.0 | 12 words
-Reading report: what was read, whole-document check, second look, “Found it here”
+[Block 13 · Scene 8 · 2:10.5 – 2:20.0 · 12 words · ~4.8 s]
+The independent assessor works from the same evidence, in one focused workspace.
 
-Scene 7 | Block 14 | Start 2:28.0 | Target End 2:44.0 | 13 words
-Mapping Review: every automatic link or suggestion waits for a person to approve
+[Block 14 · Scene 8 · 2:21.0 – 2:29.5 · 16 words · ~6.4 s]
+The determination is recorded by the assessor, never by A-I, and the next control is ready.
 
-Scene 8 | Block 15 | Start 2:44.0 | Target End 2:59.0 | 11 words
-SCA workspace: the assessor records the determination – AI never does
+[Block 15 · Scene 9 · 2:30.5 – 2:40.0 · 13 words · ~5.2 s]
+Authorization packages come together automatically: the S-S-P, S-A-R, and R-A-R, plus OS-cal exports.
 
-Scene 8 | Block 16 | Start 2:59.0 | Target End 3:14.0 | 8 words
-“Saved – moved to next control”, with Undo
+[Block 16 · Scene 9 · 2:41.0 – 2:49.5 · 13 words · ~5.2 s]
+e-Mass Implementation Plan and Test Results exports are validated and ready to upload.
 
-Scene 9 | Block 17 | Start 3:14.0 | Target End 3:30.0 | 10 words
-Authorize package: SSP/SAR/RAR drafts, OSCAL and the eMASS Implementation Plan
+[Block 17 · Scene 10 · 2:50.5 – 3:04.5 · 18 words · ~7.2 s]
+Continuous monitoring keeps it current: scheduled activities, evidence freshness, open findings, and full traceability from requirement to evidence.
 
-Scene 9 | Block 18 | Start 3:30.0 | Target End 3:46.0 | 10 words
-eMASS Test Results export: pre-populated or blank-template mode, with validation
-
-Scene 10 | Block 19 | Start 3:46.0 | Target End 4:04.0 | 9 words
-Continuous monitoring and traceability across controls, evidence and findings
-
-Scene 11 | Block 20 | Start 4:04.0 | Target End 4:19.2 | 7 words
-IronVision AI · Get audit-ready. Stay audit-ready.
+[Block 18 · Scene 11 · 3:05.5 – 3:09.5 · 6 words · ~2.4 s]
+IronVision A-I. Get audit-ready. Stay audit-ready.

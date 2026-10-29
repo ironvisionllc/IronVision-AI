@@ -1,56 +1,83 @@
-# IronVision AI – RMF product demo · validation report
+# IronVision AI – 3:10 product demo · validation report
 
-Recording date: 2026-10-28 (re-recorded after review). Source: shared SYNTHETIC demo workspace on the preview host. **No AI calls were made.**
+Recorded 2026-10-29 from the shared SYNTHETIC demo workspace (light desktop theme only). **No AI calls**: the Policy Auditor scene shows a stored AI result for the SYNTHETIC `ac_raven` fixture that was copied into the demo workspace. The workspace was re-seeded afterwards.
 
-## File
+## ffprobe
 
-| Property | Value |
-|---|---|
-| File | ironvision_ai_rmf_demo.mp4 (served at /demo-video) |
-| Duration | 259.267 s (7,778 frames) |
-| Video | H.264 High, 1920×1080, 30 fps, yuv420p, faststart (moov before mdat) |
-| Audio | none (silent) |
-| Captions | none burned in (clean video, re-encoded 2026-10-29 at user request); separate ironvision_ai_rmf_captions.srt kept, not auto-displayed (no &lt;track&gt; on /demo-video) |
-| Size | 12,428,018 bytes (~383 kbit/s) |
-| Container tags | major_brand isom, encoder Lavf only – no title/author/location/host metadata |
-| Delivery | HTTP 206 byte ranges, Content-Type video/mp4 (iPhone Safari compatible) |
+```
+stream|codec_name=h264|profile=High|codec_type=video|width=1920|height=1080|pix_fmt=yuv420p|level=41|r_frame_rate=30/1|nb_frames=5700
+format|duration=190.000000|size=10820453|bit_rate=455598
+format|tag:major_brand=isom|tag:minor_version=512|tag:compatible_brands=isomiso2avc1mp41|tag:encoder=Lavf59.27.100
+```
 
-## Storyline (scene starts measured from the recorder)
+- Faststart: moov before mdat = True. No audio stream. No burned-in captions (the SRT is a separate file and /demo-video has no <track>).
+- Delivery: HTTP 200 for the full file; HTTP 206 with Content-Range for byte-range requests (iPhone Safari seeking).
 
-| # | Scene | Start |
-|---|---|---|
-| 1 | Intro, Explore-the-demo sign-in, ISSO persona | 0:00 |
-| 2 | System dashboard + the 7 RMF steps, Guided Mode on/off | 0:14 |
-| 3 | Import Center: detect → review → accept safe → apply | 0:39.5 |
-| 4 | Manage imported data: sections, delete everything → 30-day Undo | 1:02 |
-| 5 | Control Workbench (AC-2): Attach evidence → upload → “Completed – next” | 1:24 |
-| 6 | Policy Auditor: stored AI analysis – met rows with verified quotes, candidate passages, reading report, Found it here | 1:52 |
-| 7 | Mapping Review queue | 2:28 |
-| 8 | SCA workspace: human determination → “Saved – moved to next control” → Undo | 2:44 |
-| 9 | Authorize package (SSP/SAR/RAR, OSCAL, eMASS Implementation Plan) + TR export mode/history | 3:14 |
-| 10 | Continuous monitoring + traceability | 3:46 |
-| 11 | Closing card (0.5 s crossfade from traceability) | 4:03.5 |
+## Scene boundaries measured from the video
 
-## Data and privacy
+Method: ffmpeg scene-change score on every frame (`select=gte(scene,0),metadata=print`); for each boundary, the frame with the highest score within ±0.5 s.
 
-- All content is SYNTHETIC. Persona e-mail addresses are masked to “Demo persona” in every frame by an init script in the recorder (verified on /my-work, /import-center, /audit-log, /systems: 0 addresses remain).
-- Policy Auditor scene: an existing stored AI result for the SYNTHETIC `ac_raven` fixture was copied into the demo workspace (no new model call); its reading-report extraction stats were computed from the same fixture file.
-- Demo-only preparation (prep_v2.py): copied policy result; blank eMASS TR template uploaded, rows generated deterministically and exported once.
-- After recording and screenshots the shared demo was re-seeded (same as the nightly reset), removing the import, the attached evidence, the SCA determination, the copied policy and the TR workbook.
+| Boundary | Next scene | Target | Measured cut | Offset | Scene score |
+|---|---|---|---|---|---|
+| 1→2 | RMF dashboard & Guided Mode | 8.0 s | 8.000 s | +0.000 s | 0.238 |
+| 2→3 | Import Center | 30.0 s | 30.000 s | +0.000 s | 0.104 |
+| 3→4 | Import management | 57.0 s | 57.067 s | +0.067 s | 0.077 |
+| 4→5 | Control Workbench | 65.0 s | 65.067 s | +0.067 s | 0.105 |
+| 5→6 | AI Policy Auditor | 85.0 s | 85.000 s | +0.000 s | 0.13 |
+| 6→7 | Mapping Review | 120.0 s | 120.033 s | +0.033 s | 0.106 |
+| 7→8 | SCA workspace | 130.0 s | 130.033 s | +0.033 s | 0.057 |
+| 8→9 | Authorization & exports | 150.0 s | 150.067 s | +0.067 s | 0.115 |
+| 9→10 | Continuous monitoring | 170.0 s | 170.033 s | +0.033 s | 0.113 |
+| 10→11 | Closing | 185.0 s | 185.133 s | +0.133 s | 1.0 |
+
+All boundaries are within the ±0.3 s tolerance (largest offset +0.133 s: the closing card fades in).
+
+## Narration fit (ElevenLabs, voice “Matilda”)
+
+Budget ≤ 2.3 words/s per block with ≥ 0.5 s silence; speaking time estimated at 150 wpm (2.5 words/s).
+
+| Block | Scene | Start | End | Window | Words | Words/s | Est. speech | Slack |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 1 | 0:00.8 | 0:06.8 | 6.0 s | 9 | 1.5 | 3.6 s | 2.4 s |
+| 2 | 2 | 0:08.5 | 0:18.5 | 10.0 s | 21 | 2.1 | 8.4 s | 1.6 s |
+| 3 | 2 | 0:19.5 | 0:29.5 | 10.0 s | 17 | 1.7 | 6.8 s | 3.2 s |
+| 4 | 3 | 0:30.5 | 0:43.0 | 12.5 s | 24 | 1.92 | 9.6 s | 2.9 s |
+| 5 | 3 | 0:44.0 | 0:56.5 | 12.5 s | 24 | 1.92 | 9.6 s | 2.9 s |
+| 6 | 4 | 0:57.3 | 1:04.6 | 7.3 s | 12 | 1.64 | 4.8 s | 2.5 s |
+| 7 | 5 | 1:05.5 | 1:14.5 | 9.0 s | 16 | 1.78 | 6.4 s | 2.6 s |
+| 8 | 5 | 1:15.5 | 1:24.5 | 9.0 s | 17 | 1.89 | 6.8 s | 2.2 s |
+| 9 | 6 | 1:25.5 | 1:36.5 | 11.0 s | 22 | 2.0 | 8.8 s | 2.2 s |
+| 10 | 6 | 1:37.0 | 1:48.0 | 11.0 s | 23 | 2.09 | 9.2 s | 1.8 s |
+| 11 | 6 | 1:48.5 | 1:59.5 | 11.0 s | 23 | 2.09 | 9.2 s | 1.8 s |
+| 12 | 7 | 2:00.4 | 2:09.5 | 9.1 s | 14 | 1.54 | 5.6 s | 3.5 s |
+| 13 | 8 | 2:10.5 | 2:20.0 | 9.5 s | 12 | 1.26 | 4.8 s | 4.7 s |
+| 14 | 8 | 2:21.0 | 2:29.5 | 8.5 s | 16 | 1.88 | 6.4 s | 2.1 s |
+| 15 | 9 | 2:30.5 | 2:40.0 | 9.5 s | 13 | 1.37 | 5.2 s | 4.3 s |
+| 16 | 9 | 2:41.0 | 2:49.5 | 8.5 s | 13 | 1.53 | 5.2 s | 3.3 s |
+| 17 | 10 | 2:50.5 | 3:04.5 | 14.0 s | 18 | 1.29 | 7.2 s | 6.8 s |
+| 18 | 11 | 3:05.5 | 3:09.5 | 4.0 s | 6 | 1.5 | 2.4 s | 1.6 s |
+
+Total: 300 words in 18 blocks.
+
+Spoken forms: IronVision AI → “IronVision A-I”; AI → “A-I”; RMF → “R-M-F”; NIST → “nist (one word)”; eMASS → “e-Mass”; SSP → “S-S-P”; SAR → “S-A-R”; RAR → “R-A-R”; OSCAL → “OS-cal”; SCA → “assessor (not spelled out)”; 30-day → “thirty days”; 3:10 → “not spoken”.
+
+## Privacy check
+
+- 38 frames sampled every 5 s and OCR'd with Tesseract: 0 e-mail addresses, 0 hostnames/URLs, 0 IP addresses, 0 secret/key/password patterns. Persona e-mails are masked to “Demo persona” by the recorder's init script (8 masked occurrences seen in OCR).
+- Visible data is SYNTHETIC (banner on every app frame). File names are synthetic fixtures (SYNTHETIC_LTP_ControlInfo.xlsx, SYNTHETIC_AC-2_quarterly_account_review.txt, ltp_*.ckl/.nessus).
+- Mocked integrations appear only with their MOCK label (“mock collection”, `mock-*.json` source names in the import history); no scanner or eMASS REST connector is shown operating.
+
+## No mobile / theme footage
+
+- Single 1920×1080 viewport throughout; no resizing, no phone frame, no theme toggle in the scene script.
+- Mean luminance sampled at 1 fps: every app frame (0:01–3:04) is light (minimum YAVG 153.1); the only dark frames are the closing card (3:05–3:10, brand colours).
+
+## Publishing
+
+- Default: /demo-video and /api/v1/public/demo/ironvision_ai_rmf_demo.mp4 (this 3:10 cut).
+- Technical walkthrough (5 min, caption-free): /api/v1/public/demo/ironvision_ai_rmf_technical_walkthrough.mp4, linked on /demo-video.
+- Archived (unlinked): static/demo/archive/2026-10-29-4m19/ (previous 4:19 cut + its docs).
 
 ## Reproduce
 
-`python3 scripts/demo_video/prep_v2.py` → `record_demo.py` → `build_docs.py` → `assemble.py` → `prep_v2.py --reset`
-
-## Revision 2026-10-29
-
-- Bottom caption bar removed; scenes, timing and on-screen cards (intro, closing) unchanged. Re-recorded with the same script (the raw frames had been lost in a pod restart), then the shared demo was re-seeded.
-- Captioned version archived (unlinked): archive/2026-10-28-captioned/ironvision_ai_rmf_demo.mp4.
-- Verified: ffprobe (300.000 s, 9,000 frames, H.264 High 1920×1080, 30 fps, yuv420p, moov before mdat, no audio); 5 sampled frames (0:20, 1:15, 2:10, 3:20, 4:10) show no caption text; HTTP 200 + 206 byte ranges.
-
-## Revision 2026-10-29 (b)
-
-- Removed the light ↔ dark switch and the phone-width segment (recorder 4:04.0–4:44.2) by cutting the caption-free 300 s file with ffmpeg (scripts/demo_video/cut_segments.py) – no re-recording, every other frame identical in content; 0.5 s crossfade from the last traceability frame into the closing card.
-- Archived (unlinked): archive/2026-10-29-with-phone/ (full 300 s caption-free) and archive/2026-10-29-no-phone-with-themes/ (interim cut).
-- Verified: ffprobe 259.267 s, 7,778 frames, H.264 High 1920×1080, 30 fps, yuv420p, moov before mdat, no audio; 22 sampled frames (0:10–4:19, incl. 4:03.0–4:04.3 around the cut) show only light-mode desktop screens and the closing card – no theme switch, no phone frame; HTTP 200 + 206.
-- SRT, narration, teleprompter and scene timeline regenerated for the new timing (20 blocks, closing 4:04–4:19.2).
+`prep_v2.py` → `DEMO_SCENES=scenes_marketing DEMO_OUT=/tmp/demo_mkt record_demo.py` → `DEMO_OUT=/tmp/demo_mkt assemble.py` → `build_docs_mkt.py` → `prep_v2.py --reset`
