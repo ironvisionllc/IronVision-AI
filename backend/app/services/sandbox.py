@@ -262,7 +262,7 @@ def purge(db: Session, org: Organization, reason: str) -> dict:
 
 
 def expiry_info(org: Organization) -> dict | None:
-    if not org.is_sandbox or not org.last_activity_at:
+    if not org.is_sandbox or not org.last_activity_at or org.protected:  # permanent (protected) sandboxes never expire – no countdown
         return None
     idle = (now() - org.last_activity_at).days
     n = inactivity_days()

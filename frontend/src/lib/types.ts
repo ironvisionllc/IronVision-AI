@@ -37,6 +37,7 @@ export interface AuthProviderInfo {
   demo_login_enabled?: boolean;
   registration_enabled?: boolean;
   oidc_enabled: boolean;
+  sandbox_inactivity_days?: number | null;
 }
 
 export interface ControlSummary {

@@ -85,7 +85,7 @@ export default function LoginPage() {
               <h2 className="t-title text-slate-900">Sign in</h2>
               <a className="btn-primary mt-5 w-full justify-center py-2.5" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/auth/oidc/login`} data-testid="oidc-login-btn"><KeyRound className="h-4 w-4" aria-hidden /> Sign in</a>
               {info.registration_enabled && <a className="btn-secondary mt-3 w-full justify-center py-2.5" href={`${process.env.REACT_APP_BACKEND_URL}/api/v1/auth/oidc/register`} data-testid="oidc-register-btn">Create account</a>}
-              {info.registration_enabled && <div className="mt-1.5 text-center text-[11px] text-slate-500" data-testid="oidc-register-caption">Free private sandbox · clean workspace · deleted after 30 days without activity</div>}
+              {info.registration_enabled && <div className="mt-1.5 text-center text-[11px] text-slate-500" data-testid="oidc-register-caption">Free private sandbox · clean workspace{info.sandbox_inactivity_days ? ` · deleted after ${info.sandbox_inactivity_days} days without activity` : ""}</div>}
             </div>}
             {info && !info.dev_password_enabled && !info.oidc_enabled && <div className="panel p-4 text-[13px]" data-testid="external-auth-note">Sign-in is handled by {info.label}. Password sign-in is disabled.</div>}
             {(!info || info.dev_password_enabled) && <>
@@ -117,7 +117,7 @@ export default function LoginPage() {
               <div className="mt-1.5 text-[11px] text-slate-500" data-testid="demo-login-caption">Synthetic data · shared demo workspace · resets nightly</div>
               {demoErr && <div role="alert" className="mt-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-[13px] text-rose-800" data-testid="demo-login-error">{demoErr}</div>}
             </div>}
-            {info?.dev_password_enabled && info?.signup_enabled && (mode === "signup" ? <><SignupForm onDone={(e) => { setEmail(e); setMode("login"); setNote("Account created – your private sandbox is being prepared. Sign in to continue."); }} />
+            {info?.dev_password_enabled && info?.signup_enabled && (mode === "signup" ? <><SignupForm days={info?.sandbox_inactivity_days} onDone={(e) => { setEmail(e); setMode("login"); setNote("Account created – your private sandbox is being prepared. Sign in to continue."); }} />
               <button type="button" className="mt-3 w-full text-center text-[13px] text-blue-800 underline" onClick={() => setMode("login")} data-testid="show-login-btn">I already have an account – sign in</button></>
               : <button type="button" className="mt-4 w-full text-center text-[13px] text-blue-800 underline" onClick={() => setMode("signup")} data-testid="show-signup-btn">New here? Create a free sandbox account</button>)}
           </div>
@@ -127,7 +127,7 @@ export default function LoginPage() {
   );
 }
 
-function SignupForm({ onDone }: { onDone: (email: string) => void }) {
+function SignupForm({ onDone, days }: { onDone: (email: string) => void; days?: number | null }) {
   const [f, setF] = useState({ name: "", email: "", password: "", organization: "", iv_hp_fax_only: "" });
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -155,7 +155,7 @@ function SignupForm({ onDone }: { onDone: (email: string) => void }) {
   return (
     <form onSubmit={submit} className="panel p-7" data-testid="signup-form">
       <h2 className="t-title text-slate-900">Create a sandbox account</h2>
-      <p className="t-caption mt-1 text-slate-600">You get a private sandbox with a copy of the 4 synthetic demo systems. Synthetic data only – do not upload CUI or real system data. Sandboxes are deleted after 30 days without activity.</p>
+      <p className="t-caption mt-1 text-slate-600" data-testid="signup-intro">You get a private sandbox that starts as a clean workspace – you can add the synthetic demo systems later from the Sandbox menu. Synthetic data only – do not upload CUI or real system data.{days ? ` Sandboxes are deleted after ${days} days without activity.` : ""}</p>
       <label className="t-label mt-5 block" htmlFor="su-name">Name</label><input id="su-name" required autoComplete="name" className="input mt-1.5" value={f.name} onChange={set("name")} data-testid="signup-name-input" />
       <label className="t-label mt-3 block" htmlFor="su-email">Email</label><input id="su-email" type="email" required autoComplete="email" className="input mt-1.5" value={f.email} onChange={set("email")} data-testid="signup-email-input" />
       <label className="t-label mt-3 block" htmlFor="su-pw">Password</label><input id="su-pw" type="password" required autoComplete="new-password" className="input mt-1.5" value={f.password} onChange={set("password")} data-testid="signup-password-input" />

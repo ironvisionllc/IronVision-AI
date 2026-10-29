@@ -190,7 +190,7 @@ def sandbox_status(db: Session = Depends(get_db), current: CurrentUser = Depends
             "operator": {"email": real.email, "name": real.display_name}, "acting_role": current.user.persona_role,
             "acting_as": current.user.display_name if current.user.persona_role else None,
             "personas": [{"role": r, "name": f"{n} ({l})"} for r, n, l in sbx.PERSONAS],
-            "expiry": None if demo else sbx.expiry_info(org),
+            "expiry": None if demo else sbx.expiry_info(org), "permanent": bool(org.protected) and not demo,
             "onboarding": [{"key": k, "label": label, "link": link, "done": bool(steps.get(k))} for k, label, link in (ONBOARDING if demo else ONBOARDING_CLEAN)],
             "onboarding_dismissed": bool(steps.get("dismissed")),
             "label": "Sandbox persona mode – simulated identities for demo separation of duties; not acceptable for production SoD"}
@@ -305,3 +305,54 @@ def onboarding_step(body: StepIn, db: Session = Depends(get_db), current: Curren
 
 
 _ = (RoleAssignment, build_user_out, uuid)
+
+
+def _platform_admin(db: Session, current: CurrentUser) -> None:
+    """Real platform administrators only: a sandbox 'Admin persona' (or anyone acting through a persona) can never make a sandbox permanent."""
+    org = db.get(Organization, current.user.org_id)
+    if current.user.persona_role or current.operator or (org and org.is_sandbox) or not any(a.role == "platform_admin" for a in current.assignments):
+        raise HTTPException(403, "Platform administrators only")
+
+
+def _sandbox_row(db: Session, org: Organization) -> dict:
+    ex = sbx.expiry_info(org)
+    return {"id": str(org.id), "name": org.name, "status": org.sandbox_status, "is_demo": sbx.is_demo(db, org), "permanent": bool(org.protected),
+            "last_activity_at": org.last_activity_at.isoformat() if org.last_activity_at else None,
+            "idle_days": ex["idle_days"] if ex else None, "days_until_deletion": ex["expires_in_days"] if ex else None}
+
+
+def _managed_sandbox(db: Session, org_id: uuid.UUID) -> Organization:
+    org = db.get(Organization, org_id)
+    if org is None or not org.is_sandbox or org.sandbox_status == "purged":  # real tenants are never managed here
+        raise HTTPException(404, "Sandbox not found")
+    return org
+
+
+@router.get("/admin/sandboxes")
+def list_sandboxes(db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    _platform_admin(db, current)
+    orgs = db.scalars(select(Organization).where(Organization.is_sandbox.is_(True), Organization.sandbox_status != "purged").order_by(Organization.last_activity_at.desc().nullslast()))
+    return {"inactivity_days": sbx.inactivity_days(), "items": [_sandbox_row(db, o) for o in orgs]}
+
+
+class PermanentIn(BaseModel):
+    permanent: bool
+    confirm: bool = False
+
+
+@router.post("/admin/sandboxes/{org_id}/permanence")
+def set_permanence(org_id: uuid.UUID, body: PermanentIn, request: Request, db: Session = Depends(get_db), current: CurrentUser = Depends(get_current_user)) -> dict:
+    """Make permanent: protected=true (never purged, no expiry countdown). Undo makes it expirable again. Personas, SYNTHETIC label and sandbox SoD stay."""
+    _platform_admin(db, current)
+    org = _managed_sandbox(db, org_id)
+    if not body.confirm:
+        raise HTTPException(422, "Confirmation required")
+    if sbx.is_demo(db, org):
+        raise HTTPException(409, "The shared demo is managed by its nightly reset, not by this setting")
+    if bool(org.protected) == body.permanent:
+        return _sandbox_row(db, org)
+    org.protected = body.permanent
+    audit.record(db, action="org.made_permanent" if body.permanent else "org.made_expirable", actor_user_id=current.user.id, actor_email=current.user.email,
+                 entity_type="organization", entity_id=str(org.id), details={"org_id": str(org.id), "org_name": org.name, "protected": org.protected}, **audit.request_meta(request))
+    db.commit()
+    return _sandbox_row(db, org)

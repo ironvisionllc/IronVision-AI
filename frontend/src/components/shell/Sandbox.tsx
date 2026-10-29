@@ -128,7 +128,7 @@ export function SandboxChip() {
       <button ref={btn} type="button" onClick={() => setOpen(!open)} aria-haspopup="dialog" aria-expanded={open} aria-controls="sandbox-popover"
         aria-label={`${kind} details${ex?.warn ? ` – deleted in ${ex.expires_in_days} day(s) without activity` : ""}`} data-testid="sandbox-chip"
         className={`flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-semibold ${ex?.warn ? "border-amber-400 bg-amber-50 text-amber-900" : "border-slate-300 bg-slate-50 text-slate-700"}`}>
-        <FlaskConical className="h-3 w-3" aria-hidden />{data.is_demo ? "Demo" : "Sandbox"}{ex?.warn && <span> · {ex.expires_in_days}d left</span>}
+        <FlaskConical className="h-3 w-3" aria-hidden />{data.is_demo ? "Demo" : data.permanent ? "Permanent sandbox" : "Sandbox"}{ex?.warn && <span> · {ex.expires_in_days}d left</span>}
         <ChevronDown className="h-3 w-3" aria-hidden />
       </button>
       {open && <div id="sandbox-popover" ref={panel} tabIndex={-1} role="dialog" aria-label={`${kind} details`} data-testid="sandbox-popover"
@@ -136,7 +136,7 @@ export function SandboxChip() {
         <div data-testid="sandbox-label"><b>{kind}</b><div className="text-slate-900">{data.org_name}</div></div>
         <div data-testid="sandbox-operator">Operated by <span className="break-all">{data.operator.email}</span></div>
         <p className="text-[11px] text-slate-600" data-testid="sandbox-signature-note">{SIGNATURE_NOTE}</p>
-        <p className={`text-[11px] ${ex?.warn ? "font-semibold text-amber-800" : "text-slate-600"}`} data-testid="sandbox-expiry">{ex?.warn ? `Inactive ${ex.idle_days} days – deleted in ${ex.expires_in_days} day(s) without activity` : ex?.message}</p>
+        <p className={`text-[11px] ${ex?.warn ? "font-semibold text-amber-800" : "text-slate-600"}`} data-testid="sandbox-expiry">{data.permanent ? "Permanent sandbox – kept by the platform administrator; not deleted for inactivity." : ex?.warn ? `Inactive ${ex.idle_days} days – deleted in ${ex.expires_in_days} day(s) without activity` : ex?.message}</p>
         <div className="flex flex-wrap gap-2 pt-1">
           {!data.is_demo && !data.demo_data_loaded && <button className="btn-primary px-2 py-0.5 text-[11px]" disabled={busy} onClick={loadDemo} data-testid="sandbox-load-demo-btn"
             title="Adds fictional sample systems, scans, findings and POA&Ms to YOUR workspace so you can explore every feature. Clearly labelled SYNTHETIC. Remove any time with “Clear my workspace”.">{busy ? "Loading demo data…" : "Load demo data (SYNTHETIC)"}</button>}

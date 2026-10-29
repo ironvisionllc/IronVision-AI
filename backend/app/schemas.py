@@ -62,6 +62,7 @@ class AuthProviderInfo(BaseModel):
     demo_login_enabled: bool = False
     registration_enabled: bool = False
     oidc_enabled: bool = False
+    sandbox_inactivity_days: int | None = None
 
 
 class HealthComponent(BaseModel):

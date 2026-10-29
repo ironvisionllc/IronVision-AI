@@ -78,7 +78,12 @@ def provider_info(db: Session = Depends(get_db)) -> AuthProviderInfo:
     return AuthProviderInfo(provider=provider.name, label=provider.display_label, is_simulated=provider.is_simulated,
                             dev_accounts=accounts, enabled_providers=enabled, dev_password_enabled="dev_password" in enabled, signup_enabled=get_settings().allow_signup and "dev_password" in enabled,
                             demo_login_enabled=demo_login_available(), registration_enabled=_registration_enabled(),
-                            oidc_enabled="oidc" in enabled)
+                            oidc_enabled="oidc" in enabled, sandbox_inactivity_days=_inactivity_days())
+
+
+def _inactivity_days() -> int:
+    from app.services.sandbox import inactivity_days
+    return inactivity_days()
 
 
 def _registration_enabled() -> bool:

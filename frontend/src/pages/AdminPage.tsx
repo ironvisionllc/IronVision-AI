@@ -10,12 +10,14 @@ import { AuditPanel } from "@/components/admin/AuditPanel";
 import { RbacMatrixPanel } from "@/components/admin/RbacMatrixPanel";
 import { Restricted } from "@/components/admin/Restricted";
 import { DemoResetPanel } from "@/components/admin/DemoResetPanel";
+import { SandboxOrgsPanel } from "@/components/admin/SandboxOrgsPanel";
 import { AdminPhase3Panels } from "@/pages/Phase3Extras";
 import { AdminPhase4Panels } from "@/pages/Phase4Pages";
 import { Gated } from "@/components/common/RoleGate";
 
 export default function AdminPage() {
-  const { can } = useAuth();
+  const { can, user } = useAuth();
+  const platformAdmin = !!user && !user.persona_role && (user.roles || []).some((r: { role: string }) => r.role === "platform_admin");
   return (
     <div data-testid="admin-page">
       <PageHeader title="Admin" subtitle="Platform health, AI provider check, RBAC enforcement demo and the audit ledger">
@@ -32,6 +34,7 @@ export default function AdminPage() {
         {can("admin.users.manage") ? <AdminPhase3Panels /> : <Restricted title="Users, security & AI administration" permission="admin.users.manage" />}
         {(can("admin.health.read") || can("risk.admin")) && <AdminPhase4Panels />}
         <Gated perm="demo.tools"><DemoResetPanel /></Gated>
+        {platformAdmin && <SandboxOrgsPanel />}
         <RbacMatrixPanel />
       </div>
     </div>
